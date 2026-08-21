@@ -128,6 +128,43 @@ erDiagram
 `decision_refs`: `decision_id, run_id` — **どの実行がどの決定を読んだか**。
 「決めた内容は以降のAI社員が必ず参照する」を、口約束ではなく記録で担保する。
 
+### 入口 — まだ決まっていない人と、すでに事業がある人
+
+原文の Case B（やりたいことが決まっていない）と Case D（すでに事業がある）を受ける。
+**ここが無いと、いまの設計は Case A（ゼロから新規事業）にしか答えられない。**
+
+| テーブル | 役割 |
+|---|---|
+| `discovery_sessions` | 探索の1回。`account_id, status(collecting/proposed/adopted/abandoned), constraints, created_at` |
+| `discovery_candidates` | 出した候補。`session_id, name, summary, fit, recommended, adopted_work_id` |
+| `business_profiles` | 既存事業。`account_id, name, url, stage, created_at` |
+| `imported_sources` | 取り込んだもの。`business_profile_id, kind(site/doc/sheet/analytics/social), locator, status, summary` |
+| `diagnoses` | 診断の1回。`business_profile_id, findings, created_at` |
+
+`constraints` は**構造で持つ**（使える時間 / 使えるお金 / 得意なこと / やりたくないこと / いつまでに）。
+自由記述にすると、条件を1つ変えて**候補を出し直す**ことができなくなる。
+
+`fit` も構造（`speed / cost / strength` の3スコア）。
+画面では棒グラフで並べる。文章で「相性が良いです」と書かない。
+
+`findings` は `{ kind, severity, title, evidence[], suggested_work }` の配列。
+**診断は必ず「次に何をするか」まで持つ。** 問題を並べて終わりにしない。
+
+### 質問 — 統括AIの聞き返し
+
+| 列 | 意味 |
+|---|---|
+| `id, account_id` | |
+| `work_id, task_id` | どちらも null 可（Work の外でも聞ける） |
+| `body, why` | 質問文と、**なぜ聞いているか**の1行。理由のない質問は出さない |
+| `options` | 選択肢の配列。**打鍵させないのが原則**。自由記述は最後の手段 |
+| `answer, answered_at` | |
+| `promoted_decision_id` | 事業判断だったときだけ `decisions` へ昇格 |
+
+**質問は決定ではない。** 答えても決定事項の台帳には出さない
+（出すと台帳が「聞かれたこと」で埋まって、本当の判断が埋もれる）。
+事業判断だと分かったときだけ、統括AIが `decisions` に昇格させる。
+
 ### 採用・通知・トークン・監査
 
 | テーブル | 役割 |
@@ -147,6 +184,9 @@ erDiagram
 6. 業種・職種・フェーズ名を**コードに埋め込まない**
 7. **タスクは `kind='work_task'`（`work_id` と `phase_id` を持つ）か `kind='errand'`（どちらも null）のどちらかで、中間の状態を取らない**（→ [06](./06-work-and-scope.md)）
 8. **Work は入れ子にしない。** 階層は Work → フェーズ → タスク の3段で固定
+9. **候補は消さない。** `discovery_candidates` は採用しなかったものも残す。
+   「なぜその道を選んだか」は、選ばなかった道と並べて初めて意味になる
+10. **質問は決定事項の台帳に出さない。** 昇格したものだけが `decisions` に載る
 
 ## 進捗率の出し方
 

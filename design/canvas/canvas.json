@@ -1,24 +1,222 @@
 {
   "pages": [
-    { "id": "page-1", "name": "OneFound" },
-    { "id": "page-2", "name": "Phase 0 — アーカイブ" }
+    {
+      "id": "page-1",
+      "name": "OneFound"
+    },
+    {
+      "id": "page-2",
+      "name": "Phase 0 — アーカイブ"
+    }
   ],
   "artboards": [
-    { "file": "NewWork.dc.html",      "x": 0,    "y": 0,    "w": 1440, "h": 900,  "title": "① 新しいWork",            "page": "page-1" },
-    { "file": "PlanReview.dc.html",   "x": 1560, "y": 0,    "w": 1440, "h": 900,  "title": "② 計画の承認",            "page": "page-1" },
-    { "file": "Home.dc.html",         "x": 3120, "y": 0,    "w": 1440, "h": 900,  "title": "③ ホーム — オフィス",     "page": "page-1" },
-    { "file": "HomeProgress.dc.html", "x": 4680, "y": 0,    "w": 1440, "h": 900,  "title": "③' ホーム — 進捗",        "page": "page-1" },
-    { "file": "HomeFlow.dc.html",     "x": 0,    "y": 1040, "w": 1440, "h": 900,  "title": "③'' ホーム — ワークフロー", "page": "page-1" },
-    { "file": "Main.dc.html",         "x": 1560, "y": 1040, "w": 1440, "h": 900,  "title": "④ Work — 会話とロードマップ", "page": "page-1" },
-    { "file": "Tasks.dc.html",        "x": 3120, "y": 1040, "w": 1440, "h": 900,  "title": "⑤ タスク",                "page": "page-1" },
-    { "file": "Deliverables.dc.html", "x": 4680, "y": 1040, "w": 1440, "h": 900,  "title": "⑥ 成果物",                "page": "page-1" },
-    { "file": "Decisions.dc.html",    "x": 0,    "y": 2080, "w": 1440, "h": 900,  "title": "⑦ 決定事項",              "page": "page-1" },
-    { "file": "Hire.dc.html",         "x": 1560, "y": 2080, "w": 1440, "h": 900,  "title": "⑧ 採用",                  "page": "page-1" },
-    { "file": "Team.dc.html",         "x": 3120, "y": 2080, "w": 1440, "h": 900,  "title": "⑨ メンバー",              "page": "page-1" },
-    { "file": "Inbox.dc.html",        "x": 4680, "y": 2080, "w": 1440, "h": 900,  "title": "⑩ 通知",                  "page": "page-1" },
-    { "file": "DesignSystem.dc.html", "x": 0,    "y": 3120, "w": 1440, "h": 1000, "title": "⑪ デザインシステム",       "page": "page-1" },
-    { "file": "DirectionB.dc.html",   "x": 0,    "y": 0,    "w": 1440, "h": 900,  "title": "案B — Command Deck（不採用）", "page": "page-2" },
-    { "file": "DirectionC.dc.html",   "x": 1560, "y": 0,    "w": 1440, "h": 900,  "title": "案C — Flowline（不採用）",     "page": "page-2" }
+    {
+      "file": "Start.dc.html",
+      "x": 0,
+      "y": -1040,
+      "w": 1440,
+      "h": 900,
+      "title": "⓪ はじめての画面",
+      "page": "page-1"
+    },
+    {
+      "file": "Discovery.dc.html",
+      "x": 1560,
+      "y": -1040,
+      "w": 1440,
+      "h": 900,
+      "title": "⓪-a 条件を出す",
+      "page": "page-1"
+    },
+    {
+      "file": "DiscoveryResult.dc.html",
+      "x": 3120,
+      "y": -1040,
+      "w": 1440,
+      "h": 900,
+      "title": "⓪-b 候補をくらべる",
+      "page": "page-1"
+    },
+    {
+      "file": "Import.dc.html",
+      "x": 4680,
+      "y": -1040,
+      "w": 1440,
+      "h": 900,
+      "title": "⓪-c 事業の取り込み",
+      "page": "page-1"
+    },
+    {
+      "file": "Diagnosis.dc.html",
+      "x": 6240,
+      "y": -1040,
+      "w": 1440,
+      "h": 900,
+      "title": "⓪-d 診断結果",
+      "page": "page-1"
+    },
+    {
+      "file": "NewWork.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "① 新しいWork",
+      "page": "page-1"
+    },
+    {
+      "file": "PlanReview.dc.html",
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "② 計画の承認",
+      "page": "page-1"
+    },
+    {
+      "file": "Home.dc.html",
+      "x": 3120,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "③ ホーム — オフィス",
+      "page": "page-1"
+    },
+    {
+      "file": "HomeProgress.dc.html",
+      "x": 4680,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "③' ホーム — 進捗",
+      "page": "page-1"
+    },
+    {
+      "file": "Live.dc.html",
+      "x": 6240,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "③''' ホーム — 実況",
+      "page": "page-1"
+    },
+    {
+      "file": "HomeFlow.dc.html",
+      "x": 0,
+      "y": 1040,
+      "w": 1440,
+      "h": 900,
+      "title": "③'' ホーム — ワークフロー",
+      "page": "page-1"
+    },
+    {
+      "file": "Main.dc.html",
+      "x": 1560,
+      "y": 1040,
+      "w": 1440,
+      "h": 900,
+      "title": "④ Work — 会話とロードマップ",
+      "page": "page-1"
+    },
+    {
+      "file": "Tasks.dc.html",
+      "x": 3120,
+      "y": 1040,
+      "w": 1440,
+      "h": 900,
+      "title": "⑤ タスク",
+      "page": "page-1"
+    },
+    {
+      "file": "Deliverables.dc.html",
+      "x": 4680,
+      "y": 1040,
+      "w": 1440,
+      "h": 900,
+      "title": "⑥ 成果物",
+      "page": "page-1"
+    },
+    {
+      "file": "Decisions.dc.html",
+      "x": 0,
+      "y": 2080,
+      "w": 1440,
+      "h": 900,
+      "title": "⑦ 決定事項",
+      "page": "page-1"
+    },
+    {
+      "file": "Hire.dc.html",
+      "x": 1560,
+      "y": 2080,
+      "w": 1440,
+      "h": 900,
+      "title": "⑧ 採用",
+      "page": "page-1"
+    },
+    {
+      "file": "Team.dc.html",
+      "x": 3120,
+      "y": 2080,
+      "w": 1440,
+      "h": 900,
+      "title": "⑨ メンバー",
+      "page": "page-1"
+    },
+    {
+      "file": "Inbox.dc.html",
+      "x": 4680,
+      "y": 2080,
+      "w": 1440,
+      "h": 900,
+      "title": "⑩ 通知",
+      "page": "page-1"
+    },
+    {
+      "file": "DesignSystem.dc.html",
+      "x": 0,
+      "y": 3120,
+      "w": 1440,
+      "h": 1000,
+      "title": "⑪ デザインシステム",
+      "page": "page-1"
+    },
+    {
+      "file": "QuestionCard.dc.html",
+      "x": 1560,
+      "y": 3120,
+      "w": 1440,
+      "h": 900,
+      "title": "⑫ 質問カード",
+      "page": "page-1"
+    },
+    {
+      "file": "SkillEdit.dc.html",
+      "x": 3120,
+      "y": 3120,
+      "w": 1440,
+      "h": 900,
+      "title": "⑬ SKILL.md エディタ",
+      "page": "page-1"
+    },
+    {
+      "file": "DirectionB.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "案B — Command Deck（不採用）",
+      "page": "page-2"
+    },
+    {
+      "file": "DirectionC.dc.html",
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "案C — Flowline（不採用）",
+      "page": "page-2"
+    }
   ],
   "annotations": [
     {
@@ -38,5 +236,8 @@
       "text": "Phase 0 のアーカイブ。案A（Mission Control）採用済み。案B / 案C は参考として保存しています。"
     }
   ],
-  "launch": { "view": "canvas", "page": "page-1" }
+  "launch": {
+    "view": "canvas",
+    "page": "page-1"
+  }
 }
