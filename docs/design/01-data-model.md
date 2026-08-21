@@ -47,9 +47,11 @@ erDiagram
 | `status` | text | `draft / planning / plan_review / active / paused / done / archived` |
 | `current_phase_id` | uuid | null 可 |
 | `budget_tokens` | int | この Work に使ってよい上限。null なら会社の残高まで |
+| `kind` | text | `normal` / `inbox`（常設の「相談」。削除不可） |
+| `origin_phase_id` | uuid | 昇格して切り出されたとき、元のフェーズ（→ [06](./06-work-and-scope.md)） |
 | `created_at, started_at, done_at` | timestamptz | |
 
-`phases`: `id, work_id, seq, name, goal, status, planned_credits, started_at, done_at`
+`phases`: `id, work_id, seq, name, goal, status, planned_tokens, promoted_to_work_id, started_at, done_at`
 **フェーズ数は Work ごとに可変**。画面の「フェーズ 2 / 4」はこのレコード数から出す。
 
 ### タスク
@@ -136,6 +138,8 @@ erDiagram
 4. **タスクは `needs_decision` のあいだ、絶対に自動で先へ進まない**
 5. **すべての状態遷移は `audit_events` に1行残る。** 画面に出ている状態は必ず根拠を辿れる
 6. 業種・職種・フェーズ名を**コードに埋め込まない**
+7. **`kind='inbox'` の Work は会社に必ず1つだけ存在し、削除できない**（→ [06](./06-work-and-scope.md)）
+8. **Work は入れ子にしない。** 階層は Work → フェーズ → タスク の3段で固定
 
 ## 進捗率の出し方
 
