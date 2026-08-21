@@ -1,0 +1,29 @@
+{
+  "pages": [
+    { "id": "page-1", "name": "Phase 1 — 案A Mission Control" },
+    { "id": "page-2", "name": "Phase 0 — アーカイブ" }
+  ],
+  "artboards": [
+    { "file": "NewWork.dc.html", "x": 0, "y": 0, "w": 1440, "h": 900, "title": "① New Work — 目的入力", "page": "page-1" },
+    { "file": "PlanReview.dc.html", "x": 1560, "y": 0, "w": 1440, "h": 900, "title": "② Plan Review — 承認", "page": "page-1" },
+    { "file": "Office.dc.html", "x": 3120, "y": 0, "w": 1440, "h": 900, "title": "③ Office ＋ Employee Detail", "page": "page-1" },
+    { "file": "Main.dc.html", "x": 0, "y": 1040, "w": 1440, "h": 900, "title": "④ Work Detail — Overview", "page": "page-1" },
+    { "file": "Roadmap.dc.html", "x": 1560, "y": 1040, "w": 1440, "h": 900, "title": "⑤ Work Detail — Roadmap", "page": "page-1" },
+    { "file": "Tasks.dc.html", "x": 3120, "y": 1040, "w": 1440, "h": 900, "title": "⑥ Tasks — 要対応ファースト", "page": "page-1" },
+    { "file": "Deliverables.dc.html", "x": 0, "y": 2080, "w": 1440, "h": 900, "title": "⑦ Deliverables — Split表示", "page": "page-1" },
+    { "file": "ExecutiveExpanded.dc.html", "x": 1560, "y": 2080, "w": 1440, "h": 900, "title": "⑧ Executive — Expanded", "page": "page-1" },
+    { "file": "ChatFocus.dc.html", "x": 3120, "y": 2080, "w": 1440, "h": 900, "title": "⑨ Executive — Chat Focus", "page": "page-1" },
+    { "file": "Decision.dc.html", "x": 0, "y": 3120, "w": 1440, "h": 900, "title": "⑩ Decision Modal", "page": "page-1" },
+    { "file": "Review.dc.html", "x": 1560, "y": 3120, "w": 1440, "h": 900, "title": "⑪ Deliverable Review — Focus", "page": "page-1" },
+    { "file": "DesignSystem.dc.html", "x": 3120, "y": 3120, "w": 1440, "h": 1000, "title": "⑫ Design System", "page": "page-1" },
+    { "file": "States.dc.html", "x": 0, "y": 4260, "w": 1040, "h": 900, "title": "状態モデルと遷移", "page": "page-1" },
+    { "file": "Cards.dc.html", "x": 1560, "y": 4260, "w": 1320, "h": 900, "title": "共通UIパターン", "page": "page-1" },
+    { "file": "DirectionB.dc.html", "x": 0, "y": 0, "w": 1440, "h": 900, "title": "案B — Command Deck（不採用・参考）", "page": "page-2" },
+    { "file": "DirectionC.dc.html", "x": 1560, "y": 0, "w": 1440, "h": 900, "title": "案C — Flowline（不採用・参考）", "page": "page-2" }
+  ],
+  "annotations": [
+    { "id": "intro-p1", "x": -470, "y": 0, "w": 420, "page": "page-1", "text": "Phase 1 — Design Refinement（案A確定版）\n\n上から下へ、プロダクトの体験順に並んでいます。\n\n1段目: New Work → Plan Review → Office（導入）\n2段目: Work Detail — Overview / Roadmap / Tasks\n3段目: Deliverables（Split）/ Executive Expanded / Chat Focus\n4段目: Decision Modal / Review（Focus）/ Design System\n5段目: 状態モデルと共通UIパターン\n\nこのPhaseではまだ実装しません。承認後、Phase 2（Architecture Review）へ進みます。" },
+    { "id": "note-archive", "x": -470, "y": 0, "w": 420, "page": "page-2", "text": "Phase 0 のアーカイブ。\n\n案A（Mission Control）が採用されたため、案B / 案C は参考として保存しています。案BのCommand Bar（⌘K）と集約Reviewピル、案Cのパイプライン表現は、将来のオプションとして案Aに取り込み可能です。" }
+  ],
+  "launch": { "view": "canvas", "page": "page-1" }
+}

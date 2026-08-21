@@ -1,0 +1,252 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
+  <style>
+    body { margin: 0; background: #0B0E14; }
+    a { color: #6E9BFF; } a:hover { color: #9DBBFF; }
+    @keyframes dotpulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+  </style>
+</helmet>
+<div style="width: 1440px; height: 900px; display: flex; background: #0B0E14; color: #E8ECF4; font-family: 'IBM Plex Sans JP', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', system-ui, sans-serif; overflow: hidden;">
+
+  <!-- Nav rail -->
+  <div style="width: 64px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 0; border-right: 1px solid rgba(148,163,184,0.10); background: rgba(9,11,17,0.7);">
+    <div style="width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; background: rgba(110,155,255,0.12); border: 1px solid rgba(110,155,255,0.45); margin-bottom: 8px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="#6E9BFF"><path d="M12 2l2.2 7L21 11l-6.8 2L12 21l-2.2-8L3 11l6.8-2z"/></svg>
+    </div>
+    <div style="width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px dashed rgba(110,155,255,0.4); margin-bottom: 6px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#626D80" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    </div>
+    <div style="width: 52px; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 7px 0; border-radius: 8px;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#626D80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="3.5" width="15" height="17" rx="1.5"/><path d="M9.5 20.5v-3.5h5v3.5"/><path d="M8.5 7.5h2m3 0h2m-7 4h2m3 0h2"/></svg>
+      <span style="font-size: 9px; color: #626D80;">Office</span>
+    </div>
+    <div style="width: 52px; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 7px 0; border-radius: 8px; background: rgba(110,155,255,0.10);">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9D6F5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="7.5" width="17" height="12.5" rx="2"/><path d="M9 7.5V5.6A1.6 1.6 0 0 1 10.6 4h2.8A1.6 1.6 0 0 1 15 5.6v1.9"/></svg>
+      <span style="font-size: 9px; color: #C9D6F5; font-weight: 600;">Work</span>
+    </div>
+    <div style="width: 52px; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 7px 0; border-radius: 8px;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#626D80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="m8.5 12.2 2.4 2.4 4.6-5"/></svg>
+      <span style="font-size: 9px; color: #626D80;">Tasks</span>
+    </div>
+    <div style="width: 52px; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 7px 0; border-radius: 8px;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#626D80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8.5z"/><path d="M13.5 3.5v5h5"/></svg>
+      <span style="font-size: 9px; color: #626D80;">Deliv.</span>
+    </div>
+    <div style="flex: 1;"></div>
+    <div style="width: 52px; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 7px 0;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#626D80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7"/></svg>
+    </div>
+    <div style="width: 30px; height: 30px; border-radius: 999px; background: rgba(232,163,61,0.16); border: 1px solid rgba(232,163,61,0.4); display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 600; color: #EBB765;">Y</div>
+  </div>
+
+  <!-- Center column -->
+  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column;">
+    <div style="height: 52px; flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 0 18px; border-bottom: 1px solid rgba(148,163,184,0.10);">
+      <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: 0.08em; color: #626D80;">WORK</span>
+      <span style="color: #3A4254; font-size: 11px;">/</span>
+      <span style="font-size: 13.5px; font-weight: 600;">韓国人向け日本語学習サービス</span>
+      <span style="display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 8px; border-radius: 999px; font-size: 10px; color: #E8A33D; background: rgba(232,163,61,0.10); border: 1px solid rgba(232,163,61,0.35);">Plan Review — あなたの承認待ち</span>
+      <div style="flex: 1;"></div>
+      <span style="font-size: 10.5px; color: #626D80;">質問 ✓ · 調査 ✓ · チーム ✓ · Roadmap ✓ · <span style="color: #EBB765;">Review ●</span></span>
+    </div>
+
+    <!-- Plan document -->
+    <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 16px 18px; overflow: hidden; background-image: radial-gradient(620px 300px at 60% -10%, rgba(110,155,255,0.06), transparent 70%), radial-gradient(rgba(148,163,184,0.07) 1px, transparent 1px); background-size: auto, 24px 24px;">
+
+      <div style="display: flex; gap: 14px;">
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 7px; padding: 12px 14px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(148,163,184,0.10);">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9.5px; letter-spacing: 0.08em; color: #626D80;">GOAL</span>
+            <div style="flex: 1;"></div>
+            <span style="font-size: 10.5px; color: #626D80;">Edit</span>
+          </div>
+          <span style="font-size: 12.5px; line-height: 1.7;">韓国在住の20〜30代向け日本語学習サービスをMVPとして立ち上げ、3ヶ月で有料検証まで到達する。</span>
+        </div>
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 7px; padding: 12px 14px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(148,163,184,0.10);">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9.5px; letter-spacing: 0.08em; color: #626D80;">SUCCESS CRITERIA</span>
+            <div style="flex: 1;"></div>
+            <span style="font-size: 10.5px; color: #626D80;">Edit</span>
+          </div>
+          <span style="font-size: 11.5px; color: #B6C1D4; line-height: 1.8;">・事前登録 500件　・有料転換の検証完了　・継続利用の初期シグナル確認</span>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 7px; padding: 12px 14px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(148,163,184,0.10);">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9.5px; letter-spacing: 0.08em; color: #626D80;">TEAM</span>
+          <span style="font-size: 10.5px; color: #626D80;">採用済み2名 · 推奨1名</span>
+          <div style="flex: 1;"></div>
+          <span style="font-size: 10.5px; color: #626D80;">Edit</span>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <div style="flex: 1; display: flex; align-items: center; gap: 9px; padding: 9px 11px; border-radius: 8px; border: 1px solid rgba(148,163,184,0.12); background: rgba(255,255,255,0.02);">
+            <span style="width: 26px; height: 26px; border-radius: 999px; background: rgba(110,155,255,0.16); border: 1px solid rgba(110,155,255,0.35); display: inline-flex; align-items: center; justify-content: center; font-size: 9.5px; color: #9DBBFF; font-weight: 600;">MR</span>
+            <div style="display: flex; flex-direction: column; gap: 1px;">
+              <span style="font-size: 11.5px;">市場リサーチャー</span>
+              <span style="font-size: 9.5px; color: #626D80;">Phase 1〜2 担当</span>
+            </div>
+            <div style="flex: 1;"></div>
+            <span style="display: inline-flex; align-items: center; height: 18px; padding: 0 7px; border-radius: 999px; font-size: 9px; color: #3ED598; background: rgba(62,213,152,0.10); border: 1px solid rgba(62,213,152,0.35);">在籍</span>
+          </div>
+          <div style="flex: 1; display: flex; align-items: center; gap: 9px; padding: 9px 11px; border-radius: 8px; border: 1px solid rgba(148,163,184,0.12); background: rgba(255,255,255,0.02);">
+            <span style="width: 26px; height: 26px; border-radius: 999px; background: rgba(62,213,152,0.14); border: 1px solid rgba(62,213,152,0.35); display: inline-flex; align-items: center; justify-content: center; font-size: 9.5px; color: #7FE6BC; font-weight: 600;">BS</span>
+            <div style="display: flex; flex-direction: column; gap: 1px;">
+              <span style="font-size: 11.5px;">事業ストラテジスト</span>
+              <span style="font-size: 9.5px; color: #626D80;">Phase 2〜 担当</span>
+            </div>
+            <div style="flex: 1;"></div>
+            <span style="display: inline-flex; align-items: center; height: 18px; padding: 0 7px; border-radius: 999px; font-size: 9px; color: #3ED598; background: rgba(62,213,152,0.10); border: 1px solid rgba(62,213,152,0.35);">在籍</span>
+          </div>
+          <div style="flex: 1; display: flex; align-items: center; gap: 9px; padding: 9px 11px; border-radius: 8px; border: 1px solid rgba(110,155,255,0.4); background: rgba(110,155,255,0.05);">
+            <span style="width: 26px; height: 26px; border-radius: 999px; background: rgba(200,140,255,0.14); border: 1px solid rgba(200,140,255,0.35); display: inline-flex; align-items: center; justify-content: center; font-size: 9.5px; color: #CFA8FF; font-weight: 600;">PS</span>
+            <div style="display: flex; flex-direction: column; gap: 1px;">
+              <span style="font-size: 11.5px;">プロダクトストラテジスト</span>
+              <span style="font-size: 9.5px; color: #9DBBFF;">推奨 — Phase 3で必要</span>
+            </div>
+            <div style="flex: 1;"></div>
+            <span style="display: inline-flex; align-items: center; height: 24px; padding: 0 11px; border-radius: 6px; font-size: 10.5px; font-weight: 600; color: #C9D6F5; background: rgba(110,155,255,0.14); border: 1px solid rgba(110,155,255,0.5);">Hire</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 14px;">
+        <div style="flex: 1.25; display: flex; flex-direction: column; gap: 7px; padding: 12px 14px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(148,163,184,0.10);">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9.5px; letter-spacing: 0.08em; color: #626D80;">ROADMAP</span>
+            <div style="flex: 1;"></div>
+            <span style="font-size: 10.5px; color: #626D80;">Edit</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 9px; padding: 7px 0;">
+            <span style="width: 20px; height: 20px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid rgba(110,155,255,0.6); background: rgba(110,155,255,0.14); font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 8.5px; color: #9DBBFF;">01</span>
+            <span style="font-size: 12px; font-weight: 600;">Research</span>
+            <span style="font-size: 10px; color: #626D80;">市場検証 · 成果物: 市場調査レポート</span>
+            <div style="flex: 1;"></div>
+            <span style="font-size: 10px; color: #626D80;">約1週</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 9px; padding: 7px 0; border-top: 1px solid rgba(148,163,184,0.06);">
+            <span style="width: 20px; height: 20px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid rgba(148,163,184,0.22); font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 8.5px; color: #626D80;">02</span>
+            <span style="font-size: 12px; font-weight: 500; color: #C7CFDE;">Strategy</span>
+            <span style="font-size: 10px; color: #626D80;">価格・ポジショニング</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3.5 20.5 12 12 20.5 3.5 12z"/></svg>
+            <span style="font-size: 9.5px; color: #EBB765;">Decision: 価格モデル</span>
+            <div style="flex: 1;"></div>
+            <span style="font-size: 10px; color: #626D80;">約1週</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 9px; padding: 7px 0; border-top: 1px solid rgba(148,163,184,0.06);">
+            <span style="width: 20px; height: 20px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid rgba(148,163,184,0.22); font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 8.5px; color: #626D80;">03</span>
+            <span style="font-size: 12px; font-weight: 500; color: #9AA4B8;">Product</span>
+            <span style="font-size: 10px; color: #626D80;">MVP仕様 · Decision: 機能スコープ</span>
+            <div style="flex: 1;"></div>
+            <span style="font-size: 10px; color: #626D80;">約2週</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 9px; padding: 7px 0; border-top: 1px solid rgba(148,163,184,0.06);">
+            <span style="width: 20px; height: 20px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid rgba(148,163,184,0.22); font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 8.5px; color: #626D80;">04</span>
+            <span style="font-size: 12px; font-weight: 500; color: #9AA4B8;">Launch</span>
+            <span style="font-size: 10px; color: #626D80;">事前登録LP · ローンチ計画</span>
+            <div style="flex: 1;"></div>
+            <span style="font-size: 10px; color: #626D80;">約2週</span>
+          </div>
+          <span style="margin-top: auto; font-size: 10px; color: #626D80;">後半Phaseの詳細タスクは、直近Phaseの結果とあなたのDecisionを踏まえて再計画されます。</span>
+        </div>
+
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 7px; padding: 12px 14px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(148,163,184,0.10);">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9.5px; letter-spacing: 0.08em; color: #626D80;">FIRST TASKS — PHASE 1</span>
+            <div style="flex: 1;"></div>
+            <span style="font-size: 10.5px; color: #626D80;">Edit</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; padding: 7px 0;">
+            <span style="width: 6px; height: 6px; border-radius: 999px; background: rgba(148,163,184,0.35);"></span>
+            <span style="font-size: 11.5px;">市場規模の一次調査</span>
+            <div style="flex: 1;"></div>
+            <span style="font-size: 10px; color: #9AA4B8;">市場リサーチャー</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; padding: 7px 0; border-top: 1px solid rgba(148,163,184,0.06);">
+            <span style="width: 6px; height: 6px; border-radius: 999px; background: rgba(148,163,184,0.35);"></span>
+            <span style="font-size: 11.5px;">競合サービスの一覧化</span>
+            <div style="flex: 1;"></div>
+            <span style="font-size: 10px; color: #9AA4B8;">市場リサーチャー</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; padding: 7px 0; border-top: 1px solid rgba(148,163,184,0.06);">
+            <span style="width: 6px; height: 6px; border-radius: 999px; background: rgba(148,163,184,0.35);"></span>
+            <span style="font-size: 11.5px;">学習者インタビュー設計</span>
+            <div style="flex: 1;"></div>
+            <span style="font-size: 10px; color: #9AA4B8;">市場リサーチャー</span>
+          </div>
+          <span style="margin-top: auto; font-size: 10px; color: #626D80;">期待成果物: 市場調査レポート / 競合サービス一覧表</span>
+        </div>
+      </div>
+
+      <!-- Approve bar -->
+      <div style="flex-shrink: 0; margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px; background: rgba(15,19,28,0.92); border: 1px solid rgba(110,155,255,0.35); box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 24px rgba(110,155,255,0.08);">
+        <span style="font-size: 11px; color: #9AA4B8;">Start Workを押すまで、AI社員は本格実行を開始しません。</span>
+        <div style="flex: 1;"></div>
+        <div style="height: 34px; display: flex; align-items: center; padding: 0 14px; border-radius: 8px; font-size: 12px; color: #9AA4B8; border: 1px solid rgba(148,163,184,0.18);">Edit Plan</div>
+        <div style="height: 34px; display: flex; align-items: center; gap: 6px; padding: 0 14px; border-radius: 8px; font-size: 12px; color: #9DBBFF; border: 1px solid rgba(110,155,255,0.25); background: rgba(110,155,255,0.06);">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="#9DBBFF"><path d="M12 2l2.2 7L21 11l-6.8 2L12 21l-2.2-8L3 11l6.8-2z"/></svg>
+          Ask Executive
+        </div>
+        <div style="height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 18px; border-radius: 9px; font-size: 12.5px; font-weight: 700; color: #E8ECF4; background: rgba(110,155,255,0.22); border: 1px solid rgba(110,155,255,0.7); box-shadow: 0 0 20px rgba(110,155,255,0.25);">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="#E8ECF4"><path d="M7 4.5v15l12-7.5z"/></svg>
+          承認して開始 — Start Work
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right panel: plan context -->
+  <div style="width: 400px; flex-shrink: 0; display: flex; flex-direction: column; border-left: 1px solid rgba(148,163,184,0.12); background: #0A0D13;">
+    <div style="height: 48px; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 16px; border-bottom: 1px solid rgba(148,163,184,0.10);">
+      <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: 0.08em; color: #626D80;">PLAN CONTEXT</span>
+      <div style="flex: 1;"></div>
+      <div style="width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(148,163,184,0.14);">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9AA4B8" stroke-width="1.5" stroke-linecap="round"><path d="M7 7l10 10M17 7L7 17"/></svg>
+      </div>
+    </div>
+    <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px;">
+      <div style="display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 8px; background: rgba(110,155,255,0.06); border: 1px solid rgba(110,155,255,0.22);">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="#6E9BFF"><path d="M12 2l2.2 7L21 11l-6.8 2L12 21l-2.2-8L3 11l6.8-2z"/></svg>
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9.5px; letter-spacing: 0.08em; color: #9DBBFF;">EXECUTIVE SUMMARY</span>
+        </div>
+        <span style="font-size: 11.5px; line-height: 1.7; color: #B6C1D4;">簡易調査の結果、直接競合は3社。会話練習特化と価格で差別化余地があります。最大リスクは獲得コスト — Phase 1で市場側の検証を先に行う計画にしました。</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9.5px; letter-spacing: 0.08em; color: #626D80;">調査サマリー</span>
+        <div style="display: flex; align-items: center; gap: 9px; padding: 9px 11px; border-radius: 8px; border: 1px solid rgba(148,163,184,0.12); background: rgba(255,255,255,0.02);">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9DBBFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8.5z"/><path d="M13.5 3.5v5h5"/></svg>
+          <span style="font-size: 11.5px;">簡易市場検証メモ</span>
+          <div style="flex: 1;"></div>
+          <span style="font-size: 10px; color: #626D80;">開く ›</span>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9.5px; letter-spacing: 0.08em; color: #626D80;">あなたの回答（この計画に反映済み）</span>
+        <div style="display: flex; flex-direction: column; gap: 5px; padding: 10px 11px; border-radius: 8px; border: 1px solid rgba(148,163,184,0.10); background: rgba(255,255,255,0.02);">
+          <span style="font-size: 10px; color: #626D80;">Q. 主なターゲットは？</span>
+          <span style="font-size: 11.5px; color: #B6C1D4;">✓ 韓国在住の20〜30代 初中級学習者</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 5px; padding: 10px 11px; border-radius: 8px; border: 1px solid rgba(148,163,184,0.10); background: rgba(255,255,255,0.02);">
+          <span style="font-size: 10px; color: #626D80;">Q. 初期の予算感は？</span>
+          <span style="font-size: 11.5px; color: #B6C1D4;">✓ 月5万円以内（AIに任せるを選択 → 推奨値）</span>
+        </div>
+      </div>
+
+      <span style="margin-top: auto; font-size: 10px; color: #626D80; line-height: 1.7;">承認するとPlanはApproved Decisionとして保存され、以後のAI社員が必ず参照します。承認後もRoadmapはPhaseごとに再計画できます。</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
