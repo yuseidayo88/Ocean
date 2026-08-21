@@ -25,7 +25,7 @@
       "y": -1040,
       "w": 1440,
       "h": 900,
-      "title": "⓪-a 条件を出す",
+      "title": "⓪-a 条件を集める（チャット）",
       "page": "page-1"
     },
     {
@@ -191,21 +191,12 @@
       "page": "page-1"
     },
     {
-      "file": "QuestionCard.dc.html",
-      "x": 1560,
-      "y": 3120,
-      "w": 1440,
-      "h": 900,
-      "title": "⑫ 質問カード",
-      "page": "page-1"
-    },
-    {
       "file": "SkillEdit.dc.html",
       "x": 3120,
       "y": 3120,
       "w": 1440,
       "h": 900,
-      "title": "⑬ SKILL.md エディタ",
+      "title": "⑫ スキル（SKILL.md の管理）",
       "page": "page-1"
     },
     {
