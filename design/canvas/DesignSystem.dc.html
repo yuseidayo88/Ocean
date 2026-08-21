@@ -26,7 +26,7 @@
   <div style="flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px;">
 
     <!-- COLOR -->
-    <div style="display: flex; flex-direction: column; gap: 9px; padding: 13px; border-radius: 10px; background: #0E0E10; border: 1px solid rgba(255,255,255,0.07);">
+    <div style="display: flex; flex-direction: column; gap: 9px; padding: 13px; border-radius: 14px; background: rgba(18,18,21,0.72); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(8px);">
       <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">COLOR</span>
       <div style="display: flex; align-items: center; gap: 8px;">
         <span style="width: 24px; height: 24px; border-radius: 6px; background: #070708; border: 1px solid rgba(255,255,255,0.18);"></span>
@@ -41,7 +41,7 @@
       <div style="display: flex; align-items: center; gap: 8px;">
         <span style="width: 24px; height: 24px; border-radius: 6px; background: #131315; border: 1px solid rgba(255,255,255,0.18);"></span>
         <span style="font-size: 10.5px; color: #9A9AA2;">Card / Node（外枠 → 内カード）</span>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9.5px; color: #5F5F66; margin-left: auto;">#131315 → #1A1A1D</span>
+        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9.5px; color: #5F5F66; margin-left: auto;">glass 78% → white 5%</span>
       </div>
       <div style="display: flex; align-items: center; gap: 8px;">
         <span style="width: 24px; height: 24px; border-radius: 6px; background: #F2F2F3;"></span>
@@ -54,11 +54,11 @@
         <span style="width: 18px; height: 18px; border-radius: 5px; background: #E5654F;"></span>
         <span style="font-size: 10px; color: #5F5F66; margin-left: 4px;">稼働・承認 / 判断待ち / 失敗 — 計器色。装飾に使わない</span>
       </div>
-      <span style="font-size: 9.5px; color: #5F5F66; line-height: 1.7; margin-top: auto;">テキスト: #ECECEE / #9A9AA2 / #5F5F66（ニュートラル、青みなし）。罫線: white 13%（強）/ 8%（標準）/ 6%（区切り）。グロー・グラデーションは廃止。</span>
+      <span style="font-size: 9.5px; color: #5F5F66; line-height: 1.7; margin-top: auto;">テキスト: #ECECEE / #9A9AA2 / #5F5F66（青みなし）。罫線: white 13% / 8% / 6%。角丸: カード外 14 / 内 10 / チップ 6 / ボタン pill。カードは半透明ガラス rgba(22,23,26,0.78) ＋ blur(10px) ＋ 上端1pxハイライト — 背景のドットが薄く透ける。装飾グラデーションは廃止。</span>
     </div>
 
     <!-- TYPOGRAPHY -->
-    <div style="display: flex; flex-direction: column; gap: 8px; padding: 13px; border-radius: 10px; background: #0E0E10; border: 1px solid rgba(255,255,255,0.07);">
+    <div style="display: flex; flex-direction: column; gap: 8px; padding: 13px; border-radius: 14px; background: rgba(18,18,21,0.72); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(8px);">
       <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">TYPOGRAPHY</span>
       <span style="font-size: 17px; font-weight: 650;">画面タイトル 17 / 650 — Geist</span>
       <span style="font-size: 13px; font-weight: 600;">オブジェクト名 13 / 600</span>
@@ -70,16 +70,16 @@
     </div>
 
     <!-- TICKET / NODE -->
-    <div style="display: flex; flex-direction: column; gap: 9px; padding: 13px; border-radius: 10px; background: #0E0E10; border: 1px solid rgba(255,255,255,0.07);">
+    <div style="display: flex; flex-direction: column; gap: 9px; padding: 13px; border-radius: 14px; background: rgba(18,18,21,0.72); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(8px);">
       <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">TICKET HEADER / NODE</span>
-      <div style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); background: #131315;">
+      <div style="border-radius: 14px; border: 1px solid rgba(255,255,255,0.09); background: rgba(22,23,26,0.78); backdrop-filter: blur(10px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 12px 32px rgba(0,0,0,0.35);">
         <div style="display: flex; align-items: center; padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,0.06);">
           <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">TASK</span>
           <div style="flex: 1;"></div>
           <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">市場リサーチャー</span>
         </div>
         <div style="display: flex; flex-direction: column; gap: 6px; padding: 8px 10px;">
-          <div style="display: flex; align-items: center; gap: 9px; padding: 6px 9px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.07); background: #1A1A1D;">
+          <div style="display: flex; align-items: center; gap: 9px; padding: 6px 9px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.05);">
             <span style="width: 22px; height: 22px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; background: rgba(232,163,61,0.12); border: 1px solid rgba(232,163,61,0.3);">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><path d="m15.5 15.5 4 4"/></svg>
             </span>
@@ -102,7 +102,7 @@
     </div>
 
     <!-- BUTTONS -->
-    <div style="display: flex; flex-direction: column; gap: 9px; padding: 13px; border-radius: 10px; background: #0E0E10; border: 1px solid rgba(255,255,255,0.07);">
+    <div style="display: flex; flex-direction: column; gap: 9px; padding: 13px; border-radius: 14px; background: rgba(18,18,21,0.72); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(8px);">
       <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">BUTTONS</span>
       <div style="display: flex; align-items: center; gap: 8px;">
         <span style="height: 30px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 7px; font-size: 11.5px; font-weight: 600; color: #0A0A0B; background: #F2F2F3;">承認して開始</span>
@@ -126,7 +126,7 @@
     </div>
 
     <!-- STATUS -->
-    <div style="display: flex; flex-direction: column; gap: 9px; padding: 13px; border-radius: 10px; background: #0E0E10; border: 1px solid rgba(255,255,255,0.07);">
+    <div style="display: flex; flex-direction: column; gap: 9px; padding: 13px; border-radius: 14px; background: rgba(18,18,21,0.72); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(8px);">
       <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">STATUS — 語彙は固定・モノスペース</span>
       <div style="display: flex; flex-wrap: wrap; gap: 6px;">
         <span style="display: inline-flex; align-items: center; gap: 5px; height: 19px; padding: 0 8px; border-radius: 999px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; letter-spacing: 0.06em; color: #52D97F; background: rgba(62,207,110,0.08); border: 1px solid rgba(62,207,110,0.3);"><span style="width: 5px; height: 5px; border-radius: 999px; background: #3ECF6E; animation: dotpulse 1.8s ease-in-out infinite;"></span>RUNNING</span>
@@ -145,7 +145,7 @@
     </div>
 
     <!-- SIDEBAR / CREDITS -->
-    <div style="display: flex; flex-direction: column; gap: 9px; padding: 13px; border-radius: 10px; background: #0E0E10; border: 1px solid rgba(255,255,255,0.07);">
+    <div style="display: flex; flex-direction: column; gap: 9px; padding: 13px; border-radius: 14px; background: rgba(18,18,21,0.72); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(8px);">
       <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">SIDEBAR / CREDITS</span>
       <div style="display: flex; flex-direction: column; gap: 2px; padding: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.07); background: #0C0C0E;">
         <div style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 8px; border-radius: 6px; background: rgba(255,255,255,0.06);">
@@ -175,7 +175,7 @@
     </div>
 
     <!-- CANVAS -->
-    <div style="display: flex; flex-direction: column; gap: 9px; padding: 13px; border-radius: 10px; background: #0E0E10; border: 1px solid rgba(255,255,255,0.07);">
+    <div style="display: flex; flex-direction: column; gap: 9px; padding: 13px; border-radius: 14px; background: rgba(18,18,21,0.72); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(8px);">
       <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">CANVAS / CONNECTORS</span>
       <div style="flex: 1; border-radius: 8px; border: 1px solid rgba(255,255,255,0.07); background-color: #070708; background-image: radial-gradient(rgba(255,255,255,0.055) 1px, transparent 1px); background-size: 20px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; padding: 10px;">
         <div style="width: 150px; height: 30px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.10); background: #131315;"></div>
@@ -192,7 +192,7 @@
     </div>
 
     <!-- MOTION -->
-    <div style="display: flex; flex-direction: column; gap: 8px; padding: 13px; border-radius: 10px; background: #0E0E10; border: 1px solid rgba(255,255,255,0.07);">
+    <div style="display: flex; flex-direction: column; gap: 8px; padding: 13px; border-radius: 14px; background: rgba(18,18,21,0.72); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(8px);">
       <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">MOTION</span>
       <div style="display: flex; align-items: center; gap: 8px;"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9.5px; color: #9A9AA2; width: 50px;">120ms</span><span style="font-size: 10.5px; color: #9A9AA2;">Hover / 状態ピル切替（in-place）</span></div>
       <div style="display: flex; align-items: center; gap: 8px;"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9.5px; color: #9A9AA2; width: 50px;">200ms</span><span style="font-size: 10.5px; color: #9A9AA2;">Panel開閉 / Normal ⇄ Split</span></div>
@@ -202,7 +202,7 @@
     </div>
 
     <!-- PRINCIPLES -->
-    <div style="display: flex; flex-direction: column; gap: 8px; padding: 13px; border-radius: 10px; background: #0E0E10; border: 1px solid rgba(255,255,255,0.07);">
+    <div style="display: flex; flex-direction: column; gap: 8px; padding: 13px; border-radius: 14px; background: rgba(18,18,21,0.72); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(8px);">
       <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">DENSITY / PRINCIPLES</span>
       <span style="font-size: 10.5px; color: #9A9AA2;">Sidebar 204px · Details Panel 336px · 行の高さ 30–44</span>
       <span style="font-size: 10.5px; color: #9A9AA2;">タブ = 白下線。選択 = white 6% ティント。色付きアクセントバー禁止</span>
