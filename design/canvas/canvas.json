@@ -1,141 +1,24 @@
 {
   "pages": [
-    {
-      "id": "page-1",
-      "name": "OneFound"
-    },
-    {
-      "id": "page-2",
-      "name": "Phase 0 — アーカイブ"
-    }
+    { "id": "page-1", "name": "OneFound" },
+    { "id": "page-2", "name": "Phase 0 — アーカイブ" }
   ],
   "artboards": [
-    {
-      "file": "NewWork.dc.html",
-      "x": 0,
-      "y": 0,
-      "w": 1440,
-      "h": 900,
-      "title": "① 新しいWork",
-      "page": "page-1"
-    },
-    {
-      "file": "PlanReview.dc.html",
-      "x": 1560,
-      "y": 0,
-      "w": 1440,
-      "h": 900,
-      "title": "② 計画の承認",
-      "page": "page-1"
-    },
-    {
-      "file": "Home.dc.html",
-      "x": 3120,
-      "y": 0,
-      "w": 1440,
-      "h": 900,
-      "title": "③ ホーム — フロー",
-      "page": "page-1"
-    },
-    {
-      "file": "HomeProgress.dc.html",
-      "x": 4680,
-      "y": 0,
-      "w": 1440,
-      "h": 900,
-      "title": "③' ホーム — 進捗",
-      "page": "page-1"
-    },
-    {
-      "file": "Main.dc.html",
-      "x": 0,
-      "y": 1040,
-      "w": 1440,
-      "h": 900,
-      "title": "④ Work — 会話とロードマップ",
-      "page": "page-1"
-    },
-    {
-      "file": "Tasks.dc.html",
-      "x": 1560,
-      "y": 1040,
-      "w": 1440,
-      "h": 900,
-      "title": "⑤ タスク",
-      "page": "page-1"
-    },
-    {
-      "file": "Deliverables.dc.html",
-      "x": 3120,
-      "y": 1040,
-      "w": 1440,
-      "h": 900,
-      "title": "⑥ 成果物",
-      "page": "page-1"
-    },
-    {
-      "file": "Decisions.dc.html",
-      "x": 4680,
-      "y": 1040,
-      "w": 1440,
-      "h": 900,
-      "title": "⑦ 決定事項",
-      "page": "page-1"
-    },
-    {
-      "file": "Hire.dc.html",
-      "x": 0,
-      "y": 2080,
-      "w": 1440,
-      "h": 900,
-      "title": "⑧ 採用",
-      "page": "page-1"
-    },
-    {
-      "file": "Team.dc.html",
-      "x": 1560,
-      "y": 2080,
-      "w": 1440,
-      "h": 900,
-      "title": "⑨ メンバー",
-      "page": "page-1"
-    },
-    {
-      "file": "Inbox.dc.html",
-      "x": 3120,
-      "y": 2080,
-      "w": 1440,
-      "h": 900,
-      "title": "⑩ 通知",
-      "page": "page-1"
-    },
-    {
-      "file": "DesignSystem.dc.html",
-      "x": 4680,
-      "y": 2080,
-      "w": 1440,
-      "h": 1000,
-      "title": "⑪ デザインシステム",
-      "page": "page-1"
-    },
-    {
-      "file": "DirectionB.dc.html",
-      "x": 0,
-      "y": 0,
-      "w": 1440,
-      "h": 900,
-      "title": "案B — Command Deck（不採用）",
-      "page": "page-2"
-    },
-    {
-      "file": "DirectionC.dc.html",
-      "x": 1560,
-      "y": 0,
-      "w": 1440,
-      "h": 900,
-      "title": "案C — Flowline（不採用）",
-      "page": "page-2"
-    }
+    { "file": "NewWork.dc.html",      "x": 0,    "y": 0,    "w": 1440, "h": 900,  "title": "① 新しいWork",            "page": "page-1" },
+    { "file": "PlanReview.dc.html",   "x": 1560, "y": 0,    "w": 1440, "h": 900,  "title": "② 計画の承認",            "page": "page-1" },
+    { "file": "Home.dc.html",         "x": 3120, "y": 0,    "w": 1440, "h": 900,  "title": "③ ホーム — オフィス",     "page": "page-1" },
+    { "file": "HomeProgress.dc.html", "x": 4680, "y": 0,    "w": 1440, "h": 900,  "title": "③' ホーム — 進捗",        "page": "page-1" },
+    { "file": "HomeFlow.dc.html",     "x": 0,    "y": 1040, "w": 1440, "h": 900,  "title": "③'' ホーム — ワークフロー", "page": "page-1" },
+    { "file": "Main.dc.html",         "x": 1560, "y": 1040, "w": 1440, "h": 900,  "title": "④ Work — 会話とロードマップ", "page": "page-1" },
+    { "file": "Tasks.dc.html",        "x": 3120, "y": 1040, "w": 1440, "h": 900,  "title": "⑤ タスク",                "page": "page-1" },
+    { "file": "Deliverables.dc.html", "x": 4680, "y": 1040, "w": 1440, "h": 900,  "title": "⑥ 成果物",                "page": "page-1" },
+    { "file": "Decisions.dc.html",    "x": 0,    "y": 2080, "w": 1440, "h": 900,  "title": "⑦ 決定事項",              "page": "page-1" },
+    { "file": "Hire.dc.html",         "x": 1560, "y": 2080, "w": 1440, "h": 900,  "title": "⑧ 採用",                  "page": "page-1" },
+    { "file": "Team.dc.html",         "x": 3120, "y": 2080, "w": 1440, "h": 900,  "title": "⑨ メンバー",              "page": "page-1" },
+    { "file": "Inbox.dc.html",        "x": 4680, "y": 2080, "w": 1440, "h": 900,  "title": "⑩ 通知",                  "page": "page-1" },
+    { "file": "DesignSystem.dc.html", "x": 0,    "y": 3120, "w": 1440, "h": 1000, "title": "⑪ デザインシステム",       "page": "page-1" },
+    { "file": "DirectionB.dc.html",   "x": 0,    "y": 0,    "w": 1440, "h": 900,  "title": "案B — Command Deck（不採用）", "page": "page-2" },
+    { "file": "DirectionC.dc.html",   "x": 1560, "y": 0,    "w": 1440, "h": 900,  "title": "案C — Flowline（不採用）",     "page": "page-2" }
   ],
   "annotations": [
     {
@@ -144,7 +27,7 @@
       "y": 0,
       "w": 430,
       "page": "page-1",
-      "text": "OneFound — Phase 1（12画面）\n\n■ ホームが見せ場\n上部のピルでビューを切り替えます（フロー／進捗／稼働／成果）。\n・フロー: Work →(調査)→ 成果物 →(戦略)→ 成果物 →(あなた) の受け渡しを、\n  コネクタ上を流れる粒子で見せます。各社員はオーブ＋進捗リング＋回転アークで\n  「いま動いている」ことを常に示します。下に今日の稼働レーン。\n・進捗: 社員ごとの大きな進捗リングと7日のスパークラインを一望。\n  アバターの円には後で粒子アニメーションを入れます。\n\n■ 画面ごとに器を変える\nタスク=表 / 成果物=サムネイル付きグリッド / メンバー=稼働メーター付き名簿 /\n決定事項=台帳タイムライン / 通知=時系列 / Work=会話＋右タブ / ホーム=可視化\n\n■ 3ペイン\n左＝ナビ、中＝本体、右＝タブで開くもの（ロードマップ・成果物・候補・ブラウザ）。\nホームだけは全幅にして可視化に振っています。\n\n■ 読ませずに分かるようにする\n状態は行左3pxの色帯 / 比較は棒 / 進捗はバーとリング /\n担当は色（シアン=調査 パープル=戦略 インディゴ=プロダクト 琥珀=あなた）\n\n■ 採用（⑧）\nAI社員の定義は github.com/msitarzewski/agency-agents（MIT・294体）を参考。\n詳細は docs/references/agency-agents.md。\n\n判断いただきたいこと：この12画面で Phase 1 を完了とし、Phase 2 へ進んでよいか。"
+      "text": "OneFound — Phase 1（13画面）\n\n■ ホームは3つのビュー（上部のピルで切替）\n・オフィス: 統括AIを中心に、AI社員が周回する会社の見取り図。\n  社員の円は粒子で満たされ、進捗リングが回り、統括AIとの間を\n  受け渡しの粒子が流れます。右に「いま進めていること」、\n  下に進行中のWorkと最近の成果物。\n・進捗: 社員ごとの大リングとスパークライン＋Work別のフェーズ進捗＋\n  会社全体のタスク内訳。\n・ワークフロー: Work →(調査)→ 成果物 →(戦略)→ 成果物 →(あなた) の\n  受け渡しと、今日の稼働レーン。\nアバターの円には後で社員ごとの粒子アニメーションを入れます。\n\n■ 画面ごとに器を変える\nタスク=Workごとにまとめた表 / 成果物=サムネイル付きグリッド /\nメンバー=稼働メーター付き名簿 / 決定事項=台帳タイムライン /\n通知=時系列 / Work=会話＋右タブ / ホーム=可視化\n\n■ 3ペイン\n左＝ナビ、中＝本体、右＝タブで開くもの（ロードマップ・成果物・候補・ブラウザ）。\nホームだけは全幅にして可視化に振っています。\n\n■ 読ませずに分かるようにする\n状態は行左3pxの色帯 / 比較は棒 / 進捗はバーとリング /\n担当は色（シアン=調査 パープル=戦略 インディゴ=プロダクト 琥珀=あなた）\n\n■ タスクは統括AIとの会話から作る\n画面に「追加」ボタンは置いていません。\n\n■ 採用（⑧）\nAI社員の定義は github.com/msitarzewski/agency-agents（MIT・294体）を参考。\n詳細は docs/references/agency-agents.md。\n\n判断いただきたいこと：この13画面で Phase 1 を完了とし、Phase 2 へ進んでよいか。"
     },
     {
       "id": "note-archive",
@@ -155,8 +38,5 @@
       "text": "Phase 0 のアーカイブ。案A（Mission Control）採用済み。案B / 案C は参考として保存しています。"
     }
   ],
-  "launch": {
-    "view": "canvas",
-    "page": "page-1"
-  }
+  "launch": { "view": "canvas", "page": "page-1" }
 }
