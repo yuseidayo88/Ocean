@@ -13,8 +13,12 @@
 
 ## 現在地
 
-- Phase 0（方向性3案）완了 → 案A Mission Control 採用
-- Phase 1（画面設計）進行中。デザイン言語は確定、4画面が最新版。残り9画面は旧スタイル。
+- Phase 0（方向性3案）完了 → 案A Mission Control 採用
+- Phase 1（画面設計）完了。11画面 + デザインシステム。全画面が同じデザイン言語。
+  ① 新しいWork ② 計画の承認 ③ ホーム ④ Work（会話＋ロードマップタブ）
+  ⑤ タスク ⑥ 成果物 ⑦ 決定事項 ⑧ 採用 ⑨ メンバー ⑩ 通知 ⑪ デザインシステム
+- 次: Phase 2（設計）— データモデル / 統括AIの実行モデル / AI社員スキーマ /
+  状態遷移 / 技術構成とコスト。**ユーザーの承認待ち**
 - 成果物: `design/canvas/*.dc.html` + `design/canvas/canvas.json`
 - プレビュー: https://claude.ai/code/artifact/10950880-aa8e-430f-9bc9-48cec22bd920
 

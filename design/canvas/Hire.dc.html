@@ -1,0 +1,228 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400&amp;display=swap">
+  <style>
+    body { margin: 0; background: #000000; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    a { color: #4C8DF6; } a:hover { color: #7BADF9; }
+  </style>
+</helmet>
+<div style="position: relative; width: 1440px; height: 900px; box-sizing: border-box; display: flex; background: #000000; color: #EDEDED; font-family: -apple-system, ui-sans-serif, system-ui, 'Segoe UI', Helvetica, 'Noto Sans JP', Arial, sans-serif; font-size: 13px; line-height: 20px; overflow: hidden;">
+  <!-- Rail -->
+  <div style="width: 260px; flex-shrink: 0; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; padding: 14px 12px; background: #141414; border-right: 1px solid #232323;">
+
+    <div style="display: flex; align-items: center; gap: 10px; padding: 0 4px; height: 26px;">
+      <span style="width: 9px; height: 9px; border-radius: 999px; background: #2E2E2E; flex-shrink: 0;"></span><span style="width: 9px; height: 9px; border-radius: 999px; background: #2E2E2E; flex-shrink: 0;"></span><span style="width: 9px; height: 9px; border-radius: 999px; background: #2E2E2E; flex-shrink: 0;"></span>
+      <div style="flex: 1;"></div>
+      <span style="font-size: 12px; color: #6E6E6E;">OneFound</span>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9.5 6 6 6-6"/></svg>
+    </div>
+
+    <div style="height: 32px; display: flex; align-items: center; gap: 9px; padding: 0 10px; border-radius: 8px; background: #1A1A1A; border: 1px solid #262626;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+      <span style="color: #6E6E6E;">検索</span>
+      <div style="flex: 1;"></div>
+      <span style="color: #5F5F5F;">⌘K</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 1px;">
+      <div style="display: flex; align-items: center; gap: 11px; height: 34px; padding: 0 10px; border-radius: 8px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B8B8B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m4 11 8-7 8 7"/><path d="M6.5 9.4V20h11V9.4"/></svg>
+        <span style="color: #B8B8B8;">ホーム</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 11px; height: 34px; padding: 0 10px; border-radius: 8px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B8B8B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="13.5" rx="2"/><path d="M4 13.2h4.2l1.5 2.2h4.6l1.5-2.2H20"/></svg>
+        <span style="color: #B8B8B8;">通知</span><div style="flex: 1;"></div><span style="color: #E8A33D; font-variant-numeric: tabular-nums;">2</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 11px; height: 34px; padding: 0 10px; border-radius: 8px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B8B8B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="7.5" width="17" height="12" rx="2"/><path d="M9 7.5V6a1.8 1.8 0 0 1 1.8-1.8h2.4A1.8 1.8 0 0 1 15 6v1.5"/></svg>
+        <span style="color: #B8B8B8;">Work</span><div style="flex: 1;"></div><span style="width: 8px; height: 8px; border-radius: 999px; background: #3FB950; flex-shrink: 0;"></span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 11px; height: 34px; padding: 0 10px; border-radius: 8px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B8B8B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="m8.2 12.2 2.4 2.4 4.6-5"/></svg>
+        <span style="color: #B8B8B8;">タスク</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 11px; height: 34px; padding: 0 10px; border-radius: 8px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B8B8B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5H7.4A1.9 1.9 0 0 0 5.5 5.4v13.2a1.9 1.9 0 0 0 1.9 1.9h9.2a1.9 1.9 0 0 0 1.9-1.9V8.5z"/><path d="M13.5 3.5v5h5"/></svg>
+        <span style="color: #B8B8B8;">成果物</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 11px; height: 34px; padding: 0 10px; border-radius: 8px; background: #232323;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#EDEDED" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.2" cy="8.6" r="3.1"/><path d="M4 19.2c0-2.9 2.3-5.2 5.2-5.2s5.2 2.3 5.2 5.2"/><path d="M15.6 5.9a3 3 0 0 1 0 5.5M17.6 14.4c1.8.8 3 2.6 3 4.8"/></svg>
+        <span style="color: #EDEDED;">メンバー</span><div style="flex: 1;"></div><span style="color: #5F5F5F; font-variant-numeric: tabular-nums;">3</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 11px; height: 34px; padding: 0 10px; border-radius: 8px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B8B8B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5h15M4.5 12h15M4.5 17.5h9"/></svg>
+        <span style="color: #B8B8B8;">決定事項</span>
+      </div>
+    </div>
+
+    <div style="flex: 1;"></div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px; padding: 0 10px;">
+      <div style="display: flex; align-items: baseline;">
+        <span style="color: #8B8B8B;">クレジット</span>
+        <div style="flex: 1;"></div>
+        <span style="color: #B8B8B8; font-variant-numeric: tabular-nums;">812<span style="color: #5F5F5F;"> / 3,000</span></span>
+      </div>
+      <div style="height: 3px; border-radius: 2px; background: #232323; overflow: hidden;">
+        <div style="width: 27%; height: 100%; border-radius: 2px; background: #3FB950;"></div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px;">
+      <span style="width: 22px; height: 22px; border-radius: 999px; background: #2E2E2E; display: inline-flex; align-items: center; justify-content: center; font-size: 11px;">Y</span>
+      <span style="color: #B8B8B8;">あなた</span>
+      <div style="flex: 1;"></div>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.2v2.2M12 18.6v2.2M3.2 12h2.2M18.6 12h2.2M5.8 5.8l1.6 1.6M16.6 16.6l1.6 1.6M18.2 5.8l-1.6 1.6M7.4 16.6l-1.6 1.6"/></svg>
+    </div>
+  </div>
+
+  <!-- Centre -->
+  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; background: #000000; border-right: 1px solid #232323;">
+    <div style="height: 46px; flex-shrink: 0; display: flex; align-items: center; gap: 12px; padding: 0 14px; border-bottom: 1px solid #1C1C1C;">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="M9.5 5v14"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3A3A3A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3A3A3A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"/></svg>
+      <span style="margin-left: 4px;">統括AI</span>
+      <span style="color: #5F5F5F;">/ 採用</span>
+      <div style="flex: 1;"></div>
+      <span style="color: #5F5F5F;">日本語学習サービス</span>
+    </div>
+    <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 16px; padding: 20px 24px 18px;">
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <span style="font-size: 15px; line-height: 25px;">フェーズ2「戦略」に足りないのは価格の詰めです。3体えらびました。</span>
+        <div style="display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 12px; background: #121212; border: 1px solid #2E2E2E;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="width: 34px; height: 34px; border-radius: 999px; flex-shrink: 0; background: radial-gradient(circle at 50% 42%, rgba(62,203,224,0.62), rgba(62,203,224,0.14) 56%, rgba(62,203,224,0) 74%); border: 1px solid rgba(62,203,224,0.22);"></span>
+            <div style="display: flex; flex-direction: column;">
+              <span>プライシング・ストラテジスト</span>
+              <span style="color: #5F5F5F;">価格戦略</span>
+            </div>
+            <div style="flex: 1;"></div>
+            <span style="color: #5F5F5F; white-space: nowrap;">約 120 / 月</span>
+            <span style="display: inline-flex; align-items: center; height: 30px; padding: 0 14px; border-radius: 8px; background: #3B82F6; color: #FFFFFF; white-space: nowrap;">採用する</span>
+          </div>
+          <span style="color: #B8B8B8;">値付けの根拠を、感覚ではなく数字で置きにいく。</span>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;"><span style="display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 8px; background: #1A1A1A; border: 1px solid #262626; color: #B8B8B8;">価格弾力性</span><span style="display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 8px; background: #1A1A1A; border: 1px solid #262626; color: #B8B8B8;">競合ベンチマーク</span><span style="display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 8px; background: #1A1A1A; border: 1px solid #262626; color: #B8B8B8;">LTV試算</span></div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 12px; background: #0E0E0E; border: 1px solid #232323;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="width: 34px; height: 34px; border-radius: 999px; flex-shrink: 0; background: radial-gradient(circle at 50% 42%, rgba(176,108,245,0.62), rgba(176,108,245,0.14) 56%, rgba(176,108,245,0) 74%); border: 1px solid rgba(176,108,245,0.22);"></span>
+            <div style="display: flex; flex-direction: column;">
+              <span>ユニットエコノミクス・アナリスト</span>
+              <span style="color: #5F5F5F;">収益分析</span>
+            </div>
+            <div style="flex: 1;"></div>
+            <span style="color: #5F5F5F; white-space: nowrap;">約 90 / 月</span>
+            <span style="display: inline-flex; align-items: center; height: 30px; padding: 0 14px; border-radius: 8px; background: #1F1F1F; border: 1px solid #303030; color: #B8B8B8; white-space: nowrap;">採用する</span>
+          </div>
+          <span style="color: #B8B8B8;">1人あたりの採算が合う地点を先に見つける。</span>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;"><span style="display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 8px; background: #1A1A1A; border: 1px solid #262626; color: #B8B8B8;">CAC/LTV</span><span style="display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 8px; background: #1A1A1A; border: 1px solid #262626; color: #B8B8B8;">原価分解</span><span style="display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 8px; background: #1A1A1A; border: 1px solid #262626; color: #B8B8B8;">損益分岐</span></div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 12px; background: #0E0E0E; border: 1px solid #232323;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="width: 34px; height: 34px; border-radius: 999px; flex-shrink: 0; background: radial-gradient(circle at 50% 42%, rgba(124,130,240,0.62), rgba(124,130,240,0.14) 56%, rgba(124,130,240,0) 74%); border: 1px solid rgba(124,130,240,0.22);"></span>
+            <div style="display: flex; flex-direction: column;">
+              <span>カスタマー・リサーチャー</span>
+              <span style="color: #5F5F5F;">顧客調査</span>
+            </div>
+            <div style="flex: 1;"></div>
+            <span style="color: #5F5F5F; white-space: nowrap;">約 110 / 月</span>
+            <span style="display: inline-flex; align-items: center; height: 30px; padding: 0 14px; border-radius: 8px; background: #1F1F1F; border: 1px solid #303030; color: #B8B8B8; white-space: nowrap;">採用する</span>
+          </div>
+          <span style="color: #B8B8B8;">支払意思は、聞き方を変えると見えてくる。</span>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;"><span style="display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 8px; background: #1A1A1A; border: 1px solid #262626; color: #B8B8B8;">デプスインタビュー</span><span style="display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 8px; background: #1A1A1A; border: 1px solid #262626; color: #B8B8B8;">WTP調査</span><span style="display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 8px; background: #1A1A1A; border: 1px solid #262626; color: #B8B8B8;">セグメント</span></div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; height: 42px; padding: 0 14px; border-radius: 10px; border: 1px dashed #262626;">
+          <span style="color: #8B8B8B;">ほかの候補を見る</span>
+          <div style="flex: 1;"></div>
+          <span style="color: #5F5F5F; font-variant-numeric: tabular-nums;">294体 · 20カテゴリ</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></svg>
+        </div>
+      </div>
+      <div style="flex: 1;"></div>
+      <div style="flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; padding: 13px 13px 11px; border-radius: 14px; background: #141414; border: 1px solid #2A2A2A;">
+        <span style="color: #5F5F5F; padding: 0 2px;">採用したい人物像を書く、@ で Work を参照</span>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B8B8B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.5v13M5.5 12h13"/></svg>
+          <span style="display: inline-flex; align-items: center; gap: 6px; color: #B8B8B8;">統括AI <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9.5 6 6 6-6"/></svg></span>
+          <span style="display: inline-flex; align-items: center; gap: 7px; color: #B8B8B8;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B8B8B" stroke-width="1.7" stroke-linecap="round"><path d="M5 16v3M10 12v7M15 8v11M20 4v15"/></svg>
+            じっくり
+          </span>
+          <div style="flex: 1;"></div>
+          <span style="width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: #3B82F6;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6M6 12l6-6 6 6"/></svg>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right pane -->
+  <div style="width: 420px; flex-shrink: 0; box-sizing: border-box; display: flex; flex-direction: column; background: #000000;">
+    <div style="height: 40px; flex-shrink: 0; display: flex; align-items: center; gap: 4px; padding: 0 8px; border-bottom: 1px solid #1C1C1C;">
+      <span style="display: inline-flex; align-items: center; gap: 8px; height: 28px; padding: 0 9px 0 10px; border-radius: 8px; background: #1A1A1A;"><span style="width: 8px; height: 8px; border-radius: 999px; background: #3ECBE0; flex-shrink: 0;"></span>プライシング・ストラテジスト<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l10 10M17 7L7 17"/></svg></span>
+      <span style="display: inline-flex; align-items: center; gap: 8px; height: 28px; padding: 0 10px; border-radius: 8px; color: #6E6E6E;">ロスター</span>
+      <div style="flex: 1;"></div>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.5v13M5.5 12h13"/></svg>
+    </div>
+    <div style="height: 38px; flex-shrink: 0; display: flex; align-items: center; gap: 11px; padding: 0 12px; border-bottom: 1px solid #1C1C1C;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3A3A3A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4.5V9h-4.5"/></svg>
+      <span style="color: #6E6E6E; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;">onefound://採用 / 候補</span>
+      <div style="flex: 1;"></div>
+      <span style="color: #5F5F5F;">未採用</span>
+    </div>
+    <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 18px; padding: 18px 16px 0;">
+      <div style="display: flex; align-items: center; gap: 13px;">
+        <span style="width: 46px; height: 46px; border-radius: 999px; flex-shrink: 0; background: radial-gradient(circle at 50% 42%, rgba(62,203,224,0.62), rgba(62,203,224,0.14) 56%, rgba(62,203,224,0) 74%); border: 1px solid rgba(62,203,224,0.22);"></span>
+        <div style="display: flex; flex-direction: column;">
+          <span style="font-size: 15px;">プライシング・ストラテジスト</span>
+          <span style="color: #5F5F5F;">strategy / pricing</span>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 9px;">
+        <span style="color: #8B8B8B;">できること</span>
+        <span style="color: #B8B8B8; line-height: 24px;">価格帯ごとの需要曲線を引く<br>競合の価格と提供価値を並べる<br>LTV から上限価格を逆算する</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 9px;">
+        <span style="color: #8B8B8B;">守ること</span>
+        <span style="color: #B8B8B8; line-height: 24px;">推定値には必ず根拠と誤差を添える<br>価格の最終決定は必ず社長に返す<br>1案だけを出さない。最低3案を比較する</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <span style="color: #8B8B8B;">この Work での想定</span>
+        <div style="display: flex; align-items: center; gap: 11px; height: 40px; padding: 0 12px; border-radius: 8px; background: #0E0E0E; border: 1px solid #232323;">
+          <span style="color: #5F5F5F;">最初のタスク</span>
+          <div style="flex: 1;"></div>
+          <span>支払意思の再検証</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 11px; height: 40px; padding: 0 12px; border-radius: 8px; background: #0E0E0E; border: 1px solid #232323;">
+          <span style="color: #5F5F5F;">クレジット</span>
+          <div style="flex: 1;"></div>
+          <span style="font-variant-numeric: tabular-nums;">約 120 / 月</span>
+        </div>
+      </div>
+
+      <div style="flex: 1;"></div>
+    </div>
+
+    <div style="flex-shrink: 0; display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid #1C1C1C;">
+      <span style="flex: 1; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: #3B82F6; color: #FFFFFF;">採用する</span>
+      <span style="flex: 1; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: #1F1F1F; border: 1px solid #303030; color: #B8B8B8;">比較に追加</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

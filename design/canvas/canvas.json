@@ -2,14 +2,10 @@
   "pages": [
     {
       "id": "page-1",
-      "name": "Ocean"
+      "name": "OneFound"
     },
     {
       "id": "page-2",
-      "name": "旧スタイル（更新待ち9画面）"
-    },
-    {
-      "id": "page-3",
       "name": "Phase 0 — アーカイブ"
     }
   ],
@@ -24,12 +20,12 @@
       "page": "page-1"
     },
     {
-      "file": "Main.dc.html",
+      "file": "PlanReview.dc.html",
       "x": 1560,
       "y": 0,
       "w": 1440,
       "h": 900,
-      "title": "② Work — ロードマップ",
+      "title": "② 計画の承認",
       "page": "page-1"
     },
     {
@@ -42,103 +38,76 @@
       "page": "page-1"
     },
     {
-      "file": "DesignSystem.dc.html",
+      "file": "Main.dc.html",
       "x": 4680,
       "y": 0,
       "w": 1440,
-      "h": 1000,
-      "title": "④ デザインシステム",
+      "h": 900,
+      "title": "④ Work — 会話とロードマップ",
       "page": "page-1"
     },
     {
-      "file": "PlanReview.dc.html",
-      "x": 0,
-      "y": 0,
-      "w": 1440,
-      "h": 900,
-      "title": "② Plan Review（旧スタイル）",
-      "page": "page-2"
-    },
-    {
-      "file": "Roadmap.dc.html",
-      "x": 1560,
-      "y": 0,
-      "w": 1440,
-      "h": 900,
-      "title": "⑤ Roadmap リスト（旧スタイル）",
-      "page": "page-2"
-    },
-    {
       "file": "Tasks.dc.html",
-      "x": 3120,
-      "y": 0,
+      "x": 0,
+      "y": 1040,
       "w": 1440,
       "h": 900,
-      "title": "⑥ Tasks（旧スタイル）",
-      "page": "page-2"
+      "title": "⑤ タスク",
+      "page": "page-1"
     },
     {
       "file": "Deliverables.dc.html",
-      "x": 0,
-      "y": 1040,
-      "w": 1440,
-      "h": 900,
-      "title": "⑦ Deliverables — Split（旧スタイル）",
-      "page": "page-2"
-    },
-    {
-      "file": "ExecutiveExpanded.dc.html",
       "x": 1560,
       "y": 1040,
       "w": 1440,
       "h": 900,
-      "title": "⑧ Executive — Expanded（旧スタイル）",
-      "page": "page-2"
+      "title": "⑥ 成果物",
+      "page": "page-1"
     },
     {
-      "file": "ChatFocus.dc.html",
+      "file": "Decisions.dc.html",
       "x": 3120,
       "y": 1040,
       "w": 1440,
       "h": 900,
-      "title": "⑨ Chat Focus（旧スタイル）",
-      "page": "page-2"
+      "title": "⑦ 決定事項",
+      "page": "page-1"
     },
     {
-      "file": "Decision.dc.html",
+      "file": "Hire.dc.html",
+      "x": 4680,
+      "y": 1040,
+      "w": 1440,
+      "h": 900,
+      "title": "⑧ 採用",
+      "page": "page-1"
+    },
+    {
+      "file": "Team.dc.html",
       "x": 0,
       "y": 2080,
       "w": 1440,
       "h": 900,
-      "title": "⑩ Decision Modal（旧スタイル）",
-      "page": "page-2"
+      "title": "⑨ メンバー",
+      "page": "page-1"
     },
     {
-      "file": "Review.dc.html",
+      "file": "Inbox.dc.html",
       "x": 1560,
       "y": 2080,
       "w": 1440,
       "h": 900,
-      "title": "⑪ Review — Focus（旧スタイル）",
-      "page": "page-2"
+      "title": "⑩ 通知",
+      "page": "page-1"
     },
     {
-      "file": "States.dc.html",
+      "file": "DesignSystem.dc.html",
       "x": 3120,
       "y": 2080,
-      "w": 1040,
-      "h": 900,
-      "title": "状態モデルと遷移",
-      "page": "page-2"
-    },
-    {
-      "file": "Cards.dc.html",
-      "x": 0,
-      "y": 3120,
-      "w": 1320,
-      "h": 900,
-      "title": "共通UIパターン",
-      "page": "page-2"
+      "w": 1440,
+      "h": 1000,
+      "title": "⑪ デザインシステム",
+      "page": "page-1"
     },
     {
       "file": "DirectionB.dc.html",
@@ -146,8 +115,8 @@
       "y": 0,
       "w": 1440,
       "h": 900,
-      "title": "案B — Command Deck（不採用・参考）",
-      "page": "page-3"
+      "title": "案B — Command Deck（不採用）",
+      "page": "page-2"
     },
     {
       "file": "DirectionC.dc.html",
@@ -155,33 +124,25 @@
       "y": 0,
       "w": 1440,
       "h": 900,
-      "title": "案C — Flowline（不採用・参考）",
-      "page": "page-3"
+      "title": "案C — Flowline（不採用）",
+      "page": "page-2"
     }
   ],
   "annotations": [
     {
-      "id": "intro-radius",
+      "id": "intro",
       "x": -470,
       "y": 0,
-      "w": 420,
+      "w": 430,
       "page": "page-1",
-      "text": "OneFound — 4画面\n\n参考いただいた Radius Browser の作りに合わせています。\n\n・3ペイン\n  左＝誰がいるか（AI社員とWork）、中＝統括AIとの会話、右＝開いているもの。\n  中央と右のペインは純黒。明るい面は左レールだけ。\n\n・右ペインはタブ\n  ロードマップ／成果物／ブラウザ…と、開くものをタブで足していけます。会話とロードマップを混ぜていたのを分離しました。\n\n・読ませずに、形と色で分かるようにする\n  AI社員は色で見分けます（シアン／パープル／インディゴ）。アイコンでの分類はしません。\n  アバターの円には、社員ごとの粒子アニメーションが入る想定です（実装時）。\n  ロードマップは縦のタイムラインで、完了＝塗り、進行中＝リング、未着手＝輪郭。\n  タスクは担当色のドットと進捗バー。判断待ちの行だけ面ごと琥珀。\n  価格の比較は棒。読まなくても差が見えます。\n\n・色\n  青 #3B82F6＝次に押すもの（1画面に1つ）、緑＝済・推奨、橙＝あなた待ち、赤＝停止。\n\n・文字\n  system-ui / Noto Sans JP、ウェイトは 400 のみ。本文15px、UI13px、ログは等幅12px。\n\n判断いただきたいこと：この方向で残り9画面へ展開してよいか。"
-    },
-    {
-      "id": "note-old",
-      "x": -470,
-      "y": 0,
-      "w": 420,
-      "page": "page-2",
-      "text": "旧スタイルの9画面＋共通ボード。\nHarbor の承認後、順次更新します。構成・情報設計はこのまま引き継ぎます。"
+      "text": "OneFound — Phase 1 完了（11画面）\n\n一人社長のためのAIカンパニー。統括AIがAI社員を編成し、社長はゴールを示し、採用し、判断する。\n\n■ 画面の流れ\n① 新しいWork → ② 計画の承認 → ③ ホーム → ④ Work\n⑤ タスク ⑥ 成果物 ⑦ 決定事項 ⑧ 採用 ⑨ メンバー ⑩ 通知\n\n■ 3ペイン\n左＝ナビ（既定の並び）、中＝統括AIとの会話と一覧、右＝タブで開くもの。\n右ペインはタブなので、ロードマップ・成果物・候補・ブラウザなど開くものを足していけます。\n\n■ 読ませずに分かるようにした\n・状態は行の左3pxの色帯。判断待ちの行は面ごと琥珀\n・価格や継続率は棒。読まなくても差が見える\n・進捗はバー。担当は色（シアン=市場リサーチャー／パープル=事業ストラテジスト／インディゴ=プロダクト担当）\n・アバターの円には、社員ごとの粒子アニメーションが入る想定（未実装）\n\n■ 3ペイン化でなくなった画面\nロードマップ／Chat Focus／Executive拡大／Decisionモーダル／Reviewは、\n独立画面をやめて右ペインのタブと中央ペインに統合しました。\n\n■ 採用（⑧）について\nAI社員の定義は github.com/msitarzewski/agency-agents（MIT・294体/20カテゴリ）を\n参考にします。詳細は docs/references/agency-agents.md。\n\n判断いただきたいこと：この11画面で Phase 1 を完了とし、Phase 2（設計）へ進んでよいか。"
     },
     {
       "id": "note-archive",
       "x": -470,
       "y": 0,
-      "w": 420,
-      "page": "page-3",
+      "w": 430,
+      "page": "page-2",
       "text": "Phase 0 のアーカイブ。案A（Mission Control）採用済み。案B / 案C は参考として保存しています。"
     }
   ],
