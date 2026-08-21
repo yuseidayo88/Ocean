@@ -7,6 +7,9 @@
 
 ## 進め方（厳守）
 
+- **進行計画は `docs/PLAN.md`**（元のマスタープロンプトの Phase 0〜10 ＋ Phase 11 課金）。
+  いまは **Phase 2 の承認待ち**。次は Phase 3（土台）。Phase 8 が最初の山場
+
 - フェーズ制。**各フェーズの終わりで必ず停止し報告する**。
   報告は「何をしたか / 変更点 / 確認できるもの / 次フェーズの予定 / 判断が必要なこと」。
 - **ユーザーの明示的な承認なしに次のフェーズへ進まない。**
@@ -24,7 +27,8 @@
   - 進捗＝社員ごとの大リング＋スパークライン、Work別のフェーズ進捗、会社全体のタスク内訳。
   - ワークフロー＝Work→社員→成果物→社員→あなた の受け渡し＋今日の稼働レーン。
 - Phase 2（設計）完了。`docs/design/` に5文書。**ユーザーの承認待ち**
-  データモデル(17テーブル) / 統括AIの実行モデル / AI社員スキーマ / 状態遷移(6) / 技術構成とコスト
+  データモデル / 統括AIの実行モデル / AI社員スキーマ / 状態遷移 / 技術構成とコスト /
+  Work の粒度と用事 / **統括AIの憲法**（07 = 製品の性格。トーンの基準つき）
   - スタック: **Cloudflare**（Workers / Durable Objects / Queues / Cron / R2 / Hyperdrive）
     + **Supabase**（Postgres/RLS/Auth のみ。Storage は R2、Realtime は DO の WebSocket へ）
     - **1実行 = 1 Durable Object**。二重起動が起きず、状態をメモリに持て、進捗を WebSocket で直接押せる
@@ -63,8 +67,10 @@
   - 間違えても**昇格・降格**で移せる（用事→Work、フェーズ⇄Work）
 - 次: Phase 3（実装）— まず「Work作成 → 計画 → 承認 → 社員1体が1タスク実行 → 成果物」を細く通す
 - タスクなどの「追加」ボタンは置かない。**タスクは統括AIとの会話から作られる**
-- 成果物: `design/canvas/*.dc.html` + `design/canvas/canvas.json` / `docs/design/*.md`
-- プレビュー: https://claude.ai/code/artifact/10950880-aa8e-430f-9bc9-48cec22bd920
+- 成果物: `design/canvas/*.dc.html` + `design/canvas/canvas.json` / `docs/design/*.md` / `docs/PLAN.md`
+- プレビュー: 画面 https://claude.ai/code/artifact/10950880-aa8e-430f-9bc9-48cec22bd920
+  / 設計 https://claude.ai/code/artifact/9f7ac75e-3b7e-4662-a483-a3420b795125
+  / 計画 https://claude.ai/code/artifact/b271ddac-42df-443f-8a7f-a431547ce4e5
 
 ## デザイン言語（確定事項）
 

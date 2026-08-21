@@ -120,5 +120,7 @@ Claude のプロンプトキャッシュは**前方一致**で効く。1バイ�
 
 ## 統括AIのプロンプトは DB に置く
 
+本文は [07 統括AIの憲法](./07-executive-constitution.md)。
+
 `system_prompts` テーブル（`key, version, body, activated_at`）に持ち、デプロイなしで差し替え・巻き戻しができるようにする。
 プロンプトは**一番よく変わるもの**なので、コードに書かない。
