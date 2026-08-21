@@ -23,10 +23,17 @@
     下に進行中のWorkと最近の成果物。
   - 進捗＝社員ごとの大リング＋スパークライン、Work別のフェーズ進捗、会社全体のタスク内訳。
   - ワークフロー＝Work→社員→成果物→社員→あなた の受け渡し＋今日の稼働レーン。
-- 次: Phase 2（設計）— データモデル / 統括AIの実行モデル / AI社員スキーマ /
-  状態遷移 / 技術構成とコスト。**ユーザーの承認待ち**
+- Phase 2（設計）完了。`docs/design/` に5文書。**ユーザーの承認待ち**
+  データモデル(17テーブル) / 統括AIの実行モデル / AI社員スキーマ / 状態遷移(6) / 技術構成とコスト
+  - 実行基盤は **Anthropic Managed Agents**（AI社員=Agent, 実行=Session, 記憶=Memory store,
+    委譲=coordinator, 上限=Session budget）。beta なので `AgentRunner` 抽象を1枚挟む
+  - スタック: Next.js(Vercel) + Supabase(Postgres/Realtime/Storage) + 常駐ワーカー1
+  - モデル: 統括AI=Opus 5 / AI社員=Sonnet 5 / 要約=Haiku 4.5（`deep/standard/fast` の抽象で扱う）
+  - **1クレジット = 一覧価格 $0.01**。1タスク≈33、1 Work≈600、1 Work の原価 ≈ $6（¥900）
+  - 設計プレビュー: https://claude.ai/code/artifact/9f7ac75e-3b7e-4662-a483-a3420b795125
+- 次: Phase 3（実装）— まず「Work作成 → 計画 → 承認 → 社員1体が1タスク実行 → 成果物」を細く通す
 - タスクなどの「追加」ボタンは置かない。**タスクは統括AIとの会話から作られる**
-- 成果物: `design/canvas/*.dc.html` + `design/canvas/canvas.json`
+- 成果物: `design/canvas/*.dc.html` + `design/canvas/canvas.json` / `docs/design/*.md`
 - プレビュー: https://claude.ai/code/artifact/10950880-aa8e-430f-9bc9-48cec22bd920
 
 ## デザイン言語（確定事項）
