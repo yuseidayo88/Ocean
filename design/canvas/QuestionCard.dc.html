@@ -17,85 +17,66 @@
 <div style="position: relative; width: 1440px; height: 900px; box-sizing: border-box; display: flex; background: #000000; color: #EDEDED; font-family: -apple-system, ui-sans-serif, system-ui, 'Segoe UI', Helvetica, 'Noto Sans JP', Arial, sans-serif; font-size: 13px; line-height: 20px; overflow: hidden;">
   <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; padding: 22px 24px; background: #000000;">
     <div style="flex-shrink: 0; display: flex; align-items: baseline; gap: 14px;">
-      <span style="font-size: 19px;">質問カード</span>
-      <span style="color: #8B8B8B;">統括AIが聞き返すときの器。<b>打鍵させないのが原則。</b></span>
+      <span style="font-size: 19px;">質問</span>
+      <span style="color: #8B8B8B;">統括AIが聞き返すときの形。<b>会話の最後に、説明つきの選択肢で出す。</b></span>
       <div style="flex: 1;"></div>
       <span style="color: #5F5F5F; font-size: 12px;">questions</span>
     </div>
     <div style="flex: 1; min-height: 0; display: flex; gap: 14px;">
-    <div style="flex: 1.35; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 12px; background: #0E0E0E; border: 1px solid #232323;">
+    <div style="flex: 1.25; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 12px; background: #0E0E0E; border: 1px solid #232323;">
       <div style="display: flex; align-items: baseline; gap: 10px;">
-        <span style="color: #8B8B8B;">出る場所</span><span style="color: #5F5F5F; font-size: 12px;">入力欄の真上</span>
+        <span style="color: #8B8B8B;">出る場所</span><span style="color: #5F5F5F; font-size: 12px;">会話の最後・入力欄のすぐ上</span>
       </div>
-      <div style="display: flex; flex-direction: column; gap: 12px;">
-        <span style="color: #B8B8B8; font-size: 13px; line-height: 22px;">会話の中にカードを挟まない。<b>入力欄のすぐ上に出す。</b>答えるとそのまま会話が続きます（参考: ChatGPT / Grok）。</span>
-        <div style="display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 12px; background: #060606; border: 1px solid #1A1A1A;">
-          <div style="display: flex; align-items: flex-start; gap: 9px;">
-            <span style="position: relative; display: inline-block; width: 22px; height: 22px; flex-shrink: 0;"><svg width="22" height="22" viewBox="0 0 100 100" style="display: block; overflow: visible;"><defs><radialGradient id="o0_g"><stop offset="0" stop-color="rgb(210,210,210)" stop-opacity="0.30"/><stop offset="0.5" stop-color="rgb(210,210,210)" stop-opacity="0.07"/><stop offset="1" stop-color="rgb(210,210,210)" stop-opacity="0"/></radialGradient><clipPath id="o0_c"><circle cx="50" cy="50" r="21"/></clipPath></defs><circle cx="50" cy="50" r="44" fill="url(#o0_g)"/><g><g fill="rgba(210,210,210,0.500)"><g><circle cx="73.0" cy="50.0" r="1.6"/><circle cx="69.3" cy="62.4" r="1.6"/><circle cx="59.6" cy="70.9" r="1.6"/><circle cx="46.7" cy="72.8" r="1.6"/><circle cx="34.9" cy="67.4" r="1.6"/><circle cx="27.9" cy="56.5" r="1.6"/><circle cx="27.9" cy="43.5" r="1.6"/><circle cx="34.9" cy="32.6" r="1.6"/><circle cx="46.7" cy="27.2" r="1.6"/><circle cx="59.6" cy="29.1" r="1.6"/><circle cx="69.3" cy="37.6" r="1.6"/><animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="30s" repeatCount="indefinite"/></g></g><g fill="rgba(210,210,210,0.750)"><g><circle cx="83.3" cy="60.8" r="1.6"/><circle cx="77.6" cy="71.5" r="1.6"/><circle cx="68.5" cy="79.7" r="1.6"/><circle cx="57.3" cy="84.2" r="1.6"/><circle cx="45.1" cy="84.7" r="1.6"/><circle cx="33.6" cy="80.9" r="1.6"/><circle cx="24.0" cy="73.4" r="1.6"/><circle cx="17.5" cy="63.1" r="1.6"/><circle cx="15.0" cy="51.2" r="1.6"/><circle cx="16.7" cy="39.2" r="1.6"/><circle cx="22.4" cy="28.5" r="1.6"/><circle cx="31.5" cy="20.3" r="1.6"/><circle cx="42.7" cy="15.8" r="1.6"/><circle cx="54.9" cy="15.3" r="1.6"/><circle cx="66.4" cy="19.1" r="1.6"/><circle cx="76.0" cy="26.6" r="1.6"/><circle cx="82.5" cy="36.9" r="1.6"/><circle cx="85.0" cy="48.8" r="1.6"/><animateTransform attributeName="transform" type="rotate" from="360 50 50" to="0 50 50" dur="54s" repeatCount="indefinite"/></g></g></g><circle cx="50" cy="50" r="9" fill="rgba(210,210,210,0.300)"/><circle cx="50" cy="50" r="4.4" fill="rgba(255,255,255,0.92)"/></svg></span><span style="color: #8B8B8B; font-size: 12px; line-height: 20px;">B案（月額 ¥1,980）をすすめます。競合が同じ帯に集まっているからです。</span>
-          </div>
-          <div style="flex: 1; min-height: 26px;"></div>
-          <div style="display: flex; flex-direction: column; gap: 8px;">
-            <div style="display: flex; align-items: flex-start; gap: 9px;">
-              <span style="width: 8px; height: 8px; flex-shrink: 0; margin-top: 5px; background: #E37400; transform: rotate(45deg); border-radius: 1.5px;"></span>
-              <div style="min-width: 0; display: flex; flex-direction: column; gap: 2px;">
-                <span style="font-size: 13px; line-height: 21px;">月額はいくらにしますか？</span>
-                <span style="color: #5F5F5F; font-size: 11px;">ここで決まると、LPの文言も決まります</span>
-              </div>
-            </div>
-            <div style="display: flex; flex-wrap: wrap; gap: 6px; padding-left: 17px;"><span style="display: inline-flex; align-items: center; height: 30px; padding: 0 13px; border-radius: 8px; white-space: nowrap; font-size: 13px; background: #171717; color: #B8B8B8;">¥1,480</span><span style="display: inline-flex; align-items: center; height: 30px; padding: 0 13px; border-radius: 8px; white-space: nowrap; font-size: 13px; background: #171717; color: #B8B8B8;">¥1,980（おすすめ）</span><span style="display: inline-flex; align-items: center; height: 30px; padding: 0 13px; border-radius: 8px; white-space: nowrap; font-size: 13px; background: #171717; color: #B8B8B8;">¥2,480</span><span style="display: inline-flex; align-items: center; height: 30px; padding: 0 13px; border-radius: 8px; white-space: nowrap; font-size: 13px; border: 1px dashed #2E2E2E; color: #5F5F5F;">おまかせ</span></div>
-          </div>
-          <div style="display: flex; align-items: center; gap: 10px; height: 42px; padding: 0 8px 0 13px; border-radius: 14px; background: #141414; border: 1px solid #2A2A2A;">
+      <div style="display: flex; flex-direction: column; gap: 11px;">
+        <span style="color: #B8B8B8; font-size: 13px; line-height: 22px;">カードを会話の途中に挟まない。<b>いちばん下に出して、答えるとそのまま会話が続く。</b></span>
+        <div style="display: flex; flex-direction: column; gap: 11px; padding: 13px; border-radius: 12px; background: #060606; border: 1px solid #1A1A1A;">
+          <div style="display: flex; align-items: flex-start; gap: 9px;"><span style="position: relative; display: inline-block; width: 22px; height: 22px; flex-shrink: 0;"><svg width="22" height="22" viewBox="0 0 100 100" style="display: block; overflow: visible;"><defs><radialGradient id="o0_g"><stop offset="0" stop-color="rgb(210,210,210)" stop-opacity="0.30"/><stop offset="0.5" stop-color="rgb(210,210,210)" stop-opacity="0.07"/><stop offset="1" stop-color="rgb(210,210,210)" stop-opacity="0"/></radialGradient><clipPath id="o0_c"><circle cx="50" cy="50" r="21"/></clipPath></defs><circle cx="50" cy="50" r="44" fill="url(#o0_g)"/><g><g fill="rgba(210,210,210,0.500)"><g><circle cx="73.0" cy="50.0" r="1.6"/><circle cx="69.3" cy="62.4" r="1.6"/><circle cx="59.6" cy="70.9" r="1.6"/><circle cx="46.7" cy="72.8" r="1.6"/><circle cx="34.9" cy="67.4" r="1.6"/><circle cx="27.9" cy="56.5" r="1.6"/><circle cx="27.9" cy="43.5" r="1.6"/><circle cx="34.9" cy="32.6" r="1.6"/><circle cx="46.7" cy="27.2" r="1.6"/><circle cx="59.6" cy="29.1" r="1.6"/><circle cx="69.3" cy="37.6" r="1.6"/><animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="30s" repeatCount="indefinite"/></g></g><g fill="rgba(210,210,210,0.750)"><g><circle cx="83.3" cy="60.8" r="1.6"/><circle cx="77.6" cy="71.5" r="1.6"/><circle cx="68.5" cy="79.7" r="1.6"/><circle cx="57.3" cy="84.2" r="1.6"/><circle cx="45.1" cy="84.7" r="1.6"/><circle cx="33.6" cy="80.9" r="1.6"/><circle cx="24.0" cy="73.4" r="1.6"/><circle cx="17.5" cy="63.1" r="1.6"/><circle cx="15.0" cy="51.2" r="1.6"/><circle cx="16.7" cy="39.2" r="1.6"/><circle cx="22.4" cy="28.5" r="1.6"/><circle cx="31.5" cy="20.3" r="1.6"/><circle cx="42.7" cy="15.8" r="1.6"/><circle cx="54.9" cy="15.3" r="1.6"/><circle cx="66.4" cy="19.1" r="1.6"/><circle cx="76.0" cy="26.6" r="1.6"/><circle cx="82.5" cy="36.9" r="1.6"/><circle cx="85.0" cy="48.8" r="1.6"/><animateTransform attributeName="transform" type="rotate" from="360 50 50" to="0 50 50" dur="54s" repeatCount="indefinite"/></g></g></g><circle cx="50" cy="50" r="9" fill="rgba(210,210,210,0.300)"/><circle cx="50" cy="50" r="4.4" fill="rgba(255,255,255,0.92)"/></svg></span><span style="color: #8B8B8B; font-size: 12px; line-height: 20px;">B案（月額 ¥1,980）をすすめます。競合が同じ帯に集まっているからです。</span></div>
+          <div style="display: flex; align-items: center; gap: 8px;"><span style="width: 7px; height: 7px; border-radius: 999px; background: #E37400;"></span><span style="color: #6E6E6E; font-size: 12px;">確認したいことがあります</span></div>
+      <div style="width: 100%; max-width: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; padding: 15px 16px; border-radius: 13px; background: #0E0E0E; border: 1px solid #232323;">
+        <div style="display: flex; align-items: baseline; gap: 12px;"><span style="font-size: 14px; line-height: 22px;">月額はいくらにしますか？</span><div style="flex: 1;"></div><span style="color: #5F5F5F; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap;">1 / 2</span></div>
+        <div style="display: flex; flex-direction: column; border-radius: 10px; border: 1px solid #1F1F1F; overflow: hidden;">
+          <div style="display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-bottom: 1px solid #171717;"><div style="min-width: 0; display: flex; flex-direction: column; gap: 3px;"><div style="display: flex; align-items: center; gap: 8px;"><span style="color: #EDEDED; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">¥1,980</span><span style="display: inline-flex; align-items: center; height: 19px; padding: 0 7px; border-radius: 5px; background: rgba(30,142,62,0.18); color: #5BB974; font-size: 11px; white-space: nowrap;">推奨</span></div><span style="color: #5F5F5F; font-size: 12px; line-height: 18px;">競合と同じ帯。利益も残る</span></div><div style="flex: 1;"></div><span style="width: 24px; height: 24px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; background: #171717; border: 1px solid #262626; color: #6E6E6E; font-size: 11px; font-variant-numeric: tabular-nums;">1</span></div>
+          <div style="display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-bottom: 1px solid #171717;"><div style="min-width: 0; display: flex; flex-direction: column; gap: 3px;"><div style="display: flex; align-items: center; gap: 8px;"><span style="color: #EDEDED; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">¥1,480</span></div><span style="color: #5F5F5F; font-size: 12px; line-height: 18px;">入りやすいが利益が薄い</span></div><div style="flex: 1;"></div><span style="width: 24px; height: 24px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; background: #171717; border: 1px solid #262626; color: #6E6E6E; font-size: 11px; font-variant-numeric: tabular-nums;">2</span></div>
+          <div style="display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-bottom: 1px solid #171717;"><div style="min-width: 0; display: flex; flex-direction: column; gap: 3px;"><div style="display: flex; align-items: center; gap: 8px;"><span style="color: #EDEDED; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">¥2,480</span></div><span style="color: #5F5F5F; font-size: 12px; line-height: 18px;">高い理由をこちらで用意します</span></div><div style="flex: 1;"></div><span style="width: 24px; height: 24px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; background: #171717; border: 1px solid #262626; color: #6E6E6E; font-size: 11px; font-variant-numeric: tabular-nums;">3</span></div>
+          <div style="display: flex; align-items: center; gap: 12px; padding: 11px 14px;"><span style="color: #5F5F5F;">他の内容を入力してください…</span><div style="flex: 1;"></div><span style="width: 24px; height: 24px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; background: #171717; border: 1px solid #262626; color: #6E6E6E; font-size: 11px; font-variant-numeric: tabular-nums;">4</span></div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;"><span style="display: inline-flex; align-items: center; height: 30px; padding: 0 14px; border-radius: 8px; background: #171717; border: 1px solid #262626; color: #B8B8B8; font-size: 12px;">スキップ</span><span style="color: #5F5F5F; font-size: 11px;">数字キーでも選べます</span></div>
+      </div>
+          <div style="display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 8px 0 13px; border-radius: 14px; background: #141414; border: 1px solid #2A2A2A;">
             <span style="color: #5F5F5F; font-size: 12px;">統括AIに書く</span><div style="flex: 1;"></div>
-            <span style="width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: #1A73E8;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6M6 12l6-6 6 6"/></svg></span>
+            <span style="width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: #1A73E8;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6M6 12l6-6 6 6"/></svg></span>
           </div>
         </div>
       </div>
     </div>
     <div style="flex: 1; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 12px; background: #0E0E0E; border: 1px solid #232323;">
       <div style="display: flex; align-items: baseline; gap: 10px;">
-        <span style="color: #8B8B8B;">形</span><span style="color: #5F5F5F; font-size: 12px;">聞き方は4つだけ</span>
+        <span style="color: #8B8B8B;">中身</span><span style="color: #5F5F5F; font-size: 12px;">変わるのは選択肢だけ</span>
       </div>
-      <div style="box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: 13px; background: #0E0E0E; border: 1px solid #232323;">
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-          <span style="font-size: 14px; line-height: 22px;">この Work は、いつまでに形にしたいですか？</span>
-          <span style="color: #5F5F5F; font-size: 12px;">期限で、フェーズの切り方が変わります</span>
+      <div style="width: 100%; max-width: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; padding: 15px 16px; border-radius: 13px; background: #0E0E0E; border: 1px solid #232323;">
+        <div style="display: flex; align-items: baseline; gap: 12px;"><span style="font-size: 14px; line-height: 22px;">この Work は、いつまでに形にしたいですか？</span><div style="flex: 1;"></div><span style="color: #5F5F5F; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap;">2 / 2</span></div>
+        <div style="display: flex; flex-direction: column; border-radius: 10px; border: 1px solid #1F1F1F; overflow: hidden;">
+          <div style="display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-bottom: 1px solid #171717;"><div style="min-width: 0; display: flex; flex-direction: column; gap: 3px;"><div style="display: flex; align-items: center; gap: 8px;"><span style="color: #EDEDED; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">6ヶ月</span><span style="display: inline-flex; align-items: center; height: 19px; padding: 0 7px; border-radius: 5px; background: rgba(30,142,62,0.18); color: #5BB974; font-size: 11px; white-space: nowrap;">推奨</span></div><span style="color: #5F5F5F; font-size: 12px; line-height: 18px;">いまの週10時間だと、ここが現実的です</span></div><div style="flex: 1;"></div><span style="width: 24px; height: 24px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; background: #171717; border: 1px solid #262626; color: #6E6E6E; font-size: 11px; font-variant-numeric: tabular-nums;">1</span></div>
+          <div style="display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-bottom: 1px solid #171717;"><div style="min-width: 0; display: flex; flex-direction: column; gap: 3px;"><div style="display: flex; align-items: center; gap: 8px;"><span style="color: #EDEDED; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">3ヶ月</span></div><span style="color: #5F5F5F; font-size: 12px; line-height: 18px;">間に合わせるには、範囲を削る必要があります</span></div><div style="flex: 1;"></div><span style="width: 24px; height: 24px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; background: #171717; border: 1px solid #262626; color: #6E6E6E; font-size: 11px; font-variant-numeric: tabular-nums;">2</span></div>
+          <div style="display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-bottom: 1px solid #171717;"><div style="min-width: 0; display: flex; flex-direction: column; gap: 3px;"><div style="display: flex; align-items: center; gap: 8px;"><span style="color: #EDEDED; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">決めていない</span></div><span style="color: #5F5F5F; font-size: 12px; line-height: 18px;">こちらで置いて、あとから直します</span></div><div style="flex: 1;"></div><span style="width: 24px; height: 24px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; background: #171717; border: 1px solid #262626; color: #6E6E6E; font-size: 11px; font-variant-numeric: tabular-nums;">3</span></div>
+          <div style="display: flex; align-items: center; gap: 12px; padding: 11px 14px;"><span style="color: #5F5F5F;">他の内容を入力してください…</span><div style="flex: 1;"></div><span style="width: 24px; height: 24px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; background: #171717; border: 1px solid #262626; color: #6E6E6E; font-size: 11px; font-variant-numeric: tabular-nums;">4</span></div>
         </div>
-        <div style="display: flex; flex-wrap: wrap; gap: 7px;"><span style="display: inline-flex; align-items: center; height: 30px; padding: 0 13px; border-radius: 8px; white-space: nowrap; font-size: 13px; background: #171717; color: #B8B8B8;">3ヶ月</span><span style="display: inline-flex; align-items: center; height: 30px; padding: 0 13px; border-radius: 8px; white-space: nowrap; font-size: 13px; background: #2A2A2A; color: #EDEDED;">6ヶ月</span><span style="display: inline-flex; align-items: center; height: 30px; padding: 0 13px; border-radius: 8px; white-space: nowrap; font-size: 13px; background: #171717; color: #B8B8B8;">1年</span><span style="display: inline-flex; align-items: center; height: 30px; padding: 0 13px; border-radius: 8px; white-space: nowrap; font-size: 13px; background: #171717; color: #B8B8B8;">決めていない</span></div>
+        <div style="display: flex; align-items: center; gap: 10px;"><span style="display: inline-flex; align-items: center; height: 30px; padding: 0 14px; border-radius: 8px; background: #171717; border: 1px solid #262626; color: #B8B8B8; font-size: 12px;">スキップ</span><span style="color: #5F5F5F; font-size: 11px;">数字キーでも選べます</span></div>
       </div>
-      <div style="box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: 13px; background: #0E0E0E; border: 1px solid #232323;">
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-          <span style="font-size: 14px; line-height: 22px;">ターゲットを1つに絞りますか？</span>
-          <span style="color: #5F5F5F; font-size: 12px;">絞ると刺さりますが、母数が減ります</span>
-        </div>
-        <div style="display: flex; flex-wrap: wrap; gap: 7px;"><span style="display: inline-flex; align-items: center; height: 30px; padding: 0 13px; border-radius: 8px; white-space: nowrap; font-size: 13px; background: #2A2A2A; color: #EDEDED;">絞る</span><span style="display: inline-flex; align-items: center; height: 30px; padding: 0 13px; border-radius: 8px; white-space: nowrap; font-size: 13px; background: #171717; color: #B8B8B8;">広く出す</span></div>
-      </div>
-      <div style="box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: 13px; background: #0E0E0E; border: 1px solid #232323;">
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-          <span style="font-size: 14px; line-height: 22px;">サービス名はありますか？</span>
-          <span style="color: #5F5F5F; font-size: 12px;">無ければ、こちらで案を出します</span>
-        </div>
-        <div style="display: flex; flex-wrap: wrap; gap: 7px;"><span style="display: inline-flex; align-items: center; height: 30px; padding: 0 13px; border-radius: 8px; white-space: nowrap; font-size: 13px; background: #171717; color: #B8B8B8;">まだない</span><span style="display: inline-flex; align-items: center; height: 30px; padding: 0 13px; border-radius: 8px; white-space: nowrap; font-size: 13px; border: 1px dashed #2E2E2E; color: #5F5F5F;">じぶんで書く</span></div>
-      </div>
-      <div style="box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: 13px; background: #0E0E0E; border: 1px solid #232323;">
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-          <span style="font-size: 14px; line-height: 22px;">この判断、こちらで決めてよいですか？</span>
-          <span style="color: #5F5F5F; font-size: 12px;">あとから変えられる範囲です</span>
-        </div>
-        <div style="display: flex; flex-wrap: wrap; gap: 7px;"><span style="display: inline-flex; align-items: center; height: 30px; padding: 0 13px; border-radius: 8px; white-space: nowrap; font-size: 13px; background: #171717; color: #B8B8B8;">自分で決める</span><span style="display: inline-flex; align-items: center; height: 30px; padding: 0 13px; border-radius: 8px; white-space: nowrap; font-size: 13px; background: #2A2A2A; color: #EDEDED;">おまかせ</span></div>
-      </div>
+      <span style="color: #5F5F5F; font-size: 12px; line-height: 20px; padding-top: 2px;">選択肢は2〜4つ。器はいつも同じで、中身だけが変わります。</span>
     </div>
     </div>
     <div style="flex-shrink: 0; display: flex; gap: 14px;">
     <div style="flex: 1; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 12px; background: #0E0E0E; border: 1px solid #232323;">
       <div style="display: flex; align-items: baseline; gap: 10px;">
-        <span style="color: #8B8B8B;">必ず守ること</span><span style="color: #5F5F5F; font-size: 12px;"></span>
+        <span style="color: #8B8B8B;">形の決まりごと</span><span style="color: #5F5F5F; font-size: 12px;"></span>
       </div>
       <div style="display: flex; flex-direction: column; gap: 11px;">
-        <div style="display: flex; gap: 10px;"><span style="color: #5F5F5F;">1</span><span style="color: #B8B8B8; font-size: 13px; line-height: 21px;"><b>なぜ聞いているかを1行つける。</b>理由のない質問は出さない</span></div>
-        <div style="display: flex; gap: 10px;"><span style="color: #5F5F5F;">2</span><span style="color: #B8B8B8; font-size: 13px; line-height: 21px;"><b>選択肢を出す。</b>自由記述は最後の手段。打鍵させない</span></div>
-        <div style="display: flex; gap: 10px;"><span style="color: #5F5F5F;">3</span><span style="color: #B8B8B8; font-size: 13px; line-height: 21px;"><b>「おまかせ」を必ず置く。</b>答えられない質問で止めない</span></div>
-        <div style="display: flex; gap: 10px;"><span style="color: #5F5F5F;">4</span><span style="color: #B8B8B8; font-size: 13px; line-height: 21px;"><b>一度に1つ。</b>まとめて聞かない</span></div>
+        <div style="display: flex; gap: 10px;"><span style="color: #5F5F5F;">1</span><span style="color: #B8B8B8; font-size: 13px; line-height: 21px;"><b>選択肢に1行の説明をつける。</b>「¥1,980」だけでは選べない</span></div>
+        <div style="display: flex; gap: 10px;"><span style="color: #5F5F5F;">2</span><span style="color: #B8B8B8; font-size: 13px; line-height: 21px;"><b>推奨に印をつけ、いちばん上に置く。</b>迷わせない</span></div>
+        <div style="display: flex; gap: 10px;"><span style="color: #5F5F5F;">3</span><span style="color: #B8B8B8; font-size: 13px; line-height: 21px;"><b>最後は自由入力。</b>用意した選択肢が外れていても進める</span></div>
+        <div style="display: flex; gap: 10px;"><span style="color: #5F5F5F;">4</span><span style="color: #B8B8B8; font-size: 13px; line-height: 21px;"><b>スキップを必ず置く。</b>数字キーでも選べる</span></div>
+        <div style="display: flex; gap: 10px;"><span style="color: #5F5F5F;">5</span><span style="color: #B8B8B8; font-size: 13px; line-height: 21px;"><b>一度に1つ。</b>複数あるときは N / M を出して順に聞く</span></div>
       </div>
     </div>
     <div style="flex: 1; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 12px; background: #0E0E0E; border: 1px solid #232323;">
@@ -105,10 +86,8 @@
       <div style="display: flex; flex-direction: column; gap: 10px;">
         <span style="color: #B8B8B8; font-size: 13px; line-height: 21px;">答えても<b>決定事項の台帳には出しません。</b>出すと「聞かれたこと」で埋まって、本当の判断が埋もれます。</span>
         <div style="display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 9px; background: #0A0A0A; border: 1px solid #1C1C1C;">
-          <span style="color: #6E6E6E; font-size: 12px;">質問</span>
-          <span style="color: #5F5F5F;">→</span>
-          <span style="color: #6E6E6E; font-size: 12px;">事業判断だったときだけ</span>
-          <span style="color: #5F5F5F;">→</span>
+          <span style="color: #6E6E6E; font-size: 12px;">質問</span><span style="color: #5F5F5F;">→</span>
+          <span style="color: #6E6E6E; font-size: 12px;">事業判断だったときだけ</span><span style="color: #5F5F5F;">→</span>
           <span style="color: #5BB974; font-size: 12px;">決定事項</span>
         </div>
       </div>
