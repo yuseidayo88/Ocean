@@ -58,28 +58,20 @@
 
     <!-- Identity -->
     <div style="flex: 1; display: flex; flex-direction: column; gap: 14px; padding: 16px; border-radius: 12px; background: #0E0E0E; border: 1px solid #232323;">
-      <span style="color: #8B8B8B;">AI社員は、形と色で見分ける</span>
-      <div style="display: flex; gap: 8px;">
-        <span style="width: 46px; height: 46px; border-radius: 12px; background: #10262B; border: 1px solid #1C4148; display: inline-flex; align-items: center; justify-content: center;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3ECBE0" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7.5"/></svg>
-        </span>
-        <span style="width: 46px; height: 46px; border-radius: 12px; background: #221334; border: 1px solid #3B1F58; display: inline-flex; align-items: center; justify-content: center;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B06CF5" stroke-width="1.5" stroke-linejoin="round"><path d="M12 4.5 19 10l-7 5.5L5 10z"/><path d="m5 15 7 5.5L19 15"/></svg>
-        </span>
-        <span style="width: 46px; height: 46px; border-radius: 12px; background: #151833; border: 1px solid #26295C; display: inline-flex; align-items: center; justify-content: center;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7C82F0" stroke-width="1.5"><rect x="4.5" y="4.5" width="6" height="6" rx="1.2"/><rect x="13.5" y="4.5" width="6" height="6" rx="1.2"/><rect x="4.5" y="13.5" width="6" height="6" rx="1.2"/><rect x="13.5" y="13.5" width="6" height="6" rx="1.2"/></svg>
-        </span>
-        <span style="width: 46px; height: 46px; border-radius: 12px; background: #2A1A10; border: 1px solid #4A2E19; display: inline-flex; align-items: center; justify-content: center;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 18.5 9.8 12l3.4 3.6 5.8-8.6"/><path d="M15.6 6.8h3.9v3.9"/></svg>
-        </span>
+      <span style="color: #8B8B8B;">AI社員は色で見分ける</span>
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <span style="width: 46px; height: 46px; border-radius: 999px; background: radial-gradient(circle at 50% 42%, rgba(62,203,224,0.62), rgba(62,203,224,0.14) 56%, rgba(62,203,224,0) 74%); border: 1px solid rgba(62,203,224,0.22);"></span>
+        <span style="width: 46px; height: 46px; border-radius: 999px; background: radial-gradient(circle at 50% 42%, rgba(176,108,245,0.62), rgba(176,108,245,0.14) 56%, rgba(176,108,245,0) 74%); border: 1px solid rgba(176,108,245,0.22);"></span>
+        <span style="width: 46px; height: 46px; border-radius: 999px; background: radial-gradient(circle at 50% 42%, rgba(124,130,240,0.62), rgba(124,130,240,0.14) 56%, rgba(124,130,240,0) 74%); border: 1px solid rgba(124,130,240,0.14);"></span>
+        <span style="width: 46px; height: 46px; border-radius: 999px; border: 1px dashed #333333;"></span>
       </div>
       <div style="display: flex; flex-direction: column; gap: 7px;">
-        <div style="display: flex; gap: 10px;"><span style="color: #3ECBE0; width: 66px; flex-shrink: 0;">二重丸</span><span style="color: #8B8B8B;">調べる仕事</span></div>
-        <div style="display: flex; gap: 10px;"><span style="color: #B06CF5; width: 66px; flex-shrink: 0;">層</span><span style="color: #8B8B8B;">組み立てる仕事</span></div>
-        <div style="display: flex; gap: 10px;"><span style="color: #7C82F0; width: 66px; flex-shrink: 0;">格子</span><span style="color: #8B8B8B;">つくる仕事</span></div>
-        <div style="display: flex; gap: 10px;"><span style="color: #E8A33D; width: 66px; flex-shrink: 0;">折れ線</span><span style="color: #8B8B8B;">伸ばす仕事</span></div>
+        <div style="display: flex; gap: 10px;"><span style="color: #3ECBE0; width: 66px; flex-shrink: 0;">シアン</span><span style="color: #8B8B8B;">市場リサーチャー</span></div>
+        <div style="display: flex; gap: 10px;"><span style="color: #B06CF5; width: 66px; flex-shrink: 0;">パープル</span><span style="color: #8B8B8B;">事業ストラテジスト</span></div>
+        <div style="display: flex; gap: 10px;"><span style="color: #7C82F0; width: 66px; flex-shrink: 0;">インディゴ</span><span style="color: #8B8B8B;">プロダクト担当</span></div>
+        <div style="display: flex; gap: 10px;"><span style="color: #5F5F5F; width: 66px; flex-shrink: 0;">未割当</span><span style="color: #5F5F5F;">採用すると色が決まる</span></div>
       </div>
-      <span style="margin-top: auto; color: #6E6E6E;">頭文字ではなく図形。名前を読まずに担当が分かる。</span>
+      <span style="margin-top: auto; color: #6E6E6E;">アイコンでの分類はしない。この円には社員ごとの粒子アニメーションが入る（実装時）。</span>
     </div>
 
     <!-- Type -->
