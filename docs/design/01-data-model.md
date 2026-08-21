@@ -78,7 +78,8 @@ erDiagram
 |---|---|
 | `agent_definitions` | **カタログ**。agency-agents 由来の定義（→ [03](./03-agent-schema.md)）。会社に依らない |
 | `employees` | **採用したインスタンス**。`account_id, definition_id, display_name, color_token, status, definition_version, memory_store_id, hired_at` |
-| `employee_settings` | **社長が編集した分だけ**を持つ。`employee_id, skills_added[], skills_removed[], rules[], model_policy, model_fixed, effort_policy, task_token_cap, updated_at` |
+| `employee_settings` | **社長が編集した分だけ**を持つ。`employee_id, rules[], model_policy, model_fixed, effort_policy, task_token_cap, updated_at` |
+| `agent_skills` | **SKILL.md 1枚 = 1行**。`employee_id(null=会社共通), filename, name, description, body, source(builtin/user), enabled` （→ [03](./03-agent-schema.md)） |
 
 `employees.definition_version` は採用時のカタログ版。定義を更新すると版が上がるが、
 **走っている実行は採用時の版に固定**される（途中で人格が変わらない）。
