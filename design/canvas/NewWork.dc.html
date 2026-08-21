@@ -7,54 +7,54 @@
 <body>
 <x-dc>
 <helmet>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600&amp;display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400&amp;display=swap">
   <style>
-    body { margin: 0; background: #000000; }
+    body { margin: 0; background: #000000; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
     a { color: #ECECEC; } a:hover { color: #FFFFFF; }
     @keyframes flow { to { stroke-dashoffset: -14; } }
   </style>
 </helmet>
-<div style="position: relative; width: 1440px; height: 900px; box-sizing: border-box; background: #000000; color: #ECECEC; font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif; font-size: 14px; line-height: 1.5; overflow: hidden;">
+<div style="position: relative; width: 1440px; height: 900px; box-sizing: border-box; background: #000000; color: #ECECEC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', 'Noto Sans JP', sans-serif; font-size: 14px; line-height: 1.5; overflow: hidden;">
   <!-- Sidebar -->
-  <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 248px; box-sizing: border-box; display: flex; flex-direction: column; padding: 8px; background: #0A0A0A; border-right: 1px solid rgba(255,255,255,0.07);">
+  <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 248px; box-sizing: border-box; display: flex; flex-direction: column; padding: 8px; background: #0A0A0A; border-right: 1px solid rgba(255,255,255,0.06);">
     <div style="display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 8px;">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ECECEC" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 15.2c2.4-2.6 4.7-2.6 7 0s4.6 2.6 7 0 4.6-2.6 5 0"/><path d="M2.5 9.2c2.4-2.6 4.7-2.6 7 0s4.6 2.6 7 0 4.6-2.6 5 0" opacity="0.45"/></svg>
-      <span style="font-size: 14px; font-weight: 500;">Ocean</span>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ECECEC" stroke-width="1.35" stroke-linecap="round"><path d="M2.5 15.2c2.4-2.6 4.7-2.6 7 0s4.6 2.6 7 0 4.6-2.6 5 0"/><path d="M2.5 9.2c2.4-2.6 4.7-2.6 7 0s4.6 2.6 7 0 4.6-2.6 5 0" opacity="0.45"/></svg>
+      <span style="font-size: 14px; font-weight: 400;">Ocean</span>
       <div style="flex: 1;"></div>
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8F8F8F" stroke-width="1.5" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="14" rx="2"/><path d="M9.5 5v14"/></svg>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8F8F8F" stroke-width="1.35" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="14" rx="2"/><path d="M9.5 5v14"/></svg>
     </div>
 
     <div style="display: flex; flex-direction: column; gap: 1px; margin-top: 6px;">
       <div style="display: flex; align-items: center; gap: 11px; height: 36px; padding: 0 8px; border-radius: 8px;">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ECECEC" stroke-width="1.6" stroke-linecap="round"><path d="M12 5.5v13M5.5 12h13"/></svg>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ECECEC" stroke-width="1.4" stroke-linecap="round"><path d="M12 5.5v13M5.5 12h13"/></svg>
         <span style="font-size: 14px;">新しいWork</span>
       </div>
       <div style="display: flex; align-items: center; gap: 11px; height: 36px; padding: 0 8px; border-radius: 8px;">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B4B4B4" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B4B4B4" stroke-width="1.4" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
         <span style="font-size: 14px; color: #ECECEC;">検索</span>
       </div>
       <div style="display: flex; align-items: center; gap: 11px; height: 36px; padding: 0 8px; border-radius: 8px;">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B4B4B4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="13.5" rx="2"/><path d="M4 13.2h4.2l1.5 2.2h4.6l1.5-2.2H20"/></svg>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B4B4B4" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="13.5" rx="2"/><path d="M4 13.2h4.2l1.5 2.2h4.6l1.5-2.2H20"/></svg>
         <span style="font-size: 14px; color: #ECECEC;">通知</span>
         <div style="flex: 1;"></div>
         <span style="font-size: 12px; color: #FF9F0A; font-variant-numeric: tabular-nums;">2</span>
       </div>
       <div style="display: flex; align-items: center; gap: 11px; height: 36px; padding: 0 8px; border-radius: 8px;">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B4B4B4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M8.2 12.2l2.4 2.4 4.6-5"/></svg>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B4B4B4" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M8.2 12.2l2.4 2.4 4.6-5"/></svg>
         <span style="font-size: 14px; color: #ECECEC;">タスク</span>
       </div>
       <div style="display: flex; align-items: center; gap: 11px; height: 36px; padding: 0 8px; border-radius: 8px;">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B4B4B4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5H7.4A1.9 1.9 0 0 0 5.5 5.4v13.2a1.9 1.9 0 0 0 1.9 1.9h9.2a1.9 1.9 0 0 0 1.9-1.9V8.5z"/><path d="M13.5 3.5v5h5"/></svg>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B4B4B4" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5H7.4A1.9 1.9 0 0 0 5.5 5.4v13.2a1.9 1.9 0 0 0 1.9 1.9h9.2a1.9 1.9 0 0 0 1.9-1.9V8.5z"/><path d="M13.5 3.5v5h5"/></svg>
         <span style="font-size: 14px; color: #ECECEC;">成果物</span>
       </div>
       <div style="display: flex; align-items: center; gap: 11px; height: 36px; padding: 0 8px; border-radius: 8px;">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B4B4B4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.2" cy="8.6" r="3.1"/><path d="M4 19.2c0-2.9 2.3-5.2 5.2-5.2s5.2 2.3 5.2 5.2"/><path d="M15.6 5.9a3 3 0 0 1 0 5.5M17.6 14.4c1.8.8 3 2.6 3 4.8"/></svg>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B4B4B4" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.2" cy="8.6" r="3.1"/><path d="M4 19.2c0-2.9 2.3-5.2 5.2-5.2s5.2 2.3 5.2 5.2"/><path d="M15.6 5.9a3 3 0 0 1 0 5.5M17.6 14.4c1.8.8 3 2.6 3 4.8"/></svg>
         <span style="font-size: 14px; color: #ECECEC;">メンバー</span>
         <div style="flex: 1;"></div>
         <span style="font-size: 12px; color: #7A7A7A; font-variant-numeric: tabular-nums;">3</span>
       </div>
       <div style="display: flex; align-items: center; gap: 11px; height: 36px; padding: 0 8px; border-radius: 8px;">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B4B4B4" stroke-width="1.6" stroke-linecap="round"><path d="M4.5 6.5h15M4.5 12h15M4.5 17.5h9"/></svg>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B4B4B4" stroke-width="1.4" stroke-linecap="round"><path d="M4.5 6.5h15M4.5 12h15M4.5 17.5h9"/></svg>
         <span style="font-size: 14px; color: #ECECEC;">決定事項</span>
       </div>
     </div>
@@ -64,15 +64,15 @@
     </div>
     <div style="display: flex; flex-direction: column; gap: 1px;">
       <div style="display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 8px; border-radius: 8px; background: rgba(255,255,255,0.09);">
-        <span style="width: 6px; height: 6px; border-radius: 999px; background: #30D158; flex-shrink: 0;"></span>
+        <span style="width: 5px; height: 5px; border-radius: 999px; background: #30D158; flex-shrink: 0;"></span>
         <span style="font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">韓国人向け日本語学習サービス</span>
       </div>
       <div style="display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 8px; border-radius: 8px;">
-        <span style="width: 6px; height: 6px; border-radius: 999px; background: rgba(255,255,255,0.18); flex-shrink: 0;"></span>
+        <span style="width: 5px; height: 5px; border-radius: 999px; background: rgba(255,255,255,0.18); flex-shrink: 0;"></span>
         <span style="font-size: 13.5px; color: #B4B4B4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">ECサイトの改善</span>
       </div>
       <div style="display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 8px; border-radius: 8px;">
-        <span style="width: 6px; height: 6px; border-radius: 999px; background: rgba(255,255,255,0.18); flex-shrink: 0;"></span>
+        <span style="width: 5px; height: 5px; border-radius: 999px; background: rgba(255,255,255,0.18); flex-shrink: 0;"></span>
         <span style="font-size: 13.5px; color: #B4B4B4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">採用ページのリニューアル</span>
       </div>
     </div>
@@ -94,7 +94,7 @@
       <span style="width: 26px; height: 26px; border-radius: 999px; background: rgba(255,255,255,0.14); display: inline-flex; align-items: center; justify-content: center; font-size: 12px;">Y</span>
       <span style="font-size: 13.5px;">あなた</span>
       <div style="flex: 1;"></div>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7A7A7A" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.2v2.2M12 18.6v2.2M3.2 12h2.2M18.6 12h2.2M5.8 5.8l1.6 1.6M16.6 16.6l1.6 1.6M18.2 5.8l-1.6 1.6M7.4 16.6l-1.6 1.6"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7A7A7A" stroke-width="1.4" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.2v2.2M12 18.6v2.2M3.2 12h2.2M18.6 12h2.2M5.8 5.8l1.6 1.6M16.6 16.6l1.6 1.6M18.2 5.8l-1.6 1.6M7.4 16.6l-1.6 1.6"/></svg>
     </div>
   </div>
 
@@ -111,20 +111,20 @@
     <span style="font-size: 28px; font-weight: 400; letter-spacing: -0.01em;">何をはじめますか？</span>
 
     <!-- Composer -->
-    <div style="width: 700px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; padding: 14px 14px 12px; border-radius: 26px; background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.09);">
+    <div style="width: 700px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; padding: 14px 14px 12px; border-radius: 26px; background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.07);">
       <span style="color: #7A7A7A; padding: 2px 4px 0;">例：韓国人向けの日本語学習サービスを立ち上げたい</span>
       <div style="display: flex; align-items: center; gap: 8px;">
         <span style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; border: 1px solid rgba(255,255,255,0.14);">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ECECEC" stroke-width="1.6" stroke-linecap="round"><path d="M12 5.5v13M5.5 12h13"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ECECEC" stroke-width="1.4" stroke-linecap="round"><path d="M12 5.5v13M5.5 12h13"/></svg>
         </span>
         <span style="display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px; border-radius: 8px; font-size: 13.5px; color: #B4B4B4;">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#B4B4B4" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.6 12h16.8M12 3.5c2.2 2.4 3.3 5.3 3.3 8.5s-1.1 6.1-3.3 8.5c-2.2-2.4-3.3-5.3-3.3-8.5S9.8 5.9 12 3.5z"/></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#B4B4B4" stroke-width="1.4" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.6 12h16.8M12 3.5c2.2 2.4 3.3 5.3 3.3 8.5s-1.1 6.1-3.3 8.5c-2.2-2.4-3.3-5.3-3.3-8.5S9.8 5.9 12 3.5z"/></svg>
           URLを読む
         </span>
         <span style="display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border-radius: 8px; font-size: 13.5px; color: #B4B4B4;">既存事業から</span>
         <div style="flex: 1;"></div>
         <span style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: #ECECEC;">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5.5M6 11.5 12 5.5l6 6"/></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5.5M6 11.5 12 5.5l6 6"/></svg>
         </span>
       </div>
     </div>
@@ -132,28 +132,28 @@
     <!-- Suggestions -->
     <div style="width: 700px; display: flex; flex-direction: column; gap: 1px;">
       <div style="display: flex; align-items: center; gap: 13px; height: 44px; padding: 0 12px; border-radius: 8px; background: rgba(255,255,255,0.05);">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B4B4B4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.2 13.9 9l4.8 1.9-4.8 1.9L12 17.6 10.1 12.8 5.3 10.9 10.1 9z"/></svg>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B4B4B4" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.2 13.9 9l4.8 1.9-4.8 1.9L12 17.6 10.1 12.8 5.3 10.9 10.1 9z"/></svg>
         <span style="font-size: 13.5px;">つくりたいものが決まっている</span>
         <div style="flex: 1;"></div>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7A7A7A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7A7A7A" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></svg>
       </div>
       <div style="display: flex; align-items: center; gap: 13px; height: 44px; padding: 0 12px; border-radius: 8px;">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B4B4B4" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B4B4B4" stroke-width="1.4" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
         <span style="font-size: 13.5px; color: #ECECEC;">需要のあるところから探す</span>
         <div style="flex: 1;"></div>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7A7A7A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7A7A7A" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></svg>
       </div>
       <div style="display: flex; align-items: center; gap: 13px; height: 44px; padding: 0 12px; border-radius: 8px;">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B4B4B4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 18.5 9.8 12l3.4 3.6 5.8-8.6"/><path d="M15.6 6.8h3.9v3.9"/></svg>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B4B4B4" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 18.5 9.8 12l3.4 3.6 5.8-8.6"/><path d="M15.6 6.8h3.9v3.9"/></svg>
         <span style="font-size: 13.5px; color: #ECECEC;">新しい事業を立ち上げる</span>
         <div style="flex: 1;"></div>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7A7A7A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7A7A7A" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></svg>
       </div>
       <div style="display: flex; align-items: center; gap: 13px; height: 44px; padding: 0 12px; border-radius: 8px;">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B4B4B4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4.5V9h-4.5"/></svg>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B4B4B4" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4.5V9h-4.5"/></svg>
         <span style="font-size: 13.5px; color: #ECECEC;">いまの事業を立て直す</span>
         <div style="flex: 1;"></div>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7A7A7A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7A7A7A" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></svg>
       </div>
     </div>
   </div>
