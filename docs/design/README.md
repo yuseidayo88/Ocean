@@ -9,8 +9,8 @@ OneFound の設計書。**Phase 1（画面）で決めた見た目を、動く�
 | 02 | [統括AIの実行モデル](./02-executive-model.md) | 統括AIが何を見て、何を決め、どこで止まるか |
 | 03 | [AI社員スキーマ](./03-agent-schema.md) | AI社員の定義フォーマット（agency-agents 準拠）と初期ロスター |
 | 04 | [状態遷移](./04-state-machines.md) | Work / タスク / 成果物 / 決定事項 の状態と、画面の色との対応 |
-| 05 | [技術構成とコスト](./05-tech-and-cost.md) | Vercel ＋ Supabase ＋ Anthropic / OpenAI 直。原価・トークン・料金プラン |
-| 06 | [Work の粒度](./06-work-and-scope.md) | どこまでを1つの Work にするか。昇格と降格 |
+| 05 | [技術構成とコスト](./05-tech-and-cost.md) | Cloudflare ＋ Supabase ＋ Anthropic / OpenAI 直。原価・トークン・料金プラン |
+| 06 | [Work の粒度と、用事](./06-work-and-scope.md) | 3つの入れ物（用事 / フェーズ / Work）。昇格と降格 |
 
 ---
 
@@ -42,7 +42,7 @@ Phase 2 の設計では、以下を**固定値としてコードに書かない*
 | 進捗率の計算式 | `progress_basis` を列に持ち、計算式を差し替えられるようにする |
 | 統括AIのプロンプト | DB に版を持つ。デプロイなしで差し替え・巻き戻しができる |
 | Work の切り分け | 判定を間違えても、フェーズ⇄Work を昇格・降格で移せる（→ [06](./06-work-and-scope.md)） |
-| ホスティング / 実行基盤 | `AgentRunner` を1枚挟む。Vercel → Cloudflare も、自前ループ → Managed Agents も、実装を足すだけ |
+| ホスティング / 実行基盤 | `AgentRunner` を1枚挟み、実行は「1ターンずつ書いて再開できる」形に固定する。Cloudflare ⇄ Vercel を移っても中身は変わらない |
 
 ## 設計の前提（Phase 0 / 1 からの持ち越し）
 

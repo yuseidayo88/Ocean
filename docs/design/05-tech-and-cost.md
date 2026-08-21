@@ -1,14 +1,15 @@
 # 05 — 技術構成とコスト
 
-> 2026-08-21 第2改訂。**前の改訂（Cloudflare ＋ OpenRouter）を取り下げます。**
-> 理由は下に書きます。結論は「足せるものは、最初は足さない」。
+> 2026-08-21 第3改訂。ホスティングを **Cloudflare** に確定。
+> モデルは **Anthropic と OpenAI の2社に直接**。仲介と Managed Agents は使いません。
 
 ## 結論
 
 | | 採用 | 見送り（後から足せる） |
 |---|---|---|
-| ホスティング | **Vercel** | Cloudflare Workers / Durable Objects |
-| DB・認証・保管 | **Supabase**（Postgres ＋ RLS ＋ Auth ＋ Storage ＋ Realtime） | — |
+| ホスティング・実行 | **Cloudflare**（Workers / Durable Objects / Queues / Cron / R2） | Vercel |
+| DB・認証 | **Supabase**（Postgres ＋ RLS ＋ Auth） | Neon など |
+| 成果物の保管 | **R2**（下り転送が無料） | Supabase Storage |
 | モデル | **Anthropic 直 ＋ OpenAI 直**（2社を直接） | OpenRouter などの仲介 |
 | エージェント実行 | **Messages API ＋ Tool Runner**（自前の1ループ） | Managed Agents |
 | 道具 | **サーバー側ツール**（Web検索・Webフェッチ・コード実行） | 自前サンドボックス |
@@ -22,67 +23,95 @@ flowchart TB
   subgraph client[ブラウザ]
     UI[Next.js App Router]
   end
-  subgraph vercel[Vercel]
-    API[Route Handlers]
-    RUN[実行関数<br/>1回で1タスクを進める]
-    CRON[Cron 取りこぼしの回収]
+  subgraph cf[Cloudflare]
+    W[Workers<br/>画面と API]
+    Q[Queues<br/>タスクの待ち行列]
+    DO[Durable Object<br/>1実行 = 1オブジェクト]
+    CR[Cron Triggers<br/>朝の報告・期限切れ]
+    R2[(R2 成果物)]
+    HD[Hyperdrive 接続プール]
   end
   subgraph supa[Supabase]
     DB[(PostgreSQL + RLS)]
-    RT[Realtime]
-    ST[Storage 成果物]
     AUTH[Auth]
   end
-  subgraph anth[Anthropic]
-    MSG[Messages API + Tool Runner]
-    TOOLS[サーバー側ツール<br/>Web検索 / フェッチ / コード実行]
+  subgraph models[モデル 2社に直接]
+    ANT[Anthropic]
+    OAI[OpenAI]
   end
 
-  UI <--> API
-  UI <-- 購読 --> RT
-  API --> DB
-  API -- 即時起動 --> RUN
-  CRON --> RUN
-  RUN --> DB
-  DB -- 変更通知 --> RT
-  RUN <--> MSG
-  MSG --> TOOLS
-  RUN --> ST
+  UI <--> W
+  UI <-- WebSocket 進捗 --> DO
+  W --> HD --> DB
+  W --> AUTH
+  W -- 投入 --> Q --> DO
+  CR --> Q
+  DO -- 1ターンずつ --> ANT
+  DO -- 1ターンずつ --> OAI
+  DO -- run_steps --> HD
+  W --> R2
 ```
 
-## Vercel か Cloudflare か
+## Cloudflare を採る
 
-**Vercel を採ります。前回 Cloudflare を推した理由が、途中で消えていました。**
+**採用します。** 決め手は値段ではなく、**実行の形が素直になる**ことです。
 
-前回の理屈はこうでした ——「エージェントの実行イベント（SSE）を受け続けるために常駐プロセスが要る。
-Durable Objects なら 1実行 = 1オブジェクトにできて、それが要らなくなる」。
+### 1実行 = 1 Durable Object
 
-ところが、そのあと **Managed Agents をやめてループを自前で持つ**と決めました。
-自前ループなら、**受け続ける外部ストリームがそもそも存在しません。** 自分で1ターンずつ回すだけです。
-Durable Objects を入れる主な理由は、そこで消えていました。
+AI社員が1タスクをこなす間、状態を持つ場所が要ります。Durable Object はそれにそのまま使えます。
 
-### 常駐ワーカーなしで長い実行を回す方法
+| DO がくれるもの | なぜ効くか |
+|---|---|
+| **1実行につき1つ、確実に1つだけ** | 二重起動が起きない。キューが同じジョブを2回配っても、掴むのは同じオブジェクト |
+| **状態をメモリに持てる** | 会話履歴を毎ターン DB から読み直さなくていい |
+| **WebSocket をそのまま張れる** | 進捗を画面へ直接押し出せる。DB を経由しない |
+| **alarm で自分を起こせる** | 待ちが必要なとき（レート制限・再試行）にタイマーを持てる |
+
+進捗の画面反映は **DO からの WebSocket** に寄せます。Supabase Realtime は使いません。
+（`run_steps` は監査と再開のために DB へ書き続けます。画面への配信経路が変わるだけです。）
+
+### 待っている時間が安い
+
+Workers の課金は **CPU 時間**です。エージェントの実行は、ほとんどの時間が**モデルの応答待ち**で、
+その間 CPU は動いていません。**この用途では有利な課金の形**です。
+
+Durable Object は稼働時間（GB秒）でも課金されますが、含まれる **400,000 GB秒** は
+1オブジェクト 128MB として **約 3,200,000 秒**。1 Work（13タスク × 約12分）で約 1,170 GB秒なので、
+**含まれるぶんだけで月 300 Work 以上**。この規模では実質定額です。
+
+| | |
+|---|---|
+| Workers 有料プラン | **$5/月**（1,000万リクエスト・3,000万 CPUミリ秒込み） |
+| 超過 | 100万リクエスト $0.30 / 100万 CPUミリ秒 $0.02 |
+| Durable Objects | 100万リクエスト・400,000 GB秒 が同じ $5 に含まれる |
+| R2 | 成果物の保管。**下り転送が無料** |
+
+### それでも「1ターンずつ書いて再開できる」形は崩さない
+
+プラットフォームの実行時間の上限がいくつであっても困らないように、実行はこう組みます。
 
 ```
-1. API がタスクを queued にして、実行関数を投げっぱなしで起動（cron は取りこぼしの回収だけ）
-2. 実行関数は Tool Runner を1ターンずつ回し、run_steps を1件ずつ DB に書く
-3. 関数の実行時間の上限に近づいたら、そこで正常終了する（状態は run_steps に全部残っている）
-4. 次の起動が run_steps の続きから再開する
+1. Queue がジョブを配る → Durable Object が掴む
+2. Tool Runner を1ターン回すたびに run_steps を1件書く
+3. 上限が近づいたら、そこで正常終了する（状態は run_steps に全部ある）
+4. alarm か次のジョブが、run_steps の続きから再開する
 ```
 
 **進捗を run_steps に書く設計はもともと必要でした**（画面表示と監査のため）。
-それがそのまま「途中で切れても再開できる」を無料でくれます。別の仕組みを足す必要がありません。
+それがそのまま「途中で切れても再開できる」をくれます。
+この形にしておけば、**あとで Vercel に戻っても、実行の中身は変わりません。**
 
-画面への反映は Supabase Realtime。DB の変更を購読するだけで、WebSocket を自分で張りません。
+### 正直な注意点
 
-### Cloudflare が正解になる条件（そのときに移す）
+1. **Next.js を Workers で動かすには OpenNext アダプタが要る。** 動きますが、ビルド手順が1枚増えます
+2. **Node 互換の確認を最初にやる。** 使う SDK（Anthropic / OpenAI / AI SDK）はいずれも fetch ベースなので
+   Workers で動く見込みは高いですが、**Phase 3 の 0番目のタスク**として先に確かめます
+3. **Postgres は残します。** 多テナントの安全は行レベルセキュリティ（RLS）に賭けているので D1 には替えません。
+   Workers から Postgres は **Hyperdrive** 経由で接続プールを解決します
+4. **Supabase の役割が減ります。** Storage は R2 に、Realtime は DO の WebSocket に移るので、
+   残るのは **Postgres ＋ Auth** です。将来もっと安い Postgres に替える余地が生まれます
 
-- 同時実行が数百に増えて、実行時間の課金が効いてくる
-- 1タスクの実行が長時間化して、関数の上限に当たり続ける
-
-そのときは **`AgentRunner` の実装を Workers に移すだけ**です。実行はもともと分離してあります。
-いま Cloudflare を選ぶと、OpenNext アダプタと Node 互換の検証に時間を使います。
-**月 $15 の差は、詰まって失う1週間より安い。**
+固定費は **Workers $5 ＋ Supabase Pro $25 = $30/月**。
 
 ## モデルは2社に直接つなぐ
 
@@ -166,7 +195,7 @@ Anthropic 直に戻したので、Managed Agents はまた選べます。それ�
 | 社員の記憶 | `employees` と Postgres に持つ。**自分のDBにある方が、画面に出すのも消すのも楽** |
 | 委譲・並列 | 統括AIのタスクグラフがそれ。**受け渡しの可視化が製品そのもの**なので、外に出したくない |
 | セッションの予算上限 | 応答に含まれる使用量から自分で計測する |
-| 定期実行 | Vercel Cron |
+| 定期実行 | Cloudflare Cron Triggers |
 | 設定の版管理 | `agent_definitions` に版を持つ（[03](./03-agent-schema.md)） |
 
 残るのは「beta の仕様変更に振り回されない」という利点だけです。
@@ -189,9 +218,7 @@ Anthropic 直に戻したので、Managed Agents はまた選べます。それ�
 | 月5 Work | $19（¥2,900） |
 | 月10 Work | $38（¥5,700） |
 
-固定費: Vercel Pro $20 ＋ Supabase Pro $25 = **$45/月**（顧客数で割る）
-
-> Cloudflare なら $30/月でした。差は $15。**Starter 1社ぶんの粗利で埋まります。**
+固定費: Workers $5 ＋ Supabase Pro $25 = **$30/月**（顧客数で割る）
 
 ## トークンの定義
 
@@ -217,7 +244,8 @@ Anthropic 直に戻したので、Managed Agents はまた選べます。それ�
 |---|---|
 | 会社の月枠 | `accounts.token_balance`。0 で新規実行を止める |
 | Work ごと | `works.budget_tokens` |
-| 1実行ごと | 実行関数が使用量を積算し、超えたら一時停止（再開可） |
+| 1実行ごと | Durable Object が使用量を積算し、超えたら一時停止（再開可） |
+| 用事1件ごと | 30,000トークン。超えそうなら Work への昇格を提案（→ [06](./06-work-and-scope.md)） |
 
 ## 無料枠をどうするか
 
@@ -274,7 +302,7 @@ Anthropic 直に戻したので、Managed Agents はまた選べます。それ�
 | Pro | 67% | 57% |
 | Business | 70% | 59% |
 
-固定費 $45/月は **Starter 3社で回収**できます。
+固定費 $30/月は **Starter 2社で回収**できます。
 
 ### プラン間の差
 
@@ -307,14 +335,15 @@ Anthropic 直に戻したので、Managed Agents はまた選べます。それ�
 
 ## セキュリティ
 
-- **RLS を全テーブルに。** サービスロールキーは実行関数だけが持つ
+- **RLS を全テーブルに。** サービスロールキーは実行オブジェクトだけが持つ
 - **Anthropic も OpenAI も、API のデータを既定で学習に使いません。** これを利用規約に明記します
 - **秘密情報は社員の記憶に書かない。** 保管庫に置き、実行時にだけ注入する
-- **成果物は Storage に置き、署名URLで配る。** 公開バケットを作らない
+- **成果物は R2 に置き、署名URLで配る。** 公開バケットを作らない
 - 監査は `audit_events` と `decision_refs`
 
 ## Phase 3（実装）で作る範囲
 
+0. **Workers 上で SDK が動くことの確認**（ここで詰まると全部止まるので最初にやる）
 1. スキーマと RLS、認証、レール＋ホームの器
 2. Work 作成 → 統括AIが計画 → 承認 の一本道
 3. AI社員1体で1タスクを最後まで実行。run_steps を Realtime で画面へ
