@@ -77,10 +77,15 @@ erDiagram
 | テーブル | 役割 |
 |---|---|
 | `agent_definitions` | **カタログ**。agency-agents 由来の定義（→ [03](./03-agent-schema.md)）。会社に依らない |
-| `employees` | **採用したインスタンス**。`account_id, definition_id, display_name, color_token, model_tier, status, agent_id, agent_version, memory_store_id, hired_at` |
+| `employees` | **採用したインスタンス**。`account_id, definition_id, display_name, color_token, status, definition_version, memory_store_id, hired_at` |
+| `employee_settings` | **社長が編集した分だけ**を持つ。`employee_id, skills_added[], skills_removed[], rules[], model_policy, model_fixed, effort_policy, task_token_cap, updated_at` |
 
-`employees.agent_id / agent_version` は Managed Agents 側の Agent を指す（→ [05](./05-tech-and-cost.md)）。
-定義を更新すると版が上がるが、**走っている実行は採用時の版に固定**される。
+`employees.definition_version` は採用時のカタログ版。定義を更新すると版が上がるが、
+**走っている実行は採用時の版に固定**される（途中で人格が変わらない）。
+
+`employee_settings` は**差分だけ**を持つ。空なら定義そのまま。
+実効値は `定義 → 会社の既定 → 社員ごとの上書き` の3層を重ねて決める（→ [03](./03-agent-schema.md)）。
+会社の既定は `accounts.defaults`（`model_policy / effort_policy / task_token_cap`）に置く。
 
 ### 実行の記録
 
