@@ -44,7 +44,7 @@ produces:                      # 出せる成果物の型
   - doc
   - table
 memory: work                   # none / work / account — 記憶の範囲
-estimated_credits_per_task: 25
+estimated_tokens_per_task: 20000
 ---
 
 ## Identity & Memory

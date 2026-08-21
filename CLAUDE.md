@@ -25,19 +25,27 @@
   - ワークフロー＝Work→社員→成果物→社員→あなた の受け渡し＋今日の稼働レーン。
 - Phase 2（設計）完了。`docs/design/` に5文書。**ユーザーの承認待ち**
   データモデル(17テーブル) / 統括AIの実行モデル / AI社員スキーマ / 状態遷移(6) / 技術構成とコスト
-  - スタック: **Cloudflare**（Workers + Durable Objects + Queues + Cron + R2 + Hyperdrive）
-    + Supabase(Postgres/Auth・RLS) + Next.js は OpenNext で Workers に載せる
-    - **1実行 = 1 Durable Object**。常駐ワーカーは不要。進捗は DO から WebSocket で画面へ
-  - モデル調達は **OpenRouter**（推論に上乗せなし・**プロンプトキャッシュは透過**・購入時 5.5%）
-    - `deep`=Opus 5（計画と最終判断）/ `standard`=Sonnet 5（**成果物を作る工程**）/ `fast`=Haiku 4.5（読む・要約）
-    - **1タスクを2工程に割る**（集める=fast → 作る=standard）。安くするのは読む工程だけ
-  - **Managed Agents は Anthropic 専用** → OpenRouter を使うなら社員のループは自前。
-    `AgentRunner` の実装は `OpenRouterRunner`（既定）/ `ManagedAgentRunner`（サンドボックス用）
-  - **1クレジット = $0.00001**（10万で$1）。1タスク≈20,000 / 1 Work≈350,000 / Pro枠 2,000,000
-  - 1 Work の原価 ≈ **$2.8〜3.8（¥420〜570）**。固定費 $30/月（Workers$5 + Supabase$25）
-  - 料金: Free ¥0(20万・使い切り) / Starter ¥3,980(80万) / Pro ¥8,980(200万) / Business ¥19,800(400万)
-    年払いは月換算 ¥2,980 / ¥6,980 / ¥14,800。粗利 57〜70%
-  - 設計プレビュー: https://claude.ai/code/artifact/9f7ac75e-3b7e-4662-a483-a3420b795125
+  - スタック: **Vercel + Supabase**（Postgres/RLS/Auth/Storage/Realtime）だけ。動くものは2つ
+    - 長い実行は「関数が1ターンずつ進めて run_steps に書く → 時間切れで正常終了 → 次の起動が続きから」。
+      **常駐ワーカーもキュー基盤も要らない**（再開は run_steps がくれる）
+    - Cloudflare は見送り。Managed Agents をやめた時点で Durable Objects の理由が消えたため。
+      同時実行が数百／実行が長時間化したら `AgentRunner` を移す
+  - モデルは **Anthropic 直**（`deep`=Opus 5 / `standard`=Sonnet 5 / `fast`=Haiku 4.5）。
+    **OpenRouter は見送り**（評価用の口としてだけ残す）。決め手は原価が読めること。
+    他社の安いモデルとの差は 1 Work あたり約 $1。**質を確かめてから安くする。順番を逆にしない**
+  - 実行は **Messages API + Tool Runner**（自前の1ループ）。**Managed Agents は使わない**
+    （ループ=Tool Runner / サンドボックス=サーバー側ツール / 記憶=Postgres / 委譲=タスクグラフ で埋まる）
+  - 道具は**サーバー側ツール**（Web検索・Webフェッチ・コード実行）
+  - **1タスクを2工程に割る**（集める=fast → 作る=standard）。成果物を作る工程は安くしない
+  - **1トークン = $0.00001**（10万で$1）。1タスク≈20,000 / 1 Work≈350,000 / Pro枠 2,000,000
+    ※ 実トークン数ではなく、原価を揃えた共通単位。画面にその旨を一言添える
+  - 1 Work の原価 ≈ **$3.82（¥573）**。固定費 $45/月（Vercel$20 + Supabase$25）
+  - **無料は「Freeプラン」を作らない**。14日 / 400,000トークンのトライアル（カード不要）→
+    期限切れで**「閲覧のみ」に自動降格（永久・無料）**。原価ゼロで、作ったものは見られる
+  - 料金: Starter ¥3,980 / Pro ¥8,980 / Business ¥19,800（年払い月換算 ¥2,980 / ¥6,980 / ¥14,800）
+    追加トークン 500,000 ¥2,500。**トークンだけで差をつけない** —
+    同時Work数(2/5/∞)・社員数(3/10/∞)・自作社員(Pro+) ・外部連携(Pro+)・閲覧メンバー(3/10人)で分ける。
+    **成果物の質と保存期間では分けない**
 - 次: Phase 3（実装）— まず「Work作成 → 計画 → 承認 → 社員1体が1タスク実行 → 成果物」を細く通す
 - タスクなどの「追加」ボタンは置かない。**タスクは統括AIとの会話から作られる**
 - 成果物: `design/canvas/*.dc.html` + `design/canvas/canvas.json` / `docs/design/*.md`

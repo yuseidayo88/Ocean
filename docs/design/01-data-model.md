@@ -9,7 +9,7 @@ erDiagram
   accounts ||--o{ users : ""
   accounts ||--o{ works : ""
   accounts ||--o{ employees : ""
-  accounts ||--o{ credit_ledger : ""
+  accounts ||--o{ token_ledger : ""
   agent_definitions ||--o{ employees : "定義から採用"
   works ||--o{ phases : ""
   works ||--o{ tasks : ""
@@ -33,7 +33,7 @@ erDiagram
 
 | テーブル | 主な列 | 備考 |
 |---|---|---|
-| `accounts` | `id, name, plan, credit_balance, credit_rate, created_at` | 1社＝1テナント |
+| `accounts` | `id, name, plan, token_balance, token_rate, created_at` | 1社＝1テナント |
 | `users` | `id, account_id, email, display_name, role, created_at` | MVP は `role='founder'` のみ |
 
 ### Work（仕事のまとまり）
@@ -46,7 +46,7 @@ erDiagram
 | `goal` | text | **自由文**。業種を列挙しない |
 | `status` | text | `draft / planning / plan_review / active / paused / done / archived` |
 | `current_phase_id` | uuid | null 可 |
-| `budget_credits` | int | この Work に使ってよい上限。null なら会社の残高まで |
+| `budget_tokens` | int | この Work に使ってよい上限。null なら会社の残高まで |
 | `created_at, started_at, done_at` | timestamptz | |
 
 `phases`: `id, work_id, seq, name, goal, status, planned_credits, started_at, done_at`
@@ -83,7 +83,7 @@ erDiagram
 
 | テーブル | 役割 |
 |---|---|
-| `runs` | 1タスク1回の実行。`task_id, employee_id, session_id, status, started_at, ended_at, list_cost_cents, credits, error` |
+| `runs` | 1タスク1回の実行。`task_id, employee_id, status, started_at, ended_at, cost_cents, tokens, resume_cursor, error` — `resume_cursor` は関数が時間切れで抜けたときの再開位置 |
 | `run_steps` | `run_id, seq, kind(message/tool_use/tool_result/handoff), tool_name, summary, tokens_in, tokens_out, created_at` |
 
 `run_steps` が**進捗率の根拠**。ホームの粒子アニメーションもこのストリームを購読して動かす。
@@ -119,19 +119,19 @@ erDiagram
 `decision_refs`: `decision_id, run_id` — **どの実行がどの決定を読んだか**。
 「決めた内容は以降のAI社員が必ず参照する」を、口約束ではなく記録で担保する。
 
-### 採用・通知・クレジット・監査
+### 採用・通知・トークン・監査
 
 | テーブル | 役割 |
 |---|---|
 | `hire_candidates` | `work_id, definition_id, reason, expected_tasks, estimated_credits, status(proposed/hired/declined)` |
 | `notifications` | `kind, subject_type, subject_id, body, read_at` |
-| `credit_ledger` | `delta_credits, reason(grant/consume/refund), work_id, run_id, balance_after` — **残高は台帳の合計から導出**。列を直接更新しない。内部は**セント単位の整数**で持ち、表示のときだけ `credit_rate`（既定 1クレジット = $0.00001）でクレジットに直す |
+| `token_ledger` | `delta_tokens, reason(grant/consume/refund), work_id, run_id, balance_after` — **残高は台帳の合計から導出**。列を直接更新しない。内部は**セント単位の整数**で持ち、表示のときだけ `token_rate`（既定 1トークン = $0.00001）でトークンに直す |
 | `audit_events` | `actor(user/executive/employee), verb, subject_type, subject_id, payload, created_at` — すべての状態遷移を残す |
 
 ## 不変条件
 
 1. **進捗はどこからも直接書かれない。** `progress` は `run_steps` か `checklist` から導出した値だけを入れる。時間経過で進めない
-2. **`credit_balance` は `credit_ledger` の合計と一致する。** ずれたら台帳が正
+2. **`token_balance` は `token_ledger` の合計と一致する。** ずれたら台帳が正
 3. **`decisions` は UPDATE しない。** 状態遷移（open→decided）以外の書き換えは禁止
 4. **タスクは `needs_decision` のあいだ、絶対に自動で先へ進まない**
 5. **すべての状態遷移は `audit_events` に1行残る。** 画面に出ている状態は必ず根拠を辿れる
