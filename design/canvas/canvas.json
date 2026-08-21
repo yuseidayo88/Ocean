@@ -1,32 +1,32 @@
 {
   "pages": [
-    { "id": "page-1", "name": "New Direction — Terminal Ops" },
+    { "id": "page-1", "name": "V3 — Liquid Ops" },
     { "id": "page-2", "name": "旧スタイル（更新待ち9画面）" },
     { "id": "page-3", "name": "Phase 0 — アーカイブ" }
   ],
   "artboards": [
-    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1440, "h": 900, "title": "Work Detail — Node Canvas（新）", "page": "page-1" },
-    { "file": "Office.dc.html", "x": 1560, "y": 0, "w": 1440, "h": 900, "title": "Home / Office（新）", "page": "page-1" },
-    { "file": "DesignSystem.dc.html", "x": 3120, "y": 0, "w": 1440, "h": 1000, "title": "Design System — Terminal Ops（新）", "page": "page-1" },
+    { "file": "NewWork.dc.html", "x": 0, "y": 0, "w": 1440, "h": 900, "title": "① New Work — Orb Hero（V3）", "page": "page-1" },
+    { "file": "Main.dc.html", "x": 1560, "y": 0, "w": 1440, "h": 900, "title": "② Work Detail — Node Canvas（V3）", "page": "page-1" },
+    { "file": "Office.dc.html", "x": 3120, "y": 0, "w": 1440, "h": 900, "title": "③ Home / Office（V3）", "page": "page-1" },
+    { "file": "DesignSystem.dc.html", "x": 4680, "y": 0, "w": 1440, "h": 1000, "title": "④ Design System — Liquid Ops（V3）", "page": "page-1" },
 
-    { "file": "NewWork.dc.html", "x": 0, "y": 0, "w": 1440, "h": 900, "title": "① New Work（旧スタイル）", "page": "page-2" },
-    { "file": "PlanReview.dc.html", "x": 1560, "y": 0, "w": 1440, "h": 900, "title": "② Plan Review（旧スタイル）", "page": "page-2" },
-    { "file": "Roadmap.dc.html", "x": 3120, "y": 0, "w": 1440, "h": 900, "title": "⑤ Roadmap リスト（旧スタイル）", "page": "page-2" },
-    { "file": "Tasks.dc.html", "x": 0, "y": 1040, "w": 1440, "h": 900, "title": "⑥ Tasks（旧スタイル）", "page": "page-2" },
-    { "file": "Deliverables.dc.html", "x": 1560, "y": 1040, "w": 1440, "h": 900, "title": "⑦ Deliverables — Split（旧スタイル）", "page": "page-2" },
-    { "file": "ExecutiveExpanded.dc.html", "x": 3120, "y": 1040, "w": 1440, "h": 900, "title": "⑧ Executive — Expanded（旧スタイル）", "page": "page-2" },
-    { "file": "ChatFocus.dc.html", "x": 0, "y": 2080, "w": 1440, "h": 900, "title": "⑨ Chat Focus（旧スタイル）", "page": "page-2" },
-    { "file": "Decision.dc.html", "x": 1560, "y": 2080, "w": 1440, "h": 900, "title": "⑩ Decision Modal（旧スタイル）", "page": "page-2" },
-    { "file": "Review.dc.html", "x": 3120, "y": 2080, "w": 1440, "h": 900, "title": "⑪ Review — Focus（旧スタイル）", "page": "page-2" },
-    { "file": "States.dc.html", "x": 0, "y": 3120, "w": 1040, "h": 900, "title": "状態モデルと遷移", "page": "page-2" },
-    { "file": "Cards.dc.html", "x": 1560, "y": 3120, "w": 1320, "h": 900, "title": "共通UIパターン", "page": "page-2" },
+    { "file": "PlanReview.dc.html", "x": 0, "y": 0, "w": 1440, "h": 900, "title": "② Plan Review（旧スタイル）", "page": "page-2" },
+    { "file": "Roadmap.dc.html", "x": 1560, "y": 0, "w": 1440, "h": 900, "title": "⑤ Roadmap リスト（旧スタイル）", "page": "page-2" },
+    { "file": "Tasks.dc.html", "x": 3120, "y": 0, "w": 1440, "h": 900, "title": "⑥ Tasks（旧スタイル）", "page": "page-2" },
+    { "file": "Deliverables.dc.html", "x": 0, "y": 1040, "w": 1440, "h": 900, "title": "⑦ Deliverables — Split（旧スタイル）", "page": "page-2" },
+    { "file": "ExecutiveExpanded.dc.html", "x": 1560, "y": 1040, "w": 1440, "h": 900, "title": "⑧ Executive — Expanded（旧スタイル）", "page": "page-2" },
+    { "file": "ChatFocus.dc.html", "x": 3120, "y": 1040, "w": 1440, "h": 900, "title": "⑨ Chat Focus（旧スタイル）", "page": "page-2" },
+    { "file": "Decision.dc.html", "x": 0, "y": 2080, "w": 1440, "h": 900, "title": "⑩ Decision Modal（旧スタイル）", "page": "page-2" },
+    { "file": "Review.dc.html", "x": 1560, "y": 2080, "w": 1440, "h": 900, "title": "⑪ Review — Focus（旧スタイル）", "page": "page-2" },
+    { "file": "States.dc.html", "x": 3120, "y": 2080, "w": 1040, "h": 900, "title": "状態モデルと遷移", "page": "page-2" },
+    { "file": "Cards.dc.html", "x": 0, "y": 3120, "w": 1320, "h": 900, "title": "共通UIパターン", "page": "page-2" },
 
     { "file": "DirectionB.dc.html", "x": 0, "y": 0, "w": 1440, "h": 900, "title": "案B — Command Deck（不採用・参考）", "page": "page-3" },
     { "file": "DirectionC.dc.html", "x": 1560, "y": 0, "w": 1440, "h": 900, "title": "案C — Flowline（不採用・参考）", "page": "page-3" }
   ],
   "annotations": [
-    { "id": "intro-r", "x": -470, "y": 0, "w": 420, "page": "page-1", "text": "新デザイン言語「Terminal Ops」（3画面の先行提示）\n\nご指摘の「AIっぽさ」を排除するため、以下を全面変更：\n・青アクセント／グロー → 全廃。ニュートラルな黒（#0A0A0B）\n・色は計器として：緑=稼働・承認、琥珀=判断待ち、赤=失敗\n・プライマリボタンは白\n・全カードをモノスペース見出しの「チケット」に統一\n・Icon rail → ラベル付きサイドバー（検索⌘K・Creditsメーター・ユーザーカード）\n・WorkのRoadmapをNode Canvas（接続線＋ポート＋分岐pill）で表現\n・書体: Geist / Geist Mono / Noto Sans JP\n\nこの3枚を承認いただければ、残り9画面（更新待ちページ）へ同じ言語を展開します。" },
-    { "id": "note-old", "x": -470, "y": 0, "w": 420, "page": "page-2", "text": "旧スタイル（青アクセント版）の9画面＋共通ボード。\n新デザイン言語の承認後、Terminal Opsへ順次更新します。構成・情報設計はこのまま引き継ぎます。" },
+    { "id": "intro-r", "x": -470, "y": 0, "w": 420, "page": "page-1", "text": "デザインシステム V3「Liquid Ops」（4画面）\n\n参考画像8枚を統合して全面刷新：\n・背景から浮いた「ガラスの島」構成（blur + 半透明 + 上辺ハイライト）\n・角丸を一新：カード18 / 内側12 / 操作はすべてpill（999）\n・余白を統一：画面10 / カード内14 / セクション12–16\n・ノードのラベルは接続線の上に置き、雫型フレアで接続\n・判断待ちのみ琥珀のグラデーションガラス\n・送信ボタンは緑グラデ円。プライマリは白pill。青は不使用\n・New Workは緑のOrb（球体）ヒーロー。Orb・流光の演出は実装時に three.js / WebGL\n・説明文は1行まで\n\nこの4枚の承認後、残り9画面（旧スタイルページ）へ展開します。" },
+    { "id": "note-old", "x": -470, "y": 0, "w": 420, "page": "page-2", "text": "旧スタイルの9画面＋共通ボード。\nV3「Liquid Ops」の承認後、順次更新します。構成・情報設計はこのまま引き継ぎます。" },
     { "id": "note-archive", "x": -470, "y": 0, "w": 420, "page": "page-3", "text": "Phase 0 のアーカイブ。案A（Mission Control）採用済み。案B / 案C は参考として保存しています。" }
   ],
   "launch": { "view": "canvas", "page": "page-1" }
