@@ -25,11 +25,18 @@
   - ワークフロー＝Work→社員→成果物→社員→あなた の受け渡し＋今日の稼働レーン。
 - Phase 2（設計）完了。`docs/design/` に5文書。**ユーザーの承認待ち**
   データモデル(17テーブル) / 統括AIの実行モデル / AI社員スキーマ / 状態遷移(6) / 技術構成とコスト
-  - 実行基盤は **Anthropic Managed Agents**（AI社員=Agent, 実行=Session, 記憶=Memory store,
-    委譲=coordinator, 上限=Session budget）。beta なので `AgentRunner` 抽象を1枚挟む
-  - スタック: Next.js(Vercel) + Supabase(Postgres/Realtime/Storage) + 常駐ワーカー1
-  - モデル: 統括AI=Opus 5 / AI社員=Sonnet 5 / 要約=Haiku 4.5（`deep/standard/fast` の抽象で扱う）
-  - **1クレジット = 一覧価格 $0.01**。1タスク≈33、1 Work≈600、1 Work の原価 ≈ $6（¥900）
+  - スタック: **Cloudflare**（Workers + Durable Objects + Queues + Cron + R2 + Hyperdrive）
+    + Supabase(Postgres/Auth・RLS) + Next.js は OpenNext で Workers に載せる
+    - **1実行 = 1 Durable Object**。常駐ワーカーは不要。進捗は DO から WebSocket で画面へ
+  - モデル調達は **OpenRouter**（推論に上乗せなし・**プロンプトキャッシュは透過**・購入時 5.5%）
+    - `deep`=Opus 5（計画と最終判断）/ `standard`=Sonnet 5（**成果物を作る工程**）/ `fast`=Haiku 4.5（読む・要約）
+    - **1タスクを2工程に割る**（集める=fast → 作る=standard）。安くするのは読む工程だけ
+  - **Managed Agents は Anthropic 専用** → OpenRouter を使うなら社員のループは自前。
+    `AgentRunner` の実装は `OpenRouterRunner`（既定）/ `ManagedAgentRunner`（サンドボックス用）
+  - **1クレジット = $0.00001**（10万で$1）。1タスク≈20,000 / 1 Work≈350,000 / Pro枠 2,000,000
+  - 1 Work の原価 ≈ **$2.8〜3.8（¥420〜570）**。固定費 $30/月（Workers$5 + Supabase$25）
+  - 料金: Free ¥0(20万・使い切り) / Starter ¥3,980(80万) / Pro ¥8,980(200万) / Business ¥19,800(400万)
+    年払いは月換算 ¥2,980 / ¥6,980 / ¥14,800。粗利 57〜70%
   - 設計プレビュー: https://claude.ai/code/artifact/9f7ac75e-3b7e-4662-a483-a3420b795125
 - 次: Phase 3（実装）— まず「Work作成 → 計画 → 承認 → 社員1体が1タスク実行 → 成果物」を細く通す
 - タスクなどの「追加」ボタンは置かない。**タスクは統括AIとの会話から作られる**

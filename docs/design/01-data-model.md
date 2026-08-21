@@ -125,7 +125,7 @@ erDiagram
 |---|---|
 | `hire_candidates` | `work_id, definition_id, reason, expected_tasks, estimated_credits, status(proposed/hired/declined)` |
 | `notifications` | `kind, subject_type, subject_id, body, read_at` |
-| `credit_ledger` | `delta_credits, reason(grant/consume/refund), work_id, run_id, balance_after` — **残高は台帳の合計から導出**。列を直接更新しない |
+| `credit_ledger` | `delta_credits, reason(grant/consume/refund), work_id, run_id, balance_after` — **残高は台帳の合計から導出**。列を直接更新しない。内部は**セント単位の整数**で持ち、表示のときだけ `credit_rate`（既定 1クレジット = $0.00001）でクレジットに直す |
 | `audit_events` | `actor(user/executive/employee), verb, subject_type, subject_id, payload, created_at` — すべての状態遷移を残す |
 
 ## 不変条件
