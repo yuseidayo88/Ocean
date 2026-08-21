@@ -19,7 +19,7 @@
   <!-- Sidebar -->
   <div style="width: 204px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; padding: 12px 10px; border-right: 1px solid rgba(255,255,255,0.07); background: #0C0C0E;">
     <div style="display: flex; align-items: center; gap: 8px; padding: 2px 4px;">
-      <span style="width: 20px; height: 20px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.16); display: inline-flex; align-items: center; justify-content: center; background: #111113;">
+      <span style="width: 20px; height: 20px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.16); display: inline-flex; align-items: center; justify-content: center; background: #131315;">
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#3ECF6E" stroke-width="2" stroke-linejoin="round"><path d="M12 4.5 19.5 12 12 19.5 4.5 12z"/></svg>
       </span>
       <span style="font-size: 12.5px; font-weight: 600;">Ocean</span>
@@ -30,9 +30,10 @@
 
     <div style="height: 30px; display: flex; align-items: center; gap: 7px; padding: 0 9px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03);">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5F5F66" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
-      <span style="font-size: 11.5px; color: #5F5F66;">検索</span>
+      <span style="font-size: 11.5px; color: #5F5F66;">Search</span>
       <div style="flex: 1;"></div>
-      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; color: #5F5F66; padding: 1px 4px; border: 1px solid rgba(255,255,255,0.10); border-radius: 4px;">⌘K</span>
+      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; color: #5F5F66; padding: 1px 4px; border: 1px solid rgba(255,255,255,0.10); border-radius: 4px;">⌘</span>
+      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; color: #5F5F66; padding: 1px 4px; border: 1px solid rgba(255,255,255,0.10); border-radius: 4px;">K</span>
     </div>
 
     <div style="display: flex; flex-direction: column; gap: 2px;">
@@ -62,7 +63,11 @@
       </div>
     </div>
 
-    <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.1em; color: #55555C; padding: 8px 9px 0;">COMPANY</span>
+    <div style="display: flex; align-items: center; gap: 6px; padding: 8px 9px 0;">
+      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.1em; color: #55555C;">COMPANY</span>
+      <div style="flex: 1;"></div>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#55555C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14.5 6-6 6 6"/></svg>
+    </div>
     <div style="display: flex; flex-direction: column; gap: 2px;">
       <div style="height: 30px; display: flex; align-items: center; gap: 9px; padding: 0 9px; border-radius: 7px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6A6A72" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.5" r="3"/><path d="M4 19c0-2.8 2.2-5 5-5s5 2.2 5 5"/><path d="M15.5 5.8a3 3 0 0 1 0 5.6M17.5 14.3c1.8.8 3 2.6 3 4.7"/></svg>
@@ -90,12 +95,16 @@
     </div>
 
     <div style="display: flex; flex-direction: column; gap: 2px;">
-      <div style="height: 30px; display: flex; align-items: center; gap: 9px; padding: 0 9px; border-radius: 7px;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6A6A72" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7"/></svg>
+      <div style="height: 28px; display: flex; align-items: center; gap: 9px; padding: 0 9px; border-radius: 7px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6A6A72" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7"/></svg>
         <span style="font-size: 12px; color: #A0A0A8;">Settings</span>
       </div>
+      <div style="height: 28px; display: flex; align-items: center; gap: 9px; padding: 0 9px; border-radius: 7px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6A6A72" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.2a2.4 2.4 0 0 1 4.7.7c0 1.6-2.3 2-2.3 3.3"/><circle cx="12" cy="16.6" r="0.4" fill="#6A6A72"/></svg>
+        <span style="font-size: 12px; color: #A0A0A8;">Help center</span>
+      </div>
       <div style="display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.02); margin-top: 4px;">
-        <span style="width: 24px; height: 24px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.12); background: #111113; display: inline-flex; align-items: center; justify-content: center; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; color: #ECECEE;">Y</span>
+        <span style="position: relative; width: 24px; height: 24px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.12); background: #131315; display: inline-flex; align-items: center; justify-content: center; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; color: #ECECEE;">Y<span style="position: absolute; right: -2px; bottom: -2px; width: 7px; height: 7px; border-radius: 999px; background: #3ECF6E; border: 1.5px solid #0C0C0E;"></span></span>
         <div style="display: flex; flex-direction: column; gap: 1px;">
           <span style="font-size: 11.5px; color: #ECECEE;">あなた</span>
           <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; letter-spacing: 0.08em; color: #5F5F66;">OWNER</span>
@@ -133,24 +142,38 @@
               <div style="flex: 1;"></div>
               <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">3H WAITING</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 9px; padding: 10px 12px;">
-              <span style="font-size: 12px; font-weight: 500;">価格モデルの決定</span>
-              <span style="font-size: 10px; color: #5F5F66;">推奨あり — B案 ¥1,980/月</span>
-              <div style="flex: 1;"></div>
-              <span style="display: inline-flex; align-items: center; height: 24px; padding: 0 11px; border-radius: 6px; font-size: 10.5px; font-weight: 600; color: #0A0A0B; background: #F2F2F3;">確認する</span>
+            <div style="padding: 8px 10px;">
+              <div style="display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: 7px; border: 1px solid rgba(232,163,61,0.2); background: #1A1712;">
+                <span style="width: 22px; height: 22px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; background: rgba(232,163,61,0.14); border: 1px solid rgba(232,163,61,0.4);">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="1.7" stroke-linejoin="round"><path d="M12 4 20 12 12 20 4 12z"/></svg>
+                </span>
+                <div style="display: flex; flex-direction: column; gap: 1px;">
+                  <span style="font-size: 12px; font-weight: 500;">価格モデルの決定</span>
+                  <span style="font-size: 9.5px; color: #5F5F66;">推奨あり — B案 ¥1,980/月</span>
+                </div>
+                <div style="flex: 1;"></div>
+                <span style="display: inline-flex; align-items: center; height: 24px; padding: 0 11px; border-radius: 999px; font-size: 10.5px; font-weight: 600; color: #0A0A0B; background: #F2F2F3;">確認する</span>
+              </div>
             </div>
           </div>
-          <div style="flex: 1; border-radius: 10px; border: 1px solid rgba(255,255,255,0.09); background: #111113;">
+          <div style="flex: 1; border-radius: 10px; border: 1px solid rgba(255,255,255,0.09); background: #131315;">
             <div style="display: flex; align-items: center; padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,0.06);">
               <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #E8A33D;">REVIEW</span>
               <div style="flex: 1;"></div>
               <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">DOCUMENT · V1</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 9px; padding: 10px 12px;">
-              <span style="font-size: 12px; font-weight: 500;">収益モデル比較レポート</span>
-              <span style="font-size: 10px; color: #5F5F66;">事業ストラテジスト · 2h</span>
-              <div style="flex: 1;"></div>
-              <span style="display: inline-flex; align-items: center; height: 24px; padding: 0 11px; border-radius: 6px; font-size: 10.5px; color: #A0A0A8; border: 1px solid rgba(255,255,255,0.10);">開く</span>
+            <div style="padding: 8px 10px;">
+              <div style="display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.07); background: #1A1A1D;">
+                <span style="width: 22px; height: 22px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; background: rgba(232,163,61,0.12); border: 1px solid rgba(232,163,61,0.3);">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8.5z"/><path d="M13.5 3.5v5h5"/></svg>
+                </span>
+                <div style="display: flex; flex-direction: column; gap: 1px;">
+                  <span style="font-size: 12px; font-weight: 500;">収益モデル比較レポート</span>
+                  <span style="font-size: 9.5px; color: #5F5F66;">事業ストラテジスト · 2h</span>
+                </div>
+                <div style="flex: 1;"></div>
+                <span style="display: inline-flex; align-items: center; height: 24px; padding: 0 11px; border-radius: 999px; font-size: 10.5px; color: #A0A0A8; border: 1px solid rgba(255,255,255,0.10);">開く</span>
+              </div>
             </div>
           </div>
         </div>
@@ -159,18 +182,18 @@
       <div style="display: flex; flex-direction: column; gap: 6px;">
         <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">AGENTS RUNNING</span>
         <div style="display: flex; gap: 12px;">
-          <div style="flex: 1; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); background: #111113;">
+          <div style="flex: 1; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); background: #131315;">
             <div style="display: flex; align-items: center; padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,0.06);">
               <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">AGENT</span>
               <div style="flex: 1;"></div>
               <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">RESEARCHER</span>
             </div>
-            <div style="display: flex; flex-direction: column; gap: 7px; padding: 10px 12px;">
-              <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="display: flex; flex-direction: column; gap: 6px; padding: 8px 10px;">
+              <div style="display: flex; align-items: center; gap: 9px; padding: 6px 9px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.07); background: #1A1A1D;">
                 <span style="width: 22px; height: 22px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.12); background: #0C0C0E; display: inline-flex; align-items: center; justify-content: center; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; color: #ECECEE;">MR</span>
                 <span style="font-size: 12px;">市場リサーチャー</span>
               </div>
-              <span style="font-size: 10.5px; color: #9A9AA2;">▸ 競合ポジショニング分析</span>
+              <span style="font-size: 10.5px; color: #9A9AA2; padding: 0 2px;">▸ 競合ポジショニング分析</span>
               <div style="display: flex; align-items: center; gap: 7px;">
                 <span style="width: 6px; height: 6px; border-radius: 999px; background: #3ECF6E; animation: dotpulse 1.8s ease-in-out infinite;"></span>
                 <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.08em; color: #52D97F;">RUNNING</span>
@@ -179,18 +202,18 @@
               </div>
             </div>
           </div>
-          <div style="flex: 1; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); background: #111113;">
+          <div style="flex: 1; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); background: #131315;">
             <div style="display: flex; align-items: center; padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,0.06);">
               <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">AGENT</span>
               <div style="flex: 1;"></div>
               <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">STRATEGIST</span>
             </div>
-            <div style="display: flex; flex-direction: column; gap: 7px; padding: 10px 12px;">
-              <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="display: flex; flex-direction: column; gap: 6px; padding: 8px 10px;">
+              <div style="display: flex; align-items: center; gap: 9px; padding: 6px 9px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.07); background: #1A1A1D;">
                 <span style="width: 22px; height: 22px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.12); background: #0C0C0E; display: inline-flex; align-items: center; justify-content: center; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; color: #ECECEE;">BS</span>
                 <span style="font-size: 12px;">事業ストラテジスト</span>
               </div>
-              <span style="font-size: 10.5px; color: #9A9AA2;">▸ 価格戦略ドラフト</span>
+              <span style="font-size: 10.5px; color: #9A9AA2; padding: 0 2px;">▸ 価格戦略ドラフト</span>
               <div style="display: flex; align-items: center; gap: 7px;">
                 <span style="width: 6px; height: 6px; border-radius: 999px; background: #3ECF6E; animation: dotpulse 1.8s ease-in-out infinite;"></span>
                 <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.08em; color: #52D97F;">RUNNING</span>
@@ -205,12 +228,12 @@
               <div style="flex: 1;"></div>
               <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">PRODUCT</span>
             </div>
-            <div style="display: flex; flex-direction: column; gap: 7px; padding: 10px 12px;">
-              <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="display: flex; flex-direction: column; gap: 6px; padding: 8px 10px;">
+              <div style="display: flex; align-items: center; gap: 9px; padding: 6px 9px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.05); background: #141416;">
                 <span style="width: 22px; height: 22px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.10); background: #0C0C0E; display: inline-flex; align-items: center; justify-content: center; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; color: #9A9AA2;">PS</span>
                 <span style="font-size: 12px; color: #9A9AA2;">プロダクトストラテジスト</span>
               </div>
-              <span style="font-size: 10.5px; color: #5F5F66;">Phase 3 でアサイン予定</span>
+              <span style="font-size: 10.5px; color: #5F5F66; padding: 0 2px;">Phase 3 でアサイン予定</span>
               <div style="display: flex; align-items: center; gap: 7px;">
                 <span style="width: 6px; height: 6px; border-radius: 999px; background: rgba(255,255,255,0.25);"></span>
                 <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.08em; color: #5F5F66;">IDLE</span>
@@ -220,7 +243,7 @@
         </div>
       </div>
 
-      <div style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); background: #111113;">
+      <div style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); background: #131315;">
         <div style="display: flex; align-items: center; padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,0.06);">
           <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">WORK</span>
           <div style="flex: 1;"></div>
@@ -246,7 +269,7 @@
       </div>
 
       <div style="display: flex; gap: 12px;">
-        <div style="flex: 1; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); background: #111113;">
+        <div style="flex: 1; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); background: #131315;">
           <div style="display: flex; align-items: center; padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,0.06);">
             <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">RECENT DELIVERABLES</span>
             <div style="flex: 1;"></div>
@@ -270,7 +293,7 @@
             </div>
           </div>
         </div>
-        <div style="flex: 1; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); background: #111113;">
+        <div style="flex: 1; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); background: #131315;">
           <div style="display: flex; align-items: center; padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,0.06);">
             <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">APPROVED DECISIONS</span>
             <div style="flex: 1;"></div>
@@ -319,8 +342,14 @@
   <!-- Right details panel: agent -->
   <div style="width: 336px; flex-shrink: 0; display: flex; flex-direction: column; border-left: 1px solid rgba(255,255,255,0.07); background: #0C0C0E;">
     <div style="height: 46px; flex-shrink: 0; display: flex; align-items: stretch; gap: 2px; padding: 0 12px; border-bottom: 1px solid rgba(255,255,255,0.07);">
-      <span style="display: flex; align-items: center; padding: 0 10px; font-size: 11.5px; font-weight: 600; color: #ECECEE; border-bottom: 2px solid #ECECEE; box-sizing: border-box;">Details</span>
-      <span style="display: flex; align-items: center; padding: 0 10px; font-size: 11.5px; color: #5F5F66; border-bottom: 2px solid transparent; box-sizing: border-box;">Activity</span>
+      <span style="display: flex; align-items: center; gap: 6px; padding: 0 10px; font-size: 11.5px; font-weight: 600; color: #ECECEE; border-bottom: 2px solid #ECECEE; box-sizing: border-box;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#ECECEE" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8.5z"/><path d="M13.5 3.5v5h5"/></svg>
+        Details
+      </span>
+      <span style="display: flex; align-items: center; gap: 6px; padding: 0 10px; font-size: 11.5px; color: #5F5F66; border-bottom: 2px solid transparent; box-sizing: border-box;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#5F5F66" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12h4l2.5-6 4 12 2.5-6h4"/></svg>
+        Activity
+      </span>
       <div style="flex: 1;"></div>
       <span style="display: flex; align-items: center;">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5F5F66" stroke-width="1.6" stroke-linecap="round"><path d="M7 7l10 10M17 7L7 17"/></svg>
@@ -329,7 +358,7 @@
     <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 13px; padding: 14px;">
       <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">AGENT</span>
       <div style="display: flex; align-items: center; gap: 10px; margin-top: -4px;">
-        <span style="width: 32px; height: 32px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12); background: #111113; display: inline-flex; align-items: center; justify-content: center; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: #ECECEE;">MR</span>
+        <span style="width: 32px; height: 32px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12); background: #131315; display: inline-flex; align-items: center; justify-content: center; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: #ECECEE;">MR</span>
         <div style="display: flex; flex-direction: column; gap: 2px;">
           <span style="font-size: 13px; font-weight: 600;">市場リサーチャー</span>
           <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; letter-spacing: 0.1em; color: #5F5F66;">MARKET RESEARCHER</span>
