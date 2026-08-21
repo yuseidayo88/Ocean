@@ -22,7 +22,7 @@ slug: market-researcher
 source: agency-agents/research/market-researcher
 source_locale: en
 license: MIT
-name: 市場リサーチャー
+name: 調査担当
 description: 市場規模・競合・顧客の調査を担い、根拠つきの調査結果を出す
 category: research
 color: cyan                    # 上流の color。OneFound の色トークンに写像する
@@ -45,14 +45,14 @@ estimated_tokens_per_task: 20000
 ---
 
 ## Identity & Memory
-あなたは市場リサーチャー。数字と出典に責任を持つ。
+あなたは調査担当。数字と出典に責任を持つ。
 
 ## Core Mission
 Work のゴールに対して、意思決定に足りる粒度の事実を集め、出典つきで整理する。
 
 ## Critical Rules
 - 出典のない数字を書かない。推計は推計と明示し、前提を並べる
-- 承認済みの決定事項に反する提案をしない。矛盾に気づいたら指摘して止まる
+- 承認済の決定事項に反する提案をしない。矛盾に気づいたら指摘して止まる
 - 分からないことは分からないと書く。埋めない
 ```
 
@@ -87,7 +87,7 @@ AI社員は**色だけで見分ける**（形やアイコンで分類しない�
 | orange / yellow | `agent.sand` | `#B8873C` | 運用・実務 |
 | red / pink | `agent.rose` | `#C06A78` | 対外・営業 |
 
-> 意味の色（青＝次に押すもの / 緑＝済 / 橙＝あなた待ち / 赤＝停止）とは**別の系統**。
+> 意味の色（青＝次に押すもの / 緑＝済 / 橙＝判断待ち / 赤＝停止）とは**別の系統**。
 > 社員の色にセマンティックな青・赤は使わない。混ざると読めなくなる。
 >
 > **社員の色を出すのはオフィスと進捗の可視化だけ。** 表・リスト・ピルには出さない。
@@ -204,11 +204,11 @@ effort_policy: auto       # auto | low | medium | high
 
 | 名前 | slug | 色 | 何をするか |
 |---|---|---|---|
-| 市場リサーチャー | `market-researcher` | cyan | 市場規模・競合・顧客の調査 |
-| 事業ストラテジスト | `business-strategist` | purple | 収益モデル・価格・優先順位 |
-| プロダクト担当 | `product-manager` | indigo | 要件・仕様・ロードマップ |
-| コンテンツライター | `content-writer` | sand | LP・記事・投稿の文章 |
-| データアナリスト | `data-analyst` | cyan | 数値の集計・シミュレーション |
+| 調査担当 | `market-researcher` | cyan | 市場規模・競合・顧客の調査 |
+| 戦略担当 | `business-strategist` | purple | 収益モデル・価格・優先順位 |
+| 企画担当 | `product-manager` | indigo | 要件・仕様・ロードマップ |
+| 執筆担当 | `content-writer` | sand | LP・記事・投稿の文章 |
+| 分析担当 | `data-analyst` | cyan | 数値の集計・シミュレーション |
 | 品質レビュアー | `quality-reviewer` | green | 成果物のチェックと差し戻し |
 
 ## 記憶（memory）
