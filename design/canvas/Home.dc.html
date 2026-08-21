@@ -1,0 +1,195 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400&amp;display=swap">
+  <style>
+    body { margin: 0; background: #000000; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    a { color: #4C8DF6; } a:hover { color: #7BADF9; }
+    @keyframes travel { 0% { left: -4%; opacity: 0; } 14% { opacity: 1; } 86% { opacity: 1; } 100% { left: 104%; opacity: 0; } }
+    @keyframes breathe { 0%, 100% { transform: scale(1); opacity: 0.7; } 50% { transform: scale(1.10); opacity: 1; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    @keyframes rise { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+  </style>
+</helmet>
+<div style="position: relative; width: 1440px; height: 900px; box-sizing: border-box; display: flex; background: #000000; color: #EDEDED; font-family: -apple-system, ui-sans-serif, system-ui, 'Segoe UI', Helvetica, 'Noto Sans JP', Arial, sans-serif; font-size: 13px; line-height: 20px; overflow: hidden;">
+  <!-- Rail -->
+  <div style="width: 260px; flex-shrink: 0; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; padding: 14px 12px; background: #141414; border-right: 1px solid #232323;">
+
+    <div style="display: flex; align-items: center; gap: 10px; padding: 0 4px; height: 26px;">
+      <span style="width: 9px; height: 9px; border-radius: 999px; background: #2E2E2E; flex-shrink: 0;"></span><span style="width: 9px; height: 9px; border-radius: 999px; background: #2E2E2E; flex-shrink: 0;"></span><span style="width: 9px; height: 9px; border-radius: 999px; background: #2E2E2E; flex-shrink: 0;"></span>
+      <div style="flex: 1;"></div>
+      <span style="font-size: 12px; color: #6E6E6E;">OneFound</span>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9.5 6 6 6-6"/></svg>
+    </div>
+
+    <div style="height: 32px; display: flex; align-items: center; gap: 9px; padding: 0 10px; border-radius: 8px; background: #1A1A1A; border: 1px solid #262626;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+      <span style="color: #6E6E6E;">検索</span>
+      <div style="flex: 1;"></div>
+      <span style="color: #5F5F5F;">⌘K</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 1px;">
+      <div style="display: flex; align-items: center; gap: 11px; height: 34px; padding: 0 10px; border-radius: 8px; background: #232323;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#EDEDED" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m4 11 8-7 8 7"/><path d="M6.5 9.4V20h11V9.4"/></svg>
+        <span style="color: #EDEDED;">ホーム</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 11px; height: 34px; padding: 0 10px; border-radius: 8px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B8B8B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="13.5" rx="2"/><path d="M4 13.2h4.2l1.5 2.2h4.6l1.5-2.2H20"/></svg>
+        <span style="color: #B8B8B8;">通知</span><div style="flex: 1;"></div><span style="color: #E8A33D; font-variant-numeric: tabular-nums;">2</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 11px; height: 34px; padding: 0 10px; border-radius: 8px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B8B8B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="7.5" width="17" height="12" rx="2"/><path d="M9 7.5V6a1.8 1.8 0 0 1 1.8-1.8h2.4A1.8 1.8 0 0 1 15 6v1.5"/></svg>
+        <span style="color: #B8B8B8;">Work</span><div style="flex: 1;"></div><span style="width: 8px; height: 8px; border-radius: 999px; background: #3FB950; flex-shrink: 0;"></span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 11px; height: 34px; padding: 0 10px; border-radius: 8px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B8B8B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="m8.2 12.2 2.4 2.4 4.6-5"/></svg>
+        <span style="color: #B8B8B8;">タスク</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 11px; height: 34px; padding: 0 10px; border-radius: 8px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B8B8B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5H7.4A1.9 1.9 0 0 0 5.5 5.4v13.2a1.9 1.9 0 0 0 1.9 1.9h9.2a1.9 1.9 0 0 0 1.9-1.9V8.5z"/><path d="M13.5 3.5v5h5"/></svg>
+        <span style="color: #B8B8B8;">成果物</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 11px; height: 34px; padding: 0 10px; border-radius: 8px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B8B8B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.2" cy="8.6" r="3.1"/><path d="M4 19.2c0-2.9 2.3-5.2 5.2-5.2s5.2 2.3 5.2 5.2"/><path d="M15.6 5.9a3 3 0 0 1 0 5.5M17.6 14.4c1.8.8 3 2.6 3 4.8"/></svg>
+        <span style="color: #B8B8B8;">メンバー</span><div style="flex: 1;"></div><span style="color: #5F5F5F; font-variant-numeric: tabular-nums;">3</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 11px; height: 34px; padding: 0 10px; border-radius: 8px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B8B8B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5h15M4.5 12h15M4.5 17.5h9"/></svg>
+        <span style="color: #B8B8B8;">決定事項</span>
+      </div>
+    </div>
+
+    <div style="flex: 1;"></div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px; padding: 0 10px;">
+      <div style="display: flex; align-items: baseline;">
+        <span style="color: #8B8B8B;">クレジット</span>
+        <div style="flex: 1;"></div>
+        <span style="color: #B8B8B8; font-variant-numeric: tabular-nums;">812<span style="color: #5F5F5F;"> / 3,000</span></span>
+      </div>
+      <div style="height: 3px; border-radius: 2px; background: #232323; overflow: hidden;">
+        <div style="width: 27%; height: 100%; border-radius: 2px; background: #3FB950;"></div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px;">
+      <span style="width: 22px; height: 22px; border-radius: 999px; background: #2E2E2E; display: inline-flex; align-items: center; justify-content: center; font-size: 11px;">Y</span>
+      <span style="color: #B8B8B8;">あなた</span>
+      <div style="flex: 1;"></div>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.2v2.2M12 18.6v2.2M3.2 12h2.2M18.6 12h2.2M5.8 5.8l1.6 1.6M16.6 16.6l1.6 1.6M18.2 5.8l-1.6 1.6M7.4 16.6l-1.6 1.6"/></svg>
+    </div>
+  </div>
+
+  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; background: #000000;">
+    <div style="height: 46px; flex-shrink: 0; display: flex; align-items: center; gap: 12px; padding: 0 14px; border-bottom: 1px solid #1C1C1C;">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="M9.5 5v14"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3A3A3A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3A3A3A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"/></svg>
+      <span style="margin-left: 4px;">統括AI</span>
+      <span style="color: #5F5F5F;">/ ホーム</span>
+      <div style="flex: 1;"></div>
+      <span style="color: #5F5F5F;">8月21日 木 · 14:02</span>
+    </div>
+    <div style="flex-shrink: 0; display: flex; justify-content: center; padding: 16px 0 0;">
+      <div style="display: flex; gap: 3px; padding: 4px; border-radius: 999px; background: #141414; border: 1px solid #232323;"><span style="display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 15px; border-radius: 999px; background: #2A2A2A;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#EDEDED" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.2"/><circle cx="6" cy="18" r="2.2"/><path d="M6 8.2v7.6M8.2 6H15a3 3 0 0 1 3 3v0"/></svg><span style="color: #EDEDED;">フロー</span></span><span style="display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 15px; border-radius: 999px; "><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4 4 9-10"/></svg><span style="color: #6E6E6E;">進捗</span></span><span style="display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 15px; border-radius: 999px; "><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="13.5" rx="2"/><path d="M4 13.2h4.2l1.5 2.2h4.6l1.5-2.2H20"/></svg><span style="color: #6E6E6E;">稼働</span></span><span style="display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 15px; border-radius: 999px; "><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5H7.4A1.9 1.9 0 0 0 5.5 5.4v13.2a1.9 1.9 0 0 0 1.9 1.9h9.2a1.9 1.9 0 0 0 1.9-1.9V8.5z"/><path d="M13.5 3.5v5h5"/></svg><span style="color: #6E6E6E;">成果</span></span></div>
+    </div>
+    <div style="flex-shrink: 0; display: flex; justify-content: center; gap: 8px; padding: 14px 0 0;"><span style="display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: 999px; background: #141414; border: 1px solid #232323;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.2" cy="8.6" r="3.1"/><path d="M4 19.2c0-2.9 2.3-5.2 5.2-5.2s5.2 2.3 5.2 5.2"/><path d="M15.6 5.9a3 3 0 0 1 0 5.5M17.6 14.4c1.8.8 3 2.6 3 4.8"/></svg><span style="color: #8B8B8B;">稼働中</span><span style="color: #3FB950; font-variant-numeric: tabular-nums;">2 / 3</span></span><span style="display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: 999px; background: #141414; border: 1px solid #232323;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="m8.2 12.2 2.4 2.4 4.6-5"/></svg><span style="color: #8B8B8B;">タスク</span><span style="color: #EDEDED; font-variant-numeric: tabular-nums;">2 / 4</span></span><span style="display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: 999px; background: #141414; border: 1px solid #232323;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5h15M4.5 12h15M4.5 17.5h9"/></svg><span style="color: #8B8B8B;">判断待ち</span><span style="color: #E8A33D; font-variant-numeric: tabular-nums;">2</span></span><span style="display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: 999px; background: #141414; border: 1px solid #232323;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5H7.4A1.9 1.9 0 0 0 5.5 5.4v13.2a1.9 1.9 0 0 0 1.9 1.9h9.2a1.9 1.9 0 0 0 1.9-1.9V8.5z"/><path d="M13.5 3.5v5h5"/></svg><span style="color: #8B8B8B;">今週の成果</span><span style="color: #EDEDED; font-variant-numeric: tabular-nums;">4</span></span><span style="display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: 999px; background: #141414; border: 1px solid #232323;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.5v13M5.5 12h13"/></svg><span style="color: #8B8B8B;">クレジット</span><span style="color: #EDEDED; font-variant-numeric: tabular-nums;">27%</span></span></div>
+    <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 24px;">
+      <div style="display: flex; align-items: center; width: 100%; max-width: 1060px;">
+      <div style="width: 118px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 9px;">
+        <div style="width: 74px; height: 74px; border-radius: 18px; background: #101010; border: 1px solid #2A2A2A; display: flex; align-items: center; justify-content: center;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#B8B8B8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="7.5" width="17" height="12" rx="2"/><path d="M9 7.5V6a1.8 1.8 0 0 1 1.8-1.8h2.4A1.8 1.8 0 0 1 15 6v1.5"/></svg></div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+          <span style="white-space: nowrap;">Work</span><span style="color: #5F5F5F; white-space: nowrap;">フェーズ2 戦略</span>
+        </div>
+      </div>
+<div style="flex: 1; min-width: 40px; position: relative; height: 1px; background: #1C1C1C; margin: 0 2px;"><div style="position: absolute; top: -2.5px; width: 6px; height: 6px; border-radius: 999px; background: rgb(62,203,224); box-shadow: 0 0 8px rgba(62,203,224,0.8); animation: travel 2.4s linear 0.0s infinite;"></div><div style="position: absolute; top: -2.5px; width: 6px; height: 6px; border-radius: 999px; background: rgb(62,203,224); box-shadow: 0 0 8px rgba(62,203,224,0.8); animation: travel 2.4s linear 0.8s infinite;"></div><div style="position: absolute; top: -2.5px; width: 6px; height: 6px; border-radius: 999px; background: rgb(62,203,224); box-shadow: 0 0 8px rgba(62,203,224,0.8); animation: travel 2.4s linear 1.6s infinite;"></div></div>      <div style="width: 118px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 9px;">
+        <div style="position: relative; width: 74px; height: 74px; flex-shrink: 0;"><div style="position: absolute; inset: -10px; border-radius: 999px; background: radial-gradient(circle, rgba(62,203,224,0.30), rgba(62,203,224,0) 68%); filter: blur(6px); animation: breathe 3.4s ease-in-out infinite;"></div><div style="position: absolute; inset: 10px; border-radius: 999px; background: radial-gradient(circle at 46% 38%, rgba(62,203,224,0.70), rgba(62,203,224,0.16) 58%, rgba(62,203,224,0) 76%);"></div><div style="position: absolute; left: 30px; top: 24px; width: 3px; height: 3px; border-radius: 999px; background: rgba(255,255,255,0.9); animation: blink 2.2s ease-in-out 0s infinite;"></div><div style="position: absolute; left: 46px; top: 44px; width: 3px; height: 3px; border-radius: 999px; background: rgba(255,255,255,0.9); animation: blink 2.2s ease-in-out 0.7s infinite;"></div><div style="position: absolute; left: 34px; top: 50px; width: 3px; height: 3px; border-radius: 999px; background: rgba(255,255,255,0.9); animation: blink 2.2s ease-in-out 1.4s infinite;"></div><div style="position: absolute; left: 48px; top: 28px; width: 3px; height: 3px; border-radius: 999px; background: rgba(255,255,255,0.9); animation: blink 2.2s ease-in-out 2.1s infinite;"></div><svg width="74" height="74" viewBox="0 0 74 74" style="position: absolute; inset: 0;"><circle cx="37" cy="37" r="32" fill="none" stroke="#1C1C1C" stroke-width="3"/><circle cx="37" cy="37" r="32" fill="none" stroke="rgb(62,203,224)" stroke-width="3" stroke-linecap="round" stroke-dasharray="201.1" stroke-dashoffset="64.3" transform="rotate(-90 37 37)"/></svg><svg width="74" height="74" viewBox="0 0 74 74" style="position: absolute; inset: 0; animation: spin 3.6s linear infinite;"><circle cx="37" cy="37" r="32" fill="none" stroke="rgb(62,203,224)" stroke-opacity="0.5" stroke-width="3" stroke-linecap="round" stroke-dasharray="12 190"/></svg></div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+          <span style="color: #EDEDED; white-space: nowrap;">市場リサーチャー</span>
+          <span style="color: #5F5F5F; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 118px;">競合分析 · 68%</span>
+        </div>
+      </div>
+<div style="flex: 1; min-width: 40px; position: relative; height: 1px; background: #1C1C1C; margin: 0 2px;"><div style="position: absolute; top: -2.5px; width: 6px; height: 6px; border-radius: 999px; background: rgb(62,203,224); box-shadow: 0 0 8px rgba(62,203,224,0.8); animation: travel 2.4s linear 0.0s infinite;"></div><div style="position: absolute; top: -2.5px; width: 6px; height: 6px; border-radius: 999px; background: rgb(62,203,224); box-shadow: 0 0 8px rgba(62,203,224,0.8); animation: travel 2.4s linear 0.8s infinite;"></div><div style="position: absolute; top: -2.5px; width: 6px; height: 6px; border-radius: 999px; background: rgb(62,203,224); box-shadow: 0 0 8px rgba(62,203,224,0.8); animation: travel 2.4s linear 1.6s infinite;"></div></div>      <div style="width: 152px; flex-shrink: 0; display: flex; flex-direction: column; gap: 7px; padding: 11px 12px; border-radius: 10px; background: #0E0E0E; border: 1px solid #232323;">
+        <div style="display: flex; align-items: center; gap: 8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5H7.4A1.9 1.9 0 0 0 5.5 5.4v13.2a1.9 1.9 0 0 0 1.9 1.9h9.2a1.9 1.9 0 0 0 1.9-1.9V8.5z"/><path d="M13.5 3.5v5h5"/></svg><span style="width: 3px; height: 12px; border-radius: 2px; background: #3FB950;"></span></div>
+        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">市場調査レポート v2</span>
+        <span style="color: #5F5F5F; white-space: nowrap;">承認済み</span>
+      </div>
+<div style="flex: 1; min-width: 40px; position: relative; height: 1px; background: #1C1C1C; margin: 0 2px;"><div style="position: absolute; top: -2.5px; width: 6px; height: 6px; border-radius: 999px; background: rgb(176,108,245); box-shadow: 0 0 8px rgba(176,108,245,0.8); animation: travel 2.4s linear 0.0s infinite;"></div><div style="position: absolute; top: -2.5px; width: 6px; height: 6px; border-radius: 999px; background: rgb(176,108,245); box-shadow: 0 0 8px rgba(176,108,245,0.8); animation: travel 2.4s linear 0.8s infinite;"></div><div style="position: absolute; top: -2.5px; width: 6px; height: 6px; border-radius: 999px; background: rgb(176,108,245); box-shadow: 0 0 8px rgba(176,108,245,0.8); animation: travel 2.4s linear 1.6s infinite;"></div></div>      <div style="width: 118px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 9px;">
+        <div style="position: relative; width: 74px; height: 74px; flex-shrink: 0;"><div style="position: absolute; inset: -10px; border-radius: 999px; background: radial-gradient(circle, rgba(176,108,245,0.30), rgba(176,108,245,0) 68%); filter: blur(6px); animation: breathe 3.4s ease-in-out infinite;"></div><div style="position: absolute; inset: 10px; border-radius: 999px; background: radial-gradient(circle at 46% 38%, rgba(176,108,245,0.70), rgba(176,108,245,0.16) 58%, rgba(176,108,245,0) 76%);"></div><div style="position: absolute; left: 30px; top: 24px; width: 3px; height: 3px; border-radius: 999px; background: rgba(255,255,255,0.9); animation: blink 2.2s ease-in-out 0s infinite;"></div><div style="position: absolute; left: 46px; top: 44px; width: 3px; height: 3px; border-radius: 999px; background: rgba(255,255,255,0.9); animation: blink 2.2s ease-in-out 0.7s infinite;"></div><div style="position: absolute; left: 34px; top: 50px; width: 3px; height: 3px; border-radius: 999px; background: rgba(255,255,255,0.9); animation: blink 2.2s ease-in-out 1.4s infinite;"></div><div style="position: absolute; left: 48px; top: 28px; width: 3px; height: 3px; border-radius: 999px; background: rgba(255,255,255,0.9); animation: blink 2.2s ease-in-out 2.1s infinite;"></div><svg width="74" height="74" viewBox="0 0 74 74" style="position: absolute; inset: 0;"><circle cx="37" cy="37" r="32" fill="none" stroke="#1C1C1C" stroke-width="3"/><circle cx="37" cy="37" r="32" fill="none" stroke="rgb(176,108,245)" stroke-width="3" stroke-linecap="round" stroke-dasharray="201.1" stroke-dashoffset="136.7" transform="rotate(-90 37 37)"/></svg><svg width="74" height="74" viewBox="0 0 74 74" style="position: absolute; inset: 0; animation: spin 3.6s linear infinite;"><circle cx="37" cy="37" r="32" fill="none" stroke="rgb(176,108,245)" stroke-opacity="0.5" stroke-width="3" stroke-linecap="round" stroke-dasharray="12 190"/></svg></div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+          <span style="color: #EDEDED; white-space: nowrap;">事業ストラテジスト</span>
+          <span style="color: #5F5F5F; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 118px;">価格戦略 · 32%</span>
+        </div>
+      </div>
+<div style="flex: 1; min-width: 40px; position: relative; height: 1px; background: #1C1C1C; margin: 0 2px;"><div style="position: absolute; top: -2.5px; width: 6px; height: 6px; border-radius: 999px; background: rgb(176,108,245); box-shadow: 0 0 8px rgba(176,108,245,0.8); animation: travel 2.4s linear 0.0s infinite;"></div><div style="position: absolute; top: -2.5px; width: 6px; height: 6px; border-radius: 999px; background: rgb(176,108,245); box-shadow: 0 0 8px rgba(176,108,245,0.8); animation: travel 2.4s linear 0.8s infinite;"></div><div style="position: absolute; top: -2.5px; width: 6px; height: 6px; border-radius: 999px; background: rgb(176,108,245); box-shadow: 0 0 8px rgba(176,108,245,0.8); animation: travel 2.4s linear 1.6s infinite;"></div></div>      <div style="width: 152px; flex-shrink: 0; display: flex; flex-direction: column; gap: 7px; padding: 11px 12px; border-radius: 10px; background: #0E0E0E; border: 1px solid #232323;">
+        <div style="display: flex; align-items: center; gap: 8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5H7.4A1.9 1.9 0 0 0 5.5 5.4v13.2a1.9 1.9 0 0 0 1.9 1.9h9.2a1.9 1.9 0 0 0 1.9-1.9V8.5z"/><path d="M13.5 3.5v5h5"/></svg><span style="width: 3px; height: 12px; border-radius: 2px; background: #E8A33D;"></span></div>
+        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">収益モデル比較</span>
+        <span style="color: #5F5F5F; white-space: nowrap;">要確認</span>
+      </div>
+<div style="flex: 1; min-width: 40px; position: relative; height: 1px; background: #1C1C1C; margin: 0 2px;"><div style="position: absolute; top: -2.5px; width: 6px; height: 6px; border-radius: 999px; background: rgb(232,163,61); box-shadow: 0 0 8px rgba(232,163,61,0.8); animation: travel 1.9s linear 0.0s infinite;"></div><div style="position: absolute; top: -2.5px; width: 6px; height: 6px; border-radius: 999px; background: rgb(232,163,61); box-shadow: 0 0 8px rgba(232,163,61,0.8); animation: travel 1.9s linear 0.8s infinite;"></div></div>      <div style="width: 118px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 9px;">
+        <div style="position: relative; width: 74px; height: 74px; flex-shrink: 0;">
+          <div style="position: absolute; inset: -10px; border-radius: 999px; background: radial-gradient(circle, rgba(232,163,61,0.34), rgba(232,163,61,0) 68%); filter: blur(6px); animation: breathe 2.2s ease-in-out infinite;"></div>
+          <div style="position: absolute; inset: 8px; border-radius: 999px; background: rgba(232,163,61,0.14); border: 1px solid rgba(232,163,61,0.45); display: flex; align-items: center; justify-content: center; animation: rise 2.6s ease-in-out infinite;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"><path d="m5 12.5 4 4 9-10"/></svg></div>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+          <span style="color: #E8A33D; white-space: nowrap;">あなた</span><span style="color: #5F5F5F; white-space: nowrap;">判断 2件</span>
+        </div>
+      </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 14px; margin-top: 26px; opacity: 0.55;">
+        <div style="width: 118px; display: flex; flex-direction: column; align-items: center; gap: 9px;"><div style="position: relative; width: 74px; height: 74px; flex-shrink: 0;"><div style="position: absolute; inset: 10px; border-radius: 999px; background: radial-gradient(circle at 46% 38%, rgba(124,130,240,0.34), rgba(124,130,240,0.16) 58%, rgba(124,130,240,0) 76%);"></div><svg width="74" height="74" viewBox="0 0 74 74" style="position: absolute; inset: 0;"><circle cx="37" cy="37" r="32" fill="none" stroke="#1C1C1C" stroke-width="3"/></svg></div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+            <span style="color: #5F5F5F; white-space: nowrap;">プロダクト担当</span><span style="color: #5F5F5F; white-space: nowrap;">フェーズ3で参加</span>
+          </div>
+        </div>
+        <div style="width: 200px; height: 1px; border-top: 1px dashed #2A2A2A;"></div>
+        <span style="color: #5F5F5F;">この判断が終わると動き出します</span>
+      </div>
+      <div style="width: 100%; max-width: 1060px; display: flex; flex-direction: column; gap: 12px; margin-top: 34px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="color: #8B8B8B;">今日の動き</span>
+          <div style="flex: 1;"></div>
+          <span style="color: #5F5F5F; font-variant-numeric: tabular-nums;">09:00</span>
+          <div style="width: 1px; height: 10px; background: #232323;"></div>
+          <span style="color: #5F5F5F; font-variant-numeric: tabular-nums;">12:00</span>
+          <div style="width: 1px; height: 10px; background: #232323;"></div>
+          <span style="color: #5F5F5F; font-variant-numeric: tabular-nums;">15:00</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="width: 132px; flex-shrink: 0; color: #B8B8B8; white-space: nowrap;">市場リサーチャー</span>
+          <div style="flex: 1; position: relative; height: 14px; border-radius: 4px; background: #121212;"><div style="position: absolute; left: 0%; width: 18%; top: 0; height: 14px; border-radius: 4px; background: rgb(62,203,224);"></div><div style="position: absolute; left: 22%; width: 14%; top: 0; height: 14px; border-radius: 4px; background: rgb(62,203,224);"></div><div style="position: absolute; left: 58%; width: 26%; top: 0; height: 14px; border-radius: 4px; background: linear-gradient(90deg, rgba(62,203,224,0.55), rgba(62,203,224,1), rgba(62,203,224,0.55)); background-size: 200% 100%; animation: shimmer 2.2s linear infinite;;"></div></div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="width: 132px; flex-shrink: 0; color: #B8B8B8; white-space: nowrap;">事業ストラテジスト</span>
+          <div style="flex: 1; position: relative; height: 14px; border-radius: 4px; background: #121212;"><div style="position: absolute; left: 30%; width: 20%; top: 0; height: 14px; border-radius: 4px; background: rgb(176,108,245);"></div><div style="position: absolute; left: 72%; width: 16%; top: 0; height: 14px; border-radius: 4px; background: linear-gradient(90deg, rgba(176,108,245,0.55), rgba(176,108,245,1), rgba(176,108,245,0.55)); background-size: 200% 100%; animation: shimmer 2.2s linear infinite;;"></div></div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="width: 132px; flex-shrink: 0; color: #B8B8B8; white-space: nowrap;">あなた</span>
+          <div style="flex: 1; position: relative; height: 14px; border-radius: 4px; background: #121212;"><div style="position: absolute; left: 52%; width: 3%; top: 0; height: 14px; border-radius: 4px; background: rgb(232,163,61);"></div><div style="position: absolute; left: 90%; width: 3%; top: 0; height: 14px; border-radius: 4px; background: rgb(232,163,61);"></div></div>
+        </div>
+      </div>
+    </div>
+    <div style="flex-shrink: 0; display: flex; justify-content: center; padding: 0 24px 18px;">
+      <div style="width: 100%; max-width: 720px; box-sizing: border-box; display: flex; align-items: center; gap: 11px; height: 46px; padding: 0 8px 0 14px; border-radius: 14px; background: #141414; border: 1px solid #2A2A2A;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B8B8B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.5v13M5.5 12h13"/></svg><span style="color: #5F5F5F;">統括AIに指示する</span>
+        <div style="flex: 1;"></div>
+        <span style="color: #5F5F5F;">⌘J</span>
+        <span style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: #3B82F6;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6M6 12l6-6 6 6"/></svg>
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
