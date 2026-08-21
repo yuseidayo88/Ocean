@@ -7,7 +7,7 @@
 <body>
 <x-dc>
 <helmet>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500&amp;display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400&amp;display=swap">
   <style>
     body { margin: 0; background: #000000; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
     a { color: #4C8DF6; } a:hover { color: #7BADF9; }
@@ -15,21 +15,18 @@
   </style>
 </helmet>
 <div style="position: relative; width: 1440px; height: 900px; box-sizing: border-box; display: flex; background: #000000; color: #EDEDED; font-family: -apple-system, ui-sans-serif, system-ui, 'Segoe UI', Helvetica, 'Noto Sans JP', Arial, sans-serif; font-size: 13px; line-height: 20px; overflow: hidden;">
-
   <!-- Rail -->
   <div style="width: 260px; flex-shrink: 0; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; padding: 14px 12px; background: #141414; border-right: 1px solid #232323;">
 
     <div style="display: flex; align-items: center; gap: 10px; padding: 0 4px; height: 26px;">
-      <span style="width: 9px; height: 9px; border-radius: 999px; background: #2E2E2E;"></span>
-      <span style="width: 9px; height: 9px; border-radius: 999px; background: #2E2E2E;"></span>
-      <span style="width: 9px; height: 9px; border-radius: 999px; background: #2E2E2E;"></span>
+      <span style="width: 9px; height: 9px; border-radius: 999px; background: #2E2E2E; flex-shrink: 0;"></span><span style="width: 9px; height: 9px; border-radius: 999px; background: #2E2E2E; flex-shrink: 0;"></span><span style="width: 9px; height: 9px; border-radius: 999px; background: #2E2E2E; flex-shrink: 0;"></span>
       <div style="flex: 1;"></div>
       <span style="font-size: 12px; color: #6E6E6E;">OneFound</span>
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9.5 6 6 6-6"/></svg>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9.5 6 6 6-6"/></svg>
     </div>
 
     <div style="height: 32px; display: flex; align-items: center; gap: 9px; padding: 0 10px; border-radius: 8px; background: #1A1A1A; border: 1px solid #262626;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
       <span style="color: #6E6E6E;">検索</span>
       <div style="flex: 1;"></div>
       <span style="color: #5F5F5F;">⌘K</span>
@@ -46,7 +43,7 @@
       </div>
       <div style="display: flex; align-items: center; gap: 11px; height: 34px; padding: 0 10px; border-radius: 8px; background: #232323;">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#EDEDED" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="7.5" width="17" height="12" rx="2"/><path d="M9 7.5V6a1.8 1.8 0 0 1 1.8-1.8h2.4A1.8 1.8 0 0 1 15 6v1.5"/></svg>
-        <span style="color: #EDEDED;">Work</span><div style="flex: 1;"></div><span style="width: 8px; height: 8px; border-radius: 999px; background: #1E8E3E;"></span>
+        <span style="color: #EDEDED;">Work</span><div style="flex: 1;"></div><span style="width: 8px; height: 8px; border-radius: 999px; background: #1E8E3E; flex-shrink: 0;"></span>
       </div>
       <div style="display: flex; align-items: center; gap: 10px; height: 30px; padding: 0 10px 0 38px; border-radius: 8px;">
         <span style="width: 7px; height: 7px; border-radius: 999px; background: #1E8E3E; flex-shrink: 0;"></span>
@@ -74,212 +71,83 @@
       </div>
     </div>
 
-    <div style="flex: 1;"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; padding-top: 10px;">
+      <div style="display: flex; align-items: center; gap: 11px; height: 30px; padding: 0 10px;">
+        <span style="color: #5F5F5F; font-size: 12px;">チャット</span>
+        <div style="flex: 1;"></div><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.5v13M5.5 12h13"/></svg>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px 0 12px; border-radius: 8px;">
+        <span style="min-width: 0; color: #8B8B8B; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">価格をどうするか</span>
+        </div>
+      <div style="display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px 0 12px; border-radius: 8px;">
+        <span style="min-width: 0; color: #8B8B8B; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">韓国の競合について</span>
+        </div>
+      <div style="display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px 0 12px; border-radius: 8px;">
+        <span style="min-width: 0; color: #8B8B8B; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">LPの構成</span>
+        <div style="flex: 1;"></div><span style="width: 6px; height: 6px; border-radius: 999px; background: #1A73E8; flex-shrink: 0;"></span></div>
+      <div style="display: flex; align-items: center; height: 28px; padding: 0 12px;"><span style="color: #5F5F5F; font-size: 12px;">すべて見る</span></div>
+    </div>
 
+    <div style="flex: 1;"></div>
 
     <div style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px;">
       <span style="width: 22px; height: 22px; border-radius: 999px; background: #2E2E2E; display: inline-flex; align-items: center; justify-content: center; font-size: 11px;">Y</span>
       <span style="color: #B8B8B8;">あなた</span>
       <div style="flex: 1;"></div>
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.2v2.2M12 18.6v2.2M3.2 12h2.2M18.6 12h2.2M5.8 5.8l1.6 1.6M16.6 16.6l1.6 1.6M18.2 5.8l-1.6 1.6M7.4 16.6l-1.6 1.6"/></svg>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.2v2.2M12 18.6v2.2M3.2 12h2.2M18.6 12h2.2M5.8 5.8l1.6 1.6M16.6 16.6l1.6 1.6M18.2 5.8l-1.6 1.6M7.4 16.6l-1.6 1.6"/></svg>
     </div>
   </div>
 
-  <!-- Centre -->
   <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; background: #000000; border-right: 1px solid #232323;">
-
     <div style="height: 46px; flex-shrink: 0; display: flex; align-items: center; gap: 12px; padding: 0 14px; border-bottom: 1px solid #1C1C1C;">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="M9.5 5v14"/></svg>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3A3A3A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"/></svg>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4.5V9h-4.5"/></svg>
-      <span style="margin-left: 4px;">統括AI</span>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="M9.5 5v14"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3A3A3A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3A3A3A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"/></svg>
+      <span style="margin-left: 4px;">Work</span>
       <span style="color: #5F5F5F;">/ 日本語学習サービス</span>
       <div style="flex: 1;"></div>
-      <span style="color: #5F5F5F;">⌘L で入力へ</span>
+      <span style="display: inline-flex; align-items: center; gap: 7px; color: #5BB974; font-size: 12px;"><span style="width: 6px; height: 6px; border-radius: 999px; background: #1E8E3E; flex-shrink: 0;"></span> 進行中</span>
     </div>
-
-    <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 18px; padding: 22px 26px 20px;">
-
-      <div style="display: flex; justify-content: flex-end;">
-        <span style="max-width: 78%; padding: 9px 16px; border-radius: 18px; background: #24354A; color: #DCE7F5;">価格モデルを決めたい</span>
+    <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px; padding: 18px 22px 0; overflow: hidden;">
+      <div style="flex-shrink: 0; display: flex; align-items: center; gap: 14px;">
+        <div style="display: flex; flex-direction: column; gap: 3px;">
+          <span style="font-size: 17px;">韓国人向け 日本語学習サービス</span>
+          <span style="color: #5F5F5F; font-size: 12px;">8月14日から · 4フェーズ · AI社員3人 · 残り6日</span>
+        </div>
+        <div style="flex: 1;"></div>
+        <span style="width: 112px; height: 6px; border-radius: 3px; background: #1C1C1C; overflow: hidden;"><span style="display: block; width: 58%; height: 100%; background: #6E6E6E;"></span></span>
+        <span style="color: #B8B8B8; font-variant-numeric: tabular-nums;">58%</span>
+        <span style="display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 13px; border-radius: 8px; white-space: nowrap; background: #1F1F1F; border: 1px solid #303030; color: #B8B8B8;">統括AIに相談する</span>
       </div>
-
-      <div style="display: flex; align-items: center; gap: 7px; color: #6E6E6E;">
-        <span>18秒 考えました</span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></svg>
-      </div>
-
-      <span style="font-size: 15px; line-height: 25px; color: #EDEDED;">B案 ¥1,980 を推奨します。A案は継続率が読めず、C案は初中級層の支払意思を超えます。</span>
-
-      <!-- Output card -->
-      <div style="border-radius: 12px; border: 1px solid #262626; background: #0E0E0E; overflow: hidden;">
-        <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px;">
-          <span style="width: 34px; height: 34px; border-radius: 9px; background: #1C1C1C; display: inline-flex; align-items: center; justify-content: center;">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B8B8B8" stroke-width="1.4" stroke-linejoin="round"><rect x="4" y="3.5" width="16" height="17" rx="2.5"/><path d="M8 9h8M8 13h8M8 17h4"/></svg>
-          </span>
-          <div style="display: flex; flex-direction: column;">
-            <span>成果物 3件</span>
-            <span style="color: #5F5F5F;"><span style="color: #1E8E3E;">承認 2</span> · <span style="color: #E37400;">要確認 1</span></span>
-          </div>
+      <div style="flex-shrink: 0; display: flex; align-items: center;"><div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px;"><div style="flex: 1; min-width: 0; box-sizing: border-box; display: flex; align-items: center; gap: 9px; height: 58px; padding: 0 11px; border-radius: 11px; background: #242424; border: 1px solid #2E2E2E;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5BB974" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.2 4.2L19 7"/></svg><div style="min-width: 0; display: flex; flex-direction: column; gap: 1px;"><span style="color: #8B8B8B; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">調査</span><span style="color: #5F5F5F; font-size: 11px; white-space: nowrap;">完了 · 3タスク</span></div></div><span style="flex: 1; height: 1px; background: #1F1F1F; min-width: 12px;"></span></div><div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px;"><div style="flex: 1; min-width: 0; box-sizing: border-box; display: flex; align-items: center; gap: 9px; height: 58px; padding: 0 11px; border-radius: 11px; background: #202020; border: 1px solid #3A3A3A;"><span style="width: 8px; height: 8px; border-radius: 999px; background: #B8B8B8;"></span><div style="min-width: 0; display: flex; flex-direction: column; gap: 1px;"><span style="color: #EDEDED; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">戦略</span><span style="color: #6E6E6E; font-size: 11px; white-space: nowrap;">実行中 · 32%</span></div></div><span style="flex: 1; height: 1px; background: #1F1F1F; min-width: 12px;"></span></div><div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px;"><div style="flex: 1; min-width: 0; box-sizing: border-box; display: flex; align-items: center; gap: 9px; height: 58px; padding: 0 11px; border-radius: 11px; background: #0C0C0C; border: 1px solid #1F1F1F;"><span style="width: 8px; height: 8px; border-radius: 999px; border: 1px solid #2E2E2E;"></span><div style="min-width: 0; display: flex; flex-direction: column; gap: 1px;"><span style="color: #6E6E6E; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">プロダクト</span><span style="color: #5F5F5F; font-size: 11px; white-space: nowrap;">これから</span></div></div><span style="flex: 1; height: 1px; background: #1F1F1F; min-width: 12px;"></span></div><div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px;"><div style="flex: 1; min-width: 0; box-sizing: border-box; display: flex; align-items: center; gap: 9px; height: 58px; padding: 0 11px; border-radius: 11px; background: #0C0C0C; border: 1px solid #1F1F1F;"><span style="width: 8px; height: 8px; border-radius: 999px; border: 1px solid #2E2E2E;"></span><div style="min-width: 0; display: flex; flex-direction: column; gap: 1px;"><span style="color: #6E6E6E; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">ローンチ</span><span style="color: #5F5F5F; font-size: 11px; white-space: nowrap;">これから</span></div></div></div></div>
+      <div style="flex: 1; min-height: 0; box-sizing: border-box; display: flex; flex-direction: column; border-radius: 12px; background: #0E0E0E; border: 1px solid #232323; overflow: hidden;">
+        <div style="flex-shrink: 0; display: flex; align-items: center; gap: 10px; height: 42px; padding: 0 16px; border-bottom: 1px solid #171717;">
+          <span style="color: #B8B8B8;">フェーズ 2 · 戦略</span>
+          <span style="color: #5F5F5F; font-size: 12px;">のタスク</span>
           <div style="flex: 1;"></div>
-          <span style="display: inline-flex; align-items: center; height: 30px; padding: 0 14px; border-radius: 8px; background: #1F1F1F; border: 1px solid #303030;">レビュー</span>
+          <span style="color: #6E6E6E; font-size: 12px;">1 / 3 完了</span>
         </div>
-        <div style="display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 14px; border-top: 1px solid #1C1C1C;">
-          <span style="width: 3px; height: 16px; border-radius: 2px; background: #1E8E3E;"></span>
-          <span style="color: #B8B8B8;">市場調査レポート v2</span>
-          <div style="flex: 1;"></div>
-          <span style="color: #1E8E3E;">承認済み</span>
-        </div>
-        <div style="display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 14px; border-top: 1px solid #1C1C1C; background: #14120C;">
-          <span style="width: 3px; height: 16px; border-radius: 2px; background: #E37400;"></span>
-          <span>収益モデル比較レポート</span>
-          <div style="flex: 1;"></div>
-          <span style="color: #E37400;">要確認</span>
-        </div>
-        <div style="display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 14px; border-top: 1px solid #1C1C1C;">
-          <span style="width: 3px; height: 16px; border-radius: 2px; background: #333333;"></span>
-          <span style="color: #6E6E6E;">TAM / SAM 試算</span>
-          <div style="flex: 1;"></div>
-          <span style="color: #5F5F5F;">下書き</span>
-        </div>
-      </div>
-
-      <div style="flex: 1;"></div>
-
-      <!-- Composer -->
-      <div style="flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; padding: 13px 13px 11px; border-radius: 14px; background: #141414; border: 1px solid #2A2A2A;">
-        <span style="color: #5F5F5F; padding: 0 2px;">指示、@ で参照、/ でスキル</span>
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B8B8B" stroke-width="1.6" stroke-linecap="round"><path d="M12 5.5v13M5.5 12h13"/></svg>
-          <span style="display: inline-flex; align-items: center; gap: 6px; color: #B8B8B8;">
-            統括AI
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9.5 6 6 6-6"/></svg>
-          </span>
-          <span style="display: inline-flex; align-items: center; gap: 7px; color: #B8B8B8;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B8B8B" stroke-width="1.7" stroke-linecap="round"><path d="M5 16v3M10 12v7M15 8v11M20 4v15"/></svg>
-            自動
-          </span>
-          <div style="flex: 1;"></div>
-          <span style="width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: #1A73E8;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6M6 12l6-6 6 6"/></svg>
-          </span>
-        </div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid #161616;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5BB974" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.2 4.2L19 7"/></svg><span style="color: #8B8B8B; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">価格の材料集め（競合12社）</span><div style="flex: 1;"></div><span style="color: #5F5F5F; font-size: 12px; white-space: nowrap;">市場リサーチャー</span><span style="width: 46px; flex-shrink: 0; text-align: right; color: #6E6E6E; font-size: 12px;">完了</span></div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid #161616;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B8B8B8" stroke-width="1.8"><circle cx="12" cy="12" r="8" stroke-dasharray="34 16"/></svg><span style="color: #EDEDED; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">価格戦略ドラフト</span><div style="flex: 1;"></div><span style="color: #5F5F5F; font-size: 12px; white-space: nowrap;">事業ストラテジスト</span><span style="width: 46px; flex-shrink: 0; text-align: right; color: #6E6E6E; font-size: 12px;">32%</span></div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 16px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2E2E2E" stroke-width="1.8"><circle cx="12" cy="12" r="8"/></svg><span style="color: #5F5F5F; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">収益シミュレーション</span><div style="flex: 1;"></div><span style="color: #5F5F5F; font-size: 12px; white-space: nowrap;">事業ストラテジスト</span><span style="width: 46px; flex-shrink: 0; text-align: right; color: #6E6E6E; font-size: 12px;">待機</span></div>
+        <div style="flex: 1;"></div>
       </div>
     </div>
-
+    <div style="flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 14px 22px 18px;">
+      <span style="color: #5F5F5F; font-size: 12px;">タスクは統括AIとの会話から作られます</span>
+      <div style="flex: 1;"></div><span style="display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 13px; border-radius: 8px; white-space: nowrap; background: #1A73E8; color: #FFFFFF;">フェーズを完了にする</span>
+    </div>
   </div>
 
-  <!-- Right pane: tabbed -->
-  <div style="width: 480px; flex-shrink: 0; box-sizing: border-box; display: flex; flex-direction: column; background: #000000;">
-
-    <div style="height: 40px; flex-shrink: 0; display: flex; align-items: center; gap: 4px; padding: 0 8px; border-bottom: 1px solid #1C1C1C;">
-      <span style="display: inline-flex; align-items: center; gap: 8px; height: 28px; padding: 0 9px 0 10px; border-radius: 8px; background: #1A1A1A;">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1E8E3E" stroke-width="1.7" stroke-linecap="round"><circle cx="6" cy="6" r="2.2"/><circle cx="6" cy="18" r="2.2"/><path d="M6 8.2v7.6M8.2 6H15a3 3 0 0 1 3 3v0"/></svg>
-        ロードマップ
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.8" stroke-linecap="round"><path d="M7 7l10 10M17 7L7 17"/></svg>
-      </span>
-      <span style="display: inline-flex; align-items: center; gap: 8px; height: 28px; padding: 0 10px; border-radius: 8px; color: #6E6E6E;">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#E37400" stroke-width="1.7" stroke-linejoin="round"><rect x="4.5" y="3.5" width="15" height="17" rx="2.5"/><path d="M8.5 9h7M8.5 13h7"/></svg>
-        収益モデル比較
-      </span>
-      <span style="display: inline-flex; align-items: center; gap: 8px; height: 28px; padding: 0 10px; border-radius: 8px; color: #6E6E6E;">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.6 12h16.8M12 3.5c2.2 2.4 3.3 5.3 3.3 8.5s-1.1 6.1-3.3 8.5c-2.2-2.4-3.3-5.3-3.3-8.5S9.8 5.9 12 3.5z"/></svg>
-        競合12件
-      </span>
-      <div style="flex: 1;"></div>
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.6" stroke-linecap="round"><path d="M12 5.5v13M5.5 12h13"/></svg>
+  <div style="width: 400px; flex-shrink: 0; box-sizing: border-box; display: flex; flex-direction: column; background: #000000;">
+    <div style="height: 46px; flex-shrink: 0; display: flex; align-items: center; gap: 6px; padding: 0 12px; border-bottom: 1px solid #232323;">
+      <span style="display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border-radius: 8px; white-space: nowrap; font-size: 12px; background: #2A2A2A; color: #EDEDED;">成果物 5</span><span style="display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border-radius: 8px; white-space: nowrap; font-size: 12px; color: #6E6E6E;">決定事項 3</span><span style="display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border-radius: 8px; white-space: nowrap; font-size: 12px; color: #6E6E6E;">メンバー 3</span>
     </div>
-
-    <div style="height: 38px; flex-shrink: 0; display: flex; align-items: center; gap: 11px; padding: 0 12px; border-bottom: 1px solid #1C1C1C;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3A3A3A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"/></svg>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4.5V9h-4.5"/></svg>
-      <span style="color: #6E6E6E; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;">onefound://work / ロードマップ</span>
-      <div style="flex: 1;"></div>
-      <span style="color: #5F5F5F; font-variant-numeric: tabular-nums;">2 / 4</span>
-    </div>
-
-    <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 18px 16px 0;">
-
-      <!-- phase 1 -->
-      <div style="display: flex; gap: 12px;">
-        <div style="width: 16px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center;">
-          <span style="width: 14px; height: 14px; border-radius: 999px; background: #1E8E3E; display: inline-flex; align-items: center; justify-content: center;">
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#04120A" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>
-          </span>
-          <div style="flex: 1; width: 1px; background: #1E8E3E; opacity: 0.35;"></div>
-        </div>
-        <div style="flex: 1; padding-bottom: 18px; display: flex; align-items: center;">
-          <span>調査</span>
-          <div style="flex: 1;"></div>
-          <span style="color: #1E8E3E;">承認済み</span>
-        </div>
-      </div>
-
-      <!-- phase 2 -->
-      <div style="display: flex; gap: 12px;">
-        <div style="width: 16px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center;">
-          <span style="width: 14px; height: 14px; border-radius: 999px; border: 3px solid #2AA9BF;"></span>
-          <div style="flex: 1; width: 1px; background: #232323;"></div>
-        </div>
-        <div style="flex: 1; padding-bottom: 18px; display: flex; flex-direction: column; gap: 9px;">
-          <div style="display: flex; align-items: center;">
-            <span>戦略</span>
-            <div style="flex: 1;"></div>
-            <span style="color: #5F5F5F; font-variant-numeric: tabular-nums;">2 / 4</span>
-          </div>
-
-          <div style="display: flex; align-items: center; gap: 11px; height: 40px; padding: 0 12px; border-radius: 8px; background: #0E0E0E; border: 1px solid #232323;">
-            <span style="width: 8px; height: 8px; border-radius: 999px; background: #2AA9BF; flex-shrink: 0;"></span>
-            <span style="color: #B8B8B8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">競合ポジショニング分析</span>
-            <div style="flex: 1;"></div>
-            <div style="width: 56px; flex-shrink: 0; height: 6px; border-radius: 3px; background: #1C1C1C; overflow: hidden;"><div style="width: 68%; height: 100%; background: #2AA9BF;"></div></div>
-            <span style="color: #5F5F5F; white-space: nowrap; font-variant-numeric: tabular-nums;">12分</span>
-          </div>
-
-          <div style="display: flex; align-items: center; gap: 11px; height: 40px; padding: 0 12px; border-radius: 8px; background: #0E0E0E; border: 1px solid #232323;">
-            <span style="width: 8px; height: 8px; border-radius: 999px; background: #9A5CD0; flex-shrink: 0;"></span>
-            <span style="color: #B8B8B8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">価格戦略ドラフト</span>
-            <div style="flex: 1;"></div>
-            <div style="width: 56px; flex-shrink: 0; height: 6px; border-radius: 3px; background: #1C1C1C; overflow: hidden;"><div style="width: 32%; height: 100%; background: #9A5CD0;"></div></div>
-            <span style="color: #5F5F5F; white-space: nowrap; font-variant-numeric: tabular-nums;">4分</span>
-          </div>
-
-          <div style="display: flex; align-items: center; gap: 11px; height: 44px; padding: 0 8px 0 12px; border-radius: 8px; background: #14100A; border: 1px solid #3A2C14;">
-            <span style="width: 8px; height: 8px; border-radius: 999px; background: #E37400; flex-shrink: 0;"></span>
-            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">価格モデルの決定</span>
-            <div style="flex: 1;"></div>
-            <span style="display: inline-flex; align-items: center; height: 28px; padding: 0 13px; border-radius: 8px; background: #1A73E8; color: #FFFFFF; white-space: nowrap;">確認する</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- phase 3 -->
-      <div style="display: flex; gap: 12px;">
-        <div style="width: 16px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center;">
-          <span style="width: 14px; height: 14px; border-radius: 999px; border: 1px solid #333333;"></span>
-          <div style="flex: 1; width: 1px; background: #232323;"></div>
-        </div>
-        <div style="flex: 1; padding-bottom: 18px; display: flex; align-items: center;">
-          <span style="color: #6E6E6E;">プロダクト</span>
-          <div style="flex: 1;"></div>
-          <span style="color: #5F5F5F;">承認後に計画</span>
-        </div>
-      </div>
-
-      <!-- phase 4 -->
-      <div style="display: flex; gap: 12px;">
-        <div style="width: 16px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center;">
-          <span style="width: 14px; height: 14px; border-radius: 999px; border: 1px solid #333333;"></span>
-        </div>
-        <div style="flex: 1; display: flex; align-items: center;">
-          <span style="color: #6E6E6E;">ローンチ</span>
-          <div style="flex: 1;"></div>
-          <span style="color: #5F5F5F;">未着手</span>
-        </div>
-      </div>
-
+    <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 10px 16px 0; overflow: hidden;">
+      <div style="display: flex; align-items: center; gap: 11px; padding: 10px 0; border-bottom: 1px solid #161616;"><span style="width: 34px; height: 28px; flex-shrink: 0; border-radius: 6px; background: #141414; border: 1px solid #232323; display: flex; flex-direction: column; gap: 2px; padding: 5px 4px; box-sizing: border-box;"><span style="height: 2px; background: #2E2E2E; border-radius: 1px;"></span><span style="height: 2px; background: #262626; border-radius: 1px;"></span><span style="height: 2px; background: #262626; border-radius: 1px; width: 68%;"></span></span><div style="min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">収益モデル比較</span><span style="color: #5F5F5F; font-size: 12px; white-space: nowrap;">事業ストラテジスト · 2時間前</span></div><div style="flex: 1;"></div><span style="display: inline-flex; align-items: center; height: 21px; padding: 0 8px; border-radius: 6px; background: rgba(227,116,0,0.18); color: #FDD663; font-size: 12px; white-space: nowrap;">レビュー</span></div>
+      <div style="display: flex; align-items: center; gap: 11px; padding: 10px 0; border-bottom: 1px solid #161616;"><span style="width: 34px; height: 28px; flex-shrink: 0; border-radius: 6px; background: #141414; border: 1px solid #232323; display: flex; flex-direction: column; gap: 2px; padding: 5px 4px; box-sizing: border-box;"><span style="height: 2px; background: #2E2E2E; border-radius: 1px;"></span><span style="height: 2px; background: #262626; border-radius: 1px;"></span><span style="height: 2px; background: #262626; border-radius: 1px; width: 68%;"></span></span><div style="min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">競合分析レポート v1.0</span><span style="color: #5F5F5F; font-size: 12px; white-space: nowrap;">市場リサーチャー · 5時間前</span></div><div style="flex: 1;"></div><span style="display: inline-flex; align-items: center; height: 21px; padding: 0 8px; border-radius: 6px; background: rgba(30,142,62,0.18); color: #5BB974; font-size: 12px; white-space: nowrap;">承認済み</span></div>
+      <div style="display: flex; align-items: center; gap: 11px; padding: 10px 0; border-bottom: 1px solid #161616;"><span style="width: 34px; height: 28px; flex-shrink: 0; border-radius: 6px; background: #141414; border: 1px solid #232323; display: flex; flex-direction: column; gap: 2px; padding: 5px 4px; box-sizing: border-box;"><span style="height: 2px; background: #2E2E2E; border-radius: 1px;"></span><span style="height: 2px; background: #262626; border-radius: 1px;"></span><span style="height: 2px; background: #262626; border-radius: 1px; width: 68%;"></span></span><div style="min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">市場規模レポート</span><span style="color: #5F5F5F; font-size: 12px; white-space: nowrap;">市場リサーチャー · 1日前</span></div><div style="flex: 1;"></div><span style="display: inline-flex; align-items: center; height: 21px; padding: 0 8px; border-radius: 6px; background: rgba(30,142,62,0.18); color: #5BB974; font-size: 12px; white-space: nowrap;">承認済み</span></div>
+      <div style="display: flex; align-items: center; gap: 11px; padding: 10px 0;"><span style="width: 34px; height: 28px; flex-shrink: 0; border-radius: 6px; background: #141414; border: 1px solid #232323; display: flex; flex-direction: column; gap: 2px; padding: 5px 4px; box-sizing: border-box;"><span style="height: 2px; background: #2E2E2E; border-radius: 1px;"></span><span style="height: 2px; background: #262626; border-radius: 1px;"></span><span style="height: 2px; background: #262626; border-radius: 1px; width: 68%;"></span></span><div style="min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">ペルソナ仮説 3パターン</span><span style="color: #5F5F5F; font-size: 12px; white-space: nowrap;">事業ストラテジスト · 2日前</span></div><div style="flex: 1;"></div><span style="display: inline-flex; align-items: center; height: 21px; padding: 0 8px; border-radius: 6px; background: rgba(30,142,62,0.18); color: #5BB974; font-size: 12px; white-space: nowrap;">承認済み</span></div>
       <div style="flex: 1;"></div>
     </div>
   </div>

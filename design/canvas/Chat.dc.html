@@ -1,0 +1,146 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400&amp;display=swap">
+  <style>
+    body { margin: 0; background: #000000; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    a { color: #4C8DF6; } a:hover { color: #7BADF9; }
+    b, strong { font-weight: 400; color: #FFFFFF; }
+  </style>
+</helmet>
+<div style="position: relative; width: 1440px; height: 900px; box-sizing: border-box; display: flex; background: #000000; color: #EDEDED; font-family: -apple-system, ui-sans-serif, system-ui, 'Segoe UI', Helvetica, 'Noto Sans JP', Arial, sans-serif; font-size: 13px; line-height: 20px; overflow: hidden;">
+  <!-- Rail -->
+  <div style="width: 260px; flex-shrink: 0; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; padding: 14px 12px; background: #141414; border-right: 1px solid #232323;">
+
+    <div style="display: flex; align-items: center; gap: 10px; padding: 0 4px; height: 26px;">
+      <span style="width: 9px; height: 9px; border-radius: 999px; background: #2E2E2E; flex-shrink: 0;"></span><span style="width: 9px; height: 9px; border-radius: 999px; background: #2E2E2E; flex-shrink: 0;"></span><span style="width: 9px; height: 9px; border-radius: 999px; background: #2E2E2E; flex-shrink: 0;"></span>
+      <div style="flex: 1;"></div>
+      <span style="font-size: 12px; color: #6E6E6E;">OneFound</span>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9.5 6 6 6-6"/></svg>
+    </div>
+
+    <div style="height: 32px; display: flex; align-items: center; gap: 9px; padding: 0 10px; border-radius: 8px; background: #1A1A1A; border: 1px solid #262626;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+      <span style="color: #6E6E6E;">検索</span>
+      <div style="flex: 1;"></div>
+      <span style="color: #5F5F5F;">⌘K</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 1px;">
+      <div style="display: flex; align-items: center; gap: 11px; height: 34px; padding: 0 10px; border-radius: 8px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B8B8B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m4 11 8-7 8 7"/><path d="M6.5 9.4V20h11V9.4"/></svg>
+        <span style="color: #B8B8B8;">ホーム</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 11px; height: 34px; padding: 0 10px; border-radius: 8px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B8B8B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="13.5" rx="2"/><path d="M4 13.2h4.2l1.5 2.2h4.6l1.5-2.2H20"/></svg>
+        <span style="color: #B8B8B8;">通知</span><div style="flex: 1;"></div><span style="color: #E37400; font-variant-numeric: tabular-nums;">2</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 11px; height: 34px; padding: 0 10px; border-radius: 8px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B8B8B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="7.5" width="17" height="12" rx="2"/><path d="M9 7.5V6a1.8 1.8 0 0 1 1.8-1.8h2.4A1.8 1.8 0 0 1 15 6v1.5"/></svg>
+        <span style="color: #B8B8B8;">Work</span><div style="flex: 1;"></div><span style="width: 8px; height: 8px; border-radius: 999px; background: #1E8E3E; flex-shrink: 0;"></span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 11px; height: 34px; padding: 0 10px; border-radius: 8px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B8B8B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3.5 6.5 13.2H11l-1 7.3 6.5-9.7H12l1-7.3z"/></svg>
+        <span style="color: #B8B8B8;">用事</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 11px; height: 34px; padding: 0 10px; border-radius: 8px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B8B8B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="m8.2 12.2 2.4 2.4 4.6-5"/></svg>
+        <span style="color: #B8B8B8;">タスク</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 11px; height: 34px; padding: 0 10px; border-radius: 8px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B8B8B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5H7.4A1.9 1.9 0 0 0 5.5 5.4v13.2a1.9 1.9 0 0 0 1.9 1.9h9.2a1.9 1.9 0 0 0 1.9-1.9V8.5z"/><path d="M13.5 3.5v5h5"/></svg>
+        <span style="color: #B8B8B8;">成果物</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 11px; height: 34px; padding: 0 10px; border-radius: 8px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B8B8B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.2" cy="8.6" r="3.1"/><path d="M4 19.2c0-2.9 2.3-5.2 5.2-5.2s5.2 2.3 5.2 5.2"/><path d="M15.6 5.9a3 3 0 0 1 0 5.5M17.6 14.4c1.8.8 3 2.6 3 4.8"/></svg>
+        <span style="color: #B8B8B8;">メンバー</span><div style="flex: 1;"></div><span style="color: #5F5F5F; font-variant-numeric: tabular-nums;">3</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 11px; height: 34px; padding: 0 10px; border-radius: 8px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B8B8B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5h15M4.5 12h15M4.5 17.5h9"/></svg>
+        <span style="color: #B8B8B8;">決定事項</span>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 1px; padding-top: 10px;">
+      <div style="display: flex; align-items: center; gap: 11px; height: 30px; padding: 0 10px;">
+        <span style="color: #5F5F5F; font-size: 12px;">チャット</span>
+        <div style="flex: 1;"></div><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.5v13M5.5 12h13"/></svg>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px 0 12px; border-radius: 8px; background: #232323;">
+        <span style="min-width: 0; color: #EDEDED; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">価格をどうするか</span>
+        </div>
+      <div style="display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px 0 12px; border-radius: 8px;">
+        <span style="min-width: 0; color: #8B8B8B; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">韓国の競合について</span>
+        </div>
+      <div style="display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px 0 12px; border-radius: 8px;">
+        <span style="min-width: 0; color: #8B8B8B; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">LPの構成</span>
+        <div style="flex: 1;"></div><span style="width: 6px; height: 6px; border-radius: 999px; background: #1A73E8; flex-shrink: 0;"></span></div>
+      <div style="display: flex; align-items: center; height: 28px; padding: 0 12px;"><span style="color: #5F5F5F; font-size: 12px;">すべて見る</span></div>
+    </div>
+
+    <div style="flex: 1;"></div>
+
+    <div style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px;">
+      <span style="width: 22px; height: 22px; border-radius: 999px; background: #2E2E2E; display: inline-flex; align-items: center; justify-content: center; font-size: 11px;">Y</span>
+      <span style="color: #B8B8B8;">あなた</span>
+      <div style="flex: 1;"></div>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.2v2.2M12 18.6v2.2M3.2 12h2.2M18.6 12h2.2M5.8 5.8l1.6 1.6M16.6 16.6l1.6 1.6M18.2 5.8l-1.6 1.6M7.4 16.6l-1.6 1.6"/></svg>
+    </div>
+  </div>
+
+  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; background: #000000;">
+    <div style="height: 46px; flex-shrink: 0; display: flex; align-items: center; gap: 12px; padding: 0 14px; border-bottom: 1px solid #1C1C1C;">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="M9.5 5v14"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3A3A3A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3A3A3A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"/></svg>
+      <span style="margin-left: 4px;">チャット</span>
+      <span style="color: #5F5F5F;">/ 価格をどうするか</span>
+      <div style="flex: 1;"></div>
+      <span style="display: inline-flex; align-items: center; gap: 7px; height: 26px; padding: 0 10px; border-radius: 7px; background: #141414; border: 1px solid #232323; color: #8B8B8B; font-size: 12px; white-space: nowrap;"><span style="width: 6px; height: 6px; border-radius: 999px; background: #1E8E3E; flex-shrink: 0;"></span> 日本語学習サービス</span>
+    </div>
+    <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 24px 24px 0; overflow: hidden;">
+      <div style="width: 100%; max-width: 748px; display: flex; justify-content: flex-end; padding: 0 4px;"><span style="max-width: 76%; padding: 10px 16px; border-radius: 18px; background: #23252B; color: #EDEDED; font-size: 15px; line-height: 24px;">価格どうしようか</span></div>
+      <div style="display: flex; align-items: center; gap: 7px; color: #6E6E6E; padding: 0 4px;"><span style="font-size: 12px;">12秒 考えました</span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></svg></div>
+      <div style="width: 100%; max-width: 748px; box-sizing: border-box; padding: 0 4px;"><div style="display: flex; flex-direction: column; gap: 13px;">
+          <span style="font-size: 15px; line-height: 26px;">3案で比べました。<b>B案（月額 ¥1,980）をすすめます。</b>韓国の競合が ₩19,900（約 ¥2,200）に集まっていて、そこが値ごろの基準になっているからです。</span>
+          <div style="display: flex; flex-direction: column; padding: 4px 0;"><div style="display: flex; align-items: center; gap: 12px; padding: 8px 0;"><span style="width: 44px; flex-shrink: 0; color: #8B8B8B;">A案</span><span style="width: 74px; flex-shrink: 0; font-variant-numeric: tabular-nums; color: #8B8B8B;">¥1,480</span><span style="flex: 1; height: 7px; border-radius: 3px; background: #1C1C1C; overflow: hidden;"><span style="display: block; width: 42%; height: 100%; background: #6E6E6E;"></span></span><span style="width: 168px; flex-shrink: 0; text-align: right; color: #5F5F5F; font-size: 12px;">入りやすいが利益が薄い</span></div><div style="display: flex; align-items: center; gap: 12px; padding: 8px 0;"><span style="width: 44px; flex-shrink: 0; color: #EDEDED;">B案</span><span style="width: 74px; flex-shrink: 0; font-variant-numeric: tabular-nums; color: #EDEDED;">¥1,980</span><span style="flex: 1; height: 7px; border-radius: 3px; background: #1C1C1C; overflow: hidden;"><span style="display: block; width: 78%; height: 100%; background: #1E8E3E;"></span></span><span style="width: 168px; flex-shrink: 0; text-align: right; color: #5F5F5F; font-size: 12px;">競合と同じ帯・利益が残る</span></div><div style="display: flex; align-items: center; gap: 12px; padding: 8px 0;"><span style="width: 44px; flex-shrink: 0; color: #8B8B8B;">C案</span><span style="width: 74px; flex-shrink: 0; font-variant-numeric: tabular-nums; color: #8B8B8B;">¥2,480</span><span style="flex: 1; height: 7px; border-radius: 3px; background: #1C1C1C; overflow: hidden;"><span style="display: block; width: 58%; height: 100%; background: #6E6E6E;"></span></span><span style="width: 168px; flex-shrink: 0; text-align: right; color: #5F5F5F; font-size: 12px;">高い理由を作る必要がある</span></div></div>
+          <span style="font-size: 15px; line-height: 26px;">A案は安すぎて「安かろう」に見られます。C案は競合より高く、選ぶ理由をこちらで用意しないと通りません。</span>
+        </div></div>
+      <div style="width: 100%; max-width: 748px; display: flex; gap: 8px; padding: 0 4px;"><span style="display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 13px; border-radius: 8px; white-space: nowrap; background: #1F1F1F; border: 1px solid #303030; color: #B8B8B8;">決定事項に残す</span><span style="display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 13px; border-radius: 8px; white-space: nowrap; background: #1F1F1F; border: 1px solid #303030; color: #B8B8B8;">この案で Work を進める</span></div>
+      <div style="flex: 1;"></div>
+    </div>
+    <div style="flex-shrink: 0; display: flex; flex-direction: column; align-items: center; padding: 0 24px 18px;">
+      <div style="width: 100%; max-width: 748px; box-sizing: border-box; display: flex; flex-direction: column; gap: 9px; padding: 0 4px 12px;">
+        <div style="display: flex; align-items: flex-start; gap: 9px;">
+          <span style="width: 8px; height: 8px; flex-shrink: 0; margin-top: 6px; background: #E37400; transform: rotate(45deg); border-radius: 1.5px;"></span>
+          <div style="min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 14px; line-height: 22px;">月額はいくらにしますか？</span>
+            <span style="color: #5F5F5F; font-size: 12px;">ここで決まると、LPと申込フォームの文言も決まります</span>
+          </div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 7px; padding-left: 17px;"><span style="display: inline-flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 9px; white-space: nowrap; background: #1A1A1A; border: 1px solid #2A2A2A; color: #EDEDED;">¥1,480</span><span style="display: inline-flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 9px; white-space: nowrap; background: #1A1A1A; border: 1px solid #2A2A2A; color: #EDEDED;">¥1,980（おすすめ）</span><span style="display: inline-flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 9px; white-space: nowrap; background: #1A1A1A; border: 1px solid #2A2A2A; color: #EDEDED;">¥2,480</span><span style="display: inline-flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 9px; white-space: nowrap; border: 1px dashed #2E2E2E; color: #6E6E6E;">おまかせ</span></div>
+      </div>
+      <div style="width: 100%; max-width: 748px; box-sizing: border-box; display: flex; flex-direction: column; gap: 11px; padding: 12px 12px 10px; border-radius: 18px; background: #141414; border: 1px solid #2A2A2A;">
+        <span style="color: #5F5F5F; padding: 0 3px;">統括AIに書く</span>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B8B8B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.5v13M5.5 12h13"/></svg>
+          <span style="display: inline-flex; align-items: center; gap: 6px; color: #B8B8B8;">統括AI <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9.5 6 6 6-6"/></svg></span>
+          <span style="display: inline-flex; align-items: center; gap: 7px; color: #B8B8B8;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B8B8B" stroke-width="1.7" stroke-linecap="round"><path d="M5 16v3M10 12v7M15 8v11M20 4v15"/></svg>自動</span>
+          <div style="flex: 1;"></div>
+          <span style="width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: #1A73E8;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6M6 12l6-6 6 6"/></svg>
+          </span>
+        </div>
+      </div>
+    </div>
+</div>
+</x-dc>
+</body>
+</html>
