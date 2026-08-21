@@ -7,335 +7,323 @@
 <body>
 <x-dc>
 <helmet>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;600&amp;family=Noto+Sans+JP:wght@400;500;700&amp;display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=Shippori+Mincho:wght@500;600&amp;family=Zen+Kaku+Gothic+New:wght@400;500;700&amp;display=swap">
   <style>
-    body { margin: 0; background: #08090B; }
-    a { color: #52D97F; } a:hover { color: #7FE6A5; }
-    @keyframes dotpulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    body { margin: 0; background: #E9EAE6; }
+    a { color: #2E6B5E; } a:hover { color: #1F4F45; }
+    @keyframes flow { to { stroke-dashoffset: -16; } }
   </style>
 </helmet>
-<div style="width: 1440px; height: 900px; box-sizing: border-box; display: flex; gap: 10px; padding: 10px; background-color: #08090B; background-image: radial-gradient(900px 480px at 55% -15%, rgba(62,207,110,0.05), transparent 70%); color: #ECECEE; font-family: 'Geist', 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', system-ui, sans-serif; overflow: hidden;">
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: flex; gap: 14px; padding: 14px; background-color: #E9EAE6; background-image: radial-gradient(760px 440px at 10% -12%, rgba(46,107,94,0.08), transparent 70%), radial-gradient(700px 400px at 94% 6%, rgba(138,106,36,0.055), transparent 70%); color: #16191B; font-family: 'Instrument Sans', 'Zen Kaku Gothic New', system-ui, sans-serif; overflow: hidden;">
 
-  <!-- Sidebar island -->
-  <div style="width: 208px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; padding: 14px 10px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.07); background: rgba(15,16,18,0.72); backdrop-filter: blur(24px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);">
-    <div style="display: flex; align-items: center; gap: 8px; padding: 0 6px;">
-      <span style="width: 22px; height: 22px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.14); display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.04);">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#3ECF6E" stroke-width="2" stroke-linejoin="round"><path d="M12 4.5 19.5 12 12 19.5 4.5 12z"/></svg>
-      </span>
-      <span style="font-size: 12.5px; font-weight: 600;">Ocean</span>
+  <!-- Sidebar -->
+  <div style="width: 216px; flex-shrink: 0; display: flex; flex-direction: column; gap: 14px; padding: 16px 12px; border-radius: 20px; border: 1px solid rgba(22,25,27,0.06); background: rgba(255,255,255,0.72); backdrop-filter: blur(28px); box-shadow: 0 1px 2px rgba(22,25,27,0.04), 0 16px 40px rgba(22,25,27,0.07), inset 0 1px 0 rgba(255,255,255,0.85);">
+    <div style="display: flex; align-items: center; gap: 9px; padding: 0 6px;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16191B" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 15.5c2.4-2.6 4.7-2.6 7 0s4.6 2.6 7 0 4.6-2.6 5 0"/><path d="M2.5 9.5c2.4-2.6 4.7-2.6 7 0s4.6 2.6 7 0 4.6-2.6 5 0" opacity="0.4"/></svg>
+      <span style="font-size: 14px; font-weight: 600; letter-spacing: -0.01em;">Ocean</span>
       <div style="flex: 1;"></div>
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5F5F66" stroke-width="1.5" stroke-linecap="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9.5 4.5v15"/></svg>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8E948F" stroke-width="1.4" stroke-linecap="round"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><path d="M9.5 4.5v15"/></svg>
     </div>
 
-    <div style="height: 34px; display: flex; align-items: center; gap: 7px; padding: 0 11px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03);">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5F5F66" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
-      <span style="font-size: 11.5px; color: #5F5F66;">Search</span>
+    <div style="height: 34px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 999px; background: rgba(22,25,27,0.045);">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8E948F" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+      <span style="font-size: 12.5px; color: #8E948F;">検索</span>
       <div style="flex: 1;"></div>
-      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; color: #5F5F66;">⌘K</span>
+      <span style="font-size: 11px; color: #A6ABA7;">⌘K</span>
     </div>
 
-    <div style="display: flex; flex-direction: column; gap: 2px;">
-      <div style="height: 32px; display: flex; align-items: center; gap: 9px; padding: 0 11px; border-radius: 999px;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6A6A72" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 11.5 7.5-7 7.5 7"/><path d="M6.5 9.8v9.7h11V9.8"/></svg>
-        <span style="font-size: 12px; color: #A0A0A8;">Home</span>
+    <div style="display: flex; flex-direction: column; gap: 1px;">
+      <div style="height: 36px; display: flex; align-items: center; gap: 11px; padding: 0 12px; border-radius: 12px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B6266" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m4 11 8-7 8 7"/><path d="M6.5 9.4V20h11V9.4"/></svg>
+        <span style="font-size: 13px; color: #5B6266;">ホーム</span>
       </div>
-      <div style="height: 32px; display: flex; align-items: center; gap: 9px; padding: 0 11px; border-radius: 999px;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6A6A72" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14.5" rx="2"/><path d="M4 13.5h4.2l1.6 2.2h4.4l1.6-2.2H20"/></svg>
-        <span style="font-size: 12px; color: #A0A0A8;">Inbox</span>
+      <div style="height: 36px; display: flex; align-items: center; gap: 11px; padding: 0 12px; border-radius: 12px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B6266" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="14.5" rx="3"/><path d="M3.5 13.4h4.4l1.6 2.3h5l1.6-2.3h4.4"/></svg>
+        <span style="font-size: 13px; color: #5B6266;">通知</span>
         <div style="flex: 1;"></div>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; color: #E8A33D;">2</span>
+        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; font-size: 11px; font-weight: 600; color: #FFFFFF; background: #8A6A24; font-variant-numeric: tabular-nums;">2</span>
       </div>
-      <div style="height: 32px; display: flex; align-items: center; gap: 9px; padding: 0 11px; border-radius: 999px; background: rgba(255,255,255,0.07);">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ECECEE" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="7.5" width="17" height="12.5" rx="2"/><path d="M9 7.5V5.6A1.6 1.6 0 0 1 10.6 4h2.8A1.6 1.6 0 0 1 15 5.6v1.9"/></svg>
-        <span style="font-size: 12px; color: #ECECEE; font-weight: 500;">Work</span>
+      <div style="height: 36px; display: flex; align-items: center; gap: 11px; padding: 0 12px; border-radius: 12px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(22,25,27,0.06), 0 6px 14px rgba(22,25,27,0.05);">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16191B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="7.5" width="17" height="12.5" rx="3"/><path d="M9 7.5V5.8A1.8 1.8 0 0 1 10.8 4h2.4A1.8 1.8 0 0 1 15 5.8v1.7"/></svg>
+        <span style="font-size: 13px; font-weight: 600;">Work</span>
       </div>
-      <div style="height: 30px; display: flex; align-items: center; gap: 8px; padding: 0 11px 0 30px; border-radius: 999px;">
-        <span style="width: 5px; height: 5px; border-radius: 999px; background: #3ECF6E; box-shadow: 0 0 6px rgba(62,207,110,0.8); animation: dotpulse 1.8s ease-in-out infinite;"></span>
-        <span style="font-size: 11.5px; color: #ECECEE; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">日本語学習サービス</span>
+      <div style="height: 32px; display: flex; align-items: center; gap: 9px; padding: 0 12px 0 39px; border-radius: 12px;">
+        <span style="width: 6px; height: 6px; border-radius: 999px; background: #2E6B5E; flex-shrink: 0;"></span>
+        <span style="font-size: 12.5px; color: #16191B; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">日本語学習サービス</span>
       </div>
-      <div style="height: 32px; display: flex; align-items: center; gap: 9px; padding: 0 11px; border-radius: 999px;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6A6A72" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="m8.5 12.2 2.4 2.4 4.6-5"/></svg>
-        <span style="font-size: 12px; color: #A0A0A8;">Tasks</span>
+      <div style="height: 36px; display: flex; align-items: center; gap: 11px; padding: 0 12px; border-radius: 12px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B6266" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="m8.4 12.2 2.5 2.5 4.7-5.2"/></svg>
+        <span style="font-size: 13px; color: #5B6266;">タスク</span>
       </div>
-      <div style="height: 32px; display: flex; align-items: center; gap: 9px; padding: 0 11px; border-radius: 999px;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6A6A72" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8.5z"/><path d="M13.5 3.5v5h5"/></svg>
-        <span style="font-size: 12px; color: #A0A0A8;">Deliverables</span>
+      <div style="height: 36px; display: flex; align-items: center; gap: 11px; padding: 0 12px; border-radius: 12px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B6266" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5H7.2A1.7 1.7 0 0 0 5.5 5.2v13.6a1.7 1.7 0 0 0 1.7 1.7h9.6a1.7 1.7 0 0 0 1.7-1.7V8.5z"/><path d="M13.5 3.5v5h5"/></svg>
+        <span style="font-size: 13px; color: #5B6266;">成果物</span>
       </div>
-      <div style="height: 32px; display: flex; align-items: center; gap: 9px; padding: 0 11px; border-radius: 999px;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6A6A72" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.5" r="3"/><path d="M4 19c0-2.8 2.2-5 5-5s5 2.2 5 5"/><path d="M15.5 5.8a3 3 0 0 1 0 5.6M17.5 14.3c1.8.8 3 2.6 3 4.7"/></svg>
-        <span style="font-size: 12px; color: #A0A0A8;">Team</span>
+      <div style="height: 36px; display: flex; align-items: center; gap: 11px; padding: 0 12px; border-radius: 12px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B6266" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.2" cy="8.6" r="3.1"/><path d="M4 19.2c0-2.9 2.3-5.2 5.2-5.2s5.2 2.3 5.2 5.2"/><path d="M15.6 5.9a3 3 0 0 1 0 5.5M17.6 14.4c1.8.8 3 2.6 3 4.8"/></svg>
+        <span style="font-size: 13px; color: #5B6266;">メンバー</span>
         <div style="flex: 1;"></div>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; color: #5F5F66;">3</span>
+        <span style="font-size: 12px; color: #A6ABA7; font-variant-numeric: tabular-nums;">3</span>
       </div>
-      <div style="height: 32px; display: flex; align-items: center; gap: 9px; padding: 0 11px; border-radius: 999px;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6A6A72" stroke-width="1.6" stroke-linejoin="round"><path d="M12 4.5 19.5 12 12 19.5 4.5 12z"/></svg>
-        <span style="font-size: 12px; color: #A0A0A8;">Decisions</span>
+      <div style="height: 36px; display: flex; align-items: center; gap: 11px; padding: 0 12px; border-radius: 12px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B6266" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5h15M4.5 12h15M4.5 17.5h9"/></svg>
+        <span style="font-size: 13px; color: #5B6266;">決定事項</span>
       </div>
     </div>
 
     <div style="flex: 1;"></div>
 
-    <div style="display: flex; flex-direction: column; gap: 7px; padding: 11px 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.03);">
+    <div style="display: flex; flex-direction: column; gap: 9px; padding: 0 12px;">
       <div style="display: flex; align-items: baseline;">
-        <span style="font-size: 10.5px; color: #9A9AA2;">Credits</span>
+        <span style="font-size: 12px; color: #8E948F;">クレジット</span>
         <div style="flex: 1;"></div>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; color: #ECECEE;">812<span style="color: #5F5F66;"> / 3,000</span></span>
+        <span style="font-size: 12px; color: #5B6266; font-variant-numeric: tabular-nums;">812<span style="color: #A6ABA7;"> / 3,000</span></span>
       </div>
-      <div style="height: 3px; border-radius: 2px; background: rgba(255,255,255,0.08); overflow: hidden;">
-        <div style="width: 27%; height: 100%; border-radius: 2px; background: #3ECF6E;"></div>
+      <div style="height: 3px; border-radius: 2px; background: rgba(22,25,27,0.09); overflow: hidden;">
+        <div style="width: 27%; height: 100%; border-radius: 2px; background: #2E6B5E;"></div>
       </div>
     </div>
 
-    <div style="display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.03);">
-      <span style="position: relative; width: 24px; height: 24px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); display: inline-flex; align-items: center; justify-content: center; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px;">Y<span style="position: absolute; right: -2px; bottom: -2px; width: 7px; height: 7px; border-radius: 999px; background: #3ECF6E; border: 1.5px solid #0F1012;"></span></span>
-      <span style="font-size: 11.5px;">あなた</span>
+    <div style="display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 14px; background: rgba(255,255,255,0.8); border: 1px solid rgba(22,25,27,0.05);">
+      <span style="width: 26px; height: 26px; border-radius: 9px; background: #16191B; color: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; font-size: 11.5px; font-weight: 600;">Y</span>
+      <span style="font-size: 12.5px;">あなた</span>
       <div style="flex: 1;"></div>
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6A6A72" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7"/></svg>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8E948F" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.2v2.2M12 18.6v2.2M3.2 12h2.2M18.6 12h2.2M5.8 5.8l1.6 1.6M16.6 16.6l1.6 1.6M18.2 5.8l-1.6 1.6M7.4 16.6l-1.6 1.6"/></svg>
     </div>
   </div>
 
-  <!-- Center column -->
-  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px;">
+  <!-- Center -->
+  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px;">
 
-    <!-- Header island -->
-    <div style="height: 50px; flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 0 14px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.07); background: rgba(15,16,18,0.72); backdrop-filter: blur(24px);">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5F5F66" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m14.5 6-6 6 6 6"/></svg>
-      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9.5px; letter-spacing: 0.1em; color: #5F5F66;">WORK /</span>
-      <span style="font-size: 12.5px; font-weight: 600;">韓国人向け日本語学習サービス</span>
+    <!-- Header -->
+    <div style="height: 54px; flex-shrink: 0; display: flex; align-items: center; gap: 12px; padding: 0 16px; border-radius: 18px; border: 1px solid rgba(22,25,27,0.06); background: rgba(255,255,255,0.72); backdrop-filter: blur(28px); box-shadow: 0 1px 2px rgba(22,25,27,0.04), 0 12px 30px rgba(22,25,27,0.05), inset 0 1px 0 rgba(255,255,255,0.85);">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8E948F" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m14.5 5.5-6.5 6.5 6.5 6.5"/></svg>
+      <span style="font-size: 12.5px; color: #A6ABA7;">Work</span>
+      <span style="font-size: 15px; font-weight: 600; letter-spacing: -0.01em;">韓国人向け日本語学習サービス</span>
       <div style="flex: 1;"></div>
-      <span style="display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 11px; border-radius: 999px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9.5px; color: #A0A0A8; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03);">Agents <span style="color: #ECECEE;">2/3</span></span>
-      <span style="display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 11px; border-radius: 999px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9.5px; color: #A0A0A8; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03);">Tasks <span style="color: #ECECEE;">2/4</span></span>
-      <span style="display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 11px; border-radius: 999px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9.5px; color: #52D97F; border: 1px solid rgba(62,207,110,0.3); background: rgba(62,207,110,0.07);">
-        <span style="width: 5px; height: 5px; border-radius: 999px; background: #3ECF6E; animation: dotpulse 1.8s ease-in-out infinite;"></span>
-        LIVE
+      <span style="display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: #5B6266;">
+        <span style="width: 6px; height: 6px; border-radius: 999px; background: #2E6B5E;"></span>
+        稼働中 <span style="color: #16191B; font-variant-numeric: tabular-nums;">2</span>
       </span>
-      <span style="display: inline-flex; align-items: center; height: 30px; padding: 0 14px; border-radius: 999px; font-size: 11.5px; color: #ECECEE; border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04);">共有</span>
-      <span style="width: 28px; height: 28px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); display: inline-flex; align-items: center; justify-content: center; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px;">Y</span>
+      <span style="width: 1px; height: 18px; background: rgba(22,25,27,0.10);"></span>
+      <span style="font-size: 12.5px; color: #5B6266;">タスク <span style="color: #16191B; font-variant-numeric: tabular-nums;">2/4</span></span>
+      <span style="display: inline-flex; align-items: center; height: 32px; padding: 0 15px; border-radius: 999px; font-size: 12.5px; color: #16191B; border: 1px solid rgba(22,25,27,0.10);">共有</span>
+      <span style="width: 28px; height: 28px; border-radius: 9px; background: #16191B; color: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; font-size: 11.5px; font-weight: 600;">Y</span>
     </div>
 
     <!-- Tabs -->
-    <div style="height: 32px; flex-shrink: 0; display: flex; align-items: center; gap: 4px; padding: 0 4px;">
-      <span style="display: inline-flex; align-items: center; height: 28px; padding: 0 13px; border-radius: 999px; font-size: 11.5px; color: #5F5F66;">Overview</span>
-      <span style="display: inline-flex; align-items: center; height: 28px; padding: 0 13px; border-radius: 999px; font-size: 11.5px; font-weight: 600; color: #ECECEE; border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.06);">Roadmap</span>
-      <span style="display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 13px; border-radius: 999px; font-size: 11.5px; color: #5F5F66;">Tasks <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9.5px;">4</span></span>
-      <span style="display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 13px; border-radius: 999px; font-size: 11.5px; color: #5F5F66;">Team <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9.5px;">3</span></span>
-      <span style="display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 13px; border-radius: 999px; font-size: 11.5px; color: #5F5F66;">Deliverables <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9.5px;">4</span></span>
+    <div style="height: 34px; flex-shrink: 0; display: flex; align-items: center; gap: 4px; padding: 0 2px;">
+      <span style="display: inline-flex; align-items: center; height: 30px; padding: 0 14px; border-radius: 999px; font-size: 12.5px; color: #5B6266;">概要</span>
+      <span style="display: inline-flex; align-items: center; height: 30px; padding: 0 14px; border-radius: 999px; font-size: 12.5px; font-weight: 600; color: #16191B; background: #FFFFFF; box-shadow: 0 1px 2px rgba(22,25,27,0.06), 0 6px 14px rgba(22,25,27,0.05);">ロードマップ</span>
+      <span style="display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 14px; border-radius: 999px; font-size: 12.5px; color: #5B6266;">タスク <span style="color: #A6ABA7; font-variant-numeric: tabular-nums;">4</span></span>
+      <span style="display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 14px; border-radius: 999px; font-size: 12.5px; color: #5B6266;">メンバー <span style="color: #A6ABA7; font-variant-numeric: tabular-nums;">3</span></span>
+      <span style="display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 14px; border-radius: 999px; font-size: 12.5px; color: #5B6266;">成果物 <span style="color: #A6ABA7; font-variant-numeric: tabular-nums;">4</span></span>
     </div>
 
-    <!-- Canvas island -->
-    <div style="flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; align-items: center; padding: 12px 16px 0; overflow: hidden; border-radius: 18px; border: 1px solid rgba(255,255,255,0.05); background-color: rgba(255,255,255,0.015); background-image: radial-gradient(rgba(255,255,255,0.045) 1px, transparent 1px); background-size: 22px 22px;">
+    <!-- Drafting well -->
+    <div style="flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; align-items: center; padding: 18px 20px 0; overflow: hidden; border-radius: 20px; background-color: #14181A; background-image: radial-gradient(rgba(255,255,255,0.055) 1px, transparent 1px); background-size: 24px 24px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), inset 0 26px 52px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.7);">
 
-      <!-- Notice pill -->
-      <div style="flex-shrink: 0; display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 8px 0 16px; border-radius: 999px; border: 1px solid rgba(232,163,61,0.3); background: rgba(232,163,61,0.06); backdrop-filter: blur(16px); margin-bottom: 12px;">
-        <span style="width: 6px; height: 6px; border-radius: 999px; background: #E8A33D;"></span>
-        <span style="font-size: 11.5px;">判断待ち 1 — 価格モデルの決定</span>
-        <span style="display: inline-flex; align-items: center; height: 26px; padding: 0 12px; border-radius: 999px; font-size: 10.5px; font-weight: 600; color: #0A0A0B; background: #F2F2F3;">確認する</span>
+      <!-- Needs-you strip -->
+      <div style="flex-shrink: 0; display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 8px 0 16px; border-radius: 999px; border: 1px solid rgba(199,154,70,0.34); background: rgba(199,154,70,0.10); margin-bottom: 16px;">
+        <span style="width: 6px; height: 6px; border-radius: 999px; background: #C79A46;"></span>
+        <span style="font-size: 12.5px; color: #EDEEEC;">価格モデルの決定を待っています</span>
+        <span style="display: inline-flex; align-items: center; height: 28px; padding: 0 14px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #14181A; background: #FFFFFF;">確認する</span>
       </div>
 
-      <!-- P1 -->
-      <div style="display: flex; align-items: center; gap: 7px;">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3ECF6E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4 4 9-10"/></svg>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.1em; color: #5F5F66;">PHASE 01 · RESEARCH</span>
+      <!-- Phase 1 -->
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5FA88F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4 4 9-10"/></svg>
+        <span style="font-size: 11.5px; color: #838985;">フェーズ 1 — 調査</span>
       </div>
-      <div style="width: 340px; display: flex; align-items: center; gap: 10px; padding: 11px 13px; margin-top: 5px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.045); backdrop-filter: blur(18px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 14px 36px rgba(0,0,0,0.4);">
-        <span style="font-size: 12.5px; font-weight: 500;">Research 完了</span>
+      <div style="width: 344px; box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 13px 15px; margin-top: 6px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.045); backdrop-filter: blur(14px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 14px 32px rgba(0,0,0,0.38);">
+        <span style="font-size: 13px; color: #EDEEEC;">調査</span>
         <div style="flex: 1;"></div>
-        <span style="display: inline-flex; align-items: center; height: 20px; padding: 0 9px; border-radius: 999px; font-size: 9.5px; color: #52D97F; background: rgba(62,207,110,0.08); border: 1px solid rgba(62,207,110,0.3);">承認済み</span>
+        <span style="font-size: 11.5px; color: #5FA88F;">承認済み</span>
       </div>
 
-      <div style="width: 1px; height: 14px; background: rgba(62,207,110,0.4);"></div>
-      <div style="display: flex; align-items: center; gap: 7px; padding: 2px 0;">
-        <span style="width: 6px; height: 6px; border-radius: 999px; background: #3ECF6E; box-shadow: 0 0 8px rgba(62,207,110,0.8); animation: dotpulse 1.8s ease-in-out infinite;"></span>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.1em; color: #9A9AA2;">PHASE 02 · STRATEGY</span>
+      <svg width="2" height="16" viewBox="0 0 2 16" style="display: block;"><path d="M1 0v16" stroke="rgba(95,168,143,0.45)" stroke-width="1" stroke-dasharray="3 5" style="animation: flow 1.4s linear infinite;"/></svg>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="width: 6px; height: 6px; border-radius: 999px; background: #5FA88F;"></span>
+        <span style="font-size: 11.5px; color: #A9AFAB;">フェーズ 2 — 戦略</span>
       </div>
-      <div style="width: 1px; height: 8px; background: rgba(62,207,110,0.4);"></div>
-      <svg width="34" height="9" viewBox="0 0 34 9" style="display: block; margin-bottom: -1px;"><path d="M17 0 C15 5.5, 7 8, 0 9 L34 9 C27 8, 19 5.5, 17 0 Z" fill="rgba(62,207,110,0.35)"/></svg>
-      <div style="width: 340px; display: flex; align-items: center; gap: 10px; padding: 11px 13px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.055); backdrop-filter: blur(18px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 14px 36px rgba(0,0,0,0.45);">
-        <span style="font-size: 12.5px; font-weight: 500;">Strategy 進行中</span>
+      <svg width="2" height="9" viewBox="0 0 2 9" style="display: block;"><path d="M1 0v9" stroke="rgba(95,168,143,0.45)" stroke-width="1"/></svg>
+      <svg width="32" height="9" viewBox="0 0 32 9" style="display: block; margin-bottom: -1px;"><path d="M16 0 C14 5.5, 7 8, 0 9 L32 9 C25 8, 18 5.5, 16 0 Z" fill="rgba(95,168,143,0.26)"/></svg>
+      <div style="width: 344px; box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 13px 15px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06); backdrop-filter: blur(14px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 16px 36px rgba(0,0,0,0.44);">
+        <span style="font-size: 13px; font-weight: 600; color: #FFFFFF;">戦略</span>
         <div style="flex: 1;"></div>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; color: #9A9AA2;">2<span style="color: #5F5F66;">/4</span></span>
+        <span style="font-size: 11.5px; color: #9AA09C; font-variant-numeric: tabular-nums;">2 / 4</span>
       </div>
 
-      <!-- Branch -->
-      <svg width="624" height="24" viewBox="0 0 624 24" fill="none" style="display: block;">
-        <path d="M312 0 C312 14, 150 10, 150 24" stroke="rgba(62,207,110,0.3)" stroke-width="1"/>
-        <path d="M312 0 C312 14, 474 10, 474 24" stroke="rgba(62,207,110,0.3)" stroke-width="1"/>
+      <svg width="628" height="26" viewBox="0 0 628 26" fill="none" style="display: block;">
+        <path d="M314 0 C314 15, 152 11, 152 26" stroke="rgba(95,168,143,0.35)" stroke-width="1"/>
+        <path d="M314 0 C314 15, 476 11, 476 26" stroke="rgba(95,168,143,0.35)" stroke-width="1"/>
       </svg>
-      <div style="display: flex; gap: 24px;">
+      <div style="display: flex; gap: 28px;">
         <div style="width: 300px; display: flex; flex-direction: column; align-items: center;">
-          <div style="display: flex; align-items: center; gap: 7px; padding-bottom: 4px;">
-            <span style="width: 5px; height: 5px; border-radius: 999px; background: #3ECF6E; animation: dotpulse 1.8s ease-in-out infinite;"></span>
-            <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.1em; color: #5F5F66;">市場リサーチャー</span>
+          <div style="display: flex; align-items: center; gap: 8px; padding-bottom: 5px;">
+            <span style="width: 5px; height: 5px; border-radius: 999px; background: #5FA88F;"></span>
+            <span style="font-size: 11.5px; color: #838985;">市場リサーチャー</span>
           </div>
-          <svg width="30" height="8" viewBox="0 0 30 8" style="display: block; margin-bottom: -1px;"><path d="M15 0 C13.5 5, 6 7, 0 8 L30 8 C24 7, 16.5 5, 15 0 Z" fill="rgba(62,207,110,0.3)"/></svg>
-          <div style="width: 300px; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; padding: 11px 13px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.045); backdrop-filter: blur(18px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 14px 36px rgba(0,0,0,0.4);">
-            <span style="font-size: 12px;">競合ポジショニング分析</span>
-            <div style="display: flex; align-items: center; gap: 7px;">
-              <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; letter-spacing: 0.06em; color: #52D97F;">RUNNING</span>
+          <svg width="28" height="8" viewBox="0 0 28 8" style="display: block; margin-bottom: -1px;"><path d="M14 0 C12.6 5, 6 7, 0 8 L28 8 C22 7, 15.4 5, 14 0 Z" fill="rgba(95,168,143,0.22)"/></svg>
+          <div style="width: 300px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; padding: 13px 15px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.045); backdrop-filter: blur(14px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 14px 32px rgba(0,0,0,0.38);">
+            <span style="font-size: 12.5px; color: #EDEEEC;">競合ポジショニング分析</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 11.5px; color: #5FA88F;">実行中</span>
               <div style="flex: 1;"></div>
-              <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9.5px; color: #5F5F66;">12m</span>
+              <span style="font-size: 11.5px; color: #767C79; font-variant-numeric: tabular-nums;">12分</span>
             </div>
           </div>
         </div>
         <div style="width: 300px; display: flex; flex-direction: column; align-items: center;">
-          <div style="display: flex; align-items: center; gap: 7px; padding-bottom: 4px;">
-            <span style="width: 5px; height: 5px; border-radius: 999px; background: #3ECF6E; animation: dotpulse 1.8s ease-in-out infinite;"></span>
-            <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.1em; color: #5F5F66;">事業ストラテジスト</span>
+          <div style="display: flex; align-items: center; gap: 8px; padding-bottom: 5px;">
+            <span style="width: 5px; height: 5px; border-radius: 999px; background: #5FA88F;"></span>
+            <span style="font-size: 11.5px; color: #838985;">事業ストラテジスト</span>
           </div>
-          <svg width="30" height="8" viewBox="0 0 30 8" style="display: block; margin-bottom: -1px;"><path d="M15 0 C13.5 5, 6 7, 0 8 L30 8 C24 7, 16.5 5, 15 0 Z" fill="rgba(62,207,110,0.3)"/></svg>
-          <div style="width: 300px; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; padding: 11px 13px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.045); backdrop-filter: blur(18px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 14px 36px rgba(0,0,0,0.4);">
-            <span style="font-size: 12px;">価格戦略ドラフト</span>
-            <div style="display: flex; align-items: center; gap: 7px;">
-              <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; letter-spacing: 0.06em; color: #52D97F;">RUNNING</span>
+          <svg width="28" height="8" viewBox="0 0 28 8" style="display: block; margin-bottom: -1px;"><path d="M14 0 C12.6 5, 6 7, 0 8 L28 8 C22 7, 15.4 5, 14 0 Z" fill="rgba(95,168,143,0.22)"/></svg>
+          <div style="width: 300px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; padding: 13px 15px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.045); backdrop-filter: blur(14px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 14px 32px rgba(0,0,0,0.38);">
+            <span style="font-size: 12.5px; color: #EDEEEC;">価格戦略ドラフト</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 11.5px; color: #5FA88F;">実行中</span>
               <div style="flex: 1;"></div>
-              <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9.5px; color: #5F5F66;">4m</span>
+              <span style="font-size: 11.5px; color: #767C79; font-variant-numeric: tabular-nums;">4分</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Merge -->
-      <svg width="624" height="22" viewBox="0 0 624 22" fill="none" style="display: block;">
-        <path d="M150 0 C150 13, 312 9, 312 22" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
-        <path d="M474 0 C474 13, 312 9, 312 22" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+      <svg width="628" height="24" viewBox="0 0 628 24" fill="none" style="display: block;">
+        <path d="M152 0 C152 14, 314 10, 314 24" stroke="rgba(255,255,255,0.14)" stroke-width="1"/>
+        <path d="M476 0 C476 14, 314 10, 314 24" stroke="rgba(255,255,255,0.14)" stroke-width="1"/>
       </svg>
-      <div style="display: flex; align-items: center; gap: 7px; padding: 2px 0;">
-        <span style="width: 6px; height: 6px; border-radius: 999px; background: #E8A33D;"></span>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.1em; color: #9A9AA2;">DELIVERABLE · V1</span>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="width: 6px; height: 6px; border-radius: 999px; background: #C79A46;"></span>
+        <span style="font-size: 11.5px; color: #A9AFAB;">成果物 v1</span>
       </div>
-      <svg width="34" height="9" viewBox="0 0 34 9" style="display: block; margin-bottom: -1px;"><path d="M17 0 C15 5.5, 7 8, 0 9 L34 9 C27 8, 19 5.5, 17 0 Z" fill="rgba(232,163,61,0.35)"/></svg>
-      <div style="width: 340px; display: flex; align-items: center; gap: 10px; padding: 11px 13px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.09); background: rgba(255,255,255,0.045); backdrop-filter: blur(18px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 14px 36px rgba(0,0,0,0.4);">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9A9AA2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8.5z"/><path d="M13.5 3.5v5h5"/></svg>
-        <span style="font-size: 12px;">収益モデル比較レポート</span>
+      <svg width="32" height="9" viewBox="0 0 32 9" style="display: block; margin-bottom: -1px;"><path d="M16 0 C14 5.5, 7 8, 0 9 L32 9 C25 8, 18 5.5, 16 0 Z" fill="rgba(199,154,70,0.28)"/></svg>
+      <div style="width: 344px; box-sizing: border-box; display: flex; align-items: center; gap: 11px; padding: 13px 15px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.09); background: rgba(255,255,255,0.045); backdrop-filter: blur(14px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 14px 32px rgba(0,0,0,0.38);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9AA09C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5H7.2A1.7 1.7 0 0 0 5.5 5.2v13.6a1.7 1.7 0 0 0 1.7 1.7h9.6a1.7 1.7 0 0 0 1.7-1.7V8.5z"/><path d="M13.5 3.5v5h5"/></svg>
+        <span style="font-size: 12.5px; color: #EDEEEC;">収益モデル比較レポート</span>
         <div style="flex: 1;"></div>
-        <span style="display: inline-flex; align-items: center; height: 20px; padding: 0 9px; border-radius: 999px; font-size: 9.5px; color: #E8A33D; background: rgba(232,163,61,0.08); border: 1px solid rgba(232,163,61,0.32);">Needs Review</span>
+        <span style="font-size: 11.5px; color: #C79A46;">要確認</span>
       </div>
 
-      <div style="width: 1px; height: 10px; background: rgba(232,163,61,0.35);"></div>
-      <div style="display: flex; align-items: center; gap: 7px; padding: 2px 0;">
-        <span style="width: 6px; height: 6px; border-radius: 999px; background: #E8A33D; box-shadow: 0 0 8px rgba(232,163,61,0.7);"></span>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.1em; color: #E8A33D;">DECISION · YOU</span>
+      <svg width="2" height="12" viewBox="0 0 2 12" style="display: block;"><path d="M1 0v12" stroke="rgba(199,154,70,0.4)" stroke-width="1"/></svg>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="width: 6px; height: 6px; border-radius: 999px; background: #C79A46;"></span>
+        <span style="font-size: 11.5px; color: #C79A46;">あなたの判断</span>
       </div>
-      <svg width="34" height="9" viewBox="0 0 34 9" style="display: block; margin-bottom: -1px;"><path d="M17 0 C15 5.5, 7 8, 0 9 L34 9 C27 8, 19 5.5, 17 0 Z" fill="rgba(232,163,61,0.4)"/></svg>
-      <div style="width: 340px; display: flex; align-items: center; gap: 10px; padding: 12px 13px; border-radius: 18px; border: 1px solid rgba(232,163,61,0.4); background: linear-gradient(150deg, rgba(232,163,61,0.22), rgba(232,163,61,0.04)); backdrop-filter: blur(18px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 16px 40px rgba(0,0,0,0.45);">
-        <span style="font-size: 12.5px; font-weight: 600;">価格モデルの決定</span>
+      <svg width="32" height="9" viewBox="0 0 32 9" style="display: block; margin-bottom: -1px;"><path d="M16 0 C14 5.5, 7 8, 0 9 L32 9 C25 8, 18 5.5, 16 0 Z" fill="rgba(199,154,70,0.34)"/></svg>
+      <div style="width: 344px; box-sizing: border-box; display: flex; align-items: center; gap: 11px; padding: 14px 15px; border-radius: 16px; border: 1px solid rgba(199,154,70,0.42); background: linear-gradient(150deg, rgba(199,154,70,0.20), rgba(199,154,70,0.03)); backdrop-filter: blur(14px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.09), 0 18px 40px rgba(0,0,0,0.44);">
+        <span style="font-size: 13px; font-weight: 600; color: #FFFFFF;">価格モデルの決定</span>
         <div style="flex: 1;"></div>
-        <span style="display: inline-flex; align-items: center; height: 26px; padding: 0 13px; border-radius: 999px; font-size: 10.5px; font-weight: 600; color: #0A0A0B; background: #F2F2F3;">確認する</span>
+        <span style="display: inline-flex; align-items: center; height: 28px; padding: 0 14px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #14181A; background: #FFFFFF;">確認する</span>
       </div>
 
-      <svg width="360" height="18" viewBox="0 0 360 18" fill="none" style="display: block;">
-        <path d="M180 0 C180 11, 62 7, 62 18" stroke="rgba(255,255,255,0.10)" stroke-width="1"/>
-        <path d="M180 0 L180 18" stroke="rgba(62,207,110,0.35)" stroke-width="1"/>
-        <path d="M180 0 C180 11, 298 7, 298 18" stroke="rgba(255,255,255,0.10)" stroke-width="1"/>
+      <svg width="360" height="20" viewBox="0 0 360 20" fill="none" style="display: block;">
+        <path d="M180 0 C180 12, 60 8, 60 20" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+        <path d="M180 0 L180 20" stroke="rgba(95,168,143,0.4)" stroke-width="1"/>
+        <path d="M180 0 C180 12, 300 8, 300 20" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
       </svg>
-      <div style="width: 420px; display: flex; align-items: center; justify-content: space-between;">
-        <span style="display: inline-flex; align-items: center; height: 20px; padding: 0 10px; border-radius: 999px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #5F5F66; border: 1px solid rgba(255,255,255,0.09); background: rgba(255,255,255,0.03);">A案</span>
-        <span style="display: inline-flex; align-items: center; height: 20px; padding: 0 10px; border-radius: 999px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #52D97F; background: rgba(62,207,110,0.1); border: 1px solid rgba(62,207,110,0.4);">B案 ★</span>
-        <span style="display: inline-flex; align-items: center; height: 20px; padding: 0 10px; border-radius: 999px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #5F5F66; border: 1px solid rgba(255,255,255,0.09); background: rgba(255,255,255,0.03);">C案</span>
-      </div>
-      <div style="width: 1px; height: 8px; background: rgba(255,255,255,0.08); margin-top: 2px;"></div>
-      <div style="width: 340px; display: flex; align-items: center; gap: 10px; padding: 10px 13px; border-radius: 18px; border: 1px dashed rgba(255,255,255,0.13); opacity: 0.7;">
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.1em; color: #5F5F66;">PHASE 03</span>
-        <div style="flex: 1;"></div>
-        <span style="font-size: 10.5px; color: #5F5F66;">承認後にExecutiveが計画</span>
+      <div style="width: 400px; display: flex; align-items: center; justify-content: space-between;">
+        <span style="display: inline-flex; align-items: center; height: 24px; padding: 0 12px; border-radius: 999px; font-size: 11.5px; color: #9AA09C; border: 1px solid rgba(255,255,255,0.10);">A案 ¥980</span>
+        <span style="display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 12px; border-radius: 999px; font-size: 11.5px; color: #8FCDB4; background: rgba(95,168,143,0.14); border: 1px solid rgba(95,168,143,0.5); white-space: nowrap;">B案 ¥1,980 · 推奨</span>
+        <span style="display: inline-flex; align-items: center; height: 24px; padding: 0 12px; border-radius: 999px; font-size: 11.5px; color: #9AA09C; border: 1px solid rgba(255,255,255,0.10);">C案 ¥3,980</span>
       </div>
 
-      <!-- Canvas toolbar -->
-      <div style="position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.09); background: rgba(18,19,21,0.7); backdrop-filter: blur(20px); box-shadow: 0 10px 30px rgba(0,0,0,0.55);">
-        <span style="display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border-radius: 999px;">
-          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; color: #9A9AA2;">100%</span>
+      <!-- Canvas controls -->
+      <div style="position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.09); background: rgba(255,255,255,0.07); backdrop-filter: blur(20px);">
+        <span style="display: inline-flex; align-items: center; height: 28px; padding: 0 12px; font-size: 11.5px; color: #9AA09C; font-variant-numeric: tabular-nums;">100%</span>
+        <span style="width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9AA09C" stroke-width="1.7" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
         </span>
         <span style="width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px;">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9A9AA2" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9AA09C" stroke-width="1.7" stroke-linecap="round"><path d="M5 12h14"/></svg>
+        </span>
+        <span style="width: 1px; height: 16px; background: rgba(255,255,255,0.12); margin: 0 4px;"></span>
+        <span style="width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9AA09C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4.5V9h-4.5"/></svg>
         </span>
         <span style="width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px;">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9A9AA2" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14"/></svg>
-        </span>
-        <span style="width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: rgba(62,207,110,0.14); border: 1px solid rgba(62,207,110,0.4);">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="#52D97F"><path d="M7 4.5v15l12-7.5z"/></svg>
-        </span>
-        <span style="width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px;">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9A9AA2" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.3-5.6"/><path d="M4 4.5V9h4.5"/></svg>
-        </span>
-        <span style="width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px;">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9A9AA2" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4.5H6A1.5 1.5 0 0 0 4.5 6v3M15 4.5h3A1.5 1.5 0 0 1 19.5 6v3M9 19.5H6A1.5 1.5 0 0 1 4.5 18v-3M15 19.5h3a1.5 1.5 0 0 0 1.5-1.5v-3"/></svg>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9AA09C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4.5H6A1.5 1.5 0 0 0 4.5 6v3M15 4.5h3A1.5 1.5 0 0 1 19.5 6v3M9 19.5H6A1.5 1.5 0 0 1 4.5 18v-3M15 19.5h3a1.5 1.5 0 0 0 1.5-1.5v-3"/></svg>
         </span>
       </div>
     </div>
 
-    <!-- Executive dock island -->
-    <div style="height: 54px; flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 16px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.08); background: rgba(15,16,18,0.75); backdrop-filter: blur(24px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 12px 32px rgba(0,0,0,0.45);">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="#3ECF6E"><path d="M12 2l2.2 7L21 11l-6.8 2L12 21l-2.2-8L3 11l6.8-2z"/></svg>
-      <span style="font-size: 11.5px; font-weight: 600;">Executive</span>
-      <span style="font-size: 11.5px; color: #5F5F66;">統括AIに指示…</span>
-      <div style="flex: 1;"></div>
-      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; color: #5F5F66;">⌘J</span>
-      <span style="width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: linear-gradient(150deg, #46D584, #1E9257); box-shadow: 0 8px 22px rgba(62,207,110,0.3);">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#06130B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 18.5v-13M6.5 11 12 5.5 17.5 11"/></svg>
+    <!-- Dock -->
+    <div style="height: 56px; flex-shrink: 0; display: flex; align-items: center; gap: 12px; padding: 9px 10px 9px 18px; border-radius: 999px; border: 1px solid rgba(22,25,27,0.06); background: rgba(255,255,255,0.78); backdrop-filter: blur(28px); box-shadow: 0 1px 2px rgba(22,25,27,0.04), 0 14px 34px rgba(22,25,27,0.08), inset 0 1px 0 rgba(255,255,255,0.9);">
+      <span style="position: relative; width: 18px; height: 18px; border-radius: 999px; border: 1.5px solid #16191B; display: inline-flex; align-items: center; justify-content: center;">
+        <span style="width: 7px; height: 7px; border-radius: 999px; background: #16191B;"></span>
       </span>
-      <span style="width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; border: 1px solid rgba(255,255,255,0.09);">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9A9AA2" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m7 14.5 5-5 5 5"/></svg>
+      <span style="font-size: 13px; font-weight: 600;">統括AI</span>
+      <span style="font-size: 13px; color: #A6ABA7;">指示を入力</span>
+      <div style="flex: 1;"></div>
+      <span style="font-size: 11.5px; color: #A6ABA7;">⌘J</span>
+      <span style="width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: #16191B; box-shadow: 0 6px 16px rgba(22,25,27,0.22);">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5.5M6 11.5 12 5.5l6 6"/></svg>
+      </span>
+      <span style="width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; border: 1px solid rgba(22,25,27,0.09);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5B6266" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m7 14.5 5-5 5 5"/></svg>
       </span>
     </div>
   </div>
 
-  <!-- Right panel island -->
-  <div style="width: 330px; flex-shrink: 0; display: flex; flex-direction: column; border-radius: 18px; border: 1px solid rgba(255,255,255,0.07); background: rgba(15,16,18,0.72); backdrop-filter: blur(24px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);">
-    <div style="height: 48px; flex-shrink: 0; display: flex; align-items: center; gap: 4px; padding: 0 12px; border-bottom: 1px solid rgba(255,255,255,0.06);">
-      <span style="display: inline-flex; align-items: center; height: 28px; padding: 0 13px; border-radius: 999px; font-size: 11.5px; font-weight: 600; color: #ECECEE; border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.06);">Details</span>
-      <span style="display: inline-flex; align-items: center; height: 28px; padding: 0 13px; border-radius: 999px; font-size: 11.5px; color: #5F5F66;">Activity</span>
+  <!-- Right panel -->
+  <div style="width: 336px; flex-shrink: 0; display: flex; flex-direction: column; border-radius: 20px; border: 1px solid rgba(22,25,27,0.06); background: rgba(255,255,255,0.72); backdrop-filter: blur(28px); box-shadow: 0 1px 2px rgba(22,25,27,0.04), 0 16px 40px rgba(22,25,27,0.07), inset 0 1px 0 rgba(255,255,255,0.85);">
+    <div style="height: 52px; flex-shrink: 0; display: flex; align-items: center; gap: 4px; padding: 0 14px; border-bottom: 1px solid rgba(22,25,27,0.06);">
+      <span style="display: inline-flex; align-items: center; height: 30px; padding: 0 14px; border-radius: 999px; font-size: 12.5px; font-weight: 600; color: #16191B; background: #FFFFFF; box-shadow: 0 1px 2px rgba(22,25,27,0.06);">詳細</span>
+      <span style="display: inline-flex; align-items: center; height: 30px; padding: 0 14px; border-radius: 999px; font-size: 12.5px; color: #5B6266;">履歴</span>
       <div style="flex: 1;"></div>
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5F5F66" stroke-width="1.6" stroke-linecap="round"><path d="M7 7l10 10M17 7L7 17"/></svg>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8E948F" stroke-width="1.6" stroke-linecap="round"><path d="M7 7l10 10M17 7L7 17"/></svg>
     </div>
-    <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 13px; padding: 16px 14px;">
-      <div style="display: flex; align-items: center; gap: 7px;">
-        <span style="width: 6px; height: 6px; border-radius: 999px; background: #E8A33D;"></span>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.1em; color: #5F5F66;">DELIVERABLE · V1</span>
-      </div>
-      <span style="font-size: 14px; font-weight: 650; margin-top: -6px;">収益モデル比較レポート</span>
+    <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 16px; padding: 20px 18px;">
       <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="width: 20px; height: 20px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04); display: inline-flex; align-items: center; justify-content: center; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8px;">BS</span>
-        <span style="font-size: 11px; color: #9A9AA2;">事業ストラテジスト</span>
+        <span style="width: 6px; height: 6px; border-radius: 999px; background: #8A6A24;"></span>
+        <span style="font-size: 12px; color: #8E948F;">成果物 v1</span>
+      </div>
+      <span style="font-family: 'Shippori Mincho', 'Instrument Sans', serif; font-size: 19px; font-weight: 500; letter-spacing: 0.01em; margin-top: -8px;">収益モデル比較レポート</span>
+      <div style="display: flex; align-items: center; gap: 9px;">
+        <span style="width: 24px; height: 24px; border-radius: 8px; background: rgba(22,25,27,0.07); display: inline-flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 600; color: #5B6266;">BS</span>
+        <span style="font-size: 12.5px; color: #5B6266;">事業ストラテジスト</span>
         <div style="flex: 1;"></div>
-        <span style="display: inline-flex; align-items: center; height: 20px; padding: 0 9px; border-radius: 999px; font-size: 9.5px; color: #E8A33D; background: rgba(232,163,61,0.08); border: 1px solid rgba(232,163,61,0.32);">Needs Review</span>
+        <span style="display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 11.5px; color: #8A6A24; background: rgba(138,106,36,0.10);">要確認</span>
       </div>
-      <span style="font-size: 11px; line-height: 1.7; color: #9A9AA2;">比較は妥当。価格帯の解釈だけ、あなたの確認が必要です。</span>
+      <span style="font-size: 13px; line-height: 1.8; color: #5B6266;">比較は妥当です。価格帯の解釈だけ、判断が要ります。</span>
 
-      <div style="display: flex; flex-direction: column; gap: 7px; margin-top: 4px;">
-        <div style="display: flex; align-items: center; gap: 10px; padding: 10px 13px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.035);">
-          <span style="width: 13px; height: 13px; border-radius: 5px; border: 1.5px solid rgba(232,163,61,0.6);"></span>
-          <span style="font-size: 11.5px;">レポートをレビュー</span>
+      <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 2px;">
+        <div style="display: flex; align-items: center; gap: 11px; padding: 12px 14px; border-radius: 14px; background: #FFFFFF; border: 1px solid rgba(22,25,27,0.06);">
+          <span style="width: 15px; height: 15px; border-radius: 999px; border: 1.5px solid rgba(138,106,36,0.6); flex-shrink: 0;"></span>
+          <span style="font-size: 13px;">レポートを読む</span>
           <div style="flex: 1;"></div>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#5F5F66" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 6 6 6-6 6"/></svg>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A6ABA7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></svg>
         </div>
-        <div style="display: flex; align-items: center; gap: 10px; padding: 10px 13px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.02); opacity: 0.65;">
-          <span style="width: 13px; height: 13px; border-radius: 5px; border: 1.5px solid rgba(255,255,255,0.22);"></span>
-          <span style="font-size: 11.5px;">価格モデルを確定</span>
+        <div style="display: flex; align-items: center; gap: 11px; padding: 12px 14px; border-radius: 14px; border: 1px solid rgba(22,25,27,0.055); opacity: 0.6;">
+          <span style="width: 15px; height: 15px; border-radius: 999px; border: 1.5px solid rgba(22,25,27,0.2); flex-shrink: 0;"></span>
+          <span style="font-size: 13px;">価格モデルを確定する</span>
           <div style="flex: 1;"></div>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#5F5F66" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 6 6 6-6 6"/></svg>
-        </div>
-      </div>
-
-      <div style="margin-top: auto; display: flex; flex-direction: column; gap: 8px;">
-        <span style="height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; font-size: 12px; font-weight: 600; color: #0A0A0B; background: #F2F2F3;">承認する</span>
-        <div style="display: flex; gap: 7px;">
-          <span style="flex: 1; height: 30px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; font-size: 11px; color: #A0A0A8; border: 1px solid rgba(255,255,255,0.09);">修正を依頼</span>
-          <span style="flex: 1; height: 30px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; font-size: 11px; color: #A0A0A8; border: 1px solid rgba(255,255,255,0.09);">相談する</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A6ABA7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></svg>
         </div>
       </div>
 
-      <div style="display: flex; flex-direction: column; gap: 6px;">
-        <div style="display: flex; align-items: center; gap: 9px; padding: 8px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.02);">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#9A9AA2" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8.5z"/><path d="M13.5 3.5v5h5"/></svg>
-          <span style="font-size: 10.5px; color: #9A9AA2;">市場調査レポート v2</span>
-          <div style="flex: 1;"></div>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5F5F66" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 6 6 6-6 6"/></svg>
+      <div style="display: flex; flex-direction: column; gap: 9px; margin-top: 4px;">
+        <span style="height: 40px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; font-size: 13px; font-weight: 600; color: #FFFFFF; background: #16191B; box-shadow: 0 6px 16px rgba(22,25,27,0.20);">承認する</span>
+        <div style="display: flex; gap: 8px;">
+          <span style="flex: 1; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; font-size: 12.5px; color: #5B6266; border: 1px solid rgba(22,25,27,0.10);">修正を依頼</span>
+          <span style="flex: 1; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; font-size: 12.5px; color: #5B6266; border: 1px solid rgba(22,25,27,0.10);">相談する</span>
         </div>
-        <div style="display: flex; align-items: center; gap: 9px; padding: 8px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.02);">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#9A9AA2" stroke-width="1.6" stroke-linejoin="round"><path d="M12 4.5 19.5 12 12 19.5 4.5 12z"/></svg>
-          <span style="font-size: 10.5px; color: #9A9AA2;">Approved Decisions</span>
+      </div>
+
+      <div style="margin-top: auto; display: flex; flex-direction: column; gap: 2px; padding-top: 8px; border-top: 1px solid rgba(22,25,27,0.06);">
+        <div style="display: flex; align-items: center; gap: 10px; height: 38px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8E948F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5H7.2A1.7 1.7 0 0 0 5.5 5.2v13.6a1.7 1.7 0 0 0 1.7 1.7h9.6a1.7 1.7 0 0 0 1.7-1.7V8.5z"/><path d="M13.5 3.5v5h5"/></svg>
+          <span style="font-size: 12.5px; color: #5B6266;">市場調査レポート v2</span>
           <div style="flex: 1;"></div>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5F5F66" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 6 6 6-6 6"/></svg>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#A6ABA7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></svg>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; height: 38px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8E948F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5h15M4.5 12h15M4.5 17.5h9"/></svg>
+          <span style="font-size: 12.5px; color: #5B6266;">決定事項 2件</span>
+          <div style="flex: 1;"></div>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#A6ABA7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></svg>
         </div>
       </div>
     </div>

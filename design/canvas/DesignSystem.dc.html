@@ -7,283 +7,241 @@
 <body>
 <x-dc>
 <helmet>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;600&amp;family=Noto+Sans+JP:wght@400;500;700&amp;display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=Shippori+Mincho:wght@500;600&amp;family=Zen+Kaku+Gothic+New:wght@400;500;700&amp;display=swap">
   <style>
-    body { margin: 0; background: #08090B; }
-    a { color: #52D97F; } a:hover { color: #7FE6A5; }
-    @keyframes dotpulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    body { margin: 0; background: #E9EAE6; }
+    a { color: #2E6B5E; } a:hover { color: #1F4F45; }
   </style>
 </helmet>
-<div style="width: 1440px; height: 1000px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; padding: 10px; background-color: #08090B; background-image: radial-gradient(900px 480px at 55% -15%, rgba(62,207,110,0.05), transparent 70%); color: #ECECEE; font-family: 'Geist', 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', system-ui, sans-serif; overflow: hidden;">
+<div style="width: 1440px; height: 1000px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; padding: 14px; background-color: #E9EAE6; background-image: radial-gradient(760px 440px at 10% -12%, rgba(46,107,94,0.08), transparent 70%), radial-gradient(700px 400px at 94% 6%, rgba(138,106,36,0.055), transparent 70%); color: #16191B; font-family: 'Instrument Sans', 'Zen Kaku Gothic New', system-ui, sans-serif; overflow: hidden;">
 
-  <!-- Header island -->
-  <div style="height: 50px; flex-shrink: 0; display: flex; align-items: center; gap: 12px; padding: 0 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.07); background: rgba(15,16,18,0.72); backdrop-filter: blur(24px);">
-    <span style="width: 22px; height: 22px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.14); display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.04);">
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#3ECF6E" stroke-width="2" stroke-linejoin="round"><path d="M12 4.5 19.5 12 12 19.5 4.5 12z"/></svg>
-    </span>
-    <span style="font-size: 13px; font-weight: 600;">Design System — Liquid Ops</span>
-    <span style="display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: 999px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.06em; color: #52D97F; background: rgba(62,207,110,0.08); border: 1px solid rgba(62,207,110,0.3);">V3</span>
+  <!-- Header -->
+  <div style="flex-shrink: 0; display: flex; align-items: flex-end; gap: 16px; padding: 4px 6px 0;">
+    <span style="font-family: 'Shippori Mincho', serif; font-size: 26px; font-weight: 500; letter-spacing: 0.02em;">Harbor</span>
+    <span style="font-size: 13px; color: #5B6266; padding-bottom: 5px;">机は明るく、製図台は深く。色は「あなたの番」のためだけに使う。</span>
     <div style="flex: 1;"></div>
-    <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9.5px; color: #5F5F66;">Geist · Geist Mono · Noto Sans JP</span>
-    <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9.5px; color: #5F5F66;">BG #08090B</span>
+    <span style="font-size: 12.5px; color: #8E948F; padding-bottom: 5px;">Instrument Sans · Zen Kaku Gothic New · Shippori Mincho</span>
   </div>
 
   <!-- Row 1 -->
-  <div style="flex: 1; min-height: 0; display: flex; gap: 10px;">
+  <div style="flex: 0.85; min-height: 0; display: flex; gap: 14px;">
 
-    <!-- COLOR -->
-    <div style="flex: 1; display: flex; flex-direction: column; gap: 11px; padding: 14px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.07); background: rgba(15,16,18,0.72); backdrop-filter: blur(24px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);">
-      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">COLOR</span>
-      <div style="display: flex; gap: 8px;">
-        <div style="flex: 1; display: flex; flex-direction: column; gap: 5px;">
-          <div style="height: 42px; border-radius: 12px; background: #08090B; border: 1px solid rgba(255,255,255,0.10);"></div>
-          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #9A9AA2;">#08090B<span style="color: #5F5F66;"> canvas</span></span>
+    <!-- Two surfaces -->
+    <div style="flex: 1.35; display: flex; flex-direction: column; gap: 12px; padding: 18px; border-radius: 20px; border: 1px solid rgba(22,25,27,0.06); background: rgba(255,255,255,0.72); backdrop-filter: blur(28px); box-shadow: 0 1px 2px rgba(22,25,27,0.04), 0 16px 40px rgba(22,25,27,0.07), inset 0 1px 0 rgba(255,255,255,0.85);">
+      <span style="font-size: 12.5px; color: #8E948F;">2つの面</span>
+      <div style="flex: 1; display: flex; gap: 12px; min-height: 0;">
+        <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 14px; border-radius: 16px; background: #FFFFFF; border: 1px solid rgba(22,25,27,0.06);">
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <span style="font-size: 13.5px; font-weight: 600;">机 — 明るい面</span>
+            <span style="font-size: 12px; color: #5B6266; line-height: 1.7;">ナビ・ヘッダー・成果物・判断。<br>紙とガラス。読むための面。</span>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <span style="flex: 1; height: 26px; border-radius: 8px; background: #E9EAE6; border: 1px solid rgba(22,25,27,0.07);"></span>
+            <span style="flex: 1; height: 26px; border-radius: 8px; background: rgba(255,255,255,0.75); border: 1px solid rgba(22,25,27,0.07);"></span>
+            <span style="flex: 1; height: 26px; border-radius: 8px; background: #FFFFFF; border: 1px solid rgba(22,25,27,0.07);"></span>
+          </div>
         </div>
-        <div style="flex: 1; display: flex; flex-direction: column; gap: 5px;">
-          <div style="height: 42px; border-radius: 12px; background: rgba(15,16,18,0.72); border: 1px solid rgba(255,255,255,0.07);"></div>
-          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #9A9AA2;">island<span style="color: #5F5F66;"> 15,16,18 ·72</span></span>
+        <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 14px; border-radius: 16px; background-color: #14181A; background-image: radial-gradient(rgba(255,255,255,0.055) 1px, transparent 1px); background-size: 22px 22px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), inset 0 20px 40px rgba(0,0,0,0.35);">
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <span style="font-size: 13.5px; font-weight: 600; color: #FFFFFF;">製図台 — 深い面</span>
+            <span style="font-size: 12px; color: #9AA09C; line-height: 1.7;">ロードマップのノードだけ。<br>AIが働いている場所。</span>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <span style="flex: 1; height: 26px; border-radius: 8px; background: #14181A; border: 1px solid rgba(255,255,255,0.10);"></span>
+            <span style="flex: 1; height: 26px; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10);"></span>
+            <span style="flex: 1; height: 26px; border-radius: 8px; background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.14);"></span>
+          </div>
         </div>
-        <div style="flex: 1; display: flex; flex-direction: column; gap: 5px;">
-          <div style="height: 42px; border-radius: 12px; background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,0.08);"></div>
-          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #9A9AA2;">card<span style="color: #5F5F66;"> white ·045</span></span>
-        </div>
-      </div>
-      <div style="display: flex; gap: 8px;">
-        <div style="flex: 1; display: flex; flex-direction: column; gap: 5px;">
-          <div style="height: 30px; border-radius: 999px; background: #3ECF6E;"></div>
-          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #9A9AA2;">#3ECF6E<span style="color: #5F5F66;"> 稼働・承認</span></span>
-        </div>
-        <div style="flex: 1; display: flex; flex-direction: column; gap: 5px;">
-          <div style="height: 30px; border-radius: 999px; background: #E8A33D;"></div>
-          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #9A9AA2;">#E8A33D<span style="color: #5F5F66;"> 判断待ち</span></span>
-        </div>
-        <div style="flex: 1; display: flex; flex-direction: column; gap: 5px;">
-          <div style="height: 30px; border-radius: 999px; background: #E5654F;"></div>
-          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #9A9AA2;">#E5654F<span style="color: #5F5F66;"> 失敗</span></span>
-        </div>
-      </div>
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <span style="font-size: 12px; color: #ECECEE;">#ECECEE</span>
-        <span style="font-size: 12px; color: #9A9AA2;">#9A9AA2</span>
-        <span style="font-size: 12px; color: #5F5F66;">#5F5F66</span>
-      </div>
-      <div style="margin-top: auto; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; border: 1px solid rgba(229,101,79,0.25); background: rgba(229,101,79,0.05);">
-        <span style="font-size: 10.5px; color: #9A9AA2;">青は使わない。グラデーションは緑・琥珀の機能色のみ。</span>
       </div>
     </div>
 
-    <!-- GLASS -->
-    <div style="flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.07); background: rgba(15,16,18,0.72); backdrop-filter: blur(24px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);">
-      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">GLASS SURFACES</span>
-      <div style="display: flex; flex-direction: column; gap: 4px; padding: 11px 13px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.07); background: rgba(15,16,18,0.72); backdrop-filter: blur(24px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);">
-        <span style="font-size: 11.5px; font-weight: 500;">Island — 浮遊レイヤー</span>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #5F5F66;">r18 · blur(24) · border white ·07 · inset 1px white ·05</span>
+    <!-- Color -->
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 12px; padding: 18px; border-radius: 20px; border: 1px solid rgba(22,25,27,0.06); background: rgba(255,255,255,0.72); backdrop-filter: blur(28px); box-shadow: 0 1px 2px rgba(22,25,27,0.04), 0 16px 40px rgba(22,25,27,0.07), inset 0 1px 0 rgba(255,255,255,0.85);">
+      <span style="font-size: 12.5px; color: #8E948F;">色</span>
+      <div style="display: flex; flex-direction: column; gap: 9px;">
+        <div style="display: flex; align-items: center; gap: 11px;">
+          <span style="width: 34px; height: 22px; border-radius: 7px; background: #16191B;"></span>
+          <span style="font-size: 12.5px;">墨 #16191B</span>
+          <div style="flex: 1;"></div>
+          <span style="font-size: 12px; color: #8E948F;">文字・主ボタン</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 11px;">
+          <span style="width: 34px; height: 22px; border-radius: 7px; background: #E9EAE6; border: 1px solid rgba(22,25,27,0.10);"></span>
+          <span style="font-size: 12.5px;">磁 #E9EAE6</span>
+          <div style="flex: 1;"></div>
+          <span style="font-size: 12px; color: #8E948F;">地の面</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 11px;">
+          <span style="width: 34px; height: 22px; border-radius: 7px; background: #2E6B5E;"></span>
+          <span style="font-size: 12.5px;">潮 #2E6B5E</span>
+          <div style="flex: 1;"></div>
+          <span style="font-size: 12px; color: #8E948F;">稼働・承認</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 11px;">
+          <span style="width: 34px; height: 22px; border-radius: 7px; background: #8A6A24;"></span>
+          <span style="font-size: 12.5px;">真鍮 #8A6A24</span>
+          <div style="flex: 1;"></div>
+          <span style="font-size: 12px; color: #8E948F;">あなたの判断</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 11px;">
+          <span style="width: 34px; height: 22px; border-radius: 7px; background: #8A362C;"></span>
+          <span style="font-size: 12.5px;">錆 #8A362C</span>
+          <div style="flex: 1;"></div>
+          <span style="font-size: 12px; color: #8E948F;">失敗</span>
+        </div>
       </div>
-      <div style="display: flex; flex-direction: column; gap: 4px; padding: 11px 13px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.045); backdrop-filter: blur(18px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 14px 36px rgba(0,0,0,0.4);">
-        <span style="font-size: 11.5px; font-weight: 500;">Card / Node</span>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #5F5F66;">r18 · white ·045 · blur(18) · shadow 0 14 36 ·40</span>
-      </div>
-      <div style="display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.03);">
-        <span style="font-size: 11.5px;">Inner surface</span>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #5F5F66;">r12 · white ·03</span>
-      </div>
-      <div style="display: flex; flex-direction: column; gap: 4px; padding: 11px 13px; border-radius: 18px; border: 1px solid rgba(232,163,61,0.4); background: linear-gradient(150deg, rgba(232,163,61,0.20), rgba(232,163,61,0.03)); backdrop-filter: blur(18px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);">
-        <span style="font-size: 11.5px; font-weight: 600;">Decision — 判断待ちのみ琥珀グラデ</span>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: rgba(232,163,61,0.8);">linear 150deg · amber ·20 → ·03</span>
+      <div style="margin-top: auto; padding: 11px 13px; border-radius: 13px; background: rgba(22,25,27,0.035);">
+        <span style="font-size: 12px; color: #5B6266; line-height: 1.7;">AIの作業はモノクロ。色がついているものは、あなたが動く場所。</span>
       </div>
     </div>
 
-    <!-- TYPE -->
-    <div style="flex: 1; display: flex; flex-direction: column; gap: 11px; padding: 14px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.07); background: rgba(15,16,18,0.72); backdrop-filter: blur(24px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);">
-      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">TYPE</span>
-      <span style="font-size: 24px; font-weight: 650; line-height: 1.3;">こんにちは。<span style="color: #5F5F66;">二階調の見出し。</span></span>
-      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #5F5F66; margin-top: -6px;">Hero · Geist 650 · 二階調（#ECECEE + #5F5F66）</span>
-      <div style="height: 1px; background: rgba(255,255,255,0.06);"></div>
-      <div style="display: flex; flex-direction: column; gap: 8px;">
-        <div style="display: flex; align-items: baseline; gap: 12px;">
-          <span style="font-size: 12.5px; font-weight: 600;">タイトル 12.5 / 600</span>
-          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #5F5F66;">Geist</span>
-        </div>
-        <div style="display: flex; align-items: baseline; gap: 12px;">
-          <span style="font-size: 11.5px; color: #9A9AA2;">本文 11.5 / 400 — 日本語は Noto Sans JP</span>
-        </div>
-        <div style="display: flex; align-items: baseline; gap: 12px;">
-          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.1em; color: #5F5F66;">LABEL · 9 · LS 0.1EM</span>
-          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #5F5F66;">Geist Mono</span>
-        </div>
-        <div style="display: flex; align-items: baseline; gap: 12px;">
-          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; color: #9A9AA2;">2<span style="color: #5F5F66;">/4</span> · 812<span style="color: #5F5F66;"> / 3,000</span></span>
-          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #5F5F66;">数値は常に mono</span>
-        </div>
+    <!-- Type -->
+    <div style="flex: 1.15; display: flex; flex-direction: column; gap: 12px; padding: 18px; border-radius: 20px; border: 1px solid rgba(22,25,27,0.06); background: rgba(255,255,255,0.72); backdrop-filter: blur(28px); box-shadow: 0 1px 2px rgba(22,25,27,0.04), 0 16px 40px rgba(22,25,27,0.07), inset 0 1px 0 rgba(255,255,255,0.85);">
+      <span style="font-size: 12.5px; color: #8E948F;">文字</span>
+      <span style="font-family: 'Shippori Mincho', serif; font-size: 30px; font-weight: 500; letter-spacing: 0.02em; line-height: 1.35;">何を、はじめますか。</span>
+      <span style="font-size: 12px; color: #8E948F; margin-top: -6px;">明朝は見出しに一度だけ — Shippori Mincho 500 / 30–37px</span>
+      <div style="height: 1px; background: rgba(22,25,27,0.07);"></div>
+      <div style="display: flex; flex-direction: column; gap: 7px;">
+        <span style="font-size: 15px; font-weight: 600; letter-spacing: -0.01em;">画面タイトル 15 / 600</span>
+        <span style="font-size: 13.5px; font-weight: 600;">カード見出し 13.5 / 600</span>
+        <span style="font-size: 13px; color: #16191B;">本文 13 — Instrument Sans + Zen Kaku Gothic New</span>
+        <span style="font-size: 12.5px; color: #8E948F;">ラベル 12.5 — 小文字・記号なし</span>
+        <span style="font-size: 13px; color: #5B6266; font-variant-numeric: tabular-nums;">数字 2 / 4 · 812 / 3,000 · 12分 — tabular-nums</span>
       </div>
-      <div style="margin-top: auto; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.03);">
-        <span style="font-size: 10.5px; color: #9A9AA2;">ラベルは英語 mono、本文は日本語。説明は1行まで。</span>
+      <div style="margin-top: auto; padding: 11px 13px; border-radius: 13px; background: rgba(138,54,44,0.06); border: 1px solid rgba(138,54,44,0.18);">
+        <span style="font-size: 12px; color: #5B6266;">等幅は使わない。大文字ラベルも使わない。</span>
       </div>
     </div>
   </div>
 
   <!-- Row 2 -->
-  <div style="flex: 1; min-height: 0; display: flex; gap: 10px;">
+  <div style="flex: 1; min-height: 0; display: flex; gap: 14px;">
 
-    <!-- PILLS -->
-    <div style="flex: 1; display: flex; flex-direction: column; gap: 11px; padding: 14px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.07); background: rgba(15,16,18,0.72); backdrop-filter: blur(24px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);">
-      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">PILLS — すべての操作は r999</span>
-      <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
-        <span style="display: inline-flex; align-items: center; height: 30px; padding: 0 14px; border-radius: 999px; font-size: 11.5px; font-weight: 600; color: #0A0A0B; background: #F2F2F3;">承認する</span>
-        <span style="display: inline-flex; align-items: center; height: 30px; padding: 0 14px; border-radius: 999px; font-size: 11.5px; color: #ECECEE; border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04);">開く</span>
-        <span style="display: inline-flex; align-items: center; height: 30px; padding: 0 14px; border-radius: 999px; font-size: 11.5px; color: #A0A0A8; border: 1px solid rgba(255,255,255,0.09);">相談する</span>
-        <span style="display: inline-flex; align-items: center; height: 30px; padding: 0 14px; border-radius: 999px; font-size: 11.5px; color: #E5654F; border: 1px solid rgba(229,101,79,0.3);">停止</span>
+    <!-- Controls -->
+    <div style="flex: 1.35; display: flex; flex-direction: column; gap: 14px; padding: 18px; border-radius: 20px; border: 1px solid rgba(22,25,27,0.06); background: rgba(255,255,255,0.72); backdrop-filter: blur(28px); box-shadow: 0 1px 2px rgba(22,25,27,0.04), 0 16px 40px rgba(22,25,27,0.07), inset 0 1px 0 rgba(255,255,255,0.85);">
+      <span style="font-size: 12.5px; color: #8E948F;">操作 — 主ボタンは、その面でいちばん強いコントラスト</span>
+      <div style="display: flex; align-items: center; gap: 9px; flex-wrap: wrap;">
+        <span style="display: inline-flex; align-items: center; height: 34px; padding: 0 17px; border-radius: 999px; font-size: 12.5px; font-weight: 600; color: #FFFFFF; background: #16191B; box-shadow: 0 6px 16px rgba(22,25,27,0.20);">承認する</span>
+        <span style="display: inline-flex; align-items: center; height: 34px; padding: 0 17px; border-radius: 999px; font-size: 12.5px; color: #16191B; border: 1px solid rgba(22,25,27,0.11);">修正を依頼</span>
+        <span style="display: inline-flex; align-items: center; height: 34px; padding: 0 17px; border-radius: 999px; font-size: 12.5px; color: #5B6266;">あとで</span>
+        <span style="display: inline-flex; align-items: center; height: 34px; padding: 0 17px; border-radius: 999px; font-size: 12.5px; color: #8A362C; border: 1px solid rgba(138,54,44,0.30);">作業を止める</span>
       </div>
-      <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
-        <span style="display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 11px; border-radius: 999px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9.5px; color: #A0A0A8; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03);">Agents <span style="color: #ECECEE;">2/3</span></span>
-        <span style="display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 11px; border-radius: 999px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9.5px; color: #52D97F; border: 1px solid rgba(62,207,110,0.3); background: rgba(62,207,110,0.07);"><span style="width: 5px; height: 5px; border-radius: 999px; background: #3ECF6E; animation: dotpulse 1.8s ease-in-out infinite;"></span>LIVE</span>
-        <span style="display: inline-flex; align-items: center; height: 28px; padding: 0 13px; border-radius: 999px; font-size: 11.5px; font-weight: 600; color: #ECECEE; border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.06);">Tab active</span>
-        <span style="display: inline-flex; align-items: center; height: 28px; padding: 0 13px; border-radius: 999px; font-size: 11.5px; color: #5F5F66;">Tab</span>
+      <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; background: #14181A;">
+        <span style="display: inline-flex; align-items: center; height: 30px; padding: 0 15px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #14181A; background: #FFFFFF;">確認する</span>
+        <span style="display: inline-flex; align-items: center; height: 30px; padding: 0 15px; border-radius: 999px; font-size: 12px; color: #EDEEEC; border: 1px solid rgba(255,255,255,0.16);">開く</span>
+        <div style="flex: 1;"></div>
+        <span style="font-size: 12px; color: #9AA09C;">深い面では白が主ボタン</span>
       </div>
       <div style="display: flex; align-items: center; gap: 10px;">
-        <span style="width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: linear-gradient(150deg, #46D584, #1E9257); box-shadow: 0 8px 22px rgba(62,207,110,0.3);">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#06130B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 18.5v-13M6.5 11 12 5.5 17.5 11"/></svg>
+        <div style="display: flex; gap: 3px; padding: 3px; border-radius: 999px; background: rgba(22,25,27,0.05);">
+          <span style="display: inline-flex; align-items: center; height: 26px; padding: 0 13px; border-radius: 999px; font-size: 12px; color: #8E948F;">速い</span>
+          <span style="display: inline-flex; align-items: center; height: 26px; padding: 0 13px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #16191B; background: #FFFFFF; box-shadow: 0 1px 2px rgba(22,25,27,0.08);">標準</span>
+          <span style="display: inline-flex; align-items: center; height: 26px; padding: 0 13px; border-radius: 999px; font-size: 12px; color: #8E948F;">じっくり</span>
+        </div>
+        <div style="flex: 1; height: 34px; display: flex; align-items: center; gap: 9px; padding: 0 14px; border-radius: 999px; background: rgba(22,25,27,0.045);">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8E948F" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+          <span style="font-size: 12.5px; color: #8E948F;">入力欄も pill</span>
+        </div>
+        <span style="width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: #16191B; box-shadow: 0 6px 16px rgba(22,25,27,0.22);">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5.5M6 11.5 12 5.5l6 6"/></svg>
         </span>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #5F5F66;">Send — 唯一の緑グラデ円 · linear 150deg #46D584→#1E9257</span>
       </div>
-      <div style="margin-top: auto; display: flex; align-items: center; gap: 7px; height: 34px; padding: 0 11px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03);">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5F5F66" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
-        <span style="font-size: 11.5px; color: #5F5F66;">Input も r999</span>
+      <div style="margin-top: auto; display: flex; align-items: center; gap: 14px;">
+        <span style="font-size: 12.5px; color: #2E6B5E; white-space: nowrap; flex-shrink: 0;">承認済み</span>
+        <span style="font-size: 12.5px; color: #2E6B5E; white-space: nowrap; flex-shrink: 0;">実行中</span>
+        <span style="font-size: 12.5px; color: #8A6A24; white-space: nowrap; flex-shrink: 0;">要確認</span>
+        <span style="font-size: 12.5px; color: #A6ABA7; white-space: nowrap; flex-shrink: 0;">下書き</span>
+        <span style="font-size: 12.5px; color: #A6ABA7; white-space: nowrap; flex-shrink: 0;">待機</span>
+        <span style="font-size: 12.5px; color: #8A362C; white-space: nowrap; flex-shrink: 0;">失敗</span>
         <div style="flex: 1;"></div>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; color: #5F5F66;">⌘K</span>
+        <span style="font-size: 12px; color: #8E948F;">状態は文字で書く。バッジで飾らない。</span>
       </div>
     </div>
 
-    <!-- NODE ANATOMY -->
-    <div style="flex: 1; display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.07); background: rgba(15,16,18,0.72); backdrop-filter: blur(24px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);">
-      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">NODE ANATOMY</span>
-      <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; background-image: radial-gradient(rgba(255,255,255,0.045) 1px, transparent 1px); background-size: 22px 22px; border: 1px solid rgba(255,255,255,0.04); padding: 10px 0;">
-        <div style="display: flex; align-items: center; gap: 7px; padding-bottom: 4px;">
-          <span style="width: 5px; height: 5px; border-radius: 999px; background: #3ECF6E; animation: dotpulse 1.8s ease-in-out infinite;"></span>
-          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.1em; color: #9A9AA2;">PHASE 02 · STRATEGY</span>
+    <!-- Node anatomy -->
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 12px; padding: 18px; border-radius: 20px; border: 1px solid rgba(22,25,27,0.06); background: rgba(255,255,255,0.72); backdrop-filter: blur(28px); box-shadow: 0 1px 2px rgba(22,25,27,0.04), 0 16px 40px rgba(22,25,27,0.07), inset 0 1px 0 rgba(255,255,255,0.85);">
+      <span style="font-size: 12.5px; color: #8E948F;">ノード</span>
+      <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; border-radius: 16px; background-color: #14181A; background-image: radial-gradient(rgba(255,255,255,0.055) 1px, transparent 1px); background-size: 22px 22px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), inset 0 20px 40px rgba(0,0,0,0.35);">
+        <div style="display: flex; align-items: center; gap: 8px; padding-bottom: 5px;">
+          <span style="width: 5px; height: 5px; border-radius: 999px; background: #5FA88F;"></span>
+          <span style="font-size: 11.5px; color: #A9AFAB;">フェーズ 2 — 戦略</span>
         </div>
-        <svg width="34" height="9" viewBox="0 0 34 9" style="display: block; margin-bottom: -1px;"><path d="M17 0 C15 5.5, 7 8, 0 9 L34 9 C27 8, 19 5.5, 17 0 Z" fill="rgba(62,207,110,0.35)"/></svg>
-        <div style="width: 280px; box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 11px 13px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.045); backdrop-filter: blur(18px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 14px 36px rgba(0,0,0,0.4);">
-          <span style="font-size: 12px; font-weight: 500;">Strategy 進行中</span>
+        <svg width="30" height="9" viewBox="0 0 30 9" style="display: block; margin-bottom: -1px;"><path d="M15 0 C13 5.5, 6.5 8, 0 9 L30 9 C23.5 8, 17 5.5, 15 0 Z" fill="rgba(95,168,143,0.26)"/></svg>
+        <div style="width: 260px; box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 13px 15px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.055); backdrop-filter: blur(14px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 14px 32px rgba(0,0,0,0.4);">
+          <span style="font-size: 13px; color: #FFFFFF;">戦略</span>
           <div style="flex: 1;"></div>
-          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; color: #9A9AA2;">2<span style="color: #5F5F66;">/4</span></span>
+          <span style="font-size: 11.5px; color: #9AA09C; font-variant-numeric: tabular-nums;">2 / 4</span>
         </div>
-        <svg width="280" height="20" viewBox="0 0 280 20" fill="none" style="display: block;">
-          <path d="M140 0 C140 12, 60 8, 60 20" stroke="rgba(62,207,110,0.3)" stroke-width="1"/>
-          <path d="M140 0 C140 12, 220 8, 220 20" stroke="rgba(62,207,110,0.3)" stroke-width="1"/>
+        <svg width="260" height="22" viewBox="0 0 260 22" fill="none" style="display: block;">
+          <path d="M130 0 C130 13, 56 9, 56 22" stroke="rgba(95,168,143,0.35)" stroke-width="1"/>
+          <path d="M130 0 C130 13, 204 9, 204 22" stroke="rgba(95,168,143,0.35)" stroke-width="1"/>
         </svg>
-        <div style="width: 280px; display: flex; justify-content: space-between;">
-          <span style="display: inline-flex; align-items: center; height: 20px; padding: 0 10px; margin-left: 32px; border-radius: 999px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #52D97F; background: rgba(62,207,110,0.1); border: 1px solid rgba(62,207,110,0.4); white-space: nowrap;">B案 ★</span>
-          <span style="display: inline-flex; align-items: center; height: 20px; padding: 0 10px; margin-right: 34px; border-radius: 999px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #5F5F66; border: 1px solid rgba(255,255,255,0.09); background: rgba(255,255,255,0.03); white-space: nowrap;">C案</span>
+        <div style="width: 260px; display: flex; justify-content: space-between; padding: 0 22px; box-sizing: border-box;">
+          <span style="display: inline-flex; align-items: center; height: 23px; padding: 0 11px; border-radius: 999px; font-size: 11px; color: #8FCDB4; background: rgba(95,168,143,0.14); border: 1px solid rgba(95,168,143,0.5); white-space: nowrap;">推奨</span>
+          <span style="display: inline-flex; align-items: center; height: 23px; padding: 0 11px; border-radius: 999px; font-size: 11px; color: #9AA09C; border: 1px solid rgba(255,255,255,0.10); white-space: nowrap;">他案</span>
         </div>
       </div>
-      <span style="font-size: 10.5px; color: #9A9AA2;">ラベルはノードの上、コネクタ上に置く。接続はベジェ＋雫型フレア。</span>
+      <span style="font-size: 12px; color: #5B6266; line-height: 1.7;">ラベルは線の上、ノードの外。接続はベジェと雫。</span>
     </div>
 
-    <!-- STATUS -->
-    <div style="flex: 1; display: flex; flex-direction: column; gap: 11px; padding: 14px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.07); background: rgba(15,16,18,0.72); backdrop-filter: blur(24px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);">
-      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">STATUS</span>
-      <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-        <span style="display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 10px; border-radius: 999px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; letter-spacing: 0.06em; color: #52D97F; background: rgba(62,207,110,0.08); border: 1px solid rgba(62,207,110,0.3);"><span style="width: 5px; height: 5px; border-radius: 999px; background: #3ECF6E; animation: dotpulse 1.8s ease-in-out infinite;"></span>RUNNING</span>
-        <span style="display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: 999px; font-size: 9.5px; color: #52D97F; background: rgba(62,207,110,0.08); border: 1px solid rgba(62,207,110,0.3);">承認済み</span>
-        <span style="display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: 999px; font-size: 9.5px; color: #E8A33D; background: rgba(232,163,61,0.08); border: 1px solid rgba(232,163,61,0.32);">Needs Review</span>
-        <span style="display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: 999px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; letter-spacing: 0.06em; color: #9A9AA2; border: 1px solid rgba(255,255,255,0.09); background: rgba(255,255,255,0.03);">QUEUED</span>
-        <span style="display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: 999px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; letter-spacing: 0.06em; color: #5F5F66; border: 1px solid rgba(255,255,255,0.07);">WAITING</span>
-        <span style="display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: 999px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; letter-spacing: 0.06em; color: #E5654F; background: rgba(229,101,79,0.07); border: 1px solid rgba(229,101,79,0.3);">FAILED</span>
-      </div>
-      <div style="display: flex; flex-direction: column; gap: 7px;">
-        <div style="display: flex; align-items: center; gap: 9px; padding: 9px 13px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.03);">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3ECF6E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4 4 9-10"/></svg>
-          <span style="font-size: 11.5px;">リスト行も r999 の pill</span>
-          <div style="flex: 1;"></div>
-          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #5F5F66;">P1</span>
+    <!-- Radius & space -->
+    <div style="flex: 1.15; display: flex; flex-direction: column; gap: 14px; padding: 18px; border-radius: 20px; border: 1px solid rgba(22,25,27,0.06); background: rgba(255,255,255,0.72); backdrop-filter: blur(28px); box-shadow: 0 1px 2px rgba(22,25,27,0.04), 0 16px 40px rgba(22,25,27,0.07), inset 0 1px 0 rgba(255,255,255,0.85);">
+      <span style="font-size: 12.5px; color: #8E948F;">角丸と余白</span>
+      <div style="display: flex; align-items: flex-end; gap: 12px;">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+          <div style="width: 52px; height: 52px; border-radius: 20px; background: rgba(255,255,255,0.9); border: 1px solid rgba(22,25,27,0.10);"></div>
+          <span style="font-size: 11.5px; color: #8E948F;">20 島</span>
         </div>
-        <div style="display: flex; align-items: center; gap: 10px; padding: 10px 13px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.035);">
-          <span style="width: 13px; height: 13px; border-radius: 5px; border: 1.5px solid rgba(232,163,61,0.6);"></span>
-          <span style="font-size: 11.5px;">チェックリスト行は r14</span>
-          <div style="flex: 1;"></div>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#5F5F66" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 6 6 6-6 6"/></svg>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+          <div style="width: 52px; height: 52px; border-radius: 16px; background: rgba(255,255,255,0.9); border: 1px solid rgba(22,25,27,0.10);"></div>
+          <span style="font-size: 11.5px; color: #8E948F;">16 カード</span>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+          <div style="width: 52px; height: 52px; border-radius: 12px; background: rgba(255,255,255,0.9); border: 1px solid rgba(22,25,27,0.10);"></div>
+          <span style="font-size: 11.5px; color: #8E948F;">12 内側</span>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+          <div style="width: 76px; height: 34px; border-radius: 999px; background: rgba(255,255,255,0.9); border: 1px solid rgba(22,25,27,0.10);"></div>
+          <span style="font-size: 11.5px; color: #8E948F;">999 操作</span>
         </div>
       </div>
-      <div style="display: flex; align-items: center; gap: 10px; margin-top: auto;">
-        <span style="position: relative; width: 30px; height: 30px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); display: inline-flex; align-items: center; justify-content: center; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10.5px;">MR<span style="position: absolute; right: -2px; bottom: -2px; width: 8px; height: 8px; border-radius: 999px; background: #3ECF6E; border: 1.5px solid #101113;"></span></span>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #5F5F66;">Avatar — squircle r10 + 状態ドット</span>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="width: 14px; height: 13px; background: rgba(46,107,94,0.16); border-left: 1px solid #2E6B5E; border-right: 1px solid #2E6B5E;"></span>
+          <span style="font-size: 12px; color: #5B6266;">14 — 画面の縁、島と島</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="width: 18px; height: 13px; background: rgba(46,107,94,0.16); border-left: 1px solid #2E6B5E; border-right: 1px solid #2E6B5E;"></span>
+          <span style="font-size: 12px; color: #5B6266;">18 — 島とカードの内側</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="width: 26px; height: 13px; background: rgba(46,107,94,0.16); border-left: 1px solid #2E6B5E; border-right: 1px solid #2E6B5E;"></span>
+          <span style="font-size: 12px; color: #5B6266;">18–20 — 見出しのまとまり</span>
+        </div>
+      </div>
+      <div style="margin-top: auto; display: flex; align-items: center; gap: 14px;">
+        <div style="position: relative; width: 46px; height: 46px; flex-shrink: 0;">
+          <div style="position: absolute; left: 50%; bottom: -5px; transform: translateX(-50%); width: 44px; height: 9px; border-radius: 999px; background: radial-gradient(closest-side, rgba(22,25,27,0.22), rgba(22,25,27,0));"></div>
+          <div style="position: absolute; inset: 0; border-radius: 999px; border: 1px solid rgba(255,255,255,0.75); background: radial-gradient(circle at 34% 24%, rgba(255,255,255,0.96), rgba(255,255,255,0) 36%), radial-gradient(circle at 72% 80%, rgba(46,107,94,0.58), rgba(46,107,94,0) 60%), linear-gradient(165deg, rgba(255,255,255,0.7), rgba(221,229,226,0.46)); box-shadow: inset 0 -6px 12px rgba(46,107,94,0.3), inset 0 4px 10px rgba(255,255,255,0.92);"></div>
+        </div>
+        <span style="font-size: 12px; color: #5B6266; line-height: 1.7;">ガラスの文鎮 — 唯一の演出。<br>実装では three.js で屈折を持たせる。</span>
       </div>
     </div>
   </div>
 
   <!-- Row 3 -->
-  <div style="flex: 1; min-height: 0; display: flex; gap: 10px;">
-
-    <!-- SPACING & RADIUS -->
-    <div style="flex: 1; display: flex; flex-direction: column; gap: 11px; padding: 14px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.07); background: rgba(15,16,18,0.72); backdrop-filter: blur(24px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);">
-      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">RADIUS & SPACING</span>
-      <div style="display: flex; align-items: flex-end; gap: 10px;">
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
-          <div style="width: 54px; height: 54px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.045);"></div>
-          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #9A9AA2;">18<span style="color: #5F5F66;"> card</span></span>
-        </div>
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
-          <div style="width: 54px; height: 54px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.03);"></div>
-          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #9A9AA2;">12<span style="color: #5F5F66;"> inner</span></span>
-        </div>
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
-          <div style="width: 54px; height: 54px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04);"></div>
-          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #9A9AA2;">10<span style="color: #5F5F66;"> avatar</span></span>
-        </div>
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
-          <div style="width: 92px; height: 34px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.04);"></div>
-          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #9A9AA2;">999<span style="color: #5F5F66;"> pill</span></span>
-        </div>
-      </div>
-      <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="width: 10px; height: 12px; border-left: 1px solid #3ECF6E; border-right: 1px solid #3ECF6E; background: rgba(62,207,110,0.12);"></span>
-          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #9A9AA2;">10<span style="color: #5F5F66;"> — 画面余白・島の間隔</span></span>
-        </div>
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="width: 14px; height: 12px; border-left: 1px solid #3ECF6E; border-right: 1px solid #3ECF6E; background: rgba(62,207,110,0.12);"></span>
-          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #9A9AA2;">14<span style="color: #5F5F66;"> — カード内 padding</span></span>
-        </div>
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="width: 24px; height: 12px; border-left: 1px solid #3ECF6E; border-right: 1px solid #3ECF6E; background: rgba(62,207,110,0.12);"></span>
-          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #9A9AA2;">12–16<span style="color: #5F5F66;"> — セクション間</span></span>
-        </div>
-      </div>
+  <div style="flex-shrink: 0; display: flex; gap: 14px;">
+    <div style="flex: 1; display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 20px; border: 1px solid rgba(22,25,27,0.06); background: rgba(255,255,255,0.72); backdrop-filter: blur(28px); box-shadow: 0 1px 2px rgba(22,25,27,0.04), 0 14px 34px rgba(22,25,27,0.06);">
+      <span style="font-size: 12.5px; color: #8E948F; width: 88px; flex-shrink: 0;">書き方</span>
+      <span style="font-size: 13px; color: #16191B;">比較は妥当です。価格帯の解釈だけ、判断が要ります。</span>
+      <div style="flex: 1;"></div>
+      <span style="font-size: 12px; color: #8E948F; text-align: right;">結論を先に、一行で。<br>詳しい話は開いた先に置く。</span>
     </div>
-
-    <!-- MOTION -->
-    <div style="flex: 1; display: flex; flex-direction: column; gap: 11px; padding: 14px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.07); background: rgba(15,16,18,0.72); backdrop-filter: blur(24px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);">
-      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">MOTION & 演出</span>
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <span style="width: 8px; height: 8px; border-radius: 999px; background: #3ECF6E; box-shadow: 0 0 8px rgba(62,207,110,0.8); animation: dotpulse 1.8s ease-in-out infinite;"></span>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #9A9AA2;">pulse 1.8s<span style="color: #5F5F66;"> — 稼働ドットのみ点滅</span></span>
-      </div>
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <span style="width: 56px; height: 56px; flex-shrink: 0; border-radius: 999px; background: radial-gradient(circle at 32% 26%, rgba(255,255,255,0.85), rgba(255,255,255,0) 30%), radial-gradient(circle at 72% 22%, #A9F2C6, transparent 52%), radial-gradient(circle at 24% 76%, #35B476, transparent 58%), radial-gradient(circle at 78% 72%, #0F4A2E, transparent 55%), linear-gradient(160deg, #23935E, #0B3B25); box-shadow: 0 0 44px rgba(62,207,110,0.25);"></span>
-        <span style="font-size: 10.5px; color: #9A9AA2; line-height: 1.7;">Orb・コネクタの流光は three.js / WebGL<br><span style="color: #5F5F66;">実装フェーズで適用。モックはCSS近似。</span></span>
-      </div>
-      <div style="margin-top: auto; display: flex; flex-direction: column; gap: 5px;">
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #9A9AA2;">hover<span style="color: #5F5F66;"> — translateY(-1px) · 120ms</span></span>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #9A9AA2;">進捗<span style="color: #5F5F66;"> — 実データのみ。演出の偽進捗は禁止</span></span>
-      </div>
-    </div>
-
-    <!-- COPY -->
-    <div style="flex: 1; display: flex; flex-direction: column; gap: 11px; padding: 14px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.07); background: rgba(15,16,18,0.72); backdrop-filter: blur(24px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);">
-      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">COPY</span>
-      <div style="display: flex; align-items: flex-start; gap: 9px; padding: 10px 13px; border-radius: 12px; border: 1px solid rgba(62,207,110,0.25); background: rgba(62,207,110,0.04);">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3ECF6E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-top: 2px; flex-shrink: 0;"><path d="m5 12.5 4 4 9-10"/></svg>
-        <span style="font-size: 11px; color: #ECECEE; line-height: 1.6;">比較は妥当。価格帯の確認だけ必要です。</span>
-      </div>
-      <div style="display: flex; align-items: flex-start; gap: 9px; padding: 10px 13px; border-radius: 12px; border: 1px solid rgba(229,101,79,0.25); background: rgba(229,101,79,0.04); opacity: 0.75;">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#E5654F" stroke-width="2" stroke-linecap="round" style="margin-top: 2px; flex-shrink: 0;"><path d="M7 7l10 10M17 7L7 17"/></svg>
-        <span style="font-size: 11px; color: #9A9AA2; line-height: 1.6; text-decoration: line-through;">このレポートはAIが3つの収益モデルを詳細に比較分析したもので、それぞれの…</span>
-      </div>
-      <div style="margin-top: auto; display: flex; flex-direction: column; gap: 5px;">
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #9A9AA2;">説明は1行<span style="color: #5F5F66;"> — 詳細は開いた先に置く</span></span>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #9A9AA2;">結論 → 根拠<span style="color: #5F5F66;"> — の順で書く</span></span>
-      </div>
+    <div style="flex: 1; display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 20px; border: 1px solid rgba(22,25,27,0.06); background: rgba(255,255,255,0.72); backdrop-filter: blur(28px); box-shadow: 0 1px 2px rgba(22,25,27,0.04), 0 14px 34px rgba(22,25,27,0.06);">
+      <span style="font-size: 12.5px; color: #8E948F; width: 88px; flex-shrink: 0;">動き</span>
+      <span style="font-size: 13px; color: #16191B;">実行中の線だけが流れる。</span>
+      <div style="flex: 1;"></div>
+      <span style="font-size: 12px; color: #8E948F; text-align: right;">点滅・跳ねは使わない。<br>進捗は実データだけを映す。</span>
     </div>
   </div>
 </div>

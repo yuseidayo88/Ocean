@@ -1,14 +1,14 @@
 {
   "pages": [
-    { "id": "page-1", "name": "V3 — Liquid Ops" },
+    { "id": "page-1", "name": "Harbor" },
     { "id": "page-2", "name": "旧スタイル（更新待ち9画面）" },
     { "id": "page-3", "name": "Phase 0 — アーカイブ" }
   ],
   "artboards": [
-    { "file": "NewWork.dc.html", "x": 0, "y": 0, "w": 1440, "h": 900, "title": "① New Work — Orb Hero（V3）", "page": "page-1" },
-    { "file": "Main.dc.html", "x": 1560, "y": 0, "w": 1440, "h": 900, "title": "② Work Detail — Node Canvas（V3）", "page": "page-1" },
-    { "file": "Office.dc.html", "x": 3120, "y": 0, "w": 1440, "h": 900, "title": "③ Home / Office（V3）", "page": "page-1" },
-    { "file": "DesignSystem.dc.html", "x": 4680, "y": 0, "w": 1440, "h": 1000, "title": "④ Design System — Liquid Ops（V3）", "page": "page-1" },
+    { "file": "NewWork.dc.html", "x": 0, "y": 0, "w": 1440, "h": 900, "title": "① 新しいWork", "page": "page-1" },
+    { "file": "Main.dc.html", "x": 1560, "y": 0, "w": 1440, "h": 900, "title": "② Work — ロードマップ", "page": "page-1" },
+    { "file": "Office.dc.html", "x": 3120, "y": 0, "w": 1440, "h": 900, "title": "③ ホーム", "page": "page-1" },
+    { "file": "DesignSystem.dc.html", "x": 4680, "y": 0, "w": 1440, "h": 1000, "title": "④ デザインシステム — Harbor", "page": "page-1" },
 
     { "file": "PlanReview.dc.html", "x": 0, "y": 0, "w": 1440, "h": 900, "title": "② Plan Review（旧スタイル）", "page": "page-2" },
     { "file": "Roadmap.dc.html", "x": 1560, "y": 0, "w": 1440, "h": 900, "title": "⑤ Roadmap リスト（旧スタイル）", "page": "page-2" },
@@ -25,8 +25,8 @@
     { "file": "DirectionC.dc.html", "x": 1560, "y": 0, "w": 1440, "h": 900, "title": "案C — Flowline（不採用・参考）", "page": "page-3" }
   ],
   "annotations": [
-    { "id": "intro-r", "x": -470, "y": 0, "w": 420, "page": "page-1", "text": "デザインシステム V3「Liquid Ops」（4画面）\n\n参考画像8枚を統合して全面刷新：\n・背景から浮いた「ガラスの島」構成（blur + 半透明 + 上辺ハイライト）\n・角丸を一新：カード18 / 内側12 / 操作はすべてpill（999）\n・余白を統一：画面10 / カード内14 / セクション12–16\n・ノードのラベルは接続線の上に置き、雫型フレアで接続\n・判断待ちのみ琥珀のグラデーションガラス\n・送信ボタンは緑グラデ円。プライマリは白pill。青は不使用\n・New Workは緑のOrb（球体）ヒーロー。Orb・流光の演出は実装時に three.js / WebGL\n・説明文は1行まで\n\nこの4枚の承認後、残り9画面（旧スタイルページ）へ展開します。" },
-    { "id": "note-old", "x": -470, "y": 0, "w": 420, "page": "page-2", "text": "旧スタイルの9画面＋共通ボード。\nV3「Liquid Ops」の承認後、順次更新します。構成・情報設計はこのまま引き継ぎます。" },
+    { "id": "intro-harbor", "x": -470, "y": 0, "w": 420, "page": "page-1", "text": "Harbor — 4画面\n\n「AIっぽさ」の正体は、真っ黒 × 蛍光グリーン × 等幅フォントでした。生成UIがいちばん多く落ちる型です。そこから抜けるために、素材から変えています。\n\n・机は明るく、製図台は深く\n  ロードマップのノードだけが深い面。まわりは磁器のような明るいガラス。参考画像の「暗いワークフロー」と「明るいガラスのダッシュボード」を、平均せずに両立させました。\n\n・色は「あなたの番」だけ\n  AIの作業はモノクロ。潮（緑）＝稼働と承認、真鍮＝あなたの判断。それ以外に色は出しません。\n\n・書体\n  見出しに明朝（Shippori Mincho）を一度だけ。本文は Instrument Sans + Zen Kaku Gothic New。等幅と大文字ラベルは全廃し、数字は tabular-nums で揃えます。\n\n・演出はガラスの文鎮ひとつ\n  実装では three.js で屈折を持たせます。点滅や跳ねは使いません。\n\n判断いただきたいこと：この明るさで進めるか。深い面を増やす／減らすか。" },
+    { "id": "note-old", "x": -470, "y": 0, "w": 420, "page": "page-2", "text": "旧スタイルの9画面＋共通ボード。\nHarbor の承認後、順次更新します。構成・情報設計はこのまま引き継ぎます。" },
     { "id": "note-archive", "x": -470, "y": 0, "w": 420, "page": "page-3", "text": "Phase 0 のアーカイブ。案A（Mission Control）採用済み。案B / 案C は参考として保存しています。" }
   ],
   "launch": { "view": "canvas", "page": "page-1" }
