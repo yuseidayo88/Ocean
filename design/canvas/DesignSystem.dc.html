@@ -7,190 +7,200 @@
 <body>
 <x-dc>
 <helmet>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;600&amp;family=Noto+Sans+JP:wght@400;500;700&amp;display=swap">
   <style>
-    body { margin: 0; background: #0B0E14; }
-    a { color: #6E9BFF; } a:hover { color: #9DBBFF; }
-    @keyframes dotpulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+    body { margin: 0; background: #0A0A0B; }
+    a { color: #52D97F; } a:hover { color: #7FE6A5; }
+    @keyframes dotpulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
   </style>
 </helmet>
-<div style="width: 1440px; height: 1000px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; padding: 28px; background: #0B0E14; color: #E8ECF4; font-family: 'IBM Plex Sans JP', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', system-ui, sans-serif; overflow: hidden;">
+<div style="width: 1440px; height: 1000px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; padding: 26px; background: #0A0A0B; color: #ECECEE; font-family: 'Geist', 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', system-ui, sans-serif; overflow: hidden;">
 
   <div style="display: flex; align-items: baseline; gap: 14px;">
-    <span style="font-size: 15px; font-weight: 650;">Design System — Ocean</span>
-    <span style="font-size: 11px; color: #626D80;">dark-first / 静けさと精密さ。アクセント塗りは1画面につき原則1箇所（今いちばん重要な判断のみ）。</span>
+    <span style="font-size: 15px; font-weight: 650;">Design System — Terminal Ops</span>
+    <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9.5px; letter-spacing: 0.1em; color: #5F5F66;">V2 · NEUTRAL BLACK / INSTRUMENT COLORS / MONO TICKETS</span>
+    <div style="flex: 1;"></div>
+    <span style="font-size: 10.5px; color: #5F5F66;">青は使わない。色は状態（計器）だけが持つ。</span>
   </div>
 
   <div style="flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px;">
 
     <!-- COLOR -->
-    <div style="display: flex; flex-direction: column; gap: 9px; padding: 14px; border-radius: 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(148,163,184,0.10);">
-      <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: 0.08em; color: #9DBBFF;">COLOR</span>
+    <div style="display: flex; flex-direction: column; gap: 9px; padding: 13px; border-radius: 10px; background: #0E0E10; border: 1px solid rgba(255,255,255,0.07);">
+      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">COLOR</span>
       <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="width: 26px; height: 26px; border-radius: 6px; background: #0B0E14; border: 1px solid rgba(148,163,184,0.25);"></span>
-        <span style="font-size: 10.5px; color: #9AA4B8;">Background</span>
-        <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9.5px; color: #626D80; margin-left: auto;">#0B0E14</span>
+        <span style="width: 24px; height: 24px; border-radius: 6px; background: #070708; border: 1px solid rgba(255,255,255,0.18);"></span>
+        <span style="font-size: 10.5px; color: #9A9AA2;">Canvas</span>
+        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9.5px; color: #5F5F66; margin-left: auto;">#070708 + dot 20px</span>
       </div>
       <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="width: 26px; height: 26px; border-radius: 6px; background: rgba(255,255,255,0.03); border: 1px solid rgba(148,163,184,0.25);"></span>
-        <span style="font-size: 10.5px; color: #9AA4B8;">Surface 1 / 2</span>
-        <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9.5px; color: #626D80; margin-left: auto;">white 3% / 5%</span>
+        <span style="width: 24px; height: 24px; border-radius: 6px; background: #0C0C0E; border: 1px solid rgba(255,255,255,0.18);"></span>
+        <span style="font-size: 10.5px; color: #9A9AA2;">Chrome（Sidebar / Panel / Dock）</span>
+        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9.5px; color: #5F5F66; margin-left: auto;">#0C0C0E</span>
       </div>
       <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="width: 26px; height: 26px; border-radius: 6px; background: #0E1219; border: 1px solid rgba(148,163,184,0.25);"></span>
-        <span style="font-size: 10.5px; color: #9AA4B8;">Raised（Modal / Floating）</span>
-        <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9.5px; color: #626D80; margin-left: auto;">#0E1219</span>
+        <span style="width: 24px; height: 24px; border-radius: 6px; background: #111113; border: 1px solid rgba(255,255,255,0.18);"></span>
+        <span style="font-size: 10.5px; color: #9A9AA2;">Card / Node</span>
+        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9.5px; color: #5F5F66; margin-left: auto;">#111113 · border white 8%</span>
       </div>
       <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="width: 26px; height: 26px; border-radius: 6px; background: #6E9BFF;"></span>
-        <span style="font-size: 10.5px; color: #9AA4B8;">Accent — 判断・実行中のみ</span>
-        <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9.5px; color: #626D80; margin-left: auto;">#6E9BFF</span>
+        <span style="width: 24px; height: 24px; border-radius: 6px; background: #F2F2F3;"></span>
+        <span style="font-size: 10.5px; color: #9A9AA2;">Primary Action — 白</span>
+        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9.5px; color: #5F5F66; margin-left: auto;">#F2F2F3 / text #0A0A0B</span>
       </div>
       <div style="display: flex; align-items: center; gap: 6px;">
+        <span style="width: 18px; height: 18px; border-radius: 5px; background: #3ECF6E;"></span>
         <span style="width: 18px; height: 18px; border-radius: 5px; background: #E8A33D;"></span>
-        <span style="width: 18px; height: 18px; border-radius: 5px; background: #3ED598;"></span>
         <span style="width: 18px; height: 18px; border-radius: 5px; background: #E5654F;"></span>
-        <span style="font-size: 10px; color: #626D80; margin-left: 4px;">要対応 / 承認済 / 失敗 — Status以外に使わない</span>
+        <span style="font-size: 10px; color: #5F5F66; margin-left: 4px;">稼働・承認 / 判断待ち / 失敗 — 計器色。装飾に使わない</span>
       </div>
-      <span style="font-size: 9.5px; color: #626D80; line-height: 1.6; margin-top: auto;">罫線: slate 16%（強）/ 10%（標準）/ 6%（区切り）。ドットグリッド 24px はWorkspace背景のみ。</span>
+      <span style="font-size: 9.5px; color: #5F5F66; line-height: 1.7; margin-top: auto;">テキスト: #ECECEE / #9A9AA2 / #5F5F66（ニュートラル、青みなし）。罫線: white 13%（強）/ 8%（標準）/ 6%（区切り）。グロー・グラデーションは廃止。</span>
     </div>
 
     <!-- TYPOGRAPHY -->
-    <div style="display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(148,163,184,0.10);">
-      <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: 0.08em; color: #9DBBFF;">TYPOGRAPHY</span>
-      <span style="font-size: 18px; font-weight: 650;">画面タイトル 18 / 650</span>
-      <span style="font-size: 14px; font-weight: 650;">オブジェクト名 14–15 / 650</span>
-      <span style="font-size: 12.5px; font-weight: 600;">セクション・行タイトル 12.5 / 600</span>
-      <span style="font-size: 12px; color: #C7CFDE;">本文 12 / 400 — 行間 1.7</span>
-      <span style="font-size: 11px; color: #9AA4B8;">補足・メタ 11 / 400（secondary）</span>
-      <span style="font-size: 10.5px; color: #626D80;">注記 10.5 / 400（muted）— 最小 9.5px</span>
-      <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: 0.08em; color: #626D80;">MICRO LABEL — MONO 10 / LS 0.08EM</span>
-      <span style="font-size: 9.5px; color: #626D80; line-height: 1.6; margin-top: auto;">日本語UI: IBM Plex Sans JP。ラベル・数値・kbd: IBM Plex Mono。フォールバック: Hiragino / Noto Sans JP。</span>
+    <div style="display: flex; flex-direction: column; gap: 8px; padding: 13px; border-radius: 10px; background: #0E0E10; border: 1px solid rgba(255,255,255,0.07);">
+      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">TYPOGRAPHY</span>
+      <span style="font-size: 17px; font-weight: 650;">画面タイトル 17 / 650 — Geist</span>
+      <span style="font-size: 13px; font-weight: 600;">オブジェクト名 13 / 600</span>
+      <span style="font-size: 12px; color: #ECECEE;">本文 12 / 400 — 行間 1.7（Noto Sans JP）</span>
+      <span style="font-size: 10.5px; color: #9A9AA2;">補足・メタ 10.5 / secondary</span>
+      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">TICKET LABEL — GEIST MONO 9 / LS 0.12EM</span>
+      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11px; color: #ECECEE;">数値・ID・時間 — 812 / 3,000 · 12m · v1</span>
+      <span style="font-size: 9.5px; color: #5F5F66; line-height: 1.7; margin-top: auto;">Latin/数値: Geist ＋ Geist Mono。日本語: Noto Sans JP。IBM Plex系は廃止。数値・ID・状態語は必ずモノスペース — これが「計器」の質感を作る。</span>
     </div>
 
-    <!-- SPACING / RADIUS -->
-    <div style="display: flex; flex-direction: column; gap: 9px; padding: 14px; border-radius: 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(148,163,184,0.10);">
-      <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: 0.08em; color: #9DBBFF;">SPACING / RADIUS</span>
-      <div style="display: flex; align-items: flex-end; gap: 8px;">
-        <div style="width: 4px; height: 4px; background: rgba(110,155,255,0.5);"></div>
-        <div style="width: 8px; height: 8px; background: rgba(110,155,255,0.5);"></div>
-        <div style="width: 12px; height: 12px; background: rgba(110,155,255,0.5);"></div>
-        <div style="width: 16px; height: 16px; background: rgba(110,155,255,0.5);"></div>
-        <div style="width: 20px; height: 20px; background: rgba(110,155,255,0.5);"></div>
-        <div style="width: 24px; height: 24px; background: rgba(110,155,255,0.5);"></div>
-        <div style="width: 32px; height: 32px; background: rgba(110,155,255,0.5);"></div>
-        <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9.5px; color: #626D80; margin-left: 4px;">4 / 8 / 12 / 16 / 20 / 24 / 32</span>
+    <!-- TICKET / NODE -->
+    <div style="display: flex; flex-direction: column; gap: 9px; padding: 13px; border-radius: 10px; background: #0E0E10; border: 1px solid rgba(255,255,255,0.07);">
+      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">TICKET HEADER / NODE</span>
+      <div style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); background: #111113;">
+        <div style="display: flex; align-items: center; padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,0.06);">
+          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">TASK</span>
+          <div style="flex: 1;"></div>
+          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">市場リサーチャー</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; padding: 9px 12px;">
+          <span style="font-size: 12px;">競合ポジショニング分析</span>
+          <div style="flex: 1;"></div>
+          <span style="width: 6px; height: 6px; border-radius: 999px; background: #3ECF6E; animation: dotpulse 1.8s ease-in-out infinite;"></span>
+          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.06em; color: #52D97F;">RUNNING</span>
+        </div>
       </div>
-      <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
-        <span style="width: 34px; height: 34px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.3);"></span>
-        <span style="width: 34px; height: 34px; border-radius: 8px; border: 1px solid rgba(148,163,184,0.3);"></span>
-        <span style="width: 34px; height: 34px; border-radius: 10px; border: 1px solid rgba(148,163,184,0.3);"></span>
-        <span style="width: 34px; height: 34px; border-radius: 12px; border: 1px solid rgba(148,163,184,0.3);"></span>
-        <span style="width: 44px; height: 24px; border-radius: 999px; border: 1px solid rgba(148,163,184,0.3);"></span>
+      <div style="display: flex; align-items: center; justify-content: center; gap: 0; flex-direction: column;">
+        <div style="width: 6px; height: 6px; border-radius: 999px; border: 1px solid rgba(62,207,110,0.5); background: #0E0E10;"></div>
+        <div style="width: 1px; height: 10px; background: rgba(62,207,110,0.35);"></div>
       </div>
-      <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9.5px; color: #626D80;">6 chip · 8 inner · 10 card · 12–14 modal/float · 999 pill</span>
-      <span style="font-size: 9.5px; color: #626D80; line-height: 1.6; margin-top: auto;">レイアウトは常に flex / grid + gap。余白での配置は禁止。Workspace余白: 16–18px、カード内: 12–14px。</span>
+      <span style="font-size: 9.5px; color: #5F5F66; line-height: 1.7;">全カードは「チケット」— モノスペース見出し（左=種別 / 右=文脈）＋本文。種別: PHASE / TASK / AGENT / DELIVERABLE / DECISION / REVIEW / WORK。ノード接続はポートドット＋1pxライン（稼働経路は緑、判断待ちは琥珀）。</span>
+      <span style="font-size: 9.5px; color: #5F5F66; line-height: 1.7; margin-top: auto;">Decisionノードのみ地色 #16130D ＋ 琥珀罫線 — 画面で最も重い存在。</span>
     </div>
 
     <!-- BUTTONS -->
-    <div style="display: flex; flex-direction: column; gap: 9px; padding: 14px; border-radius: 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(148,163,184,0.10);">
-      <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: 0.08em; color: #9DBBFF;">BUTTONS</span>
+    <div style="display: flex; flex-direction: column; gap: 9px; padding: 13px; border-radius: 10px; background: #0E0E10; border: 1px solid rgba(255,255,255,0.07);">
+      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">BUTTONS</span>
       <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="height: 36px; display: inline-flex; align-items: center; padding: 0 16px; border-radius: 9px; font-size: 12px; font-weight: 700; color: #E8ECF4; background: rgba(110,155,255,0.22); border: 1px solid rgba(110,155,255,0.7); box-shadow: 0 0 18px rgba(110,155,255,0.2);">Hero — Start Work</span>
-        <span style="font-size: 9.5px; color: #626D80;">1画面1つまで</span>
+        <span style="height: 30px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 7px; font-size: 11.5px; font-weight: 600; color: #0A0A0B; background: #F2F2F3;">承認して開始</span>
+        <span style="font-size: 9.5px; color: #5F5F66;">Primary = 白。1画面1つ。</span>
       </div>
       <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="height: 32px; display: inline-flex; align-items: center; padding: 0 13px; border-radius: 7px; font-size: 11.5px; font-weight: 600; color: #C9D6F5; background: rgba(110,155,255,0.14); border: 1px solid rgba(110,155,255,0.5);">Primary</span>
-        <span style="height: 32px; display: inline-flex; align-items: center; padding: 0 13px; border-radius: 7px; font-size: 11.5px; color: #9AA4B8; border: 1px solid rgba(148,163,184,0.18);">Ghost</span>
-        <span style="height: 32px; display: inline-flex; align-items: center; gap: 5px; padding: 0 13px; border-radius: 7px; font-size: 11.5px; font-weight: 600; color: #7FE6BC; background: rgba(62,213,152,0.13); border: 1px solid rgba(62,213,152,0.45);">✓ Approve</span>
+        <span style="height: 28px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 7px; font-size: 11px; color: #A0A0A8; border: 1px solid rgba(255,255,255,0.10);">Ghost</span>
+        <span style="height: 28px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 7px; font-size: 11px; color: #52D97F; border: 1px solid rgba(62,207,110,0.35); background: rgba(62,207,110,0.06);">Approve</span>
+        <span style="height: 28px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 7px; font-size: 11px; color: #F0938A; border: 1px solid rgba(229,101,79,0.35);">解雇・削除</span>
       </div>
       <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="height: 28px; display: inline-flex; align-items: center; padding: 0 11px; border-radius: 6px; font-size: 11px; font-weight: 600; color: #EBB765; background: rgba(232,163,61,0.10); border: 1px solid rgba(232,163,61,0.45);">要対応アクション</span>
-        <span style="height: 28px; display: inline-flex; align-items: center; padding: 0 11px; border-radius: 6px; font-size: 11px; color: #F0938A; border: 1px solid rgba(229,101,79,0.4);">破壊的（解雇・削除）</span>
+        <span style="width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border-radius: 7px; background: #F2F2F3;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0A0A0B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12h14m-5.5-5.5L18.5 12 13 17.5"/></svg>
+        </span>
+        <span style="width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border-radius: 7px; background: rgba(232,163,61,0.14); border: 1px solid rgba(232,163,61,0.4);">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="#E8A33D"><path d="M7 4.5v15l12-7.5z"/></svg>
+        </span>
+        <span style="font-size: 9.5px; color: #5F5F66;">送信=白角ボタン / 実行系=琥珀（参照UIのplay）</span>
       </div>
-      <span style="font-size: 9.5px; color: #626D80; line-height: 1.6; margin-top: auto;">高さ: 36（Hero）/ 32–34（標準）/ 26–28（行内）。破壊的操作は必ず結果を明記したModalを挟む。</span>
+      <span style="font-size: 9.5px; color: #5F5F66; line-height: 1.7; margin-top: auto;">高さ 30（Hero）/ 26–28（標準）/ 24（行内）。青いボタンは存在しない。破壊的操作は帰結を明記したModalを必ず挟む。</span>
     </div>
 
-    <!-- PILLS / STATUS -->
-    <div style="display: flex; flex-direction: column; gap: 9px; padding: 14px; border-radius: 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(148,163,184,0.10);">
-      <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: 0.08em; color: #9DBBFF;">STATUS — 語彙は固定</span>
+    <!-- STATUS -->
+    <div style="display: flex; flex-direction: column; gap: 9px; padding: 13px; border-radius: 10px; background: #0E0E10; border: 1px solid rgba(255,255,255,0.07);">
+      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">STATUS — 語彙は固定・モノスペース</span>
       <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-        <span style="display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 8px; border-radius: 999px; font-size: 10px; color: #6E9BFF; background: rgba(110,155,255,0.10); border: 1px solid rgba(110,155,255,0.35);"><span style="width: 5px; height: 5px; border-radius: 999px; background: #6E9BFF; animation: dotpulse 1.6s ease-in-out infinite;"></span>Working</span>
-        <span style="display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 999px; font-size: 10px; color: #E8A33D; background: rgba(232,163,61,0.10); border: 1px solid rgba(232,163,61,0.35);">Needs Review</span>
-        <span style="display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 999px; font-size: 10px; color: #3ED598; background: rgba(62,213,152,0.10); border: 1px solid rgba(62,213,152,0.35);">Approved</span>
-        <span style="display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 999px; font-size: 10px; color: #626D80; background: rgba(148,163,184,0.07); border: 1px solid rgba(148,163,184,0.20);">Queued</span>
-        <span style="display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 999px; font-size: 10px; color: #626D80; background: rgba(148,163,184,0.07); border: 1px solid rgba(148,163,184,0.20);">Waiting</span>
-        <span style="display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 999px; font-size: 10px; color: #F0938A; background: rgba(229,101,79,0.10); border: 1px solid rgba(229,101,79,0.35);">Failed</span>
+        <span style="display: inline-flex; align-items: center; gap: 5px; height: 19px; padding: 0 8px; border-radius: 999px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; letter-spacing: 0.06em; color: #52D97F; background: rgba(62,207,110,0.08); border: 1px solid rgba(62,207,110,0.3);"><span style="width: 5px; height: 5px; border-radius: 999px; background: #3ECF6E; animation: dotpulse 1.8s ease-in-out infinite;"></span>RUNNING</span>
+        <span style="display: inline-flex; align-items: center; height: 19px; padding: 0 8px; border-radius: 999px; font-size: 9px; color: #E8A33D; background: rgba(232,163,61,0.08); border: 1px solid rgba(232,163,61,0.35);">Needs Review</span>
+        <span style="display: inline-flex; align-items: center; height: 19px; padding: 0 8px; border-radius: 999px; font-size: 9px; color: #52D97F; background: rgba(62,207,110,0.08); border: 1px solid rgba(62,207,110,0.3);">Approved</span>
+        <span style="display: inline-flex; align-items: center; height: 19px; padding: 0 8px; border-radius: 999px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #5F5F66; border: 1px solid rgba(255,255,255,0.10);">QUEUED</span>
+        <span style="display: inline-flex; align-items: center; height: 19px; padding: 0 8px; border-radius: 999px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #5F5F66; border: 1px solid rgba(255,255,255,0.10);">WAITING</span>
+        <span style="display: inline-flex; align-items: center; height: 19px; padding: 0 8px; border-radius: 999px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8.5px; color: #F0938A; border: 1px solid rgba(229,101,79,0.35);">FAILED</span>
       </div>
-      <div style="display: flex; align-items: center; gap: 12px; margin-top: 2px;">
-        <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 10.5px; color: #6E9BFF;"><span style="width: 6px; height: 6px; border-radius: 999px; background: #6E9BFF; animation: dotpulse 1.6s ease-in-out infinite;"></span>実行中 = 点滅ドット（画面で唯一のアニメーション）</span>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; color: #52D97F;">+145</span>
+        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; color: #F0938A;">-16</span>
+        <span style="font-size: 9.5px; color: #5F5F66;">差分・増減はCodex式（緑/赤モノスペース）</span>
       </div>
-      <span style="font-size: 9.5px; color: #626D80; line-height: 1.6;">進捗%はPhaseレベルのみ。タスク単位のプログレスバー・偽のローディングは禁止（Backend Stateと常に一致）。</span>
-      <span style="font-size: 9.5px; color: #626D80; line-height: 1.6; margin-top: auto;">Employee状態: Working / Idle / Waiting / Error。あなた待ちのものだけが琥珀色。</span>
+      <span style="font-size: 9.5px; color: #5F5F66; line-height: 1.7; margin-top: auto;">点滅ドット=実行中のみ（画面唯一のアニメーション）。進捗%はPhaseのみ。偽のローディング禁止 — 表示は常にBackend Stateと一致。Employee: RUNNING / IDLE / WAITING / ERROR。</span>
     </div>
 
-    <!-- INPUT / KBD -->
-    <div style="display: flex; flex-direction: column; gap: 9px; padding: 14px; border-radius: 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(148,163,184,0.10);">
-      <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: 0.08em; color: #9DBBFF;">INPUT / SHORTCUTS</span>
-      <div style="height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 9px; border: 1px solid rgba(110,155,255,0.28); background: rgba(255,255,255,0.03);">
-        <span style="font-size: 11.5px; color: #626D80;">統括AIに指示する…</span>
-        <div style="flex: 1;"></div>
-        <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9.5px; color: #626D80; padding: 2px 5px; border: 1px solid rgba(148,163,184,0.20); border-radius: 4px;">⌘J</span>
-      </div>
-      <div style="height: 32px; display: flex; align-items: center; gap: 8px; padding: 0 11px; border-radius: 8px; border: 1px solid rgba(148,163,184,0.16); background: rgba(255,255,255,0.02);">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#626D80" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
-        <span style="font-size: 11px; color: #626D80;">検索 / コマンド…</span>
-        <div style="flex: 1;"></div>
-        <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9.5px; color: #626D80; padding: 2px 5px; border: 1px solid rgba(148,163,184,0.20); border-radius: 4px;">⌘K</span>
-      </div>
-      <span style="font-size: 9.5px; color: #626D80; line-height: 1.7; margin-top: auto;">⌘J = Executive Dock（AIへの指示）、⌘K = コマンドパレット（移動・検索）。2つは統合しない。Executiveの入力欄だけがaccent罫線を持つ。</span>
-    </div>
-
-    <!-- SURFACES -->
-    <div style="display: flex; flex-direction: column; gap: 9px; padding: 14px; border-radius: 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(148,163,184,0.10);">
-      <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: 0.08em; color: #9DBBFF;">SURFACE HIERARCHY</span>
-      <div style="flex: 1; display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 8px; background-image: radial-gradient(rgba(148,163,184,0.07) 1px, transparent 1px); background-size: 18px 18px; border: 1px solid rgba(148,163,184,0.10);">
-        <span style="font-size: 9.5px; color: #626D80;">0 · Canvas（bg + dot grid）</span>
-        <div style="flex: 1; display: flex; flex-direction: column; gap: 7px; padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(148,163,184,0.10);">
-          <span style="font-size: 9.5px; color: #9AA4B8;">1 · Card（surface + 1px border）</span>
-          <div style="display: flex; flex-direction: column; gap: 5px; padding: 9px; border-radius: 7px; background: rgba(255,255,255,0.02); border: 1px solid rgba(148,163,184,0.08);">
-            <span style="font-size: 9.5px; color: #9AA4B8;">2 · Inner row / nested</span>
-          </div>
+    <!-- SIDEBAR / CREDITS -->
+    <div style="display: flex; flex-direction: column; gap: 9px; padding: 13px; border-radius: 10px; background: #0E0E10; border: 1px solid rgba(255,255,255,0.07);">
+      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">SIDEBAR / CREDITS</span>
+      <div style="display: flex; flex-direction: column; gap: 2px; padding: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.07); background: #0C0C0E;">
+        <div style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 8px; border-radius: 6px; background: rgba(255,255,255,0.06);">
+          <span style="width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.2);"></span>
+          <span style="font-size: 11px; color: #ECECEE; font-weight: 500;">Work</span>
+        </div>
+        <div style="height: 24px; display: flex; align-items: center; gap: 7px; padding: 0 8px 0 22px;">
+          <span style="width: 5px; height: 5px; border-radius: 999px; background: #3ECF6E;"></span>
+          <span style="font-size: 10.5px; color: #ECECEE;">韓国人向け日本語学習サービス</span>
+        </div>
+        <div style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 8px;">
+          <span style="width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.15);"></span>
+          <span style="font-size: 11px; color: #A0A0A8;">Inbox</span>
+          <div style="flex: 1;"></div>
+          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9.5px; color: #E8A33D;">2</span>
         </div>
       </div>
-      <span style="font-size: 9.5px; color: #626D80; line-height: 1.6;">Glass（blur+透過）はExecutive Dock・Floating・Modalのみ。コンテンツカードには使わない。影は浮遊要素のみ。</span>
+      <div style="display: flex; flex-direction: column; gap: 6px; padding: 9px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02);">
+        <div style="display: flex; align-items: baseline; gap: 8px;">
+          <span style="font-size: 10px; color: #9A9AA2;">Credits used</span>
+          <div style="flex: 1;"></div>
+          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9.5px; color: #ECECEE;">812<span style="color: #5F5F66;"> / 3,000</span></span>
+        </div>
+        <div style="height: 3px; border-radius: 2px; background: rgba(255,255,255,0.08);"><div style="width: 27%; height: 100%; border-radius: 2px; background: #3ECF6E;"></div></div>
+      </div>
+      <span style="font-size: 9.5px; color: #5F5F66; line-height: 1.7; margin-top: auto;">Icon railを廃止し、ラベル付きサイドバー 204px（Home / Inbox / Work / Tasks / Deliverables ＋ COMPANY節）。CreditsメーターはAI Run課金（§42）の常時可視化。下端に Settings ＋ ユーザーカード。</span>
+    </div>
+
+    <!-- CANVAS -->
+    <div style="display: flex; flex-direction: column; gap: 9px; padding: 13px; border-radius: 10px; background: #0E0E10; border: 1px solid rgba(255,255,255,0.07);">
+      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">CANVAS / CONNECTORS</span>
+      <div style="flex: 1; border-radius: 8px; border: 1px solid rgba(255,255,255,0.07); background-color: #070708; background-image: radial-gradient(rgba(255,255,255,0.055) 1px, transparent 1px); background-size: 20px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; padding: 10px;">
+        <div style="width: 150px; height: 30px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.10); background: #111113;"></div>
+        <div style="width: 6px; height: 6px; border-radius: 999px; border: 1px solid rgba(62,207,110,0.5); background: #070708; margin: 2px 0;"></div>
+        <div style="width: 1px; height: 10px; background: rgba(62,207,110,0.35);"></div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="display: inline-flex; align-items: center; height: 16px; padding: 0 7px; border-radius: 4px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8px; letter-spacing: 0.08em; color: #52D97F; background: rgba(62,207,110,0.08); border: 1px solid rgba(62,207,110,0.35);">B案 ★</span>
+          <span style="display: inline-flex; align-items: center; height: 16px; padding: 0 7px; border-radius: 4px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 8px; letter-spacing: 0.08em; color: #5F5F66; border: 1px solid rgba(255,255,255,0.10);">C案</span>
+        </div>
+        <div style="width: 1px; height: 10px; background: rgba(255,255,255,0.10); margin-top: 2px;"></div>
+        <div style="width: 150px; height: 30px; border-radius: 8px; border: 1px dashed rgba(255,255,255,0.14);"></div>
+      </div>
+      <span style="font-size: 9.5px; color: #5F5F66; line-height: 1.7;">ドットグリッド 20px。接続は1pxライン＋6pxポートドット。分岐ラベルはモノスペースpill（推奨のみ緑）。未来のノードは点線ゴースト＝「再計画される」の表現。ズームpillは下部中央。</span>
     </div>
 
     <!-- MOTION -->
-    <div style="display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(148,163,184,0.10);">
-      <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: 0.08em; color: #9DBBFF;">MOTION</span>
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; color: #9AA4B8; width: 56px;">120ms</span>
-        <span style="font-size: 10.5px; color: #9AA4B8;">Hover / Fade / 状態ピルの切替（in-place）</span>
-      </div>
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; color: #9AA4B8; width: 56px;">200ms</span>
-        <span style="font-size: 10.5px; color: #9AA4B8;">Panel開閉 / Normal ⇄ Split</span>
-      </div>
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; color: #9AA4B8; width: 56px;">280ms</span>
-        <span style="font-size: 10.5px; color: #9AA4B8;">Dock ⇄ Expanded / Focus遷移</span>
-      </div>
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; color: #9AA4B8; width: 56px;">400ms</span>
-        <span style="font-size: 10.5px; color: #9AA4B8;">New Work → Dock への移動（1回だけの演出）</span>
-      </div>
-      <span style="font-size: 9.5px; color: #626D80; line-height: 1.7; margin-top: auto;">意味のあるMotionのみ（状態遷移・Phase完了・Dock移動）。装飾アニメーション禁止。リストは再ソートせずその場で遷移。prefers-reduced-motion 対応。</span>
+    <div style="display: flex; flex-direction: column; gap: 8px; padding: 13px; border-radius: 10px; background: #0E0E10; border: 1px solid rgba(255,255,255,0.07);">
+      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">MOTION</span>
+      <div style="display: flex; align-items: center; gap: 8px;"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9.5px; color: #9A9AA2; width: 50px;">120ms</span><span style="font-size: 10.5px; color: #9A9AA2;">Hover / 状態ピル切替（in-place）</span></div>
+      <div style="display: flex; align-items: center; gap: 8px;"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9.5px; color: #9A9AA2; width: 50px;">200ms</span><span style="font-size: 10.5px; color: #9A9AA2;">Panel開閉 / Normal ⇄ Split</span></div>
+      <div style="display: flex; align-items: center; gap: 8px;"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9.5px; color: #9A9AA2; width: 50px;">280ms</span><span style="font-size: 10.5px; color: #9A9AA2;">Dock ⇄ Expanded / Focus遷移</span></div>
+      <div style="display: flex; align-items: center; gap: 8px;"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9.5px; color: #9A9AA2; width: 50px;">400ms</span><span style="font-size: 10.5px; color: #9A9AA2;">New Work → Dock 移動（1回だけの演出）</span></div>
+      <span style="font-size: 9.5px; color: #5F5F66; line-height: 1.7; margin-top: auto;">ノード追加はフェード＋ポートドット点灯のみ。装飾アニメーション・パララックス・グロー脈動は禁止。リストは再ソートせずその場で遷移。prefers-reduced-motion 対応。</span>
     </div>
 
-    <!-- DENSITY / RULES -->
-    <div style="display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(148,163,184,0.10);">
-      <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: 0.08em; color: #9DBBFF;">DENSITY / PRINCIPLES</span>
-      <span style="font-size: 10.5px; color: #9AA4B8;">行の高さ: リスト 40–46 / コンパクト 32 / ナビ 30</span>
-      <span style="font-size: 10.5px; color: #9AA4B8;">Nav rail 64px · Context Panel 400px（Split 50% / Focus 最大化）</span>
-      <span style="font-size: 10.5px; color: #9AA4B8;">選択 = 淡い全行ティント＋inset罫線。アクセントバー・塗りつぶしは使わない</span>
-      <div style="height: 1px; background: rgba(148,163,184,0.08); margin: 2px 0;"></div>
-      <span style="font-size: 10px; color: #626D80; line-height: 1.75;">・Chatは主役ではない — WorkspaceがProductの主役<br>・重要情報はChatだけに置かない（Approved Decisionへ）<br>・成果物はChatから分離（Deliverable）<br>・毎タスク承認は求めない — 要対応だけを上へ<br>・Advanced設定（モデル名等）は一般ユーザーから隠す</span>
+    <!-- PRINCIPLES -->
+    <div style="display: flex; flex-direction: column; gap: 8px; padding: 13px; border-radius: 10px; background: #0E0E10; border: 1px solid rgba(255,255,255,0.07);">
+      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5F66;">DENSITY / PRINCIPLES</span>
+      <span style="font-size: 10.5px; color: #9A9AA2;">Sidebar 204px · Details Panel 336px · 行の高さ 30–44</span>
+      <span style="font-size: 10.5px; color: #9A9AA2;">タブ = 白下線。選択 = white 6% ティント。色付きアクセントバー禁止</span>
+      <span style="font-size: 10.5px; color: #9A9AA2;">アバターは円ではなく角丸スクエア＋モノスペースイニシャル</span>
+      <div style="height: 1px; background: rgba(255,255,255,0.06); margin: 2px 0;"></div>
+      <span style="font-size: 10px; color: #5F5F66; line-height: 1.8;">・「AIっぽさ」の禁止事項: 青アクセント / グラデーション / グロー / 円形カラフルアバター / 絵文字<br>・WorkspaceがProductの主役 — Chatは常にDock<br>・重要情報はApproved Decisionへ構造化保存<br>・毎タスク承認は求めない — 要対応だけを上へ<br>・Advanced設定（モデル名等）は一般ユーザーから隠す</span>
     </div>
   </div>
 </div>
