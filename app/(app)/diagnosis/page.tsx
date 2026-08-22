@@ -29,7 +29,7 @@ export default function DiagnosisPage() {
   return (
     <>
       <Centre>
-        <TopBar crumb="事業の取り込み" title="診断結果" />
+        <TopBar title="診断結果" />
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 26px 112px', display: 'flex', flexDirection: 'column', gap: 28 }}>
           <span style={{ fontSize: 15, lineHeight: '25px', maxWidth: 720 }}>
             いちばん効くのは、<b>継続率を測れていないこと。</b>ここが見えないと、他の改善の効果も測れません。
@@ -89,7 +89,10 @@ export default function DiagnosisPage() {
 
       <Pane width={420} tabs={[{ label: '継続率を測れていない' }]}>
         <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', padding: '10px 18px 0' }}>
-          <span style={{ color: RED_T, fontSize: 12 }}>重い</span>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 9px', borderRadius: 6,
+            background: 'rgba(217,48,37,0.18)', color: RED_T, fontSize: 12,
+          }}>重い</span>
         </div>
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '8px 18px 0' }}>
           <span style={{ fontSize: 15, display: 'block' }}>継続率を測れていない</span>
@@ -108,10 +111,13 @@ export default function DiagnosisPage() {
           </div>
 
           <PaneHead>提案する Work</PaneHead>
-          <span style={{ fontSize: 14, display: 'block' }}>継続率を見えるようにする</span>
-          <span style={{ color: T5, fontSize: 12, display: 'block', paddingTop: 5 }}>3フェーズ · およそ3週 · AI社員2人</span>
+          {/* ここは押せるもの（下の「この Work を立てる」の対象）なので面を持てる */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5, padding: '14px 16px', borderRadius: 10, background: '#131313' }}>
+            <span style={{ fontSize: 14 }}>継続率を見えるようにする</span>
+            <span style={{ color: T5, fontSize: 12 }}>3フェーズ · およそ3週 · AI社員2人</span>
+          </div>
         </div>
-        <PaneFooter primary="この Work を立てる" secondary="あとで" />
+        <PaneFooter primary="この Work を立てる" secondary="あとで" reverse />
       </Pane>
     </>
   );

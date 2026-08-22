@@ -348,19 +348,25 @@ export function PaneError({ what, next, retry = 'もう一度' }: { what: string
 }
 
 /** 右ペインの下に貼り付く行動の行（承認する / 決定する など） */
-export function PaneFooter({ primary, secondary }: { primary: string; secondary?: string }) {
+export function PaneFooter({ primary, secondary, reverse = false }:
+  { primary: string; secondary?: string; reverse?: boolean }) {
+  const sec = secondary && (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', height: 38, padding: '0 16px', borderRadius: 8,
+      background: '#1A1A1A', border: '1px solid #2A2A2A', color: T2, whiteSpace: 'nowrap',
+    }}>{secondary}</span>
+  );
+  const pri = (
+    <span style={{
+      flex: reverse ? undefined : 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      height: 38, padding: reverse ? '0 20px' : undefined, borderRadius: 8,
+      background: BLUE, color: '#fff', whiteSpace: 'nowrap',
+    }}>{primary}</span>
+  );
   return (
     <div style={{ flexShrink: 0, display: 'flex', gap: 10, padding: 16, borderTop: '1px solid #161616' }}>
-      <span style={{
-        flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 38,
-        borderRadius: 8, background: BLUE, color: '#fff',
-      }}>{primary}</span>
-      {secondary && (
-        <span style={{
-          display: 'inline-flex', alignItems: 'center', height: 38, padding: '0 16px', borderRadius: 8,
-          background: '#1A1A1A', border: '1px solid #2A2A2A', color: T2, whiteSpace: 'nowrap',
-        }}>{secondary}</span>
-      )}
+      {/* reverse＝「小さい2つ、青が右」（採用・診断） */}
+      {reverse ? <>{sec}<div style={{ flex: 1 }} />{pri}</> : <>{pri}{sec}</>}
     </div>
   );
 }

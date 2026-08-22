@@ -142,7 +142,7 @@ export default function HirePage() {
             </div>
           ))}
         </div>
-        <PaneFooter primary="採用する" secondary="ほかの候補" />
+        <PaneFooter primary="採用する" secondary="ほかの候補" reverse />
       </Pane>
     </>
   );
