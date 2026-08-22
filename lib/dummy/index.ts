@@ -157,6 +157,34 @@ export const TASKS: Task[] = [
   { title: 'LPのコーディング',       state: '完了',    progress: 100, owner: 'e-dev',      due: '8月19日', workId: 'w-lp',       phase: '制作' },
 ];
 
+/**
+ * 右ペインに開いているタスク。**表の1行を開いた先**。
+ * 判断待ちのタスクなので、最後は「判断する」に着地する。
+ */
+export const TASK_BODY = {
+  title: '価格モデルの決定',
+  created: '3時間前',
+  fields: [
+    { icon: 'task'    as const, label: '期限',  value: '8月21日 18:00' },
+    { icon: 'check'   as const, label: '状態',  pill: '判断待ち' },
+    { icon: 'bars'    as const, label: '進捗',  bar: 90 },
+    { icon: 'team'    as const, label: '担当',  value: 'あなた' },
+    { icon: 'chat'    as const, label: '提案',  value: '戦略担当' },
+    { icon: 'work'    as const, label: 'Work',  value: '日本語学習サービス' },
+  ],
+  system: [
+    { icon: 'plus'    as const, label: '作成',     value: '3時間前' },
+    { icon: 'roadmap' as const, label: 'フェーズ', value: '2 — 戦略' },
+  ],
+  lead: '3案のうちどれで進めるかを決めてください。戦略担当は B案 ¥1,980 を推奨しています。決めた内容は以降のAI社員が必ず参照します。',
+  cols: ['案', '月額', '想定継続率'],
+  rows: [
+    { k: 'A', v: '¥980',   pct: '—' },
+    { k: 'B', v: '¥1,980', pct: '61%', on: true },
+    { k: 'C', v: '¥3,980', pct: '22%' },
+  ],
+};
+
 // ════════════════════════ 成果物 ════════════════════════
 
 /** サムネイルは中身を出す。灰色の棒は置かない */

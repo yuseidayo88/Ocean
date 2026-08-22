@@ -28,7 +28,7 @@ function NavRow({ href, label, icon, on, badge, badgeColor, live, dim }: {
   return (
     <Link href={href} style={{
       display: 'flex', alignItems: 'center', gap: 11, height: 34, padding: '0 10px',
-      borderRadius: 8, background: on ? '#232323' : undefined, color: on ? T1 : dim ? T5 : T2,
+      borderRadius: 8, background: on ? '#232323' : undefined, color: on ? T1 : dim ? T4 : T2,
     }}>
       <Icon name={icon} color={on ? T1 : dim ? '#3A3A3A' : T4} size={16} />
       <span>{label}</span>
@@ -66,11 +66,15 @@ function PopRow({ label, right, on, color, onClick }: {
 
 const Hair = () => <div style={{ height: 1, margin: '5px 8px', background: '#262626' }} />;
 
-export function Rail({ empty = false, company }: { empty?: boolean; company?: string }) {
+/** まだ何もない会社の画面。ここではレールを空の姿にする（→ docs/design/01-data-model.md 入口） */
+const EMPTY_ROUTES = ['/start', '/discovery', '/import', '/diagnosis'];
+
+export function Rail({ empty, company }: { empty?: boolean; company?: string } = {}) {
   const path = usePathname();
   const [switcher, setSwitcher] = useState(false);
   const [account, setAccount] = useState(false);
-  const name = company ?? (empty ? 'あなたの会社' : COMPANIES[0].name);
+  const blank = empty ?? EMPTY_ROUTES.some((r) => path === r || path.startsWith(r + '/'));
+  const name = company ?? (blank ? 'あなたの会社' : COMPANIES[0].name);
 
   const active = (href: string) => path === href || path.startsWith(href + '/');
 
@@ -103,9 +107,9 @@ export function Rail({ empty = false, company }: { empty?: boolean; company?: st
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
         {NAV.map((n) => (
-          <NavRow key={n.href} {...n} on={active(n.href)} dim={empty}
-                  live={n.href === '/work' && !empty}
-                  badge={empty ? undefined : n.href === '/inbox' ? '2' : n.href === '/team' ? '4' : undefined}
+          <NavRow key={n.href} {...n} on={active(n.href) || (blank && n.href === '/home')} dim={blank}
+                  live={n.href === '/work' && !blank}
+                  badge={blank ? undefined : n.href === '/inbox' ? '2' : n.href === '/team' ? '4' : undefined}
                   badgeColor={n.href === '/inbox' ? AMBER : T5} />
         ))}
       </div>
@@ -115,11 +119,11 @@ export function Rail({ empty = false, company }: { empty?: boolean; company?: st
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, height: 30, padding: '0 10px' }}>
           <span style={{ color: T5, fontSize: 12 }}>チャット</span>
           <div style={{ flex: 1 }} />
-          <Link href="/chat/new"><Icon name="plus" color={T4} size={14} /></Link>
+          {!blank && <Link href="/chat/new"><Icon name="plus" color={T4} size={14} /></Link>}
         </div>
-        {empty ? (
-          <div style={{ display: 'flex', alignItems: 'center', height: 30, padding: '0 12px' }}>
-            <span style={{ color: T5 }}>まだありません</span>
+        {blank ? (
+          <div style={{ padding: '2px 10px 0' }}>
+            <span style={{ color: '#3A3A3A', fontSize: 12 }}>まだありません</span>
           </div>
         ) : (
           <>

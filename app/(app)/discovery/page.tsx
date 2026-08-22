@@ -1,5 +1,4 @@
 import { Ask, Chips, Composer, TopBar } from '@/components/shell/Chrome';
-import { Orb } from '@/components/ui/Orb';
 import { Dot, Icon } from '@/components/ui/Icon';
 
 /** ⓪-a 条件を集める。構造で集めて、候補3つの比較へつなぐ */
@@ -19,10 +18,12 @@ export default function DiscoveryPage() {
             何をやればいいか、まだ決まっていない
           </span>
         </div>
-        <div style={{ width: '100%', maxWidth: 748, display: 'flex', gap: 13 }}>
-          <Orb color="#D2D2D2" size={26} seed={7} />
+        {/* 統括AIの発言にアバターは置かない（ChatGPT と同じ）。考えた時間は中央に小さく */}
+        <div style={{ width: '100%', maxWidth: 748, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 7 }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, color: T5, fontSize: 12 }}>
+            <span style={{
+              alignSelf: 'center', display: 'inline-flex', alignItems: 'center', gap: 7, color: T5, fontSize: 12,
+            }}>
               8秒 考えました<Icon name="chev" color={T5} size={11} />
             </span>
             <span style={{ fontSize: 15, lineHeight: '26px' }}>

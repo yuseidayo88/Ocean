@@ -44,17 +44,19 @@ export default function InboxPage() {
                     <Mark kind={n.kind} />
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-                      <span style={{ color: n.unread ? T1 : T2 }}>{n.title}</span>
+                    {/* 事実は右に並べる。タイトルの下に積まない */}
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
+                      <span style={{ color: n.unread ? T1 : T2, flexShrink: 0 }}>{n.title}</span>
+                      {n.sub && (
+                        <span style={{
+                          minWidth: 0, color: n.kind === '判断待ち' ? AMBER_T : T5, fontSize: 12.5,
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>{n.sub}</span>
+                      )}
                       <div style={{ flex: 1 }} />
                       {n.unread && <Dot color={BLUE} size={6} />}
                       <span style={{ color: T5, fontSize: 11, whiteSpace: 'nowrap' }}>{n.when}</span>
                     </div>
-                    {n.sub && (
-                      <span style={{ display: 'block', color: n.kind === '判断待ち' ? AMBER_T : T5, fontSize: 12, paddingTop: 4 }}>
-                        {n.sub}
-                      </span>
-                    )}
                     {n.children && (
                       <div style={{ display: 'flex', flexDirection: 'column', paddingTop: 8 }}>
                         {n.children.map(([c, w]) => (
@@ -87,16 +89,22 @@ export default function InboxPage() {
             戦略担当が3案を出しました。B案 ¥1,980 を推奨しています。
           </p>
           <div style={{ paddingTop: 16 }}>
-            {[['A', '¥980'], ['B', '¥1,980'], ['C', '¥3,980']].map(([k, v], i) => (
-              <div key={k} style={{
-                display: 'flex', alignItems: 'center', gap: 14, height: 40,
-                borderBottom: i === 2 ? undefined : '1px solid #161616',
-              }}>
-                <span style={{ width: 20, color: i === 1 ? T1 : T4 }}>{k}</span>
-                <span style={{ color: i === 1 ? T1 : T4 }} className="tnum">{v}</span>
-                {i === 1 && <><div style={{ flex: 1 }} /><span style={{ color: GREEN_T, fontSize: 12 }}>推奨</span></>}
-              </div>
-            ))}
+            {([['A', '¥980', 30], ['B', '¥1,980', 61], ['C', '¥3,980', 22]] as const).map(([k, v, pct], i) => {
+              const on = i === 1;
+              return (
+                <div key={k} style={{
+                  display: 'flex', alignItems: 'center', gap: 14, height: 40, padding: '0 10px', margin: '0 -10px',
+                  borderRadius: 8, borderBottom: i === 2 ? undefined : '1px solid #161616',
+                  background: on ? 'rgba(30,142,62,0.10)' : undefined,
+                }}>
+                  <span style={{ width: 16, color: on ? T1 : T4 }}>{k}</span>
+                  <span style={{ flex: 1, height: 5, borderRadius: 3, background: '#1A1A1A', overflow: 'hidden' }}>
+                    <span style={{ display: 'block', width: `${pct}%`, height: '100%', background: on ? '#1E8E3E' : '#3A3A3A' }} />
+                  </span>
+                  <span style={{ width: 56, textAlign: 'right', color: on ? T1 : T4 }} className="tnum">{v}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
         <PaneFooter primary="判断する" secondary="あとで" />

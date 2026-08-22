@@ -79,7 +79,10 @@ export default function DecisionsPage() {
                           background: o.recommended ? GREEN : '#3A3A3A',
                         }} />
                       </span>
-                      <span style={{ width: 66, flexShrink: 0, color: o.recommended ? T1 : T4 }} className="tnum">{o.value}</span>
+                      {/* ラベルと同じ値は書かない（同じことを2回言わない） */}
+                      <span style={{ width: 66, flexShrink: 0, color: o.recommended ? T1 : T4 }} className="tnum">
+                        {o.value === o.label ? '' : o.value}
+                      </span>
                       <span style={{ color: o.recommended ? GREEN_T : T5, fontSize: 12.5 }}>{o.note}</span>
                     </div>
                   ))}

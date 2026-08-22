@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Centre, Composer, EffortSlider, Pane, Section, TopBar } from '@/components/shell/Chrome';
+import { COMPOSER_H } from '@/lib/design/tokens';
 import { Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
 import { AGENT_COLOR, EMPLOYEES, HIRE_SUGGESTION, RULES, SKILLS, employee } from '@/lib/dummy';
@@ -12,6 +13,11 @@ import { AGENT_COLOR, EMPLOYEES, HIRE_SUGGESTION, RULES, SKILLS, employee } from
 
 const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
 const BLUE = '#1A73E8', AMBER_T = '#FDD663', GREEN_T = '#5BB974';
+
+/** 列の幅。**いまの担当だけ伸び縮みさせる**（右ペインが開いても列が落ちない） */
+const COLS: [string, number][] = [
+  ['AI社員', 190], ['状態', 84], ['いまの担当', 0], ['今週の稼働', 110], ['タスク', 56], ['成果物', 56],
+];
 
 const Toggle = ({ on }: { on: boolean }) => (
   <span style={{
@@ -39,6 +45,9 @@ export default function TeamPage() {
             <span style={{ color: T3 }}>在籍しているAI社員</span>
             <span style={{ color: T5, fontSize: 12 }} className="tnum">{EMPLOYEES.length}</span>
             <div style={{ flex: 1 }} />
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, color: T5, fontSize: 12 }}>
+              <Icon name="bars" color={T4} size={13} />絞り込み
+            </span>
             <Link href="/hire" style={{
               display: 'inline-flex', alignItems: 'center', gap: 7, height: 28, padding: '0 12px',
               borderRadius: 8, background: '#1A1A1A', border: '1px solid #262626', color: T2,
@@ -48,10 +57,10 @@ export default function TeamPage() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 0, height: 30, padding: '0 26px', borderBottom: '1px solid #232323' }}>
-            {[['AI社員', 210], ['状態', 92], ['いまの担当', 200], ['今週の稼働', 132], ['タスク', 64], ['成果物', 64]].map(([l, w], i) => (
+            {COLS.map(([l, w], i) => (
               <span key={l as string} style={{
-                width: w as number, flexShrink: 0, color: T5, fontSize: 11,
-                textAlign: i >= 4 ? 'right' : 'left',
+                width: (w as number) || undefined, flex: w ? undefined : 1, minWidth: 0,
+                flexShrink: 0, color: T5, fontSize: 11, textAlign: i >= 4 ? 'right' : 'left',
               }}>{l}</span>
             ))}
           </div>
@@ -64,30 +73,30 @@ export default function TeamPage() {
                 borderBottom: '1px solid #161616', background: on ? '#0C0C0C' : undefined,
                 boxShadow: on ? `inset 3px 0 0 ${AGENT_COLOR[e.color]}` : undefined,
               }}>
-                <span style={{ width: 210, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 11 }}>
+                <span style={{ width: COLS[0][1], flexShrink: 0, display: 'flex', alignItems: 'center', gap: 11 }}>
                   <Orb color={AGENT_COLOR[e.color]} size={26} seed={e.name.length * 7 + 3} dim={e.state !== '実行中'} />
                   <span style={{ display: 'flex', flexDirection: 'column' }}>
                     <span style={{ color: on ? T1 : T2 }}>{e.name}</span>
                     <span style={{ color: T5, fontSize: 11 }}>{e.role}</span>
                   </span>
                 </span>
-                <span style={{ width: 92, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 7 }}>
+                <span style={{ width: COLS[1][1], flexShrink: 0, display: 'flex', alignItems: 'center', gap: 7 }}>
                   <span style={{
                     width: 7, height: 7, borderRadius: 999,
                     background: e.state === '要確認' ? '#E37400' : '#1E8E3E',
                   }} />
                   <span style={{ color: e.state === '要確認' ? AMBER_T : T3, fontSize: 12 }}>{e.state}</span>
                 </span>
-                <span style={{ width: 200, flexShrink: 0, color: T2, fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ flex: 1, minWidth: 0, color: T2, fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {e.now}
                 </span>
-                <span style={{ width: 132, flexShrink: 0 }}>
-                  <span style={{ display: 'block', width: 108, height: 5, borderRadius: 3, background: '#1A1A1A', overflow: 'hidden' }}>
+                <span style={{ width: COLS[3][1], flexShrink: 0 }}>
+                  <span style={{ display: 'block', width: 90, height: 5, borderRadius: 3, background: '#1A1A1A', overflow: 'hidden' }}>
                     <span style={{ display: 'block', width: `${e.load}%`, height: '100%', background: '#4A4A4A' }} />
                   </span>
                 </span>
-                <span style={{ width: 64, flexShrink: 0, textAlign: 'right', color: T2 }} className="tnum">{e.tasks}</span>
-                <span style={{ width: 64, flexShrink: 0, textAlign: 'right', color: T2 }} className="tnum">{e.deliverables}</span>
+                <span style={{ width: COLS[4][1], flexShrink: 0, textAlign: 'right', color: T2 }} className="tnum">{e.tasks}</span>
+                <span style={{ width: COLS[5][1], flexShrink: 0, textAlign: 'right', color: T2 }} className="tnum">{e.deliverables}</span>
               </div>
             );
           })}
@@ -95,7 +104,7 @@ export default function TeamPage() {
           <div style={{ flex: 1 }} />
 
           {/* 統括AIからの提案。無ければこの行ごと出さない。「あとで」は置かない */}
-          <div style={{ padding: '0 26px 14px' }}>
+          <div style={{ padding: `0 26px ${COMPOSER_H + 14}px` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 9, paddingBottom: 8 }}>
               <Icon name="plus" color={T4} size={13} />
               <span style={{ color: T3 }}>統括AIからの提案</span>

@@ -45,9 +45,9 @@ function Thumb({ p }: { p: Preview }) {
         </>
       )}
       {p.kind === 'bars' && (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 6, paddingBottom: 4 }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 5, paddingBottom: 4 }}>
           {p.values.map((v, i) => (
-            <div key={i} style={{ flex: 1, height: `${v}%`, borderRadius: 2, background: i === 3 ? '#3A3A3A' : '#242424' }} />
+            <div key={i} style={{ width: 18, height: `${v}%`, borderRadius: 2, background: i === 3 ? '#3A3A3A' : '#242424' }} />
           ))}
         </div>
       )}

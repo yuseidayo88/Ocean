@@ -1,11 +1,13 @@
 'use client';
 
 import { Icon } from '@/components/ui/Icon';
+import { COMPOSER_H as TOKEN_COMPOSER_H } from '@/lib/design/tokens';
 
 const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
 const BLUE = '#1A73E8';
 
-export const COMPOSER_H = 112;
+/** 入力欄の高さ。**下に貼り付く中身はこのぶん逃がす**（→ lib/design/tokens.ts） */
+export const COMPOSER_H = TOKEN_COMPOSER_H;
 
 /**
  * トップバー。**偽の階層を作らない** — 本物の親子があるときだけ crumb を渡す。
@@ -173,7 +175,7 @@ export function Ask({ q, idx, total, options, free }: {
           <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {o.label}
-              {o.recommended && <span style={{ color: '#5BB974', fontSize: 11 }}>おすすめ</span>}
+              {o.recommended && <span style={{ color: '#5BB974', fontSize: 11 }}>推奨</span>}
             </span>
             <span style={{ color: T5, fontSize: 12 }}>{o.note}</span>
           </div>
@@ -249,22 +251,23 @@ export function EffortSlider({ pct = 58, dim = false, width }:
       const t = c / (cols - 1);
       const a = 0.2 + 0.66 * Math.pow(t, 1.35);
       cells.push(<span key={`${r}-${c}`} style={{
-        width: 2, height: 2, borderRadius: 1, background: `rgba(255,255,255,${(a * (dim ? 0.5 : 1)).toFixed(3)})`,
+        width: 3, height: 3, borderRadius: 999, background: `rgba(255,255,255,${(a * (dim ? 0.5 : 1)).toFixed(3)})`,
       }} />);
     }
   }
   return (
     <div style={{
-      position: 'relative', width: width ?? '100%', height: 34, borderRadius: 9,
-      background: '#141414', border: '1px solid #232323', overflow: 'hidden',
-      opacity: dim ? 0.72 : 1, display: 'flex', alignItems: 'center', padding: '0 8px',
+      position: 'relative', width: width ?? '100%', height: 30, boxSizing: 'border-box',
+      borderRadius: 10, background: '#121212', border: '1px solid #202020',
     }}>
-      <div style={{
-        display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 3, width: '100%',
-      }}>{cells}</div>
       <span style={{
-        position: 'absolute', left: `calc(${pct}% - 5px)`, top: 6, width: 10, height: 20,
-        borderRadius: 5, background: dim ? '#7A7A7A' : '#EDEDED',
+        position: 'absolute', inset: '5px 7px', display: 'grid',
+        gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)`,
+        alignItems: 'center', justifyItems: 'center',
+      }}>{cells}</span>
+      <span style={{
+        position: 'absolute', top: 3, bottom: 3, left: `calc(${pct}% - 13px)`, width: 22,
+        borderRadius: 8, background: dim ? '#7A7A7A' : '#EDEDED', boxShadow: '0 1px 3px rgba(0,0,0,0.5)',
       }} />
     </div>
   );

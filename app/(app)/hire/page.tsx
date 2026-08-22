@@ -30,7 +30,7 @@ export default function HirePage() {
   return (
     <>
       <Centre>
-        <TopBar crumb="メンバー" title="採用" right={<span style={{ color: T5, fontSize: 12 }}>日本語学習サービス</span>} />
+        <TopBar title="採用" right={<span style={{ color: T5, fontSize: 12 }}>日本語学習サービス</span>} />
 
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 26px 112px', display: 'flex', flexDirection: 'column', gap: 18 }}>
           <span style={{ fontSize: 15, lineHeight: '25px' }}>
@@ -50,11 +50,10 @@ export default function HirePage() {
                     <span style={{ fontSize: 17 }}>{c.name}</span>
                     {c.recommended && <span style={{ color: GREEN_T, fontSize: 11 }}>おすすめ</span>}
                     <div style={{ flex: 1 }} />
+                    {/* **青は1ペインに1つ。** ここは全部おとなしく、下の「執筆担当を採用」だけ青 */}
                     <span style={{
                       display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 15px', borderRadius: 8,
-                      background: c.recommended ? BLUE : '#1A1A1A',
-                      border: c.recommended ? undefined : '1px solid #2A2A2A',
-                      color: c.recommended ? '#fff' : T2, whiteSpace: 'nowrap',
+                      background: '#1A1A1A', border: '1px solid #2A2A2A', color: T2, whiteSpace: 'nowrap',
                     }}>採用する</span>
                   </div>
                   <span style={{ color: T5, fontSize: 11 }}>{c.en} · agency-agents 由来</span>

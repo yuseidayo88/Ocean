@@ -27,23 +27,22 @@ const You = ({ children }: { children: React.ReactNode }) => (
 );
 
 const Exec = ({ thought, children }: { thought?: string; children: React.ReactNode }) => (
-  <div style={{ width: '100%', maxWidth: 748, display: 'flex', gap: 13 }}>
-    <Orb color="#D2D2D2" size={26} seed={7} />
-    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
-      {thought && (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, color: T5, fontSize: 12 }}>
-          {thought}<Icon name="chev" color={T5} size={11} />
-        </span>
-      )}
-      {children}
-    </div>
+  <div style={{ width: '100%', maxWidth: 748, display: 'flex', flexDirection: 'column', gap: 12 }}>
+    {thought && (
+      <span style={{
+        alignSelf: 'center', display: 'inline-flex', alignItems: 'center', gap: 7, color: T5, fontSize: 12,
+      }}>
+        {thought}<Icon name="chev" color={T5} size={11} />
+      </span>
+    )}
+    {children}
   </div>
 );
 
-const OPTIONS = [
-  ['A案', '¥980',   '入りやすいが利益が薄い'],
-  ['B案', '¥1,980', '競合と同じ帯・利益が残る'],
-  ['C案', '¥3,980', '高い理由を作る必要がある'],
+const OPTIONS: [string, string, string, number][] = [
+  ['A案', '¥980',   '入りやすいが利益が薄い',   34],
+  ['B案', '¥1,980', '競合と同じ帯・利益が残る', 78],
+  ['C案', '¥3,980', '高い理由を作る必要がある', 58],
 ];
 
 export default async function ChatPage({ params }: { params: Promise<{ id: string }> }) {
@@ -88,19 +87,18 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
             韓国の競合が ₩19,900（約 ¥2,200）に集まっていて、そこが値ごろの基準になっているからです。
           </span>
 
-          {/* 比較は表で出す。文章で言い直さない */}
-          <div style={{ borderRadius: 10, background: '#0C0C0C', border: '1px solid #1C1C1C', overflow: 'hidden', marginTop: 2 }}>
-            {OPTIONS.map(([k, v, note], i) => {
+          {/* 比較は棒で。枠で囲わず、行だけ並べる */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '4px 0 2px' }}>
+            {OPTIONS.map(([k, v, note, pct], i) => {
               const hi = i === 1;
               return (
-                <div key={k} style={{
-                  display: 'flex', alignItems: 'center', gap: 16, height: 44, padding: '0 15px',
-                  borderBottom: i === OPTIONS.length - 1 ? undefined : '1px solid #161616',
-                  background: hi ? 'rgba(30,142,62,0.10)' : undefined,
-                }}>
-                  <span style={{ width: 40, color: hi ? T1 : T4 }}>{k}</span>
-                  <span style={{ width: 66, color: hi ? T1 : T4 }} className="tnum">{v}</span>
-                  <span style={{ color: hi ? T2 : T5, fontSize: 12.5 }}>{note}</span>
+                <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <span style={{ width: 40, flexShrink: 0, color: hi ? T1 : T4 }}>{k}</span>
+                  <span style={{ width: 60, flexShrink: 0, color: hi ? T1 : T4 }} className="tnum">{v}</span>
+                  <span style={{ flex: 1, height: 6, borderRadius: 3, background: '#1A1A1A', overflow: 'hidden' }}>
+                    <span style={{ display: 'block', width: `${pct}%`, height: '100%', background: hi ? '#1E8E3E' : '#3A3A3A' }} />
+                  </span>
+                  <span style={{ width: 190, flexShrink: 0, textAlign: 'right', color: hi ? T2 : T5, fontSize: 12.5 }}>{note}</span>
                 </div>
               );
             })}
