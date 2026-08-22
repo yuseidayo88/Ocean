@@ -1,6 +1,9 @@
+'use client';
+
+import { useState } from 'react';
 import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Dot, Icon, type IconName } from '@/components/ui/Icon';
-import { DECISIONS, DECISION_BODY } from '@/lib/dummy';
+import { DECISIONS, DECISION_BODY, type Decision } from '@/lib/dummy';
 
 /**
  * 決定事項＝台帳タイムライン。**追記のみ**（決め直しは新しい行＋supersedes）。
@@ -12,13 +15,16 @@ const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5
 const AMBER = '#E37400', AMBER_T = '#FDD663', GREEN = '#1E8E3E', GREEN_T = '#5BB974', BLUE = '#1A73E8';
 
 export default function DecisionsPage() {
-  const open = DECISIONS.filter((d) => d.state === '判断待ち');
+  const gates = DECISIONS.filter((d) => d.state === '判断待ち');
   const b = DECISION_BODY;
+  // 右は閉じた状態から始まる。台帳の1件を押すと、その1件が開く
+  const [open, setOpen] = useState<Decision | null>(null);
 
   return (
     <>
       <Centre>
-        <TopBar title="決定事項" right={<span style={{ color: T5, fontSize: 12 }}>日本語学習サービス</span>} />
+        <TopBar title="決定事項" onPanel={() => setOpen(open ? null : DECISIONS[0])} panelOn={!!open}
+          right={<span style={{ color: T5, fontSize: 12 }}>日本語学習サービス</span>} />
 
         <div style={{
           height: 44, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 9,
@@ -28,9 +34,9 @@ export default function DecisionsPage() {
           <span>決定事項</span>
           <span style={{ color: T5 }} className="tnum">· {DECISIONS.length}</span>
           <div style={{ flex: 1 }} />
-          {open.length > 0 && (
+          {gates.length > 0 && (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, color: AMBER_T }}>
-              <Dot color={AMBER} size={7} />判断待ち {open.length}
+              <Dot color={AMBER} size={7} />判断待ち {gates.length}
             </span>
           )}
         </div>
@@ -40,7 +46,10 @@ export default function DecisionsPage() {
             const wait = d.state === '判断待ち';
             const first = i === 0;
             return (
-              <div key={d.id} style={{ display: 'flex', gap: 16 }}>
+              <div key={d.id} className="row" onClick={() => setOpen(d)} style={{
+                display: 'flex', gap: 16, borderRadius: 8,
+                background: open?.id === d.id ? '#0B0B0B' : undefined,
+              }}>
                 {/* 左の時刻と印 */}
                 <span style={{ width: 58, flexShrink: 0, textAlign: 'right', color: T5, fontSize: 11, paddingTop: 14 }}>
                   {d.when}
@@ -105,13 +114,21 @@ export default function DecisionsPage() {
         <Composer placeholder="統括AIに指示する" />
       </Centre>
 
-      <Pane width={480} dot={AMBER} title="価格モデルの決定">
-        <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', padding: '10px 20px 0' }}>
-          <span style={{ color: AMBER_T, fontSize: 12 }}>{b.waited}</span>
-        </div>
+      {open && (
+      <Pane width={480} onClose={() => setOpen(null)}
+        dot={open.state === '判断待ち' ? AMBER : GREEN} title={open.question}>
+        {open.state === '判断待ち' && (
+          <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', padding: '10px 20px 0' }}>
+            <span style={{ color: AMBER_T, fontSize: 12 }}>{b.waited}</span>
+          </div>
+        )}
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '8px 20px 0' }}>
-          <span style={{ fontSize: 16, display: 'block' }}>価格モデルの決定</span>
-          <p style={{ color: T2, fontSize: 13.5, lineHeight: '22px', margin: '14px 0 0' }}>{b.lead}</p>
+          <span style={{ fontSize: 16, display: 'block' }}>{open.question}</span>
+          {open.chosen
+            ? <p style={{ color: T2, fontSize: 13.5, lineHeight: '22px', margin: '14px 0 0' }}>
+                <b style={{ color: T1 }}>{open.chosen}</b> に決めました。{open.basis}
+              </p>
+            : <p style={{ color: T2, fontSize: 13.5, lineHeight: '22px', margin: '14px 0 0' }}>{b.lead}</p>}
 
           <PaneHead>根拠</PaneHead>
           {b.basis.map((x, i) => (
@@ -137,8 +154,11 @@ export default function DecisionsPage() {
             </div>
           ))}
         </div>
-        <PaneFooter primary={b.primary} secondary={b.secondary} />
+        {open.state === '判断待ち'
+          ? <PaneFooter primary={b.primary} secondary={b.secondary} />
+          : <PaneFooter primary="決め直す" secondary="根拠を見る" reverse />}
       </Pane>
+      )}
     </>
   );
 }

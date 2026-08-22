@@ -1,4 +1,7 @@
-import { notFound } from 'next/navigation';
+'use client';
+
+import { useState } from 'react';
+import { notFound, useParams } from 'next/navigation';
 import { Centre, Composer, Pane, TopBar } from '@/components/shell/Chrome';
 import { Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
@@ -28,17 +31,18 @@ const MAKES: [string, string][][] = [
   [['収益モデル比較', 'フェーズ2'], ['MVP要件定義', 'フェーズ3'], ['LPと申込フォーム', 'フェーズ3']],
 ];
 
-export function generateStaticParams() { return WORKS.map((w) => ({ id: w.id })); }
 
-export default async function PlanPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default function PlanPage() {
+  const { id } = useParams<{ id: string }>();
+  // 右は閉じた状態から始まる。トップバーの板アイコンで出し入れする
+  const [pane, setPane] = useState(false);
   const w = WORKS.find((x) => x.id === id);
   if (!w) notFound();
 
   return (
     <>
       <Centre>
-        <TopBar crumb={w.title} title="計画案" />
+        <TopBar crumb={w.title} title="計画案" onPanel={() => setPane(!pane)} panelOn={pane} />
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '14px 26px 14px' }}>
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <span style={{ maxWidth: '78%', padding: '9px 16px', borderRadius: 18, background: '#24354A', color: '#DCE7F5' }}>
@@ -170,7 +174,8 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
         <Composer placeholder="直したいところを書く、@ で資料を参照" />
       </Centre>
 
-      <Pane width={440} icon="roadmap" title="この計画の根拠">
+      {pane && (
+      <Pane onClose={() => setPane(false)} width={440} icon="roadmap" title="この計画の根拠">
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 18px 0' }}>
           <span style={{ color: T3, display: 'block', paddingBottom: 3 }}>時間の使い方</span>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7, padding: '8px 0 4px' }}>
@@ -214,6 +219,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
           </div>
         </div>
       </Pane>
+      )}
     </>
   );
 }

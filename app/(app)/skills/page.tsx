@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import { Centre, Composer, Pane, TopBar } from '@/components/shell/Chrome';
 import { Icon } from '@/components/ui/Icon';
 import { Toggle } from '@/components/shell/Controls';
@@ -59,11 +62,11 @@ function Head({ label, note, actions = [] }: { label: string; note?: string; act
   );
 }
 
-function Rows({ rows }: { rows: Row[] }) {
+function Rows({ rows, onOpen }: { rows: Row[]; onOpen: (f: string) => void }) {
   return (
     <>
       {rows.map((s, i) => (
-        <div key={s.file} className="row" style={{
+        <div key={s.file} className="row" onClick={() => onOpen(s.file)} style={{
           display: 'flex', alignItems: 'center', gap: 14, padding: '17px 0',
           borderBottom: i === rows.length - 1 ? undefined : '1px solid #161616',
         }}>
@@ -86,14 +89,15 @@ function Rows({ rows }: { rows: Row[] }) {
 }
 
 export default function SkillsPage() {
+  const [open, setOpen] = useState<string | null>(null);
   return (
     <>
       <Centre>
-        <TopBar crumb="メンバー / 調査担当" title="スキル" />
+        <TopBar crumb="メンバー / 調査担当" title="スキル" onPanel={() => setOpen(open ? null : MINE[0].file)} panelOn={!!open} />
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 26px 112px', display: 'flex', flexDirection: 'column', gap: 34 }}>
           <div>
             <Head label="この社員のスキル" actions={['SKILL.md を読み込む', '新しく書く']} />
-            <Rows rows={MINE} />
+            <Rows rows={MINE} onOpen={setOpen} />
             <div style={{
               marginTop: 14, display: 'flex', flexDirection: 'column', alignItems: 'center',
               justifyContent: 'center', gap: 7, height: 104, borderRadius: 12, border: '1px dashed #262626',
@@ -106,13 +110,14 @@ export default function SkillsPage() {
 
           <div>
             <Head label="会社ぜんぶのスキル" note="全員に効きます" />
-            <Rows rows={SHARED} />
+            <Rows rows={SHARED} onOpen={setOpen} />
           </div>
         </div>
         <Composer placeholder="スキルについて統括AIに聞く" />
       </Centre>
 
-      <Pane width={440} tabs={[{ label: 'competitor-analysis.md' }]} right={<Icon name="download" color={T4} size={14} />}>
+      {open && (
+      <Pane onClose={() => setOpen(null)} width={440} tabs={[{ label: 'competitor-analysis.md' }]} right={<Icon name="download" color={T4} size={14} />}>
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 18 }}>
           <pre style={{
             margin: 0, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
@@ -127,6 +132,7 @@ export default function SkillsPage() {
           }}>保存する</span>
         </div>
       </Pane>
+      )}
     </>
   );
 }

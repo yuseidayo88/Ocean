@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Icon, type IconName } from '@/components/ui/Icon';
 
@@ -21,11 +24,12 @@ const READ: [string, string][] = [
 ];
 
 export default function ImportPage() {
+  const [open, setOpen] = useState<string | null>(null);
   const done = SOURCES.filter((s) => s.state === '完了').length;
   return (
     <>
       <Centre>
-        <TopBar title="事業の取り込み" />
+        <TopBar title="事業の取り込み" onPanel={() => setOpen(open ? null : SOURCES[0].name)} panelOn={!!open} />
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 26px 112px', display: 'flex', flexDirection: 'column', gap: 24 }}>
           <span style={{ fontSize: 15, lineHeight: '25px', maxWidth: 680 }}>
             いまの事業のことを教えてください。<b>あるものだけで構いません。</b>
@@ -51,7 +55,7 @@ export default function ImportPage() {
             {SOURCES.map((s, i) => {
               const pct = s.state === '完了' ? 100 : s.state === '読込中' ? 34 : 0;
               return (
-                <div key={s.name} className="row" style={{
+                <div key={s.name} className="row" onClick={() => setOpen(s.name)} style={{
                   display: 'flex', alignItems: 'center', gap: 14, height: 43,
                   borderBottom: i === SOURCES.length - 1 ? undefined : '1px solid #161616',
                 }}>
@@ -88,7 +92,8 @@ export default function ImportPage() {
         <Composer placeholder="取り込みについて統括AIに聞く" />
       </Centre>
 
-      <Pane width={400} icon="globe" title="nihongo-lesson.jp">
+      {open && (
+      <Pane onClose={() => setOpen(null)} width={400} icon="globe" title="nihongo-lesson.jp">
         <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', padding: '10px 18px 0' }}>
           <span style={{ color: T5, fontSize: 12 }}>読み取り</span>
         </div>
@@ -124,6 +129,7 @@ export default function ImportPage() {
           </div>
         </div>
       </Pane>
+      )}
     </>
   );
 }

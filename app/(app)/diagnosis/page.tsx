@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Icon } from '@/components/ui/Icon';
 
@@ -26,10 +29,12 @@ const FINDINGS: [string, string, string, string][] = [
 const WEIGHT: Record<string, string> = { '重い': RED_T, '中くらい': AMBER_T, '軽い': '#4A4A4A' };
 
 export default function DiagnosisPage() {
+  // 右は閉じた状態から始まる。見つかったことの1行を押すと開く
+  const [open, setOpen] = useState<string | null>(null);
   return (
     <>
       <Centre>
-        <TopBar title="診断結果" />
+        <TopBar title="診断結果" onPanel={() => setOpen(open ? null : FINDINGS[0][1])} panelOn={!!open} />
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 26px 112px', display: 'flex', flexDirection: 'column', gap: 28 }}>
           <span style={{ fontSize: 15, lineHeight: '25px', maxWidth: 720 }}>
             いちばん効くのは、<b>継続率を測れていないこと。</b>ここが見えないと、他の改善の効果も測れません。
@@ -57,7 +62,7 @@ export default function DiagnosisPage() {
               <span style={{ color: T5, fontSize: 12 }}>効きそうな順</span>
             </div>
             {FINDINGS.map(([w, title, why, next], i) => (
-              <div key={title} className="row" style={{
+              <div key={title} className="row" onClick={() => setOpen(title)} style={{
                 display: 'flex', alignItems: 'center', gap: 14, padding: '13px 0',
                 borderBottom: i === FINDINGS.length - 1 ? undefined : '1px solid #161616',
               }}>
@@ -87,7 +92,8 @@ export default function DiagnosisPage() {
         <Composer placeholder="診断について統括AIに聞く" />
       </Centre>
 
-      <Pane width={420} icon="dec" title="継続率を測れていない">
+      {open && (
+      <Pane onClose={() => setOpen(null)} width={420} icon="dec" title="継続率を測れていない">
         <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', padding: '10px 18px 0' }}>
           <span style={{
             display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 9px', borderRadius: 6,
@@ -119,6 +125,7 @@ export default function DiagnosisPage() {
         </div>
         <PaneFooter primary="この Work を立てる" secondary="あとで" reverse />
       </Pane>
+      )}
     </>
   );
 }

@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import { Composer, Pane, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Centre } from '@/components/shell/Chrome';
 import { Icon } from '@/components/ui/Icon';
@@ -30,10 +33,11 @@ const CANDS = [
 ];
 
 export default function DiscoveryResultPage() {
+  const [open, setOpen] = useState<string | null>(null);
   return (
     <>
       <Centre>
-        <TopBar title="候補" />
+        <TopBar title="候補" onPanel={() => setOpen(open ? null : CANDS[0].title)} panelOn={!!open} />
 
         {/* 集めた条件は上に貼る。答え終わったものだけ */}
         <div style={{
@@ -61,7 +65,7 @@ export default function DiscoveryResultPage() {
               強調したい1つだけ左に色帯と薄い面を敷く */}
           <div>
             {CANDS.map((c, n) => (
-              <div key={c.title} className="row" style={{
+              <div key={c.title} className="row" onClick={() => setOpen(c.title)} style={{
                 position: 'relative', display: 'flex', gap: 20, alignItems: 'center',
                 padding: c.rec ? '20px 20px 20px 22px' : '20px 20px 20px 22px',
                 background: c.rec ? 'rgba(30,142,62,0.05)' : undefined,
@@ -104,7 +108,8 @@ export default function DiscoveryResultPage() {
         <Composer placeholder="候補について統括AIに聞く" />
       </Centre>
 
-      <Pane width={420} icon="dec" title="この案をすすめる理由">
+      {open && (
+      <Pane onClose={() => setOpen(null)} width={420} icon="dec" title="この案をすすめる理由">
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 18px 0' }}>
           <span style={{ fontSize: 15, display: 'block' }}>韓国人向け 日本語学習サービス</span>
           <div style={{ paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -128,6 +133,7 @@ export default function DiscoveryResultPage() {
           ))}
         </div>
       </Pane>
+      )}
     </>
   );
 }

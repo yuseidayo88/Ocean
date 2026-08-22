@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
 import { Centre, Composer, Pane, Section, TopBar } from '@/components/shell/Chrome';
 import { EffortPick, ModelPick, Toggle } from '@/components/shell/Controls';
@@ -22,14 +25,16 @@ const COLS: [string, number][] = [
 
 
 export default function TeamPage() {
-  const sel = employee('e-research');
+  // 右は閉じた状態から始まる。社員の行を押すと、その社員の設定が開く
+  const [openId, setOpenId] = useState<string | null>(null);
+  const sel = openId ? employee(openId) : null;
   const mine = SKILLS.filter((s) => s.scope === 'employee');
   const shared = SKILLS.filter((s) => s.scope === 'company');
 
   return (
     <>
       <Centre>
-        <TopBar title="メンバー" />
+        <TopBar title="メンバー" onPanel={() => setOpenId(openId ? null : EMPLOYEES[0].id)} panelOn={!!openId} />
         <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '18px 0 0' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: '0 26px 12px' }}>
             <span style={{ color: T3 }}>在籍しているAI社員</span>
@@ -57,9 +62,9 @@ export default function TeamPage() {
           </div>
 
           {EMPLOYEES.map((e) => {
-            const on = e.id === sel.id;
+            const on = e.id === openId;
             return (
-              <div key={e.id} className={on ? 'hit' : 'row'} style={{
+              <div key={e.id} className={on ? 'hit' : 'row'} onClick={() => setOpenId(e.id)} style={{
                 display: 'flex', alignItems: 'center', height: 54, padding: '0 26px',
                 borderBottom: '1px solid #161616', background: on ? '#0C0C0C' : undefined,
                 boxShadow: on ? `inset 3px 0 0 ${AGENT_COLOR[e.color]}` : undefined,
@@ -120,7 +125,8 @@ export default function TeamPage() {
       </Centre>
 
       {/* AI社員の設定。道具（capabilities）は社長に触らせない */}
-      <Pane width={430} icon="gear" title="AI社員の設定">
+      {sel && (
+      <Pane width={430} icon="gear" title="AI社員の設定" onClose={() => setOpenId(null)}>
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 18px 24px', display: 'flex', flexDirection: 'column', gap: 26 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
             <Orb color={AGENT_COLOR[sel.color]} size={44} seed={sel.name.length * 7 + 3} />
@@ -183,6 +189,7 @@ export default function TeamPage() {
           </div>
         </div>
       </Pane>
+      )}
     </>
   );
 }

@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
@@ -26,11 +29,12 @@ const DETAIL = {
 };
 
 export default function HirePage() {
+  const [open, setOpen] = useState<string | null>(null);
   const top = HIRE_CANDIDATES[0];
   return (
     <>
       <Centre>
-        <TopBar title="採用" right={<span style={{ color: T5, fontSize: 12 }}>日本語学習サービス</span>} />
+        <TopBar title="採用" onPanel={() => setOpen(open ? null : top.id)} panelOn={!!open} right={<span style={{ color: T5, fontSize: 12 }}>日本語学習サービス</span>} />
 
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 26px 112px', display: 'flex', flexDirection: 'column', gap: 18 }}>
           <span style={{ fontSize: 15, lineHeight: '25px' }}>
@@ -41,7 +45,7 @@ export default function HirePage() {
               強調したい1つだけ薄い面を敷く */}
           <div>
             {HIRE_CANDIDATES.map((c, n) => (
-              <div key={c.id} className="row" style={{
+              <div key={c.id} className="row" onClick={() => setOpen(c.id)} style={{
                 display: 'flex', gap: 16, padding: '17px 18px', boxSizing: 'border-box',
                 background: c.recommended ? '#0B0B0B' : undefined,
                 borderBottom: n === HIRE_CANDIDATES.length - 1 ? undefined : '1px solid #161616',
@@ -96,7 +100,8 @@ export default function HirePage() {
         <Composer placeholder="採用について統括AIに聞く" />
       </Centre>
 
-      <Pane width={420} icon="team" title="候補の詳細">
+      {open && (
+      <Pane onClose={() => setOpen(null)} width={420} icon="team" title="候補の詳細">
         <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', padding: '10px 18px 0' }}>
           <span style={{ color: T5, fontSize: 12 }}>未採用</span>
         </div>
@@ -144,6 +149,7 @@ export default function HirePage() {
         </div>
         <PaneFooter primary="採用する" secondary="ほかの候補" reverse />
       </Pane>
+      )}
     </>
   );
 }

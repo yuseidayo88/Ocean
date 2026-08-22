@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import { Centre, Composer, Pane, PaneFooter, TopBar } from '@/components/shell/Chrome';
 import { Diamond, Dot, Icon } from '@/components/ui/Icon';
 import { DECISION_BODY, NOTICE_GROUPS } from '@/lib/dummy';
@@ -19,13 +22,14 @@ function Mark({ kind }: { kind: string }) {
 }
 
 export default function InboxPage() {
+  const [open, setOpen] = useState<string | null>(null);
   const unread = NOTICE_GROUPS.flatMap((g) => g.items).filter((n) => n.unread).length;
   const b = DECISION_BODY;
 
   return (
     <>
       <Centre>
-        <TopBar title="通知" right={
+        <TopBar title="通知" onPanel={() => setOpen(open ? null : NOTICE_GROUPS[0].items[0].id)} panelOn={!!open} right={
           unread > 0 ? <span style={{ color: T5, fontSize: 12 }} className="tnum">未読 {unread}</span> : undefined
         } />
 
@@ -36,7 +40,7 @@ export default function InboxPage() {
                 <span style={{ color: T5, fontSize: 12 }}>{g.label}</span>
               </div>
               {g.items.map((n) => (
-                <div key={n.id} className="row" style={{
+                <div key={n.id} className="row" onClick={() => setOpen(n.id)} style={{
                   display: 'flex', gap: 13, padding: '13px 0 13px 12px', borderBottom: '1px solid #161616',
                   borderLeft: `2px solid ${n.unread ? BLUE : 'transparent'}`,
                 }}>
@@ -79,7 +83,8 @@ export default function InboxPage() {
         <Composer placeholder="統括AIに聞く" />
       </Centre>
 
-      <Pane width={420} dot={AMBER} title="価格モデルの決定">
+      {open && (
+      <Pane onClose={() => setOpen(null)} width={420} dot={AMBER} title="価格モデルの決定">
         <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', padding: '10px 18px 0' }}>
           <span style={{ color: AMBER_T, fontSize: 12 }}>{b.waited}</span>
         </div>
@@ -109,6 +114,7 @@ export default function InboxPage() {
         </div>
         <PaneFooter primary="判断する" secondary="あとで" />
       </Pane>
+      )}
     </>
   );
 }

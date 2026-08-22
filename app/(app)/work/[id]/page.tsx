@@ -1,5 +1,8 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { Centre, Composer, Pane, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Diamond, Dot, Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
@@ -47,12 +50,10 @@ const PhaseMark = ({ state }: { state: 'done' | 'now' | 'next' }) => {
   return <span style={{ width: 9, height: 9, borderRadius: 999, border: '1px dashed #3A3A3A' }} />;
 };
 
-export function generateStaticParams() {
-  return WORKS.map((w) => ({ id: w.id }));
-}
-
-export default async function WorkPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default function WorkPage() {
+  const { id } = useParams<{ id: string }>();
+  // 右は閉じた状態から始まる。トップバーの板アイコンで出し入れする
+  const [pane, setPane] = useState(false);
   const w = WORKS.find((x) => x.id === id);
   if (!w) notFound();
 
@@ -64,7 +65,7 @@ export default async function WorkPage({ params }: { params: Promise<{ id: strin
   return (
     <>
       <Centre>
-        <TopBar crumb="Work" title={w.title} right={
+        <TopBar crumb="Work" title={w.title} onPanel={() => setPane(!pane)} panelOn={pane} right={
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
             <Dot color={late ? '#D93025' : GREEN} size={7} />
             <span style={{ color: late ? RED_T : GREEN_T, fontSize: 12 }}>
@@ -199,7 +200,8 @@ export default async function WorkPage({ params }: { params: Promise<{ id: strin
         <Composer placeholder="この Work について統括AIに相談する" />
       </Centre>
 
-      <Pane width={400} icon="work" title="この Work について">
+      {pane && (
+      <Pane onClose={() => setPane(false)} width={400} icon="work" title="この Work について">
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 18px 24px' }}>
           <PaneHead top>最新の状況</PaneHead>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '4px 0 8px' }}>
@@ -252,6 +254,7 @@ export default async function WorkPage({ params }: { params: Promise<{ id: strin
           })}
         </div>
       </Pane>
+      )}
     </>
   );
 }

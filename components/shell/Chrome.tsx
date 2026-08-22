@@ -14,16 +14,19 @@ export const COMPOSER_H = TOKEN_COMPOSER_H;
  * トップバー。**偽の階層を作らない** — 本物の親子があるときだけ crumb を渡す。
  * それ以外は画面の名前ひとつ。日付や時刻は出さない（OS が出している）。
  */
-export function TopBar({ crumb, title, right }:
-  { crumb?: string; title: string; right?: React.ReactNode }) {
+export function TopBar({ crumb, title, right, onPanel, panelOn }:
+  { crumb?: string; title: string; right?: React.ReactNode; onPanel?: () => void; panelOn?: boolean }) {
   return (
     <div style={{
       height: 46, flexShrink: 0, boxSizing: 'border-box', display: 'flex', alignItems: 'center',
       gap: 10, padding: '0 18px 0 14px', borderBottom: '1px solid #161616',
     }}>
-      <span className="icob" style={{ display: 'inline-flex', padding: 5, marginLeft: -3 }}>
-        <Icon name="panel" color={T4} size={15} />
-      </span>
+      {/* 右ペインの出し入れ。閉じたら端に何も残さないので、戻り道はここ */}
+      <button onClick={onPanel} disabled={!onPanel} title={panelOn ? '右を閉じる' : '右を開く'}
+              className={onPanel ? 'icob' : undefined}
+              style={{ display: 'inline-flex', padding: 5, marginLeft: -3, cursor: onPanel ? 'pointer' : 'default' }}>
+        <Icon name="panel" color={panelOn ? T2 : T4} size={15} />
+      </button>
       <Icon name="back" color="#3A3A3A" size={14} />
       <Icon name="fwd" color="#3A3A3A" size={14} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 4 }}>
@@ -117,32 +120,19 @@ export function Composer({ placeholder, mode = '統括AI', effort = '自動', ab
  *
  * 全部をタブの見た目にすると、撤去したはずの「ブラウザの真似」が小さく戻ってくる。
  */
-export function Pane({ width = 430, title, icon, dot, tabs, right, children }: {
+export function Pane({ width = 430, title, icon, dot, tabs, right, onClose, children }: {
   width?: number;
   title?: string; icon?: IconName; dot?: string;
   tabs?: { label: string; dot?: string }[];
   right?: React.ReactNode;
+  onClose?: () => void;
   children: React.ReactNode;
 }) {
-  const [open, setOpen] = useState(true);
   const [tab, setTab] = useState(0);
-
-  // 閉じたら、戻すつまみだけ細く残す（消えたまま戻せないのがいちばん困る）
-  if (!open) {
-    return (
-      <button onClick={() => setOpen(true)} title={title ?? tabs?.[tab]?.label} style={{
-        width: 40, flexShrink: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
-        paddingTop: 15, background: '#000', borderLeft: '1px solid #161616',
-      }} className="icob">
-        <Icon name="panel" color={T4} size={15} />
-      </button>
-    );
-  }
-
   return (
     <div style={{
       width, flexShrink: 0, boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
-      background: '#000', minHeight: 0,
+      background: '#000', minHeight: 0, borderLeft: '1px solid #161616',
     }}>
       <div style={{
         height: 46, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6,
@@ -161,7 +151,7 @@ export function Pane({ width = 430, title, icon, dot, tabs, right, children }: {
                 {t.label}
                 {i === tab && (
                   <span role="button" tabIndex={0} className="icob"
-                        onClick={(e) => { e.stopPropagation(); setOpen(false); }}
+                        onClick={(e) => { e.stopPropagation(); onClose?.(); }}
                         style={{ display: 'inline-flex', padding: 2, marginRight: -3 }}>
                     <Icon name="close" color={T5} size={11} />
                   </span>
@@ -175,11 +165,13 @@ export function Pane({ width = 430, title, icon, dot, tabs, right, children }: {
           <>
             {icon && <Icon name={icon} color={T4} size={14} />}
             {dot && <span style={{ width: 7, height: 7, borderRadius: 999, background: dot }} />}
-            <span style={{ color: T2, fontSize: 12.5 }}>{title}</span>
+            <span style={{ color: T2, fontSize: 12.5, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {title}
+            </span>
             <div style={{ flex: 1 }} />
             {right}
-            <button onClick={() => setOpen(false)} className="icob" title="閉じる"
-                    style={{ display: 'inline-flex', padding: 5, marginRight: -5 }}>
+            <button onClick={onClose} className="icob" title="閉じる"
+                    style={{ display: 'inline-flex', padding: 5, marginRight: -5, flexShrink: 0 }}>
               <Icon name="close" color={T5} size={13} />
             </button>
           </>
@@ -193,11 +185,10 @@ export function Pane({ width = 430, title, icon, dot, tabs, right, children }: {
 }
 
 /** 中央のペイン */
-export function Centre({ children, border = true }: { children: React.ReactNode; border?: boolean }) {
+export function Centre({ children }: { children: React.ReactNode; border?: boolean }) {
   return (
     <div style={{
-      flex: 1, minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column',
-      background: '#000', borderRight: border ? '1px solid #232323' : undefined,
+      flex: 1, minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column', background: '#000',
     }}>{children}</div>
   );
 }

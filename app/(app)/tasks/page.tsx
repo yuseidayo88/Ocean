@@ -1,6 +1,9 @@
+'use client';
+
+import { useState } from 'react';
 import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Diamond, Dot, Icon, type IconName } from '@/components/ui/Icon';
-import { TASKS, TASK_BODY, employee, work, type State } from '@/lib/dummy';
+import { TASKS, TASK_BODY, employee, work, type State, type Task } from '@/lib/dummy';
 
 /**
  * タスク＝ふつうの1枚の表（参考: Linear）。**Workごとにグループ分けしない**
@@ -24,13 +27,17 @@ function Mark({ s }: { s: State }) {
 }
 
 export default function TasksPage() {
-  const open = TASKS.filter((t) => t.state !== '完了').length;
+  const todo = TASKS.filter((t) => t.state !== '完了').length;
   const gates = TASKS.filter((t) => t.state === '判断待ち').length;
+  // **右は閉じた状態から始まる。** 行を押すと、その行のぶんだけ開く
+  const [open, setOpen] = useState<Task | null>(null);
 
   return (
     <>
     <Centre>
-      <TopBar title="タスク" right={
+      <TopBar title="タスク"
+        onPanel={() => setOpen(open ? null : TASKS[0])} panelOn={!!open}
+        right={
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: AMBER_T, fontSize: 12 }}>
           <Dot color={AMBER} size={7} />判断待ち <span className="tnum">{gates}</span>
         </span>
@@ -39,7 +46,7 @@ export default function TasksPage() {
       <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: '18px 26px 112px' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, paddingBottom: 12 }}>
           <span style={{ color: T3 }}>やること</span>
-          <span style={{ color: T5, fontSize: 12 }} className="tnum">{open}件</span>
+          <span style={{ color: T5, fontSize: 12 }} className="tnum">{todo}件</span>
           <div style={{ flex: 1 }} />
           <span className="btn" style={{
             display: 'inline-flex', alignItems: 'center', gap: 7, height: 26, padding: '0 8px',
@@ -63,9 +70,9 @@ export default function TasksPage() {
             const done = t.state === '完了';
             const who = t.owner === 'me' ? 'あなた' : employee(t.owner).name;
             return (
-              <div key={t.title} className="row" style={{
+              <div key={t.title} className="row" onClick={() => setOpen(t)} style={{
                 display: 'flex', alignItems: 'center', gap: 12, height: 42, borderBottom: '1px solid #161616',
-                background: t.title === TASK_BODY.title ? '#0C0C0C' : undefined,
+                background: t.title === open?.title ? '#0C0C0C' : undefined,
               }}>
                 <span style={{ width: W.mark, flexShrink: 0, display: 'inline-flex', justifyContent: 'center' }}>
                   <Mark s={t.state} />
@@ -98,16 +105,37 @@ export default function TasksPage() {
       <Composer placeholder="統括AIに頼む" />
     </Centre>
 
-    <TaskPane />
+    {open && <TaskPane t={open} onClose={() => setOpen(null)} />}
     </>
   );
 }
 
-/** 表の1行を開いた先。判断待ちなので、最後は「判断する」に着地する */
-function TaskPane() {
+/**
+ * 表の1行を開いた先。**押した行のものを出す。**
+ * フィールドとシステムはどの行にもあるが、案の比較は判断待ちの行にしかない。
+ */
+function TaskPane({ t, onClose }: { t: Task; onClose: () => void }) {
   const b = TASK_BODY;
+  const gate = t.state === '判断待ち';
+  const who = t.owner === 'me' ? 'あなた' : employee(t.owner).name;
+  const barColor = gate || t.state === '要確認' ? AMBER : t.state === '完了' ? '#1E8E3E' : '#6E6E6E';
+  const fields = [
+    { icon: 'task' as const, label: '期限', value: t.due },
+    { icon: 'check' as const, label: '状態', pill: t.state },
+    { icon: 'bars' as const, label: '進捗', bar: t.progress },
+    { icon: 'team' as const, label: '担当', value: who },
+    { icon: 'work' as const, label: 'Work', value: work(t.workId).title },
+  ];
+  // 値のない行は出さない（「—」で埋めない）
+  const system = [
+    ...(gate ? [{ icon: 'plus' as const, label: '作成', value: b.created }] : []),
+    { icon: 'roadmap' as const, label: 'フェーズ', value: t.phase },
+  ];
   return (
-    <Pane width={420} dot={AMBER} title={b.title} right={<span style={{ color: T5, fontSize: 11 }}>{b.created}に作成</span>}>
+    <Pane width={420} onClose={onClose}
+      dot={gate || t.state === '要確認' ? AMBER : t.state === '完了' ? '#1E8E3E' : '#5F5F5F'}
+      title={t.title}
+      right={gate ? <span style={{ color: T5, fontSize: 11, whiteSpace: 'nowrap' }}>{b.created}に作成</span> : undefined}>
       {/* 1つのタスクの中の行き先。**開いた文書ではない**ので、タブではなく選ぶ列 */}
       <div style={{ flexShrink: 0, display: 'flex', gap: 4, padding: '10px 16px 0' }}>
         {(['概要', '履歴', '資料'] as const).map((t, i) => (
@@ -122,18 +150,20 @@ function TaskPane() {
 
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '14px 18px 20px' }}>
         <PaneHead top>フィールド</PaneHead>
-        {b.fields.map((f) => (
+        {fields.map((f) => (
           <Row key={f.label} icon={f.icon} label={f.label}>
             {'pill' in f && f.pill && (
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 9px', borderRadius: 6,
-                background: 'rgba(227,116,0,0.18)', color: AMBER_T, fontSize: 12,
-              }}>{f.pill}</span>
+              gate || f.pill === '要確認' ? (
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 9px', borderRadius: 6,
+                  background: 'rgba(227,116,0,0.18)', color: AMBER_T, fontSize: 12,
+                }}>{f.pill}</span>
+              ) : <span style={{ color: T1, fontSize: 12.5 }}>{f.pill}</span>
             )}
             {'bar' in f && f.bar !== undefined && (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
                 <span style={{ display: 'block', width: 74, height: 4, borderRadius: 2, background: '#1A1A1A' }}>
-                  <span style={{ display: 'block', width: `${f.bar}%`, height: '100%', borderRadius: 2, background: AMBER }} />
+                  <span style={{ display: 'block', width: `${f.bar}%`, height: '100%', borderRadius: 2, background: barColor }} />
                 </span>
                 <span style={{ color: T1, fontSize: 12.5 }} className="tnum">{f.bar}%</span>
               </span>
@@ -143,12 +173,13 @@ function TaskPane() {
         ))}
 
         <PaneHead>システム</PaneHead>
-        {b.system.map((f) => (
+        {system.map((f) => (
           <Row key={f.label} icon={f.icon} label={f.label}>
             <span style={{ color: T1, fontSize: 12.5 }}>{f.value}</span>
           </Row>
         ))}
 
+        {gate && <>
         <PaneHead>内容</PaneHead>
         <span style={{ display: 'block', color: T3, fontSize: 12.5, lineHeight: '21px', padding: '4px 0 16px' }}>
           {b.lead}
@@ -170,8 +201,9 @@ function TaskPane() {
             <span style={{ color: r.on ? GREEN_T : T5, fontSize: 12.5 }} className="tnum">{r.pct}</span>
           </div>
         ))}
+        </>}
       </div>
-      <PaneFooter primary="判断する" secondary="表示" />
+      <PaneFooter primary={gate ? '判断する' : '開く'} secondary="表示" />
     </Pane>
   );
 }

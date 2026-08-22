@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Dot, Icon } from '@/components/ui/Icon';
 import { DELIVERABLES, DELIVERABLE_BODY, employee, type Preview } from '@/lib/dummy';
@@ -56,6 +59,7 @@ function Thumb({ p }: { p: Preview }) {
 }
 
 export default function DeliverablesPage() {
+  const [open, setOpen] = useState<string | null>(null);
   const need = DELIVERABLES.filter((d) => d.state === '要確認').length;
   const b = DELIVERABLE_BODY;
   const top = DELIVERABLES.find((d) => d.id === b.id)!;
@@ -63,7 +67,7 @@ export default function DeliverablesPage() {
   return (
     <>
       <Centre>
-        <TopBar title="成果物" right={<span style={{ color: T5, fontSize: 12 }}>日本語学習サービス</span>} />
+        <TopBar title="成果物" onPanel={() => setOpen(open ? null : DELIVERABLES[0].id)} panelOn={!!open} right={<span style={{ color: T5, fontSize: 12 }}>日本語学習サービス</span>} />
 
         <div style={{
           height: 44, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 9,
@@ -84,9 +88,10 @@ export default function DeliverablesPage() {
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '16px 16px 112px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
             {DELIVERABLES.map((d) => (
-              <div key={d.id} className="card" style={{
+              <div key={d.id} className="card" onClick={() => setOpen(d.id)} style={{
                 boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 11,
-                padding: 12, borderRadius: 12, background: '#121212', border: '1px solid transparent',
+                padding: 12, borderRadius: 12, background: '#121212',
+                border: `1px solid ${open === d.id ? '#333' : 'transparent'}`,
               }}>
                 <Thumb p={d.preview} />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
@@ -113,7 +118,8 @@ export default function DeliverablesPage() {
         <Composer placeholder="統括AIに指示する" />
       </Centre>
 
-      <Pane width={480} tabs={[{ label: top.title, dot: AMBER }, { label: '市場調査レポート v2', dot: '#1E8E3E' }]}>
+      {open && (
+      <Pane onClose={() => setOpen(null)} width={480} tabs={[{ label: top.title, dot: AMBER }, { label: '市場調査レポート v2', dot: '#1E8E3E' }]}>
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 20px 0' }}>
           <span style={{ fontSize: 16, display: 'block' }}>{top.title}</span>
           <span style={{ color: T5, fontSize: 12, display: 'block', paddingTop: 5 }}>
@@ -162,6 +168,7 @@ export default function DeliverablesPage() {
         </div>
         <PaneFooter primary="承認する" secondary="修正を依頼" />
       </Pane>
+      )}
     </>
   );
 }
