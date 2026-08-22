@@ -47,7 +47,7 @@ erDiagram
 | `status` | text | `draft / planning / plan_review / active / paused / done / archived` |
 | `current_phase_id` | uuid | null 可 |
 | `budget_tokens` | int | この Work に使ってよい上限。null なら会社の残高まで |
-| `origin_id` / `origin_kind` | uuid / text | 昇格して切り出された元（`phase` or `errand`）（→ [06](./06-work-and-scope.md)） |
+| `origin_phase_id` | uuid | 昇格して切り出された元のフェーズ（→ [06](./06-work-and-scope.md)） |
 | `created_at, started_at, done_at` | timestamptz | |
 
 `phases`: `id, work_id, seq, name, goal, status, planned_tokens, promoted_to_work_id, started_at, done_at`
@@ -58,8 +58,8 @@ erDiagram
 | 列 | 型 | 意味 |
 |---|---|---|
 | `id, account_id` | uuid | |
-| `work_id, phase_id` | uuid | **nullable**。両方 null なら用事（→ [06](./06-work-and-scope.md)） |
-| `kind` | text | `work_task` / `errand` |
+| `work_id` | uuid | **NOT NULL**。すべてのタスクは Work に属する（→ [06](./06-work-and-scope.md)） |
+| `phase_id` | uuid | nullable。Work 直下のタスクを許す |
 | `title` | text | |
 | `intent` | text | 統括AIが社員に渡す依頼文（画面には出さない） |
 | `status` | text | `queued / running / needs_decision / blocked / done / failed / cancelled` |
@@ -219,7 +219,7 @@ Mindtrip / ChatGPT（リストの下にスキップ）。
 4. **タスクは `needs_decision` のあいだ、絶対に自動で先へ進まない**
 5. **すべての状態遷移は `audit_events` に1行残る。** 画面に出ている状態は必ず根拠を辿れる
 6. 業種・職種・フェーズ名を**コードに埋め込まない**
-7. **タスクは `kind='work_task'`（`work_id` と `phase_id` を持つ）か `kind='errand'`（どちらも null）のどちらかで、中間の状態を取らない**（→ [06](./06-work-and-scope.md)）
+7. **すべてのタスクは Work に属する**（`tasks.work_id` NOT NULL。用事は廃止 → [06](./06-work-and-scope.md)）
 8. **Work は入れ子にしない。** 階層は Work → フェーズ → タスク の3段で固定
 9. **候補は消さない。** `discovery_candidates` は採用しなかったものも残す。
    「なぜその道を選んだか」は、選ばなかった道と並べて初めて意味になる

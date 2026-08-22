@@ -42,6 +42,7 @@ psql "$DATABASE_URL" -f supabase/migrations/0001_init.sql
 psql "$DATABASE_URL" -f supabase/migrations/0002_entry_chat_ledger.sql
 psql "$DATABASE_URL" -f supabase/migrations/0003_rls.sql
 psql "$DATABASE_URL" -f supabase/migrations/0004_notes.sql
+psql "$DATABASE_URL" -f supabase/migrations/0005_drop_errands.sql
 ```
 
 `0003` は RLS と、不変条件をデータベース側で守るためのトリガを入れます。
@@ -57,11 +58,15 @@ PostgREST に公開されないので、`/rest/v1/rpc/` から呼ばれません
 ユーザーではなく `accounts` にぶら下がっています。
 → `docs/design/05-tech-and-cost.md` 判断ログ
 
+`0005` は**用事（errand）を廃止**します。`tasks.kind` と `works.origin_kind` を落とし、
+`tasks.work_id` を NOT NULL にします。小さい頼みごとは、いまある Work の中のタスクになります。
+→ `docs/design/06-work-and-scope.md` 判断ログ
+
 ### データベース側で守っていること
 
 | 不変条件 | 守り方 |
 |---|---|
-| 用事は `work_id` を持たない / work_task は必ず持つ | check 制約 `task_kind_shape` |
+| すべてのタスクは Work に属する | `tasks.work_id` NOT NULL（用事は 0005 で廃止） |
 | 担当が社員なら社員IDが要る | check 制約 `task_assignee_shape` |
 | 決定事項は追記のみ | トリガ `decisions_append_only` |
 | 進捗は導出値。直接書けない | トリガ `tasks_progress_is_derived`<br>（列単位の revoke は表単位の権限があると効かない） |
