@@ -164,7 +164,7 @@ export function Progress() {
         {WORKS.map((w, i) => <Lane key={w.id} w={w} last={i === WORKS.length - 1} />)}
 
         {/* 完了した Work は下に溜めない */}
-        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12, height: 42 }}>
+        <div className="row" style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12, height: 42, borderRadius: 7, padding: '0 8px', margin: '0 -8px' }}>
           <span style={{ color: T4 }}>完了した Work</span>
           <span style={{ color: T5, fontSize: 12 }} className="tnum">{DONE_WORKS}件</span>
           <div style={{ flex: 1 }} />

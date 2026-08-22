@@ -103,8 +103,8 @@ export default async function WorkPage({ params }: { params: Promise<{ id: strin
           <div>
             <span style={{ color: T3, display: 'block', paddingBottom: 8 }}>フェーズ</span>
             {w.phases.map((p, i) => (
-              <div key={p.name} style={{
-                display: 'flex', alignItems: 'center', gap: 14, height: 46,
+              <div key={p.name} className="row" style={{
+                display: 'flex', alignItems: 'center', gap: 14, height: 46, borderRadius: 7,
                 borderBottom: i === w.phases.length - 1 ? undefined : '1px solid #161616',
               }}>
                 <span style={{ width: 16, flexShrink: 0, display: 'inline-flex', justifyContent: 'center' }}>
@@ -135,8 +135,8 @@ export default async function WorkPage({ params }: { params: Promise<{ id: strin
           <div>
             <span style={{ color: T3, display: 'block', paddingBottom: 8 }}>いま動いているもの</span>
             {live.map((t, i) => (
-              <div key={t.title} style={{
-                display: 'flex', alignItems: 'center', gap: 12, height: 44,
+              <div key={t.title} className="row" style={{
+                display: 'flex', alignItems: 'center', gap: 12, height: 44, borderRadius: 7,
                 borderBottom: i === live.length - 1 ? undefined : '1px solid #161616',
               }}>
                 <span style={{ width: 14, flexShrink: 0, display: 'inline-flex', justifyContent: 'center' }}>
@@ -162,12 +162,12 @@ export default async function WorkPage({ params }: { params: Promise<{ id: strin
             <div style={{ display: 'flex', alignItems: 'baseline', paddingBottom: 8 }}>
               <span style={{ color: T3 }}>成果物</span>
               <div style={{ flex: 1 }} />
-              <Link href="/deliverables" style={{ color: T5, fontSize: 12 }}>すべて表示 ›</Link>
+              <Link href="/deliverables" className="lnk" style={{ color: T5, fontSize: 12 }}>すべて表示 ›</Link>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 28 }}>
               {dels.map((d, i) => (
-                <div key={d.id} style={{
-                  display: 'flex', alignItems: 'center', gap: 13, height: 56,
+                <div key={d.id} className="row" style={{
+                  display: 'flex', alignItems: 'center', gap: 13, height: 56, borderRadius: 7,
                   borderBottom: i >= dels.length - 2 ? undefined : '1px solid #161616',
                 }}>
                   {/* サムネイルだけは面と枠を持てる */}

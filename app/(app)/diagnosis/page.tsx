@@ -57,7 +57,7 @@ export default function DiagnosisPage() {
               <span style={{ color: T5, fontSize: 12 }}>効きそうな順</span>
             </div>
             {FINDINGS.map(([w, title, why, next], i) => (
-              <div key={title} style={{
+              <div key={title} className="row" style={{
                 display: 'flex', alignItems: 'center', gap: 14, padding: '13px 0',
                 borderBottom: i === FINDINGS.length - 1 ? undefined : '1px solid #161616',
               }}>
@@ -78,7 +78,7 @@ export default function DiagnosisPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <span style={{ color: T3, fontSize: 13 }}>上の3つから Work を立てます</span>
             <div style={{ flex: 1 }} />
-            <span style={{
+            <span className="solid" style={{
               display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px',
               borderRadius: 8, background: BLUE, color: '#fff',
             }}>この3つを始める</span>

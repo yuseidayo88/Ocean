@@ -49,7 +49,7 @@ export default function DiscoveryResultPage() {
           ))}
           <span style={{ color: '#3A3A3A', fontSize: 11 }}>期限 未定</span>
           <div style={{ flex: 1 }} />
-          <span style={{ color: T4, fontSize: 12 }}>条件を変える</span>
+          <span className="lnk" style={{ color: T4, fontSize: 12 }}>条件を変える</span>
         </div>
 
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 26px 112px' }}>
@@ -61,7 +61,7 @@ export default function DiscoveryResultPage() {
               強調したい1つだけ左に色帯と薄い面を敷く */}
           <div>
             {CANDS.map((c, n) => (
-              <div key={c.title} style={{
+              <div key={c.title} className="row" style={{
                 position: 'relative', display: 'flex', gap: 20, alignItems: 'center',
                 padding: c.rec ? '20px 20px 20px 22px' : '20px 20px 20px 22px',
                 background: c.rec ? 'rgba(30,142,62,0.05)' : undefined,
@@ -89,7 +89,7 @@ export default function DiscoveryResultPage() {
                     </div>
                   ))}
                 </div>
-                <span style={{
+                <span className={c.rec ? 'solid' : 'btn'} style={{
                   flexShrink: 0, display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px',
                   borderRadius: 8, whiteSpace: 'nowrap',
                   background: c.rec ? BLUE : undefined,

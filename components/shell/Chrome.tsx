@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef, useState } from 'react';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { COMPOSER_H as TOKEN_COMPOSER_H } from '@/lib/design/tokens';
 
@@ -20,7 +21,9 @@ export function TopBar({ crumb, title, right }:
       height: 46, flexShrink: 0, boxSizing: 'border-box', display: 'flex', alignItems: 'center',
       gap: 10, padding: '0 18px 0 14px', borderBottom: '1px solid #161616',
     }}>
-      <Icon name="panel" color={T4} size={15} />
+      <span className="icob" style={{ display: 'inline-flex', padding: 5, marginLeft: -3 }}>
+        <Icon name="panel" color={T4} size={15} />
+      </span>
       <Icon name="back" color="#3A3A3A" size={14} />
       <Icon name="fwd" color="#3A3A3A" size={14} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 4 }}>
@@ -44,6 +47,7 @@ export function TopBar({ crumb, title, right }:
  */
 export function Composer({ placeholder, mode = '統括AI', effort = '自動', above, floating = true }:
   { placeholder: string; mode?: string; effort?: string; above?: React.ReactNode; floating?: boolean }) {
+  const [text, setText] = useState('');
   const wrap: React.CSSProperties = floating
     ? {
         position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 5, boxSizing: 'border-box',
@@ -56,27 +60,45 @@ export function Composer({ placeholder, mode = '統括AI', effort = '自動', ab
   return (
     <div style={wrap}>
       {above}
-      <div style={{
+      <div className="field" style={{
         width: '100%', maxWidth: 748, boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
         gap: 12, padding: '13px 14px 11px 16px', borderRadius: 18,
         background: '#141414', border: '1px solid #2A2A2A',
       }}>
-        <span style={{ color: T5, fontSize: 14 }}>{placeholder}</span>
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onInput={(e) => { const t = e.currentTarget; t.style.height = '0px'; t.style.height = `${Math.min(t.scrollHeight, 168)}px`; }}
+          placeholder={placeholder}
+          rows={1}
+          style={{
+            width: '100%', resize: 'none', background: 'none', border: 'none', outline: 'none',
+            color: T1, fontSize: 14, lineHeight: '22px', maxHeight: 168, overflowY: 'auto',
+          }}
+        />
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <Icon name="plus" color={T4} size={16} />
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: T2 }}>
-            {mode}<Icon name="down" color={T4} size={12} />
+          <span className="icob" style={{ width: 26, height: 26, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="plus" color={T4} size={16} />
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: T2 }}>
-            <Icon name="bars" color={T4} size={13} />{effort}
-          </span>
+          <span className="btn" style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6, height: 26, padding: '0 8px',
+            borderRadius: 7, color: T2,
+          }}>{mode}<Icon name="down" color={T4} size={12} /></span>
+          <span className="btn" style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6, height: 26, padding: '0 8px',
+            borderRadius: 7, color: T2,
+          }}><Icon name="bars" color={T4} size={13} />{effort}</span>
           <div style={{ flex: 1 }} />
-          <span style={{
-            width: 30, height: 30, borderRadius: 999, background: BLUE,
+          {/* **書いていないときは送れない。** 押せないものを押せる顔にしない */}
+          <button disabled={!text.trim()} className={text.trim() ? 'solid' : undefined} style={{
+            width: 30, height: 30, borderRadius: 999, flexShrink: 0,
+            background: text.trim() ? BLUE : '#242424',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            cursor: text.trim() ? 'pointer' : 'default',
+            transition: 'background-color .14s ease',
           }}>
-            <Icon name="up" color="#fff" size={16} width={1.8} />
-          </span>
+            <Icon name="up" color={text.trim() ? '#fff' : '#5F5F5F'} size={16} width={1.8} />
+          </button>
         </div>
       </div>
     </div>
@@ -102,6 +124,21 @@ export function Pane({ width = 430, title, icon, dot, tabs, right, children }: {
   right?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const [open, setOpen] = useState(true);
+  const [tab, setTab] = useState(0);
+
+  // 閉じたら、戻すつまみだけ細く残す（消えたまま戻せないのがいちばん困る）
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)} title={title ?? tabs?.[tab]?.label} style={{
+        width: 40, flexShrink: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+        paddingTop: 15, background: '#000', borderLeft: '1px solid #161616',
+      }} className="icob">
+        <Icon name="panel" color={T4} size={15} />
+      </button>
+    );
+  }
+
   return (
     <div style={{
       width, flexShrink: 0, boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
@@ -114,18 +151,25 @@ export function Pane({ width = 430, title, icon, dot, tabs, right, children }: {
         {tabs ? (
           <>
             {tabs.map((t, i) => (
-              <span key={t.label} style={{
+              <button key={t.label} onClick={() => setTab(i)} className={i === tab ? undefined : 'btn'} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8, height: 28, padding: '0 11px',
-                borderRadius: 8, background: i === 0 ? '#1C1C1C' : undefined,
-                color: i === 0 ? T1 : T4, fontSize: 12.5,
+                borderRadius: 8, background: i === tab ? '#1C1C1C' : undefined,
+                color: i === tab ? T1 : T4, fontSize: 12.5,
+                transition: 'background-color .12s ease, color .12s ease',
               }}>
                 {t.dot && <span style={{ width: 7, height: 7, borderRadius: 999, background: t.dot }} />}
                 {t.label}
-                {i === 0 && <Icon name="close" color={T5} size={11} />}
-              </span>
+                {i === tab && (
+                  <span role="button" tabIndex={0} className="icob"
+                        onClick={(e) => { e.stopPropagation(); setOpen(false); }}
+                        style={{ display: 'inline-flex', padding: 2, marginRight: -3 }}>
+                    <Icon name="close" color={T5} size={11} />
+                  </span>
+                )}
+              </button>
             ))}
             <div style={{ flex: 1 }} />
-            {right ?? <Icon name="plus" color={T4} size={14} />}
+            {right ?? <span className="icob" style={{ display: 'inline-flex', padding: 4 }}><Icon name="plus" color={T4} size={14} /></span>}
           </>
         ) : (
           <>
@@ -134,7 +178,10 @@ export function Pane({ width = 430, title, icon, dot, tabs, right, children }: {
             <span style={{ color: T2, fontSize: 12.5 }}>{title}</span>
             <div style={{ flex: 1 }} />
             {right}
-            <Icon name="close" color={T5} size={13} />
+            <button onClick={() => setOpen(false)} className="icob" title="閉じる"
+                    style={{ display: 'inline-flex', padding: 5, marginRight: -5 }}>
+              <Icon name="close" color={T5} size={13} />
+            </button>
           </>
         )}
       </div>
@@ -187,13 +234,17 @@ export function Ask({ q, idx, total, options, free }: {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px 10px' }}>
         <span style={{ color: T1, fontSize: 14 }}>{q}</span>
         <div style={{ flex: 1 }} />
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: T5, fontSize: 12 }}>
-          <Icon name="back" color={T5} size={12} />{idx} / {total}<Icon name="fwd" color={T5} size={12} />
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: T5, fontSize: 12 }}>
+          <span className="icob" style={{ display: 'inline-flex', padding: 3 }}><Icon name="back" color={T5} size={12} /></span>
+          <span className="tnum" style={{ padding: '0 2px' }}>{idx} / {total}</span>
+          <span className="icob" style={{ display: 'inline-flex', padding: 3 }}><Icon name="fwd" color={T5} size={12} /></span>
         </span>
-        <Icon name="close" color={T5} size={13} />
+        <span className="icob" style={{ display: 'inline-flex', padding: 4, marginRight: -2 }}>
+          <Icon name="close" color={T5} size={13} />
+        </span>
       </div>
       {options.map((o, i) => (
-        <div key={o.label} style={{
+        <div key={o.label} className="row" style={{
           display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px',
           borderTop: '1px solid #1B1B1B',
         }}>
@@ -210,7 +261,7 @@ export function Ask({ q, idx, total, options, free }: {
           </div>
         </div>
       ))}
-      <div style={{
+      <div className="row" style={{
         display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderTop: '1px solid #1B1B1B',
       }}>
         <span style={{ width: 20, display: 'inline-flex', justifyContent: 'center', flexShrink: 0 }}>
@@ -218,7 +269,7 @@ export function Ask({ q, idx, total, options, free }: {
         </span>
         <span style={{ color: T3 }}>{free}</span>
         <div style={{ flex: 1 }} />
-        <span style={{ color: T5, fontSize: 12 }}>スキップ</span>
+        <span className="lnk" style={{ color: T5, fontSize: 12 }}>スキップ</span>
       </div>
     </div>
   );
@@ -258,10 +309,10 @@ export function Pills({ items, active, onPick }: {
       {items.map((it) => {
         const on = it.key === active;
         return (
-          <button key={it.key} onClick={() => onPick(it.key)} style={{
+          <button key={it.key} onClick={() => onPick(it.key)} className={on ? undefined : 'btn'} style={{
             display: 'inline-flex', alignItems: 'center', gap: 8, height: 32, padding: '0 15px',
             borderRadius: 999, background: on ? '#2A2A2A' : undefined, color: on ? T1 : T4,
-            whiteSpace: 'nowrap',
+            whiteSpace: 'nowrap', transition: 'background-color .12s ease, color .12s ease',
           }}>
             {it.icon}{it.label}
           </button>
@@ -272,9 +323,27 @@ export function Pills({ items, active, onPick }: {
 }
 
 /** 思考の深さ = スライダー（自動のときは沈める） */
-export function EffortSlider({ pct = 58, dim = false, width }:
-  { pct?: number; dim?: boolean; width?: number }) {
+export function EffortSlider({ pct = 58, dim = false, width, onChange }:
+  { pct?: number; dim?: boolean; width?: number; onChange?: (v: number) => void }) {
   const cols = 46, rows = 5;
+  const [val, setVal] = useState(pct);
+  const box = useRef<HTMLDivElement>(null);
+  const live = onChange ? val : pct;
+
+  // つまめる。自動のときは沈めたまま動かさない
+  const move = (clientX: number) => {
+    const el = box.current;
+    if (!el || !onChange) return;
+    const r = el.getBoundingClientRect();
+    const v = Math.round(Math.min(100, Math.max(0, ((clientX - r.left - 11) / (r.width - 22)) * 100)));
+    setVal(v); onChange(v);
+  };
+  const drag = (e: React.PointerEvent) => {
+    if (!onChange) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    move(e.clientX);
+  };
+
   const cells: React.ReactNode[] = [];
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -286,18 +355,23 @@ export function EffortSlider({ pct = 58, dim = false, width }:
     }
   }
   return (
-    <div style={{
-      position: 'relative', width: width ?? '100%', height: 30, boxSizing: 'border-box',
-      borderRadius: 10, background: '#121212', border: '1px solid #202020',
-    }}>
+    <div ref={box}
+      onPointerDown={drag}
+      onPointerMove={(e) => { if (e.buttons === 1) move(e.clientX); }}
+      style={{
+        position: 'relative', width: width ?? '100%', height: 30, boxSizing: 'border-box',
+        borderRadius: 10, background: '#121212', border: '1px solid #202020',
+        cursor: onChange ? 'ew-resize' : 'default', touchAction: 'none',
+      }}>
       <span style={{
         position: 'absolute', inset: '5px 7px', display: 'grid',
         gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)`,
-        alignItems: 'center', justifyItems: 'center',
+        alignItems: 'center', justifyItems: 'center', pointerEvents: 'none',
       }}>{cells}</span>
       <span style={{
-        position: 'absolute', top: 3, bottom: 3, left: `calc(${pct}% - 13px)`, width: 22,
+        position: 'absolute', top: 3, bottom: 3, left: `calc(${live}% - 13px)`, width: 22,
         borderRadius: 8, background: dim ? '#7A7A7A' : '#EDEDED', boxShadow: '0 1px 3px rgba(0,0,0,0.5)',
+        transition: onChange ? undefined : 'left .14s ease', pointerEvents: 'none',
       }} />
     </div>
   );
@@ -337,7 +411,7 @@ export function PaneEmpty({ title, lead, action }: { title: string; lead: string
       <span style={{ color: T2, fontSize: 14 }}>{title}</span>
       <span style={{ color: T5, fontSize: 12.5, lineHeight: '20px', maxWidth: 260 }}>{lead}</span>
       {action && (
-        <span style={{
+        <span className="btn" style={{
           marginTop: 6, display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 14px',
           borderRadius: 8, background: '#1A1A1A', border: '1px solid #2A2A2A', color: T2, fontSize: 12.5,
         }}>{action}</span>
@@ -380,13 +454,13 @@ export function PaneError({ what, next, retry = 'もう一度' }: { what: string
 export function PaneFooter({ primary, secondary, reverse = false }:
   { primary: string; secondary?: string; reverse?: boolean }) {
   const sec = secondary && (
-    <span style={{
+    <span className="btn" style={{
       display: 'inline-flex', alignItems: 'center', height: 38, padding: '0 16px', borderRadius: 8,
       background: '#1A1A1A', border: '1px solid #2A2A2A', color: T2, whiteSpace: 'nowrap',
     }}>{secondary}</span>
   );
   const pri = (
-    <span style={{
+    <span className="solid" style={{
       flex: reverse ? undefined : 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       height: 38, padding: reverse ? '0 20px' : undefined, borderRadius: 8,
       background: BLUE, color: '#fff', whiteSpace: 'nowrap',

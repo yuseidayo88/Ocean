@@ -41,7 +41,10 @@ export default function TasksPage() {
           <span style={{ color: T3 }}>やること</span>
           <span style={{ color: T5, fontSize: 12 }} className="tnum">{open}件</span>
           <div style={{ flex: 1 }} />
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, color: T5, fontSize: 12 }}>
+          <span className="btn" style={{
+            display: 'inline-flex', alignItems: 'center', gap: 7, height: 26, padding: '0 8px',
+            borderRadius: 7, color: T5, fontSize: 12,
+          }}>
             <Icon name="bars" color={T4} size={13} />絞り込み
           </span>
         </div>
@@ -60,7 +63,7 @@ export default function TasksPage() {
             const done = t.state === '完了';
             const who = t.owner === 'me' ? 'あなた' : employee(t.owner).name;
             return (
-              <div key={t.title} style={{
+              <div key={t.title} className="row" style={{
                 display: 'flex', alignItems: 'center', gap: 12, height: 42, borderBottom: '1px solid #161616',
                 background: t.title === TASK_BODY.title ? '#0C0C0C' : undefined,
               }}>
@@ -108,7 +111,7 @@ function TaskPane() {
       {/* 1つのタスクの中の行き先。**開いた文書ではない**ので、タブではなく選ぶ列 */}
       <div style={{ flexShrink: 0, display: 'flex', gap: 4, padding: '10px 16px 0' }}>
         {(['概要', '履歴', '資料'] as const).map((t, i) => (
-          <span key={t} style={{
+          <span key={t} className={i === 0 ? 'hit' : 'btn'} style={{
             display: 'inline-flex', alignItems: 'center', gap: 7, height: 28, padding: '0 11px',
             borderRadius: 8, background: i === 0 ? '#1A1A1A' : undefined, color: i === 0 ? T1 : T4, fontSize: 12.5,
           }}>
@@ -157,7 +160,7 @@ function TaskPane() {
           <span style={{ color: T5, fontSize: 11 }}>{b.cols[2]}</span>
         </div>
         {b.rows.map((r) => (
-          <div key={r.k} style={{
+          <div key={r.k} className="row" style={{
             display: 'flex', alignItems: 'center', gap: 12, height: 35, padding: '0 9px', margin: '0 -9px',
             borderRadius: 7, borderTop: '1px solid #161616',
             background: r.on ? 'rgba(30,142,62,0.10)' : undefined,

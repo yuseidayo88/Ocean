@@ -25,7 +25,7 @@ export default function StartPage() {
         <Composer placeholder="やりたいことを、そのまま書いてください" floating={false} />
         <div style={{ display: 'flex', gap: 14, width: '100%', maxWidth: 748 }}>
           {CHOICES.map((c) => (
-            <Link key={c.href} href={c.href} style={{
+            <Link key={c.href} href={c.href} className="card" style={{
               flex: 1, display: 'flex', alignItems: 'center', gap: 14, padding: '15px 18px',
               borderRadius: 12, background: '#0B0B0B', border: '1px solid #1C1C1C',
             }}>

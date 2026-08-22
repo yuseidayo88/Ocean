@@ -36,7 +36,7 @@ export default function InboxPage() {
                 <span style={{ color: T5, fontSize: 12 }}>{g.label}</span>
               </div>
               {g.items.map((n) => (
-                <div key={n.id} style={{
+                <div key={n.id} className="row" style={{
                   display: 'flex', gap: 13, padding: '13px 0 13px 12px', borderBottom: '1px solid #161616',
                   borderLeft: `2px solid ${n.unread ? BLUE : 'transparent'}`,
                 }}>
@@ -60,7 +60,7 @@ export default function InboxPage() {
                     {n.children && (
                       <div style={{ display: 'flex', flexDirection: 'column', paddingTop: 8 }}>
                         {n.children.map(([c, w]) => (
-                          <div key={c} style={{ display: 'flex', alignItems: 'center', gap: 10, height: 28 }}>
+                          <div key={c} className="row" style={{ display: 'flex', alignItems: 'center', gap: 10, height: 28, borderRadius: 6, padding: '0 6px', margin: '0 -6px' }}>
                             <Dot color="#2E2E2E" size={5} />
                             <span style={{ color: T3, fontSize: 12.5 }}>{c}</span>
                             <div style={{ flex: 1 }} />

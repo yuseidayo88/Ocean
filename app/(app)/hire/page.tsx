@@ -41,7 +41,7 @@ export default function HirePage() {
               強調したい1つだけ薄い面を敷く */}
           <div>
             {HIRE_CANDIDATES.map((c, n) => (
-              <div key={c.id} style={{
+              <div key={c.id} className="row" style={{
                 display: 'flex', gap: 16, padding: '17px 18px', boxSizing: 'border-box',
                 background: c.recommended ? '#0B0B0B' : undefined,
                 borderBottom: n === HIRE_CANDIDATES.length - 1 ? undefined : '1px solid #161616',
@@ -53,7 +53,7 @@ export default function HirePage() {
                     {c.recommended && <span style={{ color: GREEN_T, fontSize: 11 }}>おすすめ</span>}
                     <div style={{ flex: 1 }} />
                     {/* **青は1ペインに1つ。** ここは全部おとなしく、下の「執筆担当を採用」だけ青 */}
-                    <span style={{
+                    <span className="btn" style={{
                       display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 15px', borderRadius: 8,
                       background: 'transparent', border: '1px solid #262626', color: T3, whiteSpace: 'nowrap',
                     }}>採用する</span>
@@ -86,7 +86,7 @@ export default function HirePage() {
               {top.name}を入れれば、フェーズ3はこの4人で回ります
             </span>
             <div style={{ flex: 1 }} />
-            <span style={{
+            <span className="solid" style={{
               display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px',
               borderRadius: 8, background: BLUE, color: '#fff', whiteSpace: 'nowrap',
             }}>{top.name}を採用</span>

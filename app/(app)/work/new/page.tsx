@@ -23,8 +23,8 @@ export default function NewWorkPage() {
         <div style={{ width: '100%', maxWidth: 748, display: 'flex', flexDirection: 'column', paddingTop: 8 }}>
           <span style={{ color: T5, fontSize: 11, paddingBottom: 6 }}>いま動いている仕事から</span>
           {SUGGEST.map(([t, sub], i) => (
-            <div key={t} style={{
-              display: 'flex', alignItems: 'center', gap: 12, height: 48,
+            <div key={t} className="row" style={{
+              display: 'flex', alignItems: 'center', gap: 12, height: 48, borderRadius: 7,
               borderBottom: i === SUGGEST.length - 1 ? undefined : '1px solid #161616',
             }}>
               {/* どこから来た提案かは**右に列として**並べる。タイトルの下に積まない */}

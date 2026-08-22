@@ -84,9 +84,9 @@ export default function DeliverablesPage() {
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '16px 16px 112px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
             {DELIVERABLES.map((d) => (
-              <div key={d.id} style={{
+              <div key={d.id} className="card" style={{
                 boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 11,
-                padding: 12, borderRadius: 12, background: '#121212',
+                padding: 12, borderRadius: 12, background: '#121212', border: '1px solid transparent',
               }}>
                 <Thumb p={d.preview} />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
@@ -135,7 +135,7 @@ export default function DeliverablesPage() {
             {b.table.rows.map((r, i) => {
               const hi = i === b.table.hi;
               return (
-                <div key={r[0]} style={{
+                <div key={r[0]} className="row" style={{
                   display: 'flex', alignItems: 'center', height: 45, padding: '0 10px', margin: '0 -10px',
                   borderRadius: 8, borderBottom: i === b.table.rows.length - 1 ? undefined : '1px solid #161616',
                   background: hi ? 'rgba(30,142,62,0.10)' : undefined,

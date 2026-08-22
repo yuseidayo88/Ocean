@@ -128,7 +128,7 @@ export function Desk() {
             const wait = l.state === '要確認';
             const last = n === LANES.length - 1 && idle.length === 0;
             return (
-              <div key={l.id} style={{
+              <div key={l.id} className="hit" style={{
                 width: LANE_W, flexShrink: 0, boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
                 padding: '2px 15px 10px 0', marginRight: last ? 0 : 15,
                 borderRight: last ? undefined : '1px solid #161616',

@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Centre, Composer, EffortSlider, Pane, Section, TopBar } from '@/components/shell/Chrome';
+import { Centre, Composer, Pane, Section, TopBar } from '@/components/shell/Chrome';
+import { EffortPick, ModelPick, Toggle } from '@/components/shell/Controls';
 import { COMPOSER_H } from '@/lib/design/tokens';
 import { Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
@@ -19,17 +20,6 @@ const COLS: [string, number][] = [
   ['AI社員', 190], ['状態', 84], ['いまの担当', 0], ['今週の稼働', 110], ['タスク', 56], ['成果物', 56],
 ];
 
-const Toggle = ({ on }: { on: boolean }) => (
-  <span style={{
-    width: 34, height: 20, borderRadius: 999, background: on ? BLUE : '#2A2A2A',
-    display: 'inline-flex', alignItems: 'center', padding: 2, flexShrink: 0,
-  }}>
-    <span style={{
-      width: 16, height: 16, borderRadius: 999, background: '#fff',
-      marginLeft: on ? 14 : 0, transition: 'margin-left .12s',
-    }} />
-  </span>
-);
 
 export default function TeamPage() {
   const sel = employee('e-research');
@@ -45,10 +35,11 @@ export default function TeamPage() {
             <span style={{ color: T3 }}>在籍しているAI社員</span>
             <span style={{ color: T5, fontSize: 12 }} className="tnum">{EMPLOYEES.length}</span>
             <div style={{ flex: 1 }} />
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, color: T5, fontSize: 12 }}>
-              <Icon name="bars" color={T4} size={13} />絞り込み
-            </span>
-            <Link href="/hire" style={{
+            <span className="btn" style={{
+              display: 'inline-flex', alignItems: 'center', gap: 7, height: 26, padding: '0 8px',
+              borderRadius: 7, color: T5, fontSize: 12,
+            }}><Icon name="bars" color={T4} size={13} />絞り込み</span>
+            <Link href="/hire" className="btn" style={{
               display: 'inline-flex', alignItems: 'center', gap: 7, height: 28, padding: '0 12px',
               borderRadius: 8, background: '#1A1A1A', border: '1px solid #262626', color: T2,
             }}>
@@ -68,7 +59,7 @@ export default function TeamPage() {
           {EMPLOYEES.map((e) => {
             const on = e.id === sel.id;
             return (
-              <div key={e.id} style={{
+              <div key={e.id} className={on ? 'hit' : 'row'} style={{
                 display: 'flex', alignItems: 'center', height: 54, padding: '0 26px',
                 borderBottom: '1px solid #161616', background: on ? '#0C0C0C' : undefined,
                 boxShadow: on ? `inset 3px 0 0 ${AGENT_COLOR[e.color]}` : undefined,
@@ -109,7 +100,7 @@ export default function TeamPage() {
               <Icon name="plus" color={T4} size={13} />
               <span style={{ color: T3 }}>統括AIからの提案</span>
               <div style={{ flex: 1 }} />
-              <Link href="/hire" style={{ color: T4, fontSize: 12 }}>ほかの候補を見る ›</Link>
+              <Link href="/hire" className="lnk" style={{ color: T4, fontSize: 12 }}>ほかの候補を見る ›</Link>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <Orb color={AGENT_COLOR.cyan} size={26} seed={11} />
@@ -118,7 +109,7 @@ export default function TeamPage() {
                 <span style={{ color: T5, fontSize: 11 }}>{HIRE_SUGGESTION.reason}</span>
               </div>
               <div style={{ flex: 1 }} />
-              <span style={{
+              <span className="solid" style={{
                 display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 14px',
                 borderRadius: 8, background: BLUE, color: '#fff',
               }}>採用する</span>
@@ -145,7 +136,7 @@ export default function TeamPage() {
             </span>
           }>
             {[...mine, ...shared].map((s, i) => (
-              <div key={s.id} style={{
+              <div key={s.id} className="row" style={{
                 display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0',
                 borderBottom: i === SKILLS.length - 1 ? undefined : '1px solid #161616',
               }}>
@@ -177,38 +168,15 @@ export default function TeamPage() {
             ))}
           </Section>
 
-          <Section label="モデル" right={
-            <span style={{ display: 'inline-flex', gap: 2, padding: 2, borderRadius: 8, background: '#141414', border: '1px solid #232323' }}>
-              <span style={{ padding: '3px 10px', borderRadius: 6, background: '#262626', color: T1, fontSize: 12 }}>自動</span>
-              <span style={{ padding: '3px 10px', borderRadius: 6, color: T4, fontSize: 12 }}>手動</span>
-            </span>
-          }>
-            <div style={{ display: 'flex', alignItems: 'baseline', paddingTop: 4 }}>
-              <span style={{ color: T3, fontSize: 12.5 }}>自動で 標準 を選んでいます</span>
-              <div style={{ flex: 1 }} />
-              <span style={{ color: T5, fontSize: 12 }}>Sonnet 5</span>
-            </div>
-          </Section>
+          <ModelPick />
 
-          <Section label="思考の深さ" right={
-            <span style={{ display: 'inline-flex', gap: 2, padding: 2, borderRadius: 8, background: '#141414', border: '1px solid #232323' }}>
-              <span style={{ padding: '3px 10px', borderRadius: 6, background: '#262626', color: T1, fontSize: 12 }}>自動</span>
-              <span style={{ padding: '3px 10px', borderRadius: 6, color: T4, fontSize: 12 }}>手動</span>
-            </span>
-          }>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0 6px' }}>
-              <span style={{ color: T5, fontSize: 11 }}>速い</span>
-              <span style={{ color: T5, fontSize: 11 }}>深い</span>
-            </div>
-            <EffortSlider pct={58} dim />
-            <span style={{ color: T3, fontSize: 12.5, paddingTop: 8 }}>自動で 中 を選んでいます</span>
-          </Section>
+          <EffortPick />
 
           {/* 保存ボタンは置かない。一時停止は保存ではないので最後の行に */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 2 }}>
             <span style={{ color: T3 }}>この社員を一時停止する</span>
             <div style={{ flex: 1 }} />
-            <span style={{
+            <span className="btn" style={{
               display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px',
               borderRadius: 8, border: '1px solid #2A2A2A', color: T3, fontSize: 12,
             }}>一時停止</span>

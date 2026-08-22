@@ -163,7 +163,7 @@ export function Office() {
       </div>
 
       {people.map(({ x, y, e, dim }, i) => (
-        <div key={e.id} style={{
+        <div key={e.id} className="hit" style={{
           position: 'absolute', left: x, top: y, transform: 'translate(-50%, -50%)',
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
           animation: dim ? undefined : `drift 6.5s ease-in-out ${(i * 1.4).toFixed(1)}s infinite`,
@@ -178,12 +178,12 @@ export function Office() {
         position: 'absolute', left: 10, top: 10, display: 'flex', alignItems: 'center', gap: 4,
         padding: 5, borderRadius: 12, background: '#101010', border: '1px solid #262626',
       }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, height: 28, padding: '0 10px', color: '#8B8B8B', fontSize: 12 }}>
+        <span className="hit" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, height: 28, padding: '0 10px', color: '#8B8B8B', fontSize: 12 }}>
           <Icon name="search" color={T4} size={13} />100%
         </span>
         <span style={{ width: 1, height: 16, background: '#242424' }} />
         {(['plus', 'minus', 'expand'] as const).map((n, i) => (
-          <span key={n} style={{
+          <span key={n} className={i === 2 ? 'hit' : 'icob'} style={{
             width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             borderRadius: 8, background: i === 2 ? '#1C1C1C' : undefined,
           }}><Icon name={n} color={i === 2 ? T2 : T4} size={14} /></span>

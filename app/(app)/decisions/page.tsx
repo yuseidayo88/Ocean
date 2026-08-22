@@ -62,7 +62,7 @@ export default function DecisionsPage() {
                     <div style={{ flex: 1 }} />
                     {wait ? (
                       first
-                        ? <span style={{
+                        ? <span className="solid" style={{
                             display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 14px',
                             borderRadius: 8, background: BLUE, color: '#fff',
                           }}>確認する</span>
@@ -71,7 +71,7 @@ export default function DecisionsPage() {
                   </div>
 
                   {d.options && d.options.map((o) => (
-                    <div key={o.label} style={{ display: 'flex', alignItems: 'center', gap: 14, height: 41 }}>
+                    <div key={o.label} className={d.state === '判断待ち' ? 'row' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 14, height: 41, borderRadius: 7, padding: '0 8px', margin: '0 -8px' }}>
                       <span style={{ width: 40, flexShrink: 0, color: o.recommended ? T1 : T4 }}>{o.label}</span>
                       <span style={{ width: 116, flexShrink: 0, height: 5, borderRadius: 3, background: '#1A1A1A', overflow: 'hidden' }}>
                         <span style={{

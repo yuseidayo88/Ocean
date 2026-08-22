@@ -1,5 +1,6 @@
 import { Centre, Composer, Pane, TopBar } from '@/components/shell/Chrome';
 import { Icon } from '@/components/ui/Icon';
+import { Toggle } from '@/components/shell/Controls';
 
 /**
  * スキル ＝ SKILL.md のファイル管理（参考: Base44 の Knowledge files）。
@@ -38,14 +39,6 @@ description: 競合を並べて比較するとき。
 ## この会社での注意
 - 韓国市場では、韓国語のストア評価も必ず含める`;
 
-const Toggle = ({ on }: { on: boolean }) => (
-  <span style={{
-    width: 34, height: 20, borderRadius: 999, background: on ? BLUE : '#2A2A2A',
-    display: 'inline-flex', alignItems: 'center', padding: 2, flexShrink: 0,
-  }}>
-    <span style={{ width: 16, height: 16, borderRadius: 999, background: '#fff', marginLeft: on ? 14 : 0 }} />
-  </span>
-);
 
 function Head({ label, note, actions = [] }: { label: string; note?: string; actions?: string[] }) {
   return (
@@ -55,7 +48,7 @@ function Head({ label, note, actions = [] }: { label: string; note?: string; act
       {note && <span style={{ color: T5, fontSize: 12 }}>{note}</span>}
       {/* 押せるものだけが面と枠を持てる */}
       {actions.map((a) => (
-        <span key={a} style={{
+        <span key={a} className="btn" style={{
           display: 'inline-flex', alignItems: 'center', gap: 7, height: 32, padding: '0 13px',
           borderRadius: 8, background: '#141414', border: '1px solid #262626', color: T2, fontSize: 12.5,
         }}>
@@ -70,7 +63,7 @@ function Rows({ rows }: { rows: Row[] }) {
   return (
     <>
       {rows.map((s, i) => (
-        <div key={s.file} style={{
+        <div key={s.file} className="row" style={{
           display: 'flex', alignItems: 'center', gap: 14, padding: '17px 0',
           borderBottom: i === rows.length - 1 ? undefined : '1px solid #161616',
         }}>
@@ -104,7 +97,7 @@ export default function SkillsPage() {
             <div style={{
               marginTop: 14, display: 'flex', flexDirection: 'column', alignItems: 'center',
               justifyContent: 'center', gap: 7, height: 104, borderRadius: 12, border: '1px dashed #262626',
-            }}>
+            }} className="card">
               <Icon name="down" color={T4} size={16} />
               <span style={{ color: T4, fontSize: 12.5 }}>SKILL.md をここに落とす、または <span style={{ color: T2 }}>選ぶ</span></span>
               <span style={{ color: '#3A3A3A', fontSize: 11 }}>.md · .zip · 何個でも</span>
@@ -128,7 +121,7 @@ export default function SkillsPage() {
         </div>
         {/* 保存は右下に小さく。ペイン幅いっぱいの青にしない */}
         <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', padding: 16, borderTop: '1px solid #161616' }}>
-          <span style={{
+          <span className="solid" style={{
             display: 'inline-flex', alignItems: 'center', height: 32, padding: '0 16px',
             borderRadius: 8, background: BLUE, color: '#fff', fontSize: 12.5,
           }}>保存する</span>

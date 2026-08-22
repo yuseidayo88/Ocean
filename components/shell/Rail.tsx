@@ -26,7 +26,7 @@ function NavRow({ href, label, icon, on, badge, badgeColor, live, dim }: {
   badge?: string; badgeColor?: string; live?: boolean; dim?: boolean;
 }) {
   return (
-    <Link href={href} style={{
+    <Link href={href} className={on ? 'hit' : 'row'} style={{
       display: 'flex', alignItems: 'center', gap: 11, height: 34, padding: '0 10px',
       borderRadius: 8, background: on ? '#232323' : undefined, color: on ? T1 : dim ? T4 : T2,
     }}>
@@ -53,7 +53,7 @@ function PopRow({ label, right, on, color, onClick }: {
   label: string; right?: string; on?: boolean; color?: string; onClick?: () => void;
 }) {
   return (
-    <button onClick={onClick} style={{
+    <button onClick={onClick} className={on ? 'hit' : 'row'} style={{
       width: '100%', display: 'flex', alignItems: 'center', gap: 10, height: 32, padding: '0 10px',
       borderRadius: 7, background: on ? '#262626' : undefined, textAlign: 'left',
     }}>
@@ -89,14 +89,14 @@ export function Rail({ empty, company }: { empty?: boolean; company?: string } =
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 4px', height: 26 }}>
         <Dot color="#2E2E2E" size={9} /><Dot color="#2E2E2E" size={9} /><Dot color="#2E2E2E" size={9} />
         <div style={{ flex: 1 }} />
-        <button onClick={() => { setSwitcher(!switcher); setAccount(false); }}
-                style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+        <button onClick={() => { setSwitcher(!switcher); setAccount(false); }} className="btn"
+                style={{ display: 'flex', alignItems: 'center', gap: 7, height: 26, padding: '0 7px', borderRadius: 7 }}>
           <span style={{ color: switcher ? T1 : T2 }}>{name}</span>
           <Icon name="down" color={switcher ? T3 : T4} size={13} />
         </button>
       </div>
 
-      <div style={{
+      <div className="field hit" style={{
         height: 32, display: 'flex', alignItems: 'center', gap: 9, padding: '0 10px',
         borderRadius: 8, background: '#1A1A1A', border: '1px solid #262626',
       }}>
@@ -115,7 +115,7 @@ export function Rail({ empty, company }: { empty?: boolean; company?: string } =
                     badgeColor={n.href === '/inbox' ? AMBER : T5} />
             {/* 開いている Work だけ、その下にぶら下げる（本物の親子） */}
             {n.href === '/work' && open && (
-              <Link href={`/work/${open.id}`} style={{
+              <Link href={`/work/${open.id}`} className="row" style={{
                 display: 'flex', alignItems: 'center', gap: 9, height: 30, padding: '0 10px 0 22px',
                 borderRadius: 8, color: T1,
               }}>
@@ -134,7 +134,12 @@ export function Rail({ empty, company }: { empty?: boolean; company?: string } =
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, height: 30, padding: '0 10px' }}>
           <span style={{ color: T5, fontSize: 12 }}>チャット</span>
           <div style={{ flex: 1 }} />
-          {!blank && <Link href="/chat/new"><Icon name="plus" color={T4} size={14} /></Link>}
+          {!blank && (
+            <Link href="/chat/new" className="icob" title="新しいチャット"
+                  style={{ display: 'inline-flex', padding: 4, marginRight: -3 }}>
+              <Icon name="plus" color={T4} size={14} />
+            </Link>
+          )}
         </div>
         {blank ? (
           <div style={{ padding: '2px 10px 0' }}>
@@ -145,7 +150,7 @@ export function Rail({ empty, company }: { empty?: boolean; company?: string } =
             {THREADS.map((t) => {
               const on = path === `/chat/${t.id}`;
               return (
-                <Link key={t.id} href={`/chat/${t.id}`} style={{
+                <Link key={t.id} href={`/chat/${t.id}`} className={on ? 'hit' : 'row'} style={{
                   display: 'flex', alignItems: 'center', gap: 8, height: 30,
                   padding: '0 10px 0 12px', borderRadius: 8,
                   background: on ? '#232323' : undefined, color: on ? T1 : T3,
@@ -157,9 +162,11 @@ export function Rail({ empty, company }: { empty?: boolean; company?: string } =
                 </Link>
               );
             })}
-            <div style={{ display: 'flex', alignItems: 'center', height: 28, padding: '0 12px' }}>
-              <span style={{ color: T5, fontSize: 12 }}>すべて見る</span>
-            </div>
+            <Link href="/chat/new" className="row" style={{
+              display: 'flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 8,
+            }}>
+              <span className="lnk" style={{ color: T5, fontSize: 12 }}>すべて見る</span>
+            </Link>
           </>
         )}
       </div>
@@ -167,7 +174,7 @@ export function Rail({ empty, company }: { empty?: boolean; company?: string } =
       <div style={{ flex: 1 }} />
 
       {/* 下は「わたし」 */}
-      <button onClick={() => { setAccount(!account); setSwitcher(false); }} style={{
+      <button onClick={() => { setAccount(!account); setSwitcher(false); }} className={account ? 'hit' : 'row'} style={{
         display: 'flex', alignItems: 'center', gap: 10, height: 36, padding: '0 10px',
         borderRadius: 8, background: account ? '#1E1E1E' : undefined, width: '100%',
       }}>

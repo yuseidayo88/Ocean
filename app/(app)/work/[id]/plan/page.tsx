@@ -159,10 +159,10 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 14 }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px', borderRadius: 8, background: BLUE, color: '#fff' }}>
+            <span className="solid" style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px', borderRadius: 8, background: BLUE, color: '#fff' }}>
               承認して始める
             </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 14px', borderRadius: 8, color: T3 }}>
+            <span className="btn" style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 14px', borderRadius: 8, color: T3 }}>
               直したい
             </span>
           </div>

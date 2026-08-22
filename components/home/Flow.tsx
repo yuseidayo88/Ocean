@@ -40,7 +40,8 @@ function Node({ x, y, w, title, sub, kind }:
       display: 'flex', alignItems: 'center', padding: '0 14px 0 15px', borderRadius: 14,
       background: s.bg, border: s.border, overflow: 'hidden',
       boxShadow: s.ring ? '0 0 0 3px rgba(255,255,255,0.06)' : undefined,
-    }}>
+      cursor: 'pointer', transition: 'border-color .14s ease, background-color .14s ease',
+    }} className="card">
       <span style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3, borderRadius: '0 2px 2px 0', background: s.bar }} />
       <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
         <span style={{ color: s.title, fontSize: 14, lineHeight: '19px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -88,7 +89,7 @@ const Sub = ({ x, top, label }: { x: number; top: number; label: string }) => (
 );
 
 const Tool = ({ name, on = false }: { name: 'hand' | 'expand' | 'minus' | 'plus'; on?: boolean }) => (
-  <span style={{
+  <span className={on ? 'hit' : 'icob'} style={{
     width: 28, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center',
     justifyContent: 'center', background: on ? '#262626' : undefined,
   }}><Icon name={name} color={on ? T1 : '#8B8B8B'} size={15} width={1.7} /></span>

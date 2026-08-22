@@ -34,7 +34,7 @@ export default function ImportPage() {
           <div style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             gap: 9, height: 128, borderRadius: 12, border: '1px dashed #262626',
-          }}>
+          }} className="card">
             <Icon name="upload" color={T4} size={19} />
             <span style={{ color: T4, fontSize: 12.5 }}>サイトのURL、資料、売上の表をここへ</span>
             <span style={{ color: '#3A3A3A', fontSize: 11 }}>PDF · 表 · 画像 · URL</span>
@@ -51,7 +51,7 @@ export default function ImportPage() {
             {SOURCES.map((s, i) => {
               const pct = s.state === '完了' ? 100 : s.state === '読込中' ? 34 : 0;
               return (
-                <div key={s.name} style={{
+                <div key={s.name} className="row" style={{
                   display: 'flex', alignItems: 'center', gap: 14, height: 43,
                   borderBottom: i === SOURCES.length - 1 ? undefined : '1px solid #161616',
                 }}>
@@ -79,7 +79,7 @@ export default function ImportPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <span style={{ color: T5, fontSize: 12.5 }}>読み終わってから診断します</span>
             <div style={{ flex: 1 }} />
-            <span style={{
+            <span className="solid" style={{
               display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px',
               borderRadius: 8, background: BLUE, color: '#fff',
             }}>診断する</span>
