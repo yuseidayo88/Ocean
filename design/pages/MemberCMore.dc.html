@@ -1,0 +1,176 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #000; color: #EDEDED;
+           font-family: system-ui, "Noto Sans JP", sans-serif; font-weight: 400;
+           -webkit-font-smoothing: antialiased; }
+    * { font-weight: 400; box-sizing: border-box; }
+    .tnum { font-variant-numeric: tabular-nums; }
+    .can  { display: inline-flex; align-items: center; height: 24px; padding: 0 9px; border-radius: 7px;
+            background: #141414; border: 1px solid #232323; color: #B8B8B8; font-size: 11.5px; }
+    .n    { flex-shrink: 0; width: 20px; color: #3E3E3E; font-size: 17px; line-height: 22px; }
+    .h    { font-size: 15px; line-height: 23px; }
+    .p    { color: #6E6E6E; font-size: 12.5px; line-height: 20px; }
+    .box  { border-radius: 10px; background: #0A0A0A; border: 1px solid #191919; padding: 12px 14px; }
+  </style>
+</helmet>
+
+<div style="width: 1180px; box-sizing: border-box; padding: 32px 40px 40px; display: flex; flex-direction: column; gap: 30px">
+
+  <div style="display: flex; flex-direction: column; gap: 7px">
+    <span style="color: #5F5F5F; font-size: 12px">C案に足したいこと</span>
+    <span style="font-size: 22px">気づいた5つ</span>
+    <span class="p" style="max-width: 760px">直したモデルとエフォート以外に、この画面を作るなら決めておきたいこと。<b style="color:#B8B8B8">4つは提案、最後の1つは質問です。</b></span>
+  </div>
+
+  <!-- 1 -->
+  <div style="display: flex; gap: 30px; align-items: flex-start">
+    <span class="n">1</span>
+    <div style="width: 330px; flex-shrink: 0; display: flex; flex-direction: column; gap: 7px">
+      <span class="h">並びは放っておけない順</span>
+      <span class="p">タスク一覧と同じ規則にする ── <b style="color:#B8B8B8">要確認 → 実行中 → 待機</b>。待機の社員は沈める（オフィスの絵と同じ 0.5）。名簿順にしても、社長がやることは変わらない。</span>
+    </div>
+    <div class="box" style="flex: 1; display: flex; flex-direction: column; gap: 8px">
+      <div style="display: flex; align-items: center; gap: 10px; height: 26px">
+        <span style="width: 6px; height: 6px; border-radius: 9px; background: #E37400"></span><span style="font-size: 12.5px">戦略担当</span><span style="color: #FDD663; font-size: 11.5px">要確認</span>
+        <div style="flex: 1"></div><span style="color: #4A4A4A; font-size: 11px">あなたを待っている</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; height: 26px">
+        <span style="width: 6px; height: 6px; border-radius: 9px; background: #1E8E3E"></span><span style="font-size: 12.5px; color: #B8B8B8">調査担当</span><span style="color: #5BB974; font-size: 11.5px">実行中</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; height: 26px">
+        <span style="width: 6px; height: 6px; border-radius: 9px; background: #1E8E3E"></span><span style="font-size: 12.5px; color: #B8B8B8">開発担当</span><span style="color: #5BB974; font-size: 11.5px">実行中</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; height: 26px; opacity: .5">
+        <span style="width: 6px; height: 6px; border-radius: 9px; border: 1px solid #333"></span><span style="font-size: 12.5px; color: #8B8B8B">品質担当</span><span style="color: #5F5F5F; font-size: 11.5px">待機</span>
+        <div style="flex: 1"></div><span style="color: #3E3E3E; font-size: 11px">沈める</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="height: 1px; background: #161616"></div>
+
+  <!-- 2 -->
+  <div style="display: flex; gap: 30px; align-items: flex-start">
+    <span class="n">2</span>
+    <div style="width: 330px; flex-shrink: 0; display: flex; flex-direction: column; gap: 7px">
+      <span class="h">一時停止を、行の中に置く</span>
+      <span class="p">いまは設定の最後に隠れている。<b style="color:#B8B8B8">止めればその社員は動かない</b>＝いちばん強い操作なのに、いちばん深いところにある。行の右端に、ホバーで出す。</span>
+    </div>
+    <div class="box" style="flex: 1; display: flex; align-items: center; gap: 14px; height: 64px">
+      <span style="width: 30px; height: 30px; border-radius: 999px; background: radial-gradient(circle at 40% 35%, rgba(42,169,191,.9), rgba(42,169,191,.16) 62%, rgba(42,169,191,0) 72%)"></span>
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 13px">調査担当</span>
+        <span style="color: #5F5F5F; font-size: 11.5px">調べて、事実にして積みます</span>
+      </div>
+      <div style="flex: 1"></div>
+      <span style="display: inline-flex; align-items: center; gap: 7px; height: 28px; padding: 0 11px; border-radius: 8px; background: #141414; border: 1px solid #262626; color: #8B8B8B; font-size: 12px">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><rect x="1.6" y="1" width="2.4" height="8" rx="0.8" fill="#8B8B8B"/><rect x="6" y="1" width="2.4" height="8" rx="0.8" fill="#8B8B8B"/></svg>
+        一時停止
+      </span>
+      <span style="color: #3E3E3E; font-size: 11px">← ホバーで出る</span>
+    </div>
+  </div>
+
+  <div style="height: 1px; background: #161616"></div>
+
+  <!-- 3 -->
+  <div style="display: flex; gap: 30px; align-items: flex-start">
+    <span class="n">3</span>
+    <div style="width: 330px; flex-shrink: 0; display: flex; flex-direction: column; gap: 7px">
+      <span class="h">選んでいる社員が分かるように</span>
+      <span class="p">押すと右にルールと履歴が出るので、<b style="color:#B8B8B8">どれを見ているか</b>が要る。ほかの一覧と同じ ── 左3pxの色帯と、薄い面。新しい見せ方は作らない。</span>
+    </div>
+    <div class="box" style="flex: 1; display: flex; flex-direction: column; gap: 0; padding: 0; overflow: hidden">
+      <div style="display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 14px; border-bottom: 1px solid #141414">
+        <span style="width: 22px; height: 22px; border-radius: 999px; background: radial-gradient(circle at 40% 35%, rgba(42,169,191,.8), rgba(42,169,191,.14) 62%, rgba(42,169,191,0) 72%)"></span>
+        <span style="font-size: 12.5px; color: #B8B8B8">調査担当</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 14px 0 11px; background: #0C0C0C; border-left: 3px solid #9A5CD0">
+        <span style="width: 22px; height: 22px; border-radius: 999px; background: radial-gradient(circle at 40% 35%, rgba(154,92,208,.9), rgba(154,92,208,.16) 62%, rgba(154,92,208,0) 72%)"></span>
+        <span style="font-size: 12.5px">戦略担当</span>
+        <div style="flex: 1"></div>
+        <span style="color: #5F5F5F; font-size: 11px">右に出ている</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 14px">
+        <span style="width: 22px; height: 22px; border-radius: 999px; background: radial-gradient(circle at 40% 35%, rgba(52,168,83,.8), rgba(52,168,83,.14) 62%, rgba(52,168,83,0) 72%)"></span>
+        <span style="font-size: 12.5px; color: #B8B8B8">開発担当</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="height: 1px; background: #161616"></div>
+
+  <!-- 4 -->
+  <div style="display: flex; gap: 30px; align-items: flex-start">
+    <span class="n">4</span>
+    <div style="width: 330px; flex-shrink: 0; display: flex; flex-direction: column; gap: 7px">
+      <span class="h">できることが増えたら畳む</span>
+      <span class="p">スキルは足せるので、10個付いた社員が出る。<b style="color:#B8B8B8">3つまで出して、あとは ＋N</b>。押すとその社員の詳細へ。行の高さを社員ごとに変えない。</span>
+    </div>
+    <div class="box" style="flex: 1; display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; align-items: center; gap: 7px; flex-wrap: wrap">
+        <span style="color: #5F5F5F; font-size: 11px; margin-right: 3px">いま</span>
+        <span class="can">競合を並べて比べる</span><span class="can">市場の大きさ</span><span class="can">価格の帯</span>
+        <span class="can">出典の付け方</span><span class="can">ストア評価を読む</span><span class="can">為替を直す</span>
+        <span style="color: #F28B82; font-size: 11px">← 折り返して行が伸びる</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 7px">
+        <span style="color: #5F5F5F; font-size: 11px; margin-right: 3px">直すと</span>
+        <span class="can">競合を並べて比べる</span><span class="can">市場の大きさ</span><span class="can">価格の帯</span>
+        <span class="can" style="border-style: dashed; color: #6E6E6E">＋3</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="height: 1px; background: #161616"></div>
+
+  <!-- 5 質問 -->
+  <div style="display: flex; gap: 30px; align-items: flex-start">
+    <span class="n" style="color: #E37400">?</span>
+    <div style="width: 330px; flex-shrink: 0; display: flex; flex-direction: column; gap: 7px">
+      <span class="h" style="color: #FDD663">社員を選んで書いたら、誰に届く？</span>
+      <span class="p">いまの入力欄は「この社員に頼む、または統括AIに聞く」。<b style="color:#B8B8B8">でも入力欄に書くと右に統括AIとの会話が開く仕様にしたばかり</b>。ここが食い違っています。</span>
+    </div>
+    <div class="box" style="flex: 1; display: flex; flex-direction: column; gap: 14px">
+      <div style="display: flex; gap: 12px; align-items: flex-start">
+        <span style="color: #5BB974; font-size: 12px; width: 30px; flex-shrink: 0">A</span>
+        <div style="display: flex; flex-direction: column; gap: 3px">
+          <span style="font-size: 12.5px">いつでも統括AIに届く</span>
+          <span style="color: #6E6E6E; font-size: 11.5px">社員に直接は頼めない。統括AIが誰にやらせるか決める ── いまの設計思想どおり</span>
+        </div>
+      </div>
+      <div style="display: flex; gap: 12px; align-items: flex-start">
+        <span style="color: #6E6E6E; font-size: 12px; width: 30px; flex-shrink: 0">B</span>
+        <div style="display: flex; flex-direction: column; gap: 3px">
+          <span style="font-size: 12.5px; color: #B8B8B8">選んでいる社員に届く</span>
+          <span style="color: #6E6E6E; font-size: 11.5px">入力欄の左に宛先が出る。速いが、社長が誰にやらせるかを決めることになる</span>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 9px; height: 40px; padding: 0 12px; border-radius: 10px; background: #131313; border: 1px solid #232323">
+        <span style="display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 8px; border-radius: 6px; background: rgba(154,92,208,.16); color: #B8B8B8; font-size: 11.5px">
+          <span style="width: 5px; height: 5px; border-radius: 9px; background: #9A5CD0"></span>戦略担当 へ ✕
+        </span>
+        <span style="color: #4A4A4A; font-size: 12px">価格の根拠をもう一度まとめて</span>
+        <div style="flex: 1"></div>
+        <span style="color: #3E3E3E; font-size: 11px">B案だとこうなる</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 10px; color: #4A4A4A; font-size: 12px; padding-top: 4px">
+    <span>1〜4 は入れてよければ入れます</span>
+    <span style="flex: 1; height: 1px; background: #161616"></span>
+    <span>5 は決めてもらえると実装できます</span>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
