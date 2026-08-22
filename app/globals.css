@@ -95,7 +95,8 @@ button { background: none; border: none; padding: 0; cursor: pointer; }
 /* 行 — 一覧の1行。内側の影で敷くので、選択中の面を上書きしない */
 .row {
   cursor: pointer;
-  transition: box-shadow .1s ease;
+  /* 触れたときは影、選ばれたときは面。**どちらも明るさが変わるだけ** */
+  transition: box-shadow .1s ease, background-color .16s cubic-bezier(.33, 1, .68, 1);
 }
 .row:hover  { box-shadow: inset 0 0 0 999px rgba(255, 255, 255, .030); }
 .row:active { box-shadow: inset 0 0 0 999px rgba(255, 255, 255, .050); }
@@ -165,18 +166,31 @@ input:focus-visible, textarea:focus-visible { outline: none; }
 ::-webkit-scrollbar-corner { background: transparent; }
 
 /* 動きの長さと曲がり方は1つだけ（lib/design/tokens.ts の EASE と同じ値）。
-   速く始まってゆっくり止まる ── 指で押して離した物が止まる形 */
-.rise { animation: rise .26s cubic-bezier(.32, .72, 0, 1) both; }
-.panein  { animation: panein  .28s cubic-bezier(.32, .72, 0, 1) both; }
-.paneout { animation: paneout .22s cubic-bezier(.32, .72, 0, 1) both; }
-.pop  { animation: pop  .16s cubic-bezier(.32, .72, 0, 1) both; }
+   速く始まってゆっくり止まる。ただし**始まりを強くしすぎない** ──
+   出だしで一気に進む曲線だと、最初の1フレームで半分まで飛んで「跳んだ」に見える */
+/* 画面が入れ替わるとき ── 中央と右だけ。左レールは動かさない。
+   **透明にしない**（0 にすると、次の画面ができるまでのあいだ中央が空に見える）。
+   薄く沈んだところから起き上がるだけ */
+@keyframes page { from { opacity: .35; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+.page {
+  flex: 1; min-width: 0; display: flex;
+  animation: page .18s cubic-bezier(.33, 1, .68, 1) both;
+}
+/* 中身が入れ替わるとき ── 右ペインで別の行を選んだ、タブを持ち替えた */
+@keyframes swap { from { opacity: .25; } to { opacity: 1; } }
+.swap { animation: swap .14s ease both; }
+
+.rise { animation: rise .26s cubic-bezier(.33, 1, .68, 1) both; }
+.panein  { animation: panein  .32s cubic-bezier(.33, 1, .68, 1) both; }
+.paneout { animation: paneout .24s cubic-bezier(.33, 1, .68, 1) both; }
+.pop  { animation: pop  .16s cubic-bezier(.33, 1, .68, 1) both; }
 
 /* 動きを減らす設定の人には、**飾りの動きだけ**止める。
    回っている印と脈は「いま動いている」という事実なので残す */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: .01ms !important; }
   [style*="drift"], [style*="travel"], [style*="blink"], [style*="breathe"],
-  .rv, .sh, .rise, .pop { animation: none !important; }
+  .rv, .sh, .rise, .pop, .page, .swap { animation: none !important; }
   .panein, .paneout { animation-duration: .01ms !important; }
   .sh { color: var(--t1); background: none; -webkit-text-fill-color: currentColor; }
 }

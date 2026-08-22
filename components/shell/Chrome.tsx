@@ -25,13 +25,19 @@ export function TopBar({ crumb, title, right, onPanel, panelOn }:
       height: 46, flexShrink: 0, boxSizing: 'border-box', display: 'flex', alignItems: 'center',
       gap: 10, padding: '0 12px 0 14px', borderBottom: '1px solid #161616',
     }}>
-      {/* 左レールを閉じたときだけ、ここに戻り道が出る（端にはつまみを残さない） */}
-      {!rail && (
+      {/* 左レールを閉じたときだけ、ここに戻り道が出る（端にはつまみを残さない）。
+          **消したり出したりしない** — 幅を 0 にして、レールの動きと同じ速さで開く。
+          閉じているあいだは隙間ぶんの負の余白で、パンくずが飛ばないようにする */}
+      <span aria-hidden={rail} inert={rail} style={{
+        width: rail ? 0 : 22, marginLeft: rail ? -10 : -3, opacity: rail ? 0 : 1,
+        flexShrink: 0, overflow: 'hidden', display: 'inline-flex',
+        transition: `width ${EASE}, margin-left ${EASE}, opacity .18s ease`,
+      }}>
         <button onClick={() => setRail(true)} className="icob" title="左を開く"
-                style={{ display: 'inline-flex', padding: 5, marginLeft: -3 }}>
+                style={{ display: 'inline-flex', padding: 5, marginLeft: -3, flexShrink: 0 }}>
           <Icon name="panel" color={T4} size={15} />
         </button>
-      )}
+      </span>
       {/* 開く・閉じるも URL に入っているので、ここが本当に効く */}
       <button onClick={() => router.back()} className="icob" title="戻る" style={{ display: 'inline-flex', padding: 4 }}>
         <Icon name="back" color={T4} size={14} />
@@ -66,29 +72,37 @@ export function TopBar({ crumb, title, right, onPanel, panelOn }:
  * **中身の上に浮かせる**（重なってよい）。入力欄が主役の画面だけ floating=false。
  */
 /**
- * 入力欄は書いたぶんだけ伸びる。
+ * 入力欄は書いたぶんだけ伸びる。**伸びるところも滑らかに動かす。**
  *
- * ブラウザが `field-sizing: content` を知っていれば、**CSS だけで伸びる**（JS は要らない）。
- * 知らないブラウザのためだけに測る道を残す。ただし測るのは高くつく —
- * 高さを一度 0 に落として読み直すので、そのたびに**ページ全体の配置計算が走る**。
- * 1文字ごとにやると、重い画面（オフィス）で目に見えて遅れる。
- * だから **1行ぶん変わったときだけ**測り直す。
+ * CSS の `field-sizing: content` に任せると JS は要らないが、
+ * 高さが「決まった値」にならないので**一瞬で変わる**（動かせない）。
+ * 滑らかに伸ばしたいので、こちらで測って高さを入れる。
+ *
+ * ただし**打った瞬間には測らない。**
+ * 打った直後はまだ配置が決まっていないので、そこで高さを読むと
+ * ブラウザに「いますぐ全部計算しろ」と言うことになる（1文字ごとに、ページ全体を）。
+ * 次に描くタイミングまで待てば、どのみち計算されているものを読むだけで済む。
+ * 続けて打っても、待っているぶんは1回にまとめる。
  */
-const AUTO_GROW =
-  typeof CSS !== 'undefined' && CSS.supports?.('field-sizing', 'content');
+const pending = new WeakSet<HTMLTextAreaElement>();
 
 function grow(t: HTMLTextAreaElement) {
-  if (AUTO_GROW) return;
-  const before = t.offsetHeight;
-  const keep = t.style.transition;
-  t.style.transition = 'none';
-  t.style.height = '0px';
-  const next = Math.min(t.scrollHeight, 168);
-  if (next === before) { t.style.height = `${before}px`; t.style.transition = keep; return; }
-  t.style.height = `${before}px`;
-  void t.offsetHeight;
-  t.style.transition = keep;
-  t.style.height = `${next}px`;
+  if (pending.has(t)) return;
+  pending.add(t);
+  requestAnimationFrame(() => {
+    pending.delete(t);
+    const before = t.offsetHeight;
+    const keep = t.style.transition;
+    t.style.transition = 'none';
+    // 0 ではなく auto にする。0 に落とすと、動き出す高さが 0 になって一瞬つぶれる
+    t.style.height = 'auto';
+    const next = Math.min(t.scrollHeight, 168);
+    t.style.height = `${before}px`;
+    if (next === before) { t.style.transition = keep; return; }
+    void t.offsetHeight;   // 「いまの高さ」を確定させてから動かす
+    t.style.transition = keep;
+    t.style.height = `${next}px`;
+  });
 }
 
 export function Composer({ placeholder, mode = '統括AI', effort = '自動', above, floating = true }:
@@ -116,6 +130,8 @@ export function Composer({ placeholder, mode = '統括AI', effort = '自動', ab
         width: '100%', maxWidth: 748, boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
         gap: 12, padding: '13px 14px 11px 16px', borderRadius: 18,
         background: '#141414', border: '1px solid #2A2A2A',
+        // 高さを測るときの計算を、この器の中だけで済ませる
+        contain: 'layout',
       }}>
         <textarea
           onInput={(e) => {
@@ -128,7 +144,7 @@ export function Composer({ placeholder, mode = '統括AI', effort = '自動', ab
           style={{
             width: '100%', resize: 'none', background: 'none', border: 'none', outline: 'none',
             color: T1, fontSize: 14, lineHeight: '22px', maxHeight: 168, overflowY: 'auto',
-            fieldSizing: 'content', transition: `height ${EASE}`,
+            transition: `height ${EASE}`,
           } as React.CSSProperties}
         />
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -199,7 +215,7 @@ export function Pane({ width = 430, title, icon, dot, tabs, tab: tabAt, onTab, r
   const close = () => {
     if (!onClose || leaving) return;
     setLeaving(true);
-    setTimeout(onClose, 220);
+    setTimeout(onClose, 240);
   };
 
   // Esc で閉じる。右ペインはどの画面でも同じ作法にする
@@ -264,7 +280,9 @@ export function Pane({ width = 430, title, icon, dot, tabs, tab: tabAt, onTab, r
           </>
         )}
       </div>
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      {/* 選び直す・タブを持ち替えると中身が入れ替わる。**その瞬間だけ薄く重ねる** */}
+      <div key={title ?? tabs?.[tab]?.label} className="swap"
+           style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         {children}
       </div>
     </div>

@@ -44,10 +44,13 @@ export const BOARD_W = 1148
 export const SHELL_MIN = RAIL_W + BOARD_W
 
 /**
- * 動きの長さと曲がり方。**全画面で同じものを使う。**
- * 速く始まってゆっくり止まる（指で押して離した物が止まる形）。
- * 増やさない — 迷ったらこれ。
+ * 動きの長さと曲がり方。**全画面で同じものを使う。増やさない。**
+ *
+ * 速く始まってゆっくり止まる。ただし**始まりを強くしすぎない** —
+ * 出だしで一気に進む曲線だと、最初の1フレームで半分まで飛んでしまい、
+ * 「滑った」ではなく「跳んだ」に見える。
+ * `cubic-bezier(.33,1,.68,1)` は最初の1フレームで 1/4 ほど進み、あとは緩んで止まる。
  */
-export const EASE = '.3s cubic-bezier(.32,.72,0,1)'
+export const EASE = '.32s cubic-bezier(.33, 1, .68, 1)'
 /** 小さいもの（面の明るさ・文字の色）はもっと短く */
-export const EASE_FAST = '.16s cubic-bezier(.32,.72,0,1)'
+export const EASE_FAST = '.16s cubic-bezier(.33, 1, .68, 1)'
