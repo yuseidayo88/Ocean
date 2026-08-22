@@ -358,7 +358,8 @@ export type Lane = {
   id: string; state: State; line: string;
   steps: [string, string][];
   body: DeskBody;
-  task: string; elapsed: string;
+  /** レーンの足もと。タスク名 ＋ 進み具合 ＋ かかった時間 */
+  task: string; pct: number; elapsed: string;
 };
 
 export const LANES: Lane[] = [
@@ -369,7 +370,7 @@ export const LANES: Lane[] = [
       '韓国の日本語学習者 約64万人（2024・国際交流基金）',
       '競合A 月額 ₩19,900 / 月間 12万DL',
       '競合B は会話特化。読解の受け皿が薄い'] },
-    task: '競合ポジショニング分析', elapsed: '12分' },
+    task: '競合ポジショニング分析', pct: 68, elapsed: '12分' },
   { id: 'e-plan', state: '実行中',
     line: 'SNSの投稿カレンダーを1ヶ月ぶん書いています',
     steps: [['先月の反応が良かった投稿を並べた', '1分38秒'], ['週3本の型に落としている', '4分22秒']],
@@ -378,7 +379,7 @@ export const LANES: Lane[] = [
       '火＝学習のコツ、木＝生徒の声、土＝日本の',
       '暮らし。先月いちばん伸びたのは木でした。',
       '土曜は写真だけでも回せます。'] },
-    task: '投稿カレンダー作成', elapsed: '9分' },
+    task: '投稿カレンダー作成', pct: 45, elapsed: '9分' },
   { id: 'e-dev', state: '実行中',
     line: '申込フォームの送信まわりを実装しています',
     steps: [['既存のフォームを読んだ', '34秒'], ['テストを4件 通した', '1分07秒'], ['submit.ts を書き換えている', '2分18秒']],
@@ -388,12 +389,12 @@ export const LANES: Lane[] = [
       [33, 'if (err) return json({ ok: false, err }, 422)', true],
       [34, 'await db.signups.insert(data)', false],
       [35, 'return json({ ok: true }, 201)', true]] },
-    task: '申込フォームの実装', elapsed: '21分' },
+    task: '申込フォームの実装', pct: 52, elapsed: '21分' },
   { id: 'e-strategy', state: '要確認',
     line: '収益モデル比較レポートを出しました。見てください',
     steps: [['3案の損益を計算した', '56秒'], ['推奨の理由を書いた', '3分04秒']],
     body: { kind: 'review', title: '収益モデル比較 3案', when: '2時間前', action: '決める' },
-    task: '収益モデル比較レポート', elapsed: '2時間' },
+    task: '収益モデル比較レポート', pct: 100, elapsed: '2時間' },
 ];
 
 // ════════════════════════ ワークフロー ════════════════════════

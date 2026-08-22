@@ -37,12 +37,14 @@ export default function HirePage() {
             いま足りないのは<b>書ける人</b>です。フェーズ3の記事とLPの文章が止まります。
           </span>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {HIRE_CANDIDATES.map((c) => (
+          {/* **同じ器を縦に並べない。** 候補はカードにせず、ヘアラインで区切った行にする。
+              強調したい1つだけ薄い面を敷く */}
+          <div>
+            {HIRE_CANDIDATES.map((c, n) => (
               <div key={c.id} style={{
-                display: 'flex', gap: 16, padding: '16px 18px', borderRadius: 12,
-                background: c.recommended ? '#0C0C0C' : 'transparent',
-                border: `1px solid ${c.recommended ? '#262626' : '#1A1A1A'}`,
+                display: 'flex', gap: 16, padding: '17px 18px', boxSizing: 'border-box',
+                background: c.recommended ? '#0B0B0B' : undefined,
+                borderBottom: n === HIRE_CANDIDATES.length - 1 ? undefined : '1px solid #161616',
               }}>
                 <Orb color={AGENT_COLOR[c.color]} size={48} seed={c.name.length * 9 + 5} />
                 <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -53,7 +55,7 @@ export default function HirePage() {
                     {/* **青は1ペインに1つ。** ここは全部おとなしく、下の「執筆担当を採用」だけ青 */}
                     <span style={{
                       display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 15px', borderRadius: 8,
-                      background: '#1A1A1A', border: '1px solid #2A2A2A', color: T2, whiteSpace: 'nowrap',
+                      background: 'transparent', border: '1px solid #262626', color: T3, whiteSpace: 'nowrap',
                     }}>採用する</span>
                   </div>
                   <span style={{ color: T5, fontSize: 11 }}>{c.en} · agency-agents 由来</span>
@@ -66,9 +68,12 @@ export default function HirePage() {
                       </span>
                     ))}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, paddingTop: 2 }}>
-                    <span style={{ color: T5, fontSize: 11 }}>担当</span>
-                    <span style={{ color: T4, fontSize: 12 }}>{FOR[c.id]}</span>
+                  <div style={{
+                    display: 'flex', alignItems: 'baseline', gap: 12,
+                    padding: '11px 0 0', borderTop: '1px solid #1A1A1A',
+                  }}>
+                    <span style={{ color: T4, fontSize: 12 }}>担当</span>
+                    <span style={{ color: T2, fontSize: 12.5 }}>{FOR[c.id]}</span>
                   </div>
                 </div>
               </div>
@@ -118,15 +123,12 @@ export default function HirePage() {
           ))}
 
           <PaneHead>守ること</PaneHead>
-          {DETAIL.rules.map((r, i) => (
-            <div key={r} style={{
-              display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0 10px 11px',
-              borderLeft: '2px solid #262626',
-              borderBottom: i === DETAIL.rules.length - 1 ? undefined : '1px solid #161616',
-            }}>
-              <span style={{ color: T2, fontSize: 12.5, lineHeight: '19px' }}>{r}</span>
-            </div>
-          ))}
+          {/* まだ採用していない候補なので、素の箇条書きで見せる（枠で囲わない） */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 9, paddingTop: 4 }}>
+            {DETAIL.rules.map((r) => (
+              <span key={r} style={{ color: T2, fontSize: 13, lineHeight: '21px' }}>・{r}</span>
+            ))}
+          </div>
 
           <PaneHead>この Work での担当</PaneHead>
           {DETAIL.role.map(([k, v], i) => (

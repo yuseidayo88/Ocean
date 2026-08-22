@@ -121,9 +121,9 @@ export default function DeliverablesPage() {
           </span>
           <p style={{ color: T2, fontSize: 13.5, lineHeight: '22px', margin: '16px 0 0' }}>{b.lead}</p>
 
-          {/* 表は表として出す。棒で読ませる */}
-          <div style={{ marginTop: 18, borderRadius: 10, background: '#0C0C0C', border: '1px solid #1C1C1C', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', height: 34, padding: '0 14px', borderBottom: '1px solid #1C1C1C' }}>
+          {/* 並ぶものはヘアラインだけで区切る。**外枠は付けない** */}
+          <div style={{ marginTop: 18 }}>
+            <div style={{ display: 'flex', alignItems: 'center', height: 30, borderBottom: '1px solid #232323' }}>
               {b.table.head.map((h, i) => (
                 <span key={h} style={{
                   width: i === 0 ? 40 : i === 1 ? 74 : i === 2 ? undefined : 92,
@@ -136,8 +136,8 @@ export default function DeliverablesPage() {
               const hi = i === b.table.hi;
               return (
                 <div key={r[0]} style={{
-                  display: 'flex', alignItems: 'center', height: 45, padding: '0 14px',
-                  borderBottom: i === b.table.rows.length - 1 ? undefined : '1px solid #161616',
+                  display: 'flex', alignItems: 'center', height: 45, padding: '0 10px', margin: '0 -10px',
+                  borderRadius: 8, borderBottom: i === b.table.rows.length - 1 ? undefined : '1px solid #161616',
                   background: hi ? 'rgba(30,142,62,0.10)' : undefined,
                 }}>
                   <span style={{ width: 40, color: hi ? T1 : T3 }}>{r[0]}</span>

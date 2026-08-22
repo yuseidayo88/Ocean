@@ -223,15 +223,16 @@ export function Pills({ items, active, onPick }: {
 }) {
   return (
     <div style={{
-      display: 'inline-flex', alignItems: 'center', gap: 2, padding: 5, borderRadius: 14,
-      background: '#0D0D0D', border: '1px solid #1E1E1E',
+      display: 'inline-flex', alignItems: 'center', gap: 3, padding: 4, borderRadius: 999,
+      background: '#141414', border: '1px solid #232323',
     }}>
       {items.map((it) => {
         const on = it.key === active;
         return (
           <button key={it.key} onClick={() => onPick(it.key)} style={{
             display: 'inline-flex', alignItems: 'center', gap: 8, height: 32, padding: '0 15px',
-            borderRadius: 10, background: on ? '#1F1F1F' : undefined, color: on ? T1 : T4,
+            borderRadius: 999, background: on ? '#2A2A2A' : undefined, color: on ? T1 : T4,
+            whiteSpace: 'nowrap',
           }}>
             {it.icon}{it.label}
           </button>

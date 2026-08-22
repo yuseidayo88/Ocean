@@ -58,3 +58,14 @@ button { background: none; border: none; padding: 0; cursor: pointer; }
 @keyframes drift { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(0, -7px); } }
 /** 受け渡しの粒。線の上を左右に流れる */
 @keyframes travel { 0% { left: -4%; opacity: 0; } 14% { opacity: 1; } 86% { opacity: 1; } 100% { left: 104%; opacity: 0; } }
+
+/* デスク — 出てくるところと、いま動いている1行 */
+@keyframes reveal { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes shimmer { 0% { background-position: -180px 0; } 100% { background-position: 220px 0; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+.rv { animation: reveal .5s ease-out both; }
+.sh {
+  background: linear-gradient(90deg, #6E6E6E 0%, #EDEDED 42%, #6E6E6E 84%);
+  background-size: 220px 100%; -webkit-background-clip: text; background-clip: text;
+  color: transparent; animation: shimmer 2.4s linear infinite;
+}
