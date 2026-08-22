@@ -1,4 +1,5 @@
-# レビュー用のプレビューには、アプリのソースだけを送る
-design/
-docs/
-supabase/
+# レビュー用のプレビューには、アプリのソースだけを送る。
+# 先頭の / でルート直下だけに効かせる（supabase/ だと lib/supabase/ まで消える）
+/design/
+/docs/
+/supabase/
