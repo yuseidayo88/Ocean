@@ -234,7 +234,8 @@
   - **粒子アバター（Orb）は TSX に移植済み。** 40px 未満は球をやめて同心リングと芯だけ
   - **B群の宿題**: 統括AIの3状態（`ExecStatus`）/ 右ペインの3状態（`PaneEmpty` `PaneLoading` `PaneError`）/
     エラー画面（`app/error.tsx` `not-found.tsx`）/ 会話履歴の分離（レール下段＋Work は会話を持たない）
-  - `.env.local` に `NEXT_PUBLIC_DEMO=1` でログインを通さず全画面が触れる。**本番では立てない**
+  - `npm run dev:demo` / `npm run start:demo` / `wrangler dev --env preview` でログインを通さず全画面が触れる。
+    **`.env*` には書かない** — OpenNext が既定値としてビルド成果物に焼き込み、本番にも付いていく
   - **押しても何も起きない。** 書き込みはどこにも届かない（Phase 5 以降）
 - 次: Phase 5（Work の作成）— ゴール → 質問 → 採用提案 → 計画
 - **早いほど得**: 画面を作らずに1タスクだけ API で走らせて成果物を見る（半日）。

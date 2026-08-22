@@ -12,5 +12,16 @@
   // "queues": { "producers": [{ "queue": "onefound-tasks", "binding": "TASKS" }] },
   // "r2_buckets": [{ "binding": "ARTIFACTS", "bucket_name": "onefound-artifacts" }],
 
-  "vars": { "APP_ENV": "development" }
+  // 本番。**DEMO_MODE は置かない**（置くとログインが素通しになる）
+  "vars": { "APP_ENV": "production" },
+
+  "env": {
+    // レビュー用。ダミーデータのまま全画面を触れる
+    // vars は env ごとに書き直す（上の vars は継承されない）
+    "preview": {
+      "name": "onefound-preview",
+      "vars": { "APP_ENV": "preview", "DEMO_MODE": "1" },
+      "observability": { "enabled": true }
+    }
+  }
 }

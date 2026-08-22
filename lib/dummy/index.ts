@@ -316,3 +316,83 @@ export const RULES = [
 // ════════════════════════ 統括AIの3状態（B群の宿題）════════════════════════
 
 export type ExecState = 'idle' | 'thinking' | 'blocked';
+
+// ════════════════════════ デスク（手もとで何が起きているか）════════════════════════
+
+/** 中身の器は担当ではなく produces で決める（業種を埋め込まない） */
+export type DeskBody =
+  | { kind: 'facts'; cap: string; n: number; items: string[] }
+  | { kind: 'text'; file: string; lines: string[] }
+  | { kind: 'code'; file: string; lines: [number, string, boolean][]; foot: string[] }
+  | { kind: 'review'; title: string; when: string; action: string };
+
+export type Lane = {
+  id: string; state: State; line: string;
+  steps: [string, string][];
+  body: DeskBody;
+  task: string; elapsed: string;
+};
+
+export const LANES: Lane[] = [
+  { id: 'e-research', state: '実行中',
+    line: '競合の継続率を、公開レポートから拾っています',
+    steps: [['競合アプリ 上位20の価格を集めた', '1分12秒'], ['市場規模のレポートを3本 読んだ', '2分41秒'], ['語学アプリの継続率を拾っている', '48秒']],
+    body: { kind: 'facts', cap: '抜き出した事実', n: 3, items: [
+      '韓国の日本語学習者 約64万人（2024・国際交流基金）',
+      '競合A 月額 ₩19,900 / 月間 12万DL',
+      '競合B は会話特化。読解の受け皿が薄い'] },
+    task: '競合ポジショニング分析', elapsed: '12分' },
+  { id: 'e-plan', state: '実行中',
+    line: 'SNSの投稿カレンダーを1ヶ月ぶん書いています',
+    steps: [['先月の反応が良かった投稿を並べた', '1分38秒'], ['週3本の型に落としている', '4分22秒']],
+    body: { kind: 'text', file: '投稿カレンダー.md', lines: [
+      '週3本。火・木・土の朝7時に出します。',
+      '火＝学習のコツ、木＝生徒の声、土＝日本の',
+      '暮らし。先月いちばん伸びたのは木でした。',
+      '土曜は写真だけでも回せます。'] },
+    task: '投稿カレンダー作成', elapsed: '9分' },
+  { id: 'e-dev', state: '実行中',
+    line: '申込フォームの送信まわりを実装しています',
+    steps: [['既存のフォームを読んだ', '34秒'], ['テストを4件 通した', '1分07秒'], ['submit.ts を書き換えている', '2分18秒']],
+    body: { kind: 'code', file: 'src/form/submit.ts', foot: ['＋3行', 'テスト 4 / 4'], lines: [
+      [31, 'const data = parseForm(await req.formData())', false],
+      [32, 'const err  = validate(data, schema)', true],
+      [33, 'if (err) return json({ ok: false, err }, 422)', true],
+      [34, 'await db.signups.insert(data)', false],
+      [35, 'return json({ ok: true }, 201)', true]] },
+    task: '申込フォームの実装', elapsed: '21分' },
+  { id: 'e-strategy', state: '要確認',
+    line: '収益モデル比較レポートを出しました。見てください',
+    steps: [['3案の損益を計算した', '56秒'], ['推奨の理由を書いた', '3分04秒']],
+    body: { kind: 'review', title: '収益モデル比較 3案', when: '2時間前', action: '決める' },
+    task: '収益モデル比較レポート', elapsed: '2時間' },
+];
+
+// ════════════════════════ ワークフロー ════════════════════════
+
+export type FlowKind = 'done' | 'sel' | 'gate' | 'wait' | 'work';
+export type FlowNode = { id: string; title: string; sub: string; kind: FlowKind };
+
+/**
+ * ワークフローの盤面。**色がつくのは判断待ちのノードだけ**（gate）。
+ * 成果物の「要確認」は行の左の色帯で言っているので、ここでは面を塗らない。
+ * 右の列は「次のフェーズ」（同じ Work）と「新しい Work」（枝分かれ）が横に並ぶ。
+ */
+export const FLOW = {
+  /** 盤面の上に置く見出し。ノードではない */
+  caption: '日本語学習サービス',
+  chain: [
+    { id: 'p1', title: '調査',           sub: 'フェーズ 1 · 完了',  kind: 'done' as const },
+    { id: 'p2', title: '戦略',           sub: 'フェーズ 2 · 32%',   kind: 'sel'  as const },
+    { id: 'd1', title: '収益モデル比較', sub: '成果物 · 要確認',    kind: 'done' as const },
+    { id: 'g1', title: '価格モデル',     sub: '判断 · B案を推奨',   kind: 'gate' as const },
+  ],
+  /** 右の列。上から 新しい Work / 次のフェーズ / 新しい Work */
+  right: [
+    { id: 'b1', title: 'LPと申込フォーム',   sub: '新しい Work · 準備中', kind: 'work' as const, edge: '新しい Work' },
+    { id: 'p3', title: 'プロダクト',         sub: 'フェーズ 3 · 待機',    kind: 'wait' as const, edge: '次のフェーズ' },
+    { id: 'b2', title: 'SNS運用の立ち上げ',  sub: '新しい Work · 準備中', kind: 'work' as const, edge: '新しい Work' },
+  ],
+  /** 選択中のノードにぶら下がるサブポート */
+  subs: ['担当 2', '成果物 1'],
+};

@@ -1,47 +1,52 @@
 'use client';
 
 import { Icon } from '@/components/ui/Icon';
+import { FLOW, type FlowKind } from '@/lib/dummy';
 
 /**
- * ワークフロー＝左から右へ流れるノードグラフ。
- *   ノード＝左3pxの色帯 ＋ タイトル ＋ サブ1行（種類 · 状態）。
- *   中にアイコンの四角を置かない。ヘッダ帯も状態ピルも置かない。
- *   色がつくのは 判断待ち のノードだけ。待機は点線で沈める。
- *   盤面は入力欄の下まで伸ばし、入力欄はその上に浮く。操作説明は置かない。
+ * ワークフロー＝左から右へ流れるノードグラフ
+ * （参考: Datadog のネットワークマップ / n8n 系のエージェントキャンバス）。
+ *   ノード＝左3pxの色帯 ＋ タイトル ＋ サブ1行（種類 · 状態）。中にアイコンの四角を置かない。
+ *   ポートは小さな開いた円をノードの左右中央に置き、ベジェ曲線でつなぐ。
+ *   線の上のラベルは素の小さい文字。**色がつくのは判断待ちのノードだけ**。待機は点線で沈める。
+ *   盤面は 1148×760 で入力欄の下まで伸ばす。操作方法の説明文は置かない。
  */
 
-const GW = 1148, GH = 760;
-const NW = 182, NH = 66, BW = 196;
-const Y1 = 240;
-const XS = [16, 244, 472, 700];
-const BX = 932;
-const BY = [122, 240, 358];
+const GW = 1148, GH = 760, BG = '#060606';
+const NH = 66, CW = 182, RW = 196;
+const T1 = '#EDEDED', T2 = '#B8B8B8', T4 = '#6E6E6E', T5 = '#5F5F5F';
 
-const T1 = '#EDEDED', T4 = '#6E6E6E', T5 = '#5F5F5F';
-const AMBER = '#E37400', AMBER_T = '#FDD663';
+/** 連鎖は 228px おき。右の列は 932。行の中心は 313 / 195 / 431 */
+const CX = [16, 244, 472, 700];
+const RX = 932;
+const ROW = 280;
+const RY = [162, 280, 398];
 
-type Kind = 'done' | 'now' | 'wait' | 'next';
-
-const NODE_BG: Record<Kind, string> = {
-  done: '#0E0E0E', now: '#101010', wait: 'rgba(227,116,0,0.07)', next: 'transparent',
+type Skin = { bg: string; border: string; bar: string; title: string; sub: string; ring?: boolean };
+const SKIN: Record<FlowKind, Skin> = {
+  done: { bg: '#0B0B0B', border: '1px solid #1D1D1D', bar: '#1E8E3E', title: T2, sub: T5 },
+  sel:  { bg: '#101010', border: '1px solid #333333', bar: '#8A8A8A', title: T1, sub: T4, ring: true },
+  gate: { bg: 'rgba(227,116,0,0.05)', border: '1px solid rgba(227,116,0,0.28)', bar: '#E37400', title: T1, sub: '#FDD663' },
+  wait: { bg: '#080808', border: '1px dashed #1F1F1F', bar: '#1C1C1C', title: T4, sub: T5 },
+  work: { bg: '#0C0C0C', border: '1px solid #272727', bar: '#2E2E2E', title: T2, sub: T5 },
 };
-const BAR: Record<Kind, string> = { done: '#3A3A3A', now: '#6E6E6E', wait: AMBER, next: '#232323' };
 
-function Node({ x, y, w = NW, title, sub, kind }:
-  { x: number; y: number; w?: number; title: string; sub: string; kind: Kind }) {
+function Node({ x, y, w, title, sub, kind }:
+  { x: number; y: number; w: number; title: string; sub: string; kind: FlowKind }) {
+  const s = SKIN[kind];
   return (
     <div style={{
       position: 'absolute', left: x, top: y, width: w, height: NH, boxSizing: 'border-box',
-      borderRadius: 15, background: NODE_BG[kind], overflow: 'hidden',
-      border: kind === 'next' ? '1px dashed #242424' : `1px solid ${kind === 'wait' ? 'rgba(227,116,0,0.32)' : '#1E1E1E'}`,
-      display: 'flex', alignItems: 'center', paddingLeft: 16,
+      display: 'flex', alignItems: 'center', padding: '0 14px 0 15px', borderRadius: 14,
+      background: s.bg, border: s.border, overflow: 'hidden',
+      boxShadow: s.ring ? '0 0 0 3px rgba(255,255,255,0.06)' : undefined,
     }}>
-      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: BAR[kind] }} />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0, paddingRight: 12 }}>
-        <span style={{ color: kind === 'next' ? T5 : T1, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <span style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3, borderRadius: '0 2px 2px 0', background: s.bar }} />
+      <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <span style={{ color: s.title, fontSize: 14, lineHeight: '19px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {title}
         </span>
-        <span style={{ color: kind === 'wait' ? AMBER_T : T5, fontSize: 11, whiteSpace: 'nowrap' }}>{sub}</span>
+        <span style={{ color: s.sub, fontSize: 11, lineHeight: '15px', whiteSpace: 'nowrap' }}>{sub}</span>
       </div>
     </div>
   );
@@ -49,101 +54,112 @@ function Node({ x, y, w = NW, title, sub, kind }:
 
 const Port = ({ x, y, on = false }: { x: number; y: number; on?: boolean }) => (
   <div style={{
-    position: 'absolute', left: x - 4.5, top: y - 4.5, width: 9, height: 9, borderRadius: 999,
-    background: '#000', border: `1px solid ${on ? '#6E6E6E' : '#2A2A2A'}`,
+    position: 'absolute', left: x - 4.5, top: y - 4.5, width: 9, height: 9, boxSizing: 'border-box',
+    borderRadius: 999, background: BG, border: `1.5px solid ${on ? '#4E4E4E' : '#2E2E2E'}`,
   }} />
 );
 
-function edge(x1: number, y1: number, x2: number, y2: number, dash = false) {
-  const mx = (x1 + x2) / 2;
-  return <path key={`${x1}-${y1}-${x2}-${y2}`} d={`M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`}
-               fill="none" stroke="#282828" strokeWidth={1} strokeDasharray={dash ? '4 4' : undefined} />;
-}
-
-const ELabel = ({ x, y, t }: { x: number; y: number; t: string }) => (
-  <span style={{
-    position: 'absolute', left: x, top: y, transform: 'translate(-50%, -50%)',
-    color: T5, fontSize: 10.5, whiteSpace: 'nowrap', background: '#000', padding: '0 6px',
-  }}>{t}</span>
+const edge = (k: string, x1: number, y1: number, x2: number, y2: number, dash = false) => (
+  <path key={k} d={`M ${x1} ${y1} C ${x1 + 24} ${y1}, ${x2 - 24} ${y2}, ${x2} ${y2}`}
+        fill="none" stroke="#282828" strokeWidth={1.3} strokeDasharray={dash ? '4 4' : undefined} />
 );
 
-/** フェーズノードの下にぶら下がるサブポート */
+const ELabel = ({ x, y, t }: { x: number; y: number; t: string }) => (
+  <div style={{
+    position: 'absolute', left: x, top: y, transform: 'translate(-50%, -50%)', padding: '0 5px',
+    color: T5, fontSize: 11, whiteSpace: 'nowrap', background: BG,
+  }}>{t}</div>
+);
+
+/** 選択中のフェーズノードの下にぶら下がるサブポート */
 const Sub = ({ x, top, label }: { x: number; top: number; label: string }) => (
   <>
-    <div style={{ position: 'absolute', left: x - 0.5, top, width: 1, height: 14, background: '#1E1E1E' }} />
+    <div style={{ position: 'absolute', left: x, top, width: 1, height: 15, background: '#262626' }} />
     <div style={{
-      position: 'absolute', left: x, top: top + 14, transform: 'translateX(-50%)',
-      display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap',
-    }}>
-      <Icon name="plus" color="#3A3A3A" size={9} />
-      <span style={{ color: '#4A4A4A', fontSize: 10.5 }}>{label}</span>
-    </div>
+      position: 'absolute', left: x - 10.5, top: top + 15, width: 21, height: 21, boxSizing: 'border-box',
+      borderRadius: 999, background: '#131313', border: '1px solid #2E2E2E',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}><Icon name="plus" color={T4} size={11} /></div>
+    <div style={{
+      position: 'absolute', left: x, top: top + 41, transform: 'translateX(-50%)',
+      color: T5, fontSize: 11, whiteSpace: 'nowrap',
+    }}>{label}</div>
   </>
 );
 
+const Tool = ({ name, on = false }: { name: 'hand' | 'expand' | 'minus' | 'plus'; on?: boolean }) => (
+  <span style={{
+    width: 28, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center',
+    justifyContent: 'center', background: on ? '#262626' : undefined,
+  }}><Icon name={name} color={on ? T1 : '#8B8B8B'} size={15} width={1.7} /></span>
+);
+
 export function Flow() {
-  const cy = Y1 + NH / 2;
+  const cy = (top: number) => top + NH / 2;
+  const rowY = RY.map(cy);
+  const mid = cy(ROW);
+  const out = (i: number) => CX[i] + CW;
+
   return (
     <div style={{
       position: 'relative', width: GW, height: GH, flexShrink: 0, overflow: 'hidden',
-      backgroundImage: 'radial-gradient(circle at 50% 34%, rgba(255,255,255,0.035), rgba(0,0,0,0) 62%), radial-gradient(#1A1A1A 1px, transparent 1px)',
-      backgroundSize: '100% 100%, 22px 22px',
+      backgroundColor: BG, backgroundImage: 'radial-gradient(#161616 1px, transparent 1px)', backgroundSize: '22px 22px',
     }}>
-      <svg width={GW} height={GH} style={{ position: 'absolute', inset: 0 }}>
-        {edge(XS[0] + NW, cy, XS[1], cy)}
-        {edge(XS[1] + NW, cy, XS[2], cy)}
-        {edge(XS[2] + NW, cy, XS[3], cy, true)}
-        {edge(XS[3] + NW, cy, BX, BY[0] + NH / 2, true)}
-        {edge(XS[3] + NW, cy, BX, BY[1] + NH / 2, true)}
-        {edge(XS[3] + NW, cy, BX, BY[2] + NH / 2, true)}
+      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(70% 70% at 42% 40%, rgba(255,255,255,0.028), rgba(0,0,0,0) 72%)' }} />
+
+      <svg width={GW} height={GH} viewBox={`0 0 ${GW} ${GH}`} style={{ position: 'absolute', inset: 0 }}>
+        {[0, 1, 2].map((i) => edge(`c${i}`, out(i), mid, CX[i + 1], mid))}
+        {rowY.map((y, i) => edge(`r${i}`, out(3), mid, RX, y, i === 1))}
+        {[rowY[0], rowY[2]].map((y, i) => edge(`s${i}`, RX + RW, y, RX + RW + 26, y, true))}
       </svg>
 
-      <Node x={XS[0]} y={Y1} title="調査" sub="フェーズ · 完了" kind="done" />
-      <Node x={XS[1]} y={Y1} title="設計" sub="フェーズ · 実行中" kind="now" />
-      <Node x={XS[2]} y={Y1} title="価格モデルの決定" sub="判断 · 判断待ち" kind="wait" />
-      <Node x={XS[3]} y={Y1} title="制作" sub="フェーズ · 待機" kind="next" />
-      <Node x={BX} y={BY[0]} w={BW} title="MVP" sub="成果物 · 待機" kind="next" />
-      <Node x={BX} y={BY[1]} w={BW} title="LPと申込フォーム" sub="Work · 実行中" kind="now" />
-      <Node x={BX} y={BY[2]} w={BW} title="SNS運用の立ち上げ" sub="Work · 実行中" kind="now" />
+      {FLOW.chain.map((n, i) => <Node key={n.id} x={CX[i]} y={ROW} w={CW} {...n} />)}
+      {FLOW.right.map((n, i) => <Node key={n.id} x={RX} y={RY[i]} w={RW} {...n} />)}
 
-      {[XS[0], XS[1], XS[2], XS[3]].map((x) => <Port key={`i${x}`} x={x} y={cy} />)}
-      {[XS[0] + NW, XS[1] + NW, XS[2] + NW, XS[3] + NW].map((x) => <Port key={`o${x}`} x={x} y={cy} on />)}
-      {BY.map((y) => <Port key={`b${y}`} x={BX} y={y + NH / 2} />)}
+      {CX.map((x, i) => (
+        <span key={x}>
+          {i > 0 && <Port x={x} y={mid} on />}
+          <Port x={x + CW} y={mid} on />
+        </span>
+      ))}
+      {rowY.map((y) => <span key={y}><Port x={RX} y={y} /><Port x={RX + RW} y={y} /></span>)}
 
-      <ELabel x={(XS[0] + NW + XS[1]) / 2} y={cy} t="次のフェーズ" />
-      <ELabel x={(XS[2] + NW + XS[3]) / 2} y={cy} t="決まったら" />
-      <ELabel x={(XS[3] + NW + BX) / 2} y={(cy + BY[2] + NH / 2) / 2 + 30} t="新しい Work" />
+      {/* 線の上のラベル。曲線に 12px かぶせず、まっすぐな線だけ下に逃がす */}
+      {FLOW.right.map((n, i) => (
+        <ELabel key={n.id} x={RX - 25} y={(mid + rowY[i]) / 2 + (i === 1 ? 12 : -12)} t={n.edge} />
+      ))}
 
-      <Sub x={XS[0] + 46} top={Y1 + NH} label="担当" />
-      <Sub x={XS[0] + 128} top={Y1 + NH} label="成果物 3" />
-      <Sub x={XS[1] + 46} top={Y1 + NH} label="担当 2" />
-      <Sub x={XS[1] + 128} top={Y1 + NH} label="成果物 1" />
+      {FLOW.subs.map((s, i) => <Sub key={s} x={CX[1] + 54 + i * 76} top={ROW + NH} label={s} />)}
 
       {/* 下中央のツールバー。操作説明は置かない */}
       <div style={{
         position: 'absolute', left: '50%', bottom: 124, transform: 'translateX(-50%)',
-        display: 'flex', alignItems: 'center', gap: 4, padding: 5, borderRadius: 12,
-        background: '#101010', border: '1px solid #262626',
+        display: 'flex', alignItems: 'center', gap: 3, padding: '5px 7px', borderRadius: 12,
+        background: '#121212', border: '1px solid #2A2A2A',
       }}>
-        {(['panel', 'plus', 'close', 'search'] as const).map((n, i) => (
-          <span key={n} style={{
-            width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            borderRadius: 8, background: i === 0 ? '#1C1C1C' : undefined,
-          }}><Icon name={n} color={i === 0 ? '#B8B8B8' : T4} size={14} /></span>
-        ))}
+        <span style={{ color: T5, fontSize: 12, padding: '0 5px' }}>⠿</span>
+        <Tool name="hand" on />
+        <Tool name="expand" />
+        <span style={{ width: 1, height: 18, background: '#262626', margin: '0 4px' }} />
+        <Tool name="minus" />
+        <span style={{ color: T2, fontSize: 12, padding: '0 4px' }} className="tnum">100%</span>
+        <Tool name="plus" />
       </div>
 
       {/* 右下のミニマップ */}
       <div style={{
-        position: 'absolute', right: 16, bottom: 124, width: 148, height: 92, borderRadius: 10,
-        background: '#080808', border: '1px solid #1C1C1C', overflow: 'hidden',
+        position: 'absolute', right: 14, bottom: 124, width: 148, height: 84, borderRadius: 10,
+        background: '#0A0A0A', border: '1px solid #232323', overflow: 'hidden',
       }}>
-        {[[6, 38, 22], [34, 38, 22], [62, 38, 22], [90, 38, 22], [120, 18, 24], [120, 40, 24], [120, 62, 24]].map(([x, y, w], i) => (
-          <div key={i} style={{
-            position: 'absolute', left: x, top: y, width: w, height: 8, borderRadius: 2,
-            background: i === 2 ? 'rgba(227,116,0,0.5)' : '#242424',
-          }} />
+        {([[10, 34, 24, 9, '#232323'], [40, 34, 24, 9, '#3A3A3A'], [70, 34, 22, 9, '#232323'],
+           [98, 34, 22, 9, 'rgba(227,116,0,0.55)'], [124, 16, 16, 8, '#2A2A2A'],
+           [124, 34, 16, 8, '#1E1E1E'], [124, 52, 16, 8, '#2A2A2A']] as const).map(([x, y, w, h, c]) => (
+          <div key={`${x}-${y}`} style={{ position: 'absolute', left: x, top: y, width: w, height: h, borderRadius: 2, background: c }} />
         ))}
+        <div style={{
+          position: 'absolute', left: 4, top: 20, width: 96, height: 44, borderRadius: 5,
+          border: '1px solid #4A4A4A', background: 'rgba(255,255,255,0.03)',
+        }} />
       </div>
     </div>
   );

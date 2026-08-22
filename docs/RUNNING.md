@@ -29,8 +29,18 @@ npx wrangler dev --local # workerd の上で動かす
 本番の行き先は Cloudflare Workers のままで、ここは静止画の代わりです。
 ブランチに push すると作り直されます（Vercel プロジェクト `onefound`）。
 
-`.env.local` に `NEXT_PUBLIC_DEMO=1` を入れると、ログインを通さずに全画面が触れます。
-**本番では立てないこと。** 中身はダミーで、押しても書き込みはどこにも届きません。
+ログインを通さずに全画面を触るには `DEMO_MODE=1` を立てます。
+
+```bash
+npm run dev:demo      # next dev（ダミーで全画面）
+npm run start:demo    # next start（ビルド後）
+npx wrangler dev --local --env preview   # workerd（本番と同じ形）
+```
+
+**`.env.local` には書かないこと。** OpenNext が `.env*` を**既定値としてビルド成果物に焼き込む**ので、
+そのまま本番にも付いていきます（実際に一度そうなりました）。
+置き場所は npm スクリプトの頭か、`wrangler.jsonc` の `env.preview.vars` だけ。
+紛れ込んだときのために、`APP_ENV=production` では効かないようにもしてあります。
 
 ```
 /home            ホーム（?view=desk / progress / flow で切替）

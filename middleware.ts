@@ -7,8 +7,11 @@ export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request })
 
   // Phase 4 のダミーデータ表示モード。ログインを通さずに全画面を触れるようにする。
-  // **本番では立てない。** 中身はダミーで、書き込みはどこにも届かない
-  if (process.env.NEXT_PUBLIC_DEMO === '1') return response
+  // 中身はダミーで、書き込みはどこにも届かない。
+  //   ・NEXT_PUBLIC_ を付けない = クライアントに配らず、Worker の env から実行時に読む
+  //   ・**.env* には書かない。** OpenNext が .env* を既定値として焼き込むので本番にも付いていく
+  //   ・それでも紛れ込んだときのために、APP_ENV=production では効かないようにしてある
+  if (process.env.DEMO_MODE === '1' && process.env.APP_ENV !== 'production') return response
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY

@@ -12,7 +12,10 @@
     "cf:build": "opennextjs-cloudflare build",
     "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "cf:typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
+    "cf:typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "cf:deploy:preview": "opennextjs-cloudflare build && opennextjs-cloudflare deploy -- --env preview",
+    "dev:demo": "DEMO_MODE=1 next dev",
+    "start:demo": "DEMO_MODE=1 next start"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.120.0",
