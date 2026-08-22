@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { CompanyPicker, useShell } from '@/components/shell/Shell';
 import { COMPOSER_H as TOKEN_COMPOSER_H } from '@/lib/design/tokens';
@@ -146,8 +146,15 @@ export function Pane({ width = 430, title, icon, dot, tabs, right, onClose, chil
   children: React.ReactNode;
 }) {
   const [tab, setTab] = useState(0);
+  // Esc で閉じる。右ペインはどの画面でも同じ作法にする
+  useEffect(() => {
+    if (!onClose) return;
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [onClose]);
   return (
-    <div style={{
+    <aside aria-label={title ?? tabs?.[tab]?.label} style={{
       width, flexShrink: 0, boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
       background: '#000', minHeight: 0, borderLeft: '1px solid #161616',
     }}>
@@ -167,8 +174,11 @@ export function Pane({ width = 430, title, icon, dot, tabs, right, onClose, chil
                 {t.dot && <span style={{ width: 7, height: 7, borderRadius: 999, background: t.dot }} />}
                 {t.label}
                 {i === tab && (
-                  <span role="button" tabIndex={0} className="icob"
+                  <span role="button" tabIndex={0} className="icob" aria-label="閉じる"
                         onClick={(e) => { e.stopPropagation(); onClose?.(); }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onClose?.(); }
+                        }}
                         style={{ display: 'inline-flex', padding: 2, marginRight: -3 }}>
                     <Icon name="close" color={T5} size={11} />
                   </span>
@@ -197,7 +207,7 @@ export function Pane({ width = 430, title, icon, dot, tabs, right, onClose, chil
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         {children}
       </div>
-    </div>
+    </aside>
   );
 }
 

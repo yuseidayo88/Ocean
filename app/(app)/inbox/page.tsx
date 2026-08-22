@@ -8,6 +8,7 @@ import { useOpen } from '@/lib/use-open';
 import { Centre, Composer, Pane, PaneFooter, TopBar } from '@/components/shell/Chrome';
 import { Diamond, Dot, Icon } from '@/components/ui/Icon';
 import { DECISION_BODY, NOTICE_GROUPS } from '@/lib/dummy';
+import { pressable } from '@/lib/a11y';
 
 /**
  * 通知＝時系列フィード（参考: Asana / Zendesk）。
@@ -50,7 +51,7 @@ export default function InboxPage() {
                 <span style={{ color: T5, fontSize: 12 }}>{g.label}</span>
               </div>
               {g.items.map((n) => (
-                <div key={n.id} className="row" onClick={() => setOpen(n.id)} style={{
+                <div key={n.id} className="row" {...pressable(() => setOpen(n.id))} style={{
                   display: 'flex', gap: 13, padding: '13px 0 13px 12px', borderBottom: '1px solid #161616',
                   borderLeft: `2px solid ${n.unread ? BLUE : 'transparent'}`,
                 }}>

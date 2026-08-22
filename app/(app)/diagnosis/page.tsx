@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useOpen } from '@/lib/use-open';
 import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Icon } from '@/components/ui/Icon';
+import { pressable } from '@/lib/a11y';
 
 /**
  * ⓪-d 診断結果。**診断は必ず「次に何をするか（Work）」まで持つ。**
@@ -64,7 +65,7 @@ export default function DiagnosisPage() {
               <span style={{ color: T5, fontSize: 12 }}>効きそうな順</span>
             </div>
             {FINDINGS.map(([w, title, why, next], i) => (
-              <div key={title} className="row" onClick={() => setOpen(title)} style={{
+              <div key={title} className="row" {...pressable(() => setOpen(title))} style={{
                 display: 'flex', alignItems: 'center', gap: 14, padding: '13px 0',
                 borderBottom: i === FINDINGS.length - 1 ? undefined : '1px solid #161616',
               }}>

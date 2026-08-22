@@ -7,6 +7,7 @@ import { useOpen } from '@/lib/use-open';
 import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Dot, Icon } from '@/components/ui/Icon';
 import { DELIVERABLES, DELIVERABLE_BODY, employee, type Preview } from '@/lib/dummy';
+import { pressable } from '@/lib/a11y';
 
 /**
  * 成果物＝グリッド（参考: Craft / Frame）。
@@ -91,7 +92,7 @@ export default function DeliverablesPage() {
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '16px 16px 112px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
             {DELIVERABLES.map((d) => (
-              <div key={d.id} className="card" onClick={() => setOpen(d.id)} style={{
+              <div key={d.id} className="card" {...pressable(() => setOpen(d.id))} style={{
                 boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 11,
                 padding: 12, borderRadius: 12, background: '#121212',
                 border: `1px solid ${open === d.id ? '#333' : 'transparent'}`,

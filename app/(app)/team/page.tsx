@@ -9,6 +9,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
 import { AGENT_COLOR, EMPLOYEES, HIRE_SUGGESTION, RULES, SKILLS, employee } from '@/lib/dummy';
 import { openHref } from '@/lib/use-open';
+import { pressable } from '@/lib/a11y';
 
 /**
  * メンバー＝表（人数が増えても崩れない）。1行=1社員。
@@ -65,7 +66,7 @@ export default function TeamPage() {
           {EMPLOYEES.map((e) => {
             const on = e.id === openId;
             return (
-              <div key={e.id} className={on ? 'hit' : 'row'} onClick={() => setOpenId(e.id)} style={{
+              <div key={e.id} className={on ? 'hit' : 'row'} {...pressable(() => setOpenId(e.id))} style={{
                 display: 'flex', alignItems: 'center', height: 54, padding: '0 26px',
                 borderBottom: '1px solid #161616', background: on ? '#0C0C0C' : undefined,
                 boxShadow: on ? `inset 3px 0 0 ${AGENT_COLOR[e.color]}` : undefined,

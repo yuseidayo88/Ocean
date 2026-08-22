@@ -83,7 +83,7 @@ export function Rail({ empty }: { empty?: boolean } = {}) {
   const open = WORKS.find((w) => path.startsWith(`/work/${w.id}`));
 
   return (
-    <div style={{
+    <nav aria-label="行き先" style={{
       position: 'relative', width: 260, flexShrink: 0, boxSizing: 'border-box',
       display: 'flex', flexDirection: 'column', gap: 14, padding: '14px 12px',
       background: '#141414', borderRight: '1px solid #232323',
@@ -200,6 +200,6 @@ export function Rail({ empty }: { empty?: boolean } = {}) {
           <PopRow label="ログアウト" color={T3} />
         </Pop>
       )}
-    </div>
+    </nav>
   );
 }

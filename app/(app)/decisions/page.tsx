@@ -6,6 +6,7 @@ import { openHref, useOpen } from '@/lib/use-open';
 import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Dot, Icon, type IconName } from '@/components/ui/Icon';
 import { DECISIONS, DECISION_BODY, type Decision } from '@/lib/dummy';
+import { pressable } from '@/lib/a11y';
 
 /**
  * 決定事項＝台帳タイムライン。**追記のみ**（決め直しは新しい行＋supersedes）。
@@ -59,7 +60,7 @@ export default function DecisionsPage() {
             const wait = d.state === '判断待ち';
             const first = i === 0;
             return (
-              <div key={d.id} className="row" onClick={() => setOpen(d.id)} style={{
+              <div key={d.id} className="row" {...pressable(() => setOpen(d.id))} style={{
                 display: 'flex', gap: 16, borderRadius: 8,
                 background: openId === d.id ? '#0B0B0B' : undefined,
               }}>

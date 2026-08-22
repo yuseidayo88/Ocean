@@ -5,6 +5,7 @@ import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/componen
 import { Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
 import { AGENT_COLOR, HIRE_CANDIDATES } from '@/lib/dummy';
+import { pressable } from '@/lib/a11y';
 
 /**
  * 採用は日本語で「どんなAIか」が分かる形。
@@ -45,7 +46,7 @@ export default function HirePage() {
               強調したい1つだけ薄い面を敷く */}
           <div>
             {HIRE_CANDIDATES.map((c, n) => (
-              <div key={c.id} className="row" onClick={() => setOpen(c.id)} style={{
+              <div key={c.id} className="row" {...pressable(() => setOpen(c.id))} style={{
                 display: 'flex', gap: 16, padding: '17px 18px', boxSizing: 'border-box',
                 background: c.recommended ? '#0B0B0B' : undefined,
                 borderBottom: n === HIRE_CANDIDATES.length - 1 ? undefined : '1px solid #161616',

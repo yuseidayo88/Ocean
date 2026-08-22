@@ -328,6 +328,84 @@ export const THREADS: Thread[] = [
   { id: 't-lp',    title: 'LPの構成', unread: true, workId: 'w-lp' },
 ];
 
+/**
+ * 会話の中身。スレッドごとに違うものを持つ（3本が同じ会話だと履歴の意味がない）。
+ * 質問（ask）は会話に流さず、入力欄の上の板として出す。無いスレッドもある。
+ */
+export type ChatBar = { k: string; v: string; note: string; pct: number; hi?: boolean };
+export type Turn =
+  | { who: 'you'; text: string }
+  | { who: 'exec'; thought?: string; lead: string; bars?: ChatBar[]; steps?: [string, string][]; tail?: string };
+export type ChatAsk = {
+  q: string; idx: number; total: number; free: string;
+  options: { label: string; note: string; recommended?: boolean }[];
+};
+
+export const CHATS: Record<string, { turns: Turn[]; ask?: ChatAsk }> = {
+  't-price': {
+    turns: [
+      { who: 'you', text: '価格どうしようか' },
+      { who: 'exec', thought: '12秒 考えました',
+        lead: '3案で比べました。**B案（月額 ¥1,980）**をすすめます。\n韓国の競合が ₩19,900（約 ¥2,200）に集まっていて、そこが値ごろの基準になっているからです。',
+        bars: [
+          { k: 'A案', v: '¥980',   note: '入りやすいが利益が薄い',   pct: 34 },
+          { k: 'B案', v: '¥1,980', note: '競合と同じ帯・利益が残る', pct: 78, hi: true },
+          { k: 'C案', v: '¥3,980', note: '高い理由を作る必要がある', pct: 58 },
+        ],
+        tail: 'A案は「安かろう」に見られ、C案は選ぶ理由をこちらで用意する必要があります。' },
+    ],
+    ask: {
+      q: '月額はいくらにしますか？', idx: 1, total: 2, free: 'ほかの内容を書く',
+      options: [
+        { label: '¥1,980', note: '競合と同じ帯。利益も残る。ここが値ごろの基準になります', recommended: true },
+        { label: '¥980',   note: '入りやすいが利益が薄い。あとからの値上げは効きにくい' },
+        { label: '¥3,980', note: '競合より高いので、選ぶ理由をこちらで用意します' },
+      ],
+    },
+  },
+
+  't-korea': {
+    turns: [
+      { who: 'you', text: '韓国の競合ってどこ？' },
+      { who: 'exec', thought: '18秒 考えました',
+        lead: '12件を見て、価格帯が重なるのは3社でした。**Sejong Online** が最大手です。\n受講者数の比です。',
+        bars: [
+          { k: 'Sejong',  v: '₩19,900', note: '文法から入る・教材が厚い', pct: 92, hi: true },
+          { k: 'Hanaro',  v: '₩24,900', note: 'JLPT対策に寄せている',    pct: 46 },
+          { k: 'Nihongo', v: '₩15,900', note: '安いが講師が固定でない',  pct: 28 },
+        ],
+        tail: '3社とも文法から入る作りなので、会話から入れば正面からぶつからずに済みます。' },
+      { who: 'you', text: '教材の厚さでは勝てないってこと？' },
+      { who: 'exec',
+        lead: 'そこは追わなくていいと考えています。Sejong は8年ぶんの蓄積があるので、量では追いつきません。\n勝てるのは「あなたが日本語教育と韓国語の両方をやってきた」という一点です。教材ではなく、つまずく場所を先に言えることが差になります。' },
+    ],
+  },
+
+  't-lp': {
+    turns: [
+      { who: 'you', text: 'LPの構成どうする？' },
+      { who: 'exec', thought: '9秒 考えました',
+        lead: '上から5つ。読む人が「自分のことだ」と思ってから、値段を見る順にしています。',
+        steps: [
+          ['1  つかみ',   '韓国語で日本語を教わる、という一行'],
+          ['2  困りごと', '独学でつまずく3つを並べる'],
+          ['3  中身',     '体験レッスンの動画を1本'],
+          ['4  値段',     '月額と、いつでもやめられること'],
+          ['5  背中押し', '体験の申し込みボタン'],
+        ],
+        tail: '値段を先に出すと、まだ理由ができていない人が離れます。' },
+    ],
+    ask: {
+      q: '最初に見せるのはどれにしますか？', idx: 1, total: 1, free: 'ほかの内容を書く',
+      options: [
+        { label: '韓国語で教わる',   note: '差がいちばん伝わる。ほかにない一行です', recommended: true },
+        { label: '無料体験',         note: '申し込みは増えるが、来る人の本気度が下がります' },
+        { label: '講師の顔と経歴',   note: '安心はされるが、この段階では読み飛ばされがちです' },
+      ],
+    },
+  },
+};
+
 // ════════════════════════ スキル ════════════════════════
 
 export type Skill = { id: string; name: string; file: string; on: boolean; scope: 'employee' | 'company' };

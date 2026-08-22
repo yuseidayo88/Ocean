@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { openHref, useOpen } from '@/lib/use-open';import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Diamond, Dot, Icon, type IconName } from '@/components/ui/Icon';
 import { TASKS, TASK_BODY, employee, work, type State, type Task } from '@/lib/dummy';
+import { pressable } from '@/lib/a11y';
 
 /**
  * タスク＝ふつうの1枚の表（参考: Linear）。**Workごとにグループ分けしない**
@@ -71,7 +72,7 @@ export default function TasksPage() {
             const done = t.state === '完了';
             const who = t.owner === 'me' ? 'あなた' : employee(t.owner).name;
             return (
-              <div key={t.title} className="row" onClick={() => setOpen(t.id)} style={{
+              <div key={t.title} className="row" {...pressable(() => setOpen(t.id))} style={{
                 display: 'flex', alignItems: 'center', gap: 12, height: 42, borderBottom: '1px solid #161616',
                 background: t.id === openId ? '#0C0C0C' : undefined,
               }}>

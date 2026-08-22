@@ -4,6 +4,7 @@ import { useOpen } from '@/lib/use-open';
 import { Centre, Composer, Pane, TopBar } from '@/components/shell/Chrome';
 import { Icon } from '@/components/ui/Icon';
 import { Toggle } from '@/components/shell/Controls';
+import { pressable } from '@/lib/a11y';
 
 /**
  * スキル ＝ SKILL.md のファイル管理（参考: Base44 の Knowledge files）。
@@ -66,7 +67,7 @@ function Rows({ rows, onOpen }: { rows: Row[]; onOpen: (f: string) => void }) {
   return (
     <>
       {rows.map((s, i) => (
-        <div key={s.file} className="row" onClick={() => onOpen(s.file)} style={{
+        <div key={s.file} className="row" {...pressable(() => onOpen(s.file))} style={{
           display: 'flex', alignItems: 'center', gap: 14, padding: '17px 0',
           borderBottom: i === rows.length - 1 ? undefined : '1px solid #161616',
         }}>

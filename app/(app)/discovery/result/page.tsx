@@ -6,6 +6,7 @@ import { useOpen } from '@/lib/use-open';
 import { Composer, Pane, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Centre } from '@/components/shell/Chrome';
 import { Icon } from '@/components/ui/Icon';
+import { pressable } from '@/lib/a11y';
 
 /**
  * ⓪-b 候補をくらべる。**採用しなかった候補も残す**
@@ -67,7 +68,7 @@ export default function DiscoveryResultPage() {
               強調したい1つだけ左に色帯と薄い面を敷く */}
           <div>
             {CANDS.map((c, n) => (
-              <div key={c.title} className="row" onClick={() => setOpen(c.title)} style={{
+              <div key={c.title} className="row" {...pressable(() => setOpen(c.title))} style={{
                 position: 'relative', display: 'flex', gap: 20, alignItems: 'center',
                 padding: c.rec ? '20px 20px 20px 22px' : '20px 20px 20px 22px',
                 background: c.rec ? 'rgba(30,142,62,0.05)' : undefined,

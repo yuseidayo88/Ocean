@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { usePathname } from 'next/navigation';
 import { COMPANIES } from '@/lib/dummy';
@@ -31,6 +31,13 @@ export const isBlank = (p: string) => EMPTY_ROUTES.some((r) => p === r || p.star
 export function CompanyPicker() {
   const [open, setOpen] = useState(false);
   const path = usePathname();
+  // Esc で閉じる（右ペインと同じ作法）
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [open]);
   const blank = isBlank(path);
   const now = COMPANIES.find((c) => c.current) ?? COMPANIES[0];
   const name = blank ? 'あなたの会社' : now.name;

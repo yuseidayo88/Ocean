@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useOpen } from '@/lib/use-open';
 import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Icon, type IconName } from '@/components/ui/Icon';
+import { pressable } from '@/lib/a11y';
 
 /** ⓪-c 事業の取り込み。あるものだけ渡せばいい。読み終わってから診断する */
 
@@ -57,7 +58,7 @@ export default function ImportPage() {
             {SOURCES.map((s, i) => {
               const pct = s.state === '完了' ? 100 : s.state === '読込中' ? 34 : 0;
               return (
-                <div key={s.name} className="row" onClick={() => setOpen(s.name)} style={{
+                <div key={s.name} className="row" {...pressable(() => setOpen(s.name))} style={{
                   display: 'flex', alignItems: 'center', gap: 14, height: 43,
                   borderBottom: i === SOURCES.length - 1 ? undefined : '1px solid #161616',
                 }}>
@@ -67,7 +68,7 @@ export default function ImportPage() {
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>{s.name}</span>
                   <span style={{
-                    width: 132, flexShrink: 0, color: T5, fontSize: 11,
+                    width: 140, flexShrink: 0, color: T5, fontSize: 11,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>{s.note}</span>
                   <span style={{ width: 66, flexShrink: 0, height: 4, borderRadius: 2, background: '#1A1A1A', overflow: 'hidden' }}>
