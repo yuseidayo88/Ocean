@@ -108,9 +108,9 @@
     <div style="flex-shrink: 0; display: flex; justify-content: center; padding: 16px 0 0;">
       <div style="display: flex; gap: 3px; padding: 4px; border-radius: 999px; background: #141414; border: 1px solid #232323;"><span style="display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 15px; border-radius: 999px; white-space: nowrap; "><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.2" cy="8.6" r="3.1"/><path d="M4 19.2c0-2.9 2.3-5.2 5.2-5.2s5.2 2.3 5.2 5.2"/><path d="M15.6 5.9a3 3 0 0 1 0 5.5M17.6 14.4c1.8.8 3 2.6 3 4.8"/></svg><span style="color: #6E6E6E;">オフィス</span></span><span style="display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 15px; border-radius: 999px; white-space: nowrap; "><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="M9.5 5v14"/></svg><span style="color: #6E6E6E;">デスク</span></span><span style="display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 15px; border-radius: 999px; white-space: nowrap; background: #2A2A2A;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#EDEDED" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4 4 9-10"/></svg><span style="color: #EDEDED;">進捗</span></span><span style="display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 15px; border-radius: 999px; white-space: nowrap; "><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.2"/><circle cx="6" cy="18" r="2.2"/><path d="M6 8.2v7.6M8.2 6H15a3 3 0 0 1 3 3v0"/></svg><span style="color: #6E6E6E;">ワークフロー</span></span></div>
     </div>
-    <div style="flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 10px 24px 0;">
+    <div style="flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; align-items: center; gap: 26px; padding: 8px 24px 0;">
       <div style="width: 100%; max-width: 1108px; flex-shrink: 0; display: flex; flex-direction: column; gap: 5px;">
-        <span style="font-size: 15px; line-height: 25px;">3つの Work のうち <span style="color: #F28B82;">1つが遅れています。</span><span style="color: #FDD663;">判断待ちが 1件。</span></span>
+        <span style="font-size: 15px; line-height: 25px;">3つの Work のうち <span style="color: #F28B82;">1つが遅れています。</span><span style="color: #FDD663;">あなた待ちが 2件。</span></span>
         <span style="color: #8B8B8B; font-size: 13px; line-height: 21px;">SNS運用の立ち上げが2日おくれ。日本語学習サービスは、価格の方向性だけ判断を待っています。</span>
         <span style="color: #5F5F5F; font-size: 11px; padding-top: 2px;">統括AI · 2時間前</span>
       </div>
@@ -156,55 +156,48 @@
       </div>
       <div style="width: 100%; max-width: 1108px; flex: 0 0 auto; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column; padding: 0;">
         <div style="flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding-bottom: 10px;">
+          <span style="color: #6E6E6E;">あなた待ち</span><div style="flex: 1;"></div><span style="display: inline-flex; align-items: center; gap: 6px; color: #6E6E6E; white-space: nowrap;">すべて表示 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></svg></span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #161616;">
+          <span style="width: 16px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;"><span style="width: 9px; height: 9px; background: #E37400; transform: rotate(45deg); border-radius: 1.5px; display: inline-block;"></span></span>
+          <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">価格モデルの決定</span>
+          <div style="flex: 1;"></div>
+          <span style="color: #5F5F5F; font-size: 12px; white-space: nowrap;">日本語学習サービス · 3時間</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0;">
+          <span style="width: 16px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FDD663" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5H7.4A1.9 1.9 0 0 0 5.5 5.4v13.2a1.9 1.9 0 0 0 1.9 1.9h9.2a1.9 1.9 0 0 0 1.9-1.9V8.5z"/><path d="M13.5 3.5v5h5"/></svg></span>
+          <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">競合分析レポート v1.0</span>
+          <div style="flex: 1;"></div>
+          <span style="color: #5F5F5F; font-size: 12px; white-space: nowrap;">調査担当 · 2時間前 · 要確認</span>
+        </div>
+      </div>
+      <div style="width: 100%; max-width: 1108px; flex-shrink: 0; display: flex; gap: 54px;">
+      <div style="flex: 1.15; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column; padding: 0;">
+        <div style="flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding-bottom: 10px;">
+          <span style="color: #6E6E6E;">今週</span><div style="flex: 1;"></div><span style="display: inline-flex; align-items: center; gap: 6px; color: #6E6E6E; white-space: nowrap;">8月18日から <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></svg></span>
+        </div>
+        <div style="display: flex; gap: 26px;">
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; padding: 2px 0 2px 0; border-right: 1px solid #161616;">
+          <span style="color: #6E6E6E; font-size: 12px;">終わったタスク</span>
+          <span style="font-size: 26px; line-height: 32px; font-variant-numeric: tabular-nums;">5</span>
+        </div>
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; padding: 2px 0 2px 0; border-right: 1px solid #161616;">
+          <span style="color: #6E6E6E; font-size: 12px;">出た成果物</span>
+          <span style="font-size: 26px; line-height: 32px; font-variant-numeric: tabular-nums;">4</span>
+        </div>
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; padding: 2px 0 2px 0;">
+          <span style="color: #6E6E6E; font-size: 12px;">決まったこと</span>
+          <span style="font-size: 26px; line-height: 32px; font-variant-numeric: tabular-nums;">2</span>
+        </div>
+        </div>
+      </div>
+      <div style="flex: 1.25; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column; padding: 0;">
+        <div style="flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding-bottom: 10px;">
           <span style="color: #6E6E6E;">予定との差</span><div style="flex: 1;"></div><span style="display: inline-flex; align-items: center; gap: 6px; color: #6E6E6E; white-space: nowrap;">8月1日から <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></svg></span>
         </div>
-        <svg width="1000" height="62" viewBox="0 0 1000 62" style="display: block; width: 100%; height: auto;"><defs></defs><line x1="0" y1="26.5" x2="920" y2="26.5" stroke="#2E2E2E" stroke-dasharray="3 4"/><text x="929" y="26.5" fill="#5F5F5F" font-size="11" dominant-baseline="middle">予定どおり</text><polygon points="0,26.5 0.0,26.5 46.0,26.5 92.0,17.4 138.0,17.4 184.0,26.5 230.0,26.5 276.0,17.4 322.0,17.4 368.0,17.4 414.0,26.5 460.0,26.5 506.0,26.5 552.0,35.5 598.0,35.5 644.0,26.5 690.0,26.5 736.0,35.5 782.0,35.5 828.0,35.5 874.0,44.6 920.0,44.6 920.0,26.5" fill="rgba(217,48,37,0.16)" clip-path="url(#below)"/><clipPath id="below"><rect x="0" y="26.5" width="920" height="35.5"/></clipPath><polygon points="0,26.5 0.0,26.5 46.0,26.5 92.0,17.4 138.0,17.4 184.0,26.5 230.0,26.5 276.0,17.4 322.0,17.4 368.0,17.4 414.0,26.5 460.0,26.5 506.0,26.5 552.0,35.5 598.0,35.5 644.0,26.5 690.0,26.5 736.0,35.5 782.0,35.5 828.0,35.5 874.0,44.6 920.0,44.6 920.0,26.5" fill="rgba(30,142,62,0.14)" clip-path="url(#above)"/><clipPath id="above"><rect x="0" y="0" width="920" height="26.5"/></clipPath><polyline points="0.0,26.5 46.0,26.5 92.0,17.4 138.0,17.4 184.0,26.5 230.0,26.5 276.0,17.4 322.0,17.4 368.0,17.4 414.0,26.5 460.0,26.5 506.0,26.5 552.0,35.5 598.0,35.5 644.0,26.5 690.0,26.5 736.0,35.5 782.0,35.5 828.0,35.5 874.0,44.6 920.0,44.6" fill="none" stroke="#8A8A8A" stroke-width="1.6" stroke-linejoin="round"/><circle cx="920.0" cy="44.6" r="3.2" fill="#F28B82"/><text x="929" y="44.6" fill="#F28B82" font-size="11" dominant-baseline="middle">2件おくれ</text></svg>
-        <span style="padding-top: 13px; color: #8B8B8B; font-size: 13px;">先週までは予定より進んでいました。<span style="color: #F28B82;">この4日で 2件おくれ</span>ています。</span>
+        <svg width="470" height="62" viewBox="0 0 470 62" style="display: block; width: 100%; height: auto;"><defs></defs><line x1="0" y1="26.5" x2="396" y2="26.5" stroke="#2E2E2E" stroke-dasharray="3 4"/><text x="405" y="26.5" fill="#5F5F5F" font-size="11" dominant-baseline="middle">予定どおり</text><polygon points="0,26.5 0.0,26.5 19.8,26.5 39.6,17.4 59.4,17.4 79.2,26.5 99.0,26.5 118.8,17.4 138.6,17.4 158.4,17.4 178.2,26.5 198.0,26.5 217.8,26.5 237.6,35.5 257.4,35.5 277.2,26.5 297.0,26.5 316.8,35.5 336.6,35.5 356.4,35.5 376.2,44.6 396.0,44.6 396.0,26.5" fill="rgba(217,48,37,0.16)" clip-path="url(#below)"/><clipPath id="below"><rect x="0" y="26.5" width="396" height="35.5"/></clipPath><polygon points="0,26.5 0.0,26.5 19.8,26.5 39.6,17.4 59.4,17.4 79.2,26.5 99.0,26.5 118.8,17.4 138.6,17.4 158.4,17.4 178.2,26.5 198.0,26.5 217.8,26.5 237.6,35.5 257.4,35.5 277.2,26.5 297.0,26.5 316.8,35.5 336.6,35.5 356.4,35.5 376.2,44.6 396.0,44.6 396.0,26.5" fill="rgba(30,142,62,0.14)" clip-path="url(#above)"/><clipPath id="above"><rect x="0" y="0" width="396" height="26.5"/></clipPath><polyline points="0.0,26.5 19.8,26.5 39.6,17.4 59.4,17.4 79.2,26.5 99.0,26.5 118.8,17.4 138.6,17.4 158.4,17.4 178.2,26.5 198.0,26.5 217.8,26.5 237.6,35.5 257.4,35.5 277.2,26.5 297.0,26.5 316.8,35.5 336.6,35.5 356.4,35.5 376.2,44.6 396.0,44.6" fill="none" stroke="#8A8A8A" stroke-width="1.6" stroke-linejoin="round"/><circle cx="396.0" cy="44.6" r="3.2" fill="#F28B82"/><text x="405" y="44.6" fill="#F28B82" font-size="11" dominant-baseline="middle">2件おくれ</text></svg>
+        <span style="padding-top: 12px; color: #8B8B8B; font-size: 13px; line-height: 21px;">先週までは予定より進んでいました。<span style="color: #F28B82;">この4日で 2件おくれ</span>ています。</span>
       </div>
-      <div style="width: 100%; max-width: 1108px; flex: 0 0 auto; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column; padding: 0;">
-        <div style="flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding-bottom: 10px;">
-          <span style="color: #6E6E6E;">最近の成果物</span><div style="flex: 1;"></div><span style="display: inline-flex; align-items: center; gap: 6px; color: #6E6E6E; white-space: nowrap;">すべて表示 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></svg></span>
-        </div>
-        <div style="display: flex; gap: 40px;">
-          <div style="flex: 1; min-width: 0;">        <div style="display: flex; align-items: center; gap: 11px; padding: 9px 0; border-bottom: 1px solid #161616;">
-          <span style="width: 18px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5H7.4A1.9 1.9 0 0 0 5.5 5.4v13.2a1.9 1.9 0 0 0 1.9 1.9h9.2a1.9 1.9 0 0 0 1.9-1.9V8.5z"/><path d="M13.5 3.5v5h5"/></svg></span>
-          <div style="min-width: 0; display: flex; flex-direction: column; gap: 1px;">
-            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">競合分析レポート v1.0</span>
-            <span style="color: #5F5F5F; font-size: 12px; white-space: nowrap;">調査担当 · 2時間前</span>
-          </div>
-          <div style="flex: 1;"></div>
-          <span style="display: inline-flex; align-items: center; height: 21px; padding: 0 8px; border-radius: 6px; background: rgba(227,116,0,0.18); color: #FDD663; white-space: nowrap; font-size: 12px;">要確認</span>
-        </div>
-        <div style="display: flex; align-items: center; gap: 11px; padding: 9px 0;">
-          <span style="width: 18px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5H7.4A1.9 1.9 0 0 0 5.5 5.4v13.2a1.9 1.9 0 0 0 1.9 1.9h9.2a1.9 1.9 0 0 0 1.9-1.9V8.5z"/><path d="M13.5 3.5v5h5"/></svg></span>
-          <div style="min-width: 0; display: flex; flex-direction: column; gap: 1px;">
-            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">市場規模レポート</span>
-            <span style="color: #5F5F5F; font-size: 12px; white-space: nowrap;">調査担当 · 5時間前</span>
-          </div>
-          <div style="flex: 1;"></div>
-          
-        </div>
-</div>
-          <div style="flex: 1; min-width: 0;">        <div style="display: flex; align-items: center; gap: 11px; padding: 9px 0; border-bottom: 1px solid #161616;">
-          <span style="width: 18px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5H7.4A1.9 1.9 0 0 0 5.5 5.4v13.2a1.9 1.9 0 0 0 1.9 1.9h9.2a1.9 1.9 0 0 0 1.9-1.9V8.5z"/><path d="M13.5 3.5v5h5"/></svg></span>
-          <div style="min-width: 0; display: flex; flex-direction: column; gap: 1px;">
-            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">ペルソナ仮説 3パターン</span>
-            <span style="color: #5F5F5F; font-size: 12px; white-space: nowrap;">戦略担当 · 1日前</span>
-          </div>
-          <div style="flex: 1;"></div>
-          
-        </div>
-        <div style="display: flex; align-items: center; gap: 11px; padding: 9px 0;">
-          <span style="width: 18px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5H7.4A1.9 1.9 0 0 0 5.5 5.4v13.2a1.9 1.9 0 0 0 1.9 1.9h9.2a1.9 1.9 0 0 0 1.9-1.9V8.5z"/><path d="M13.5 3.5v5h5"/></svg></span>
-          <div style="min-width: 0; display: flex; flex-direction: column; gap: 1px;">
-            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">競合ポジショニング図</span>
-            <span style="color: #5F5F5F; font-size: 12px; white-space: nowrap;">調査担当 · 1日前</span>
-          </div>
-          <div style="flex: 1;"></div>
-          
-        </div>
-</div>
-        </div>
       </div>
     </div>
     <div style="position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 42px 24px 18px; background: linear-gradient(to top, #000000 0%, #000000 44%, rgba(0,0,0,0.86) 66%, rgba(0,0,0,0) 100%);">
