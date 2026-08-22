@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { CompanyPicker, useShell } from '@/components/shell/Shell';
-import { COMPOSER_H as TOKEN_COMPOSER_H } from '@/lib/design/tokens';
+import { COMPOSER_H as TOKEN_COMPOSER_H, EASE } from '@/lib/design/tokens';
 
 const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
 const BLUE = '#1A73E8';
@@ -65,6 +65,23 @@ export function TopBar({ crumb, title, right, onPanel, panelOn }:
  * 入力欄は全画面で同じものを1つ。中央下部・幅748・角丸18。
  * **中身の上に浮かせる**（重なってよい）。入力欄が主役の画面だけ floating=false。
  */
+/**
+ * 入力欄は書いたぶんだけ伸びる。**伸びるところも滑らかにする。**
+ * 高さを測るには一度 0 に落とす必要があるが、そのままだと 0 まで縮んでから伸びる。
+ * 測るあいだだけ動きを止め、いまの高さに戻してから、次の高さへ動かす。
+ */
+function grow(t: HTMLTextAreaElement) {
+  const before = t.offsetHeight;
+  const keep = t.style.transition;
+  t.style.transition = 'none';
+  t.style.height = '0px';
+  const next = Math.min(t.scrollHeight, 168);
+  t.style.height = `${before}px`;
+  void t.offsetHeight;
+  t.style.transition = keep;
+  t.style.height = `${next}px`;
+}
+
 export function Composer({ placeholder, mode = '統括AI', effort = '自動', above, floating = true }:
   { placeholder: string; mode?: string; effort?: string; above?: React.ReactNode; floating?: boolean }) {
   const [text, setText] = useState('');
@@ -88,12 +105,13 @@ export function Composer({ placeholder, mode = '統括AI', effort = '自動', ab
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          onInput={(e) => { const t = e.currentTarget; t.style.height = '0px'; t.style.height = `${Math.min(t.scrollHeight, 168)}px`; }}
+          onInput={(e) => grow(e.currentTarget)}
           placeholder={placeholder}
           rows={1}
           style={{
             width: '100%', resize: 'none', background: 'none', border: 'none', outline: 'none',
             color: T1, fontSize: 14, lineHeight: '22px', maxHeight: 168, overflowY: 'auto',
+            transition: `height ${EASE}`,
           }}
         />
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -152,16 +170,35 @@ export function Pane({ width = 430, title, icon, dot, tabs, tab: tabAt, onTab, r
   const [tabIn, setTabIn] = useState(0);
   const tab = tabAt ?? tabIn;
   const setTab = onTab ?? setTabIn;
+
+  /**
+   * 出入りを滑らかにする。**どちらも出た最初のフレームから動く。**
+   * 出るとき: `panein` が幅 0 から広げる（CSS のアニメーションなので、
+   *   React がもう一度描くのを待たない ＝ 押した瞬間から動きはじめる）。
+   * 閉じるとき: `paneout` で畳み、**畳み終わってから**親に伝えて消えてもらう。
+   * 消えるのを待たせるのはここだけ。画面ごとに書かなくていい。
+   */
+  const [leaving, setLeaving] = useState(false);
+  const close = () => {
+    if (!onClose || leaving) return;
+    setLeaving(true);
+    setTimeout(onClose, 220);
+  };
+
   // Esc で閉じる。右ペインはどの画面でも同じ作法にする
   useEffect(() => {
     if (!onClose) return;
-    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onClose]);
+
   return (
-    <aside aria-label={title ?? tabs?.[tab]?.label} style={{
-      width, flexShrink: 0, boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
+    <aside aria-label={title ?? tabs?.[tab]?.label} className={leaving ? 'paneout' : 'panein'}
+           style={{ ['--pw' as string]: `${width}px`, flexShrink: 0, overflow: 'hidden' }}>
+    <div style={{
+      width, height: '100%', flexShrink: 0, boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
       background: '#000', minHeight: 0, borderLeft: '1px solid #161616',
     }}>
       <div style={{
@@ -181,9 +218,9 @@ export function Pane({ width = 430, title, icon, dot, tabs, tab: tabAt, onTab, r
                 {t.label}
                 {i === tab && (
                   <span role="button" tabIndex={0} className="icob" aria-label="閉じる"
-                        onClick={(e) => { e.stopPropagation(); onClose?.(); }}
+                        onClick={(e) => { e.stopPropagation(); close(); }}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onClose?.(); }
+                          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); close(); }
                         }}
                         style={{ display: 'inline-flex', padding: 2, marginRight: -3 }}>
                     <Icon name="close" color={T5} size={11} />
@@ -203,7 +240,7 @@ export function Pane({ width = 430, title, icon, dot, tabs, tab: tabAt, onTab, r
             </span>
             <div style={{ flex: 1 }} />
             {right}
-            <button onClick={onClose} className="icob" title="閉じる"
+            <button onClick={close} className="icob" title="閉じる"
                     style={{ display: 'inline-flex', padding: 5, marginRight: -5, flexShrink: 0 }}>
               <Icon name="close" color={T5} size={13} />
             </button>
@@ -213,6 +250,7 @@ export function Pane({ width = 430, title, icon, dot, tabs, tab: tabAt, onTab, r
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         {children}
       </div>
+    </div>
     </aside>
   );
 }
@@ -251,7 +289,7 @@ export function Ask({ q, idx, total, options, free }: {
   free: string;
 }) {
   return (
-    <div style={{
+    <div className="rise" style={{
       width: '100%', maxWidth: 748, boxSizing: 'border-box', borderRadius: 14,
       background: '#101010', border: '1px solid #262626', overflow: 'hidden',
     }}>

@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { Icon, Dot, type IconName } from '@/components/ui/Icon';
 import { ME, THREADS, WORKS } from '@/lib/dummy';
 import { isBlank, useShell } from '@/components/shell/Shell';
+import { EASE, EASE_FAST, RAIL_W } from '@/lib/design/tokens';
 
 /** レールに出すチャットの数。これを超えたら「すべて見る」を出す */
 const SHOWN = 6;
@@ -30,9 +31,14 @@ function NavRow({ href, label, icon, on, badge, badgeColor, live, dim }: {
   badge?: string; badgeColor?: string; live?: boolean; dim?: boolean;
 }) {
   return (
-    <Link href={href} className={on ? 'hit' : 'row'} style={{
+    /**
+     * `prefetch` を明示する。行き先は7つしかないので先に取っておける。
+     * これが無いと押してから取りに行くので、そのぶん待つ。
+     */
+    <Link href={href} prefetch className={on ? 'hit' : 'row'} style={{
       display: 'flex', alignItems: 'center', gap: 11, height: 34, padding: '0 10px',
-      borderRadius: 8, background: on ? '#232323' : undefined, color: on ? T1 : dim ? T4 : T2,
+      borderRadius: 8, background: on ? '#232323' : undefined,
+      color: on ? T1 : dim ? T4 : T2, transition: `color ${EASE_FAST}`,
     }}>
       <Icon name={icon} color={on ? T1 : dim ? '#3A3A3A' : T4} size={16} />
       <span>{label}</span>
@@ -45,7 +51,7 @@ function NavRow({ href, label, icon, on, badge, badgeColor, live, dim }: {
 
 function Pop({ children, pos }: { children: React.ReactNode; pos: React.CSSProperties }) {
   return (
-    <div style={{
+    <div className="pop" style={{
       position: 'absolute', width: 224, zIndex: 40, boxSizing: 'border-box', padding: 5,
       borderRadius: 11, background: '#1A1A1A', border: '1px solid #2E2E2E',
       boxShadow: '0 18px 44px rgba(0,0,0,0.72)', ...pos,
@@ -76,17 +82,24 @@ export function Rail({ empty }: { empty?: boolean } = {}) {
   const [account, setAccount] = useState(false);
   const blank = empty ?? isBlank(path);
 
-  // 閉じたら**端に何も残さない**。戻り道はトップバーの左端
-  if (!rail) return null;
-
   const active = (href: string) => path === href || path.startsWith(href + '/');
   const open = WORKS.find((w) => path.startsWith(`/work/${w.id}`));
 
   return (
+    /**
+     * 閉じたら**端に何も残さない**。戻り道はトップバーの左端。
+     * 消すのではなく幅を 0 にするので、開け閉めが滑らかにつながる。
+     * 中身は 260 のまま押し出されるだけ（文字が畳まれて崩れない）。
+     */
+    <div aria-hidden={!rail} inert={!rail} style={{
+      width: rail ? RAIL_W : 0, flexShrink: 0, overflow: 'hidden',
+      transition: `width ${EASE}`,
+    }}>
     <nav aria-label="行き先" style={{
-      position: 'relative', width: 260, flexShrink: 0, boxSizing: 'border-box',
+      position: 'relative', width: RAIL_W, height: '100%', flexShrink: 0, boxSizing: 'border-box',
       display: 'flex', flexDirection: 'column', gap: 14, padding: '14px 12px',
       background: '#141414', borderRight: '1px solid #232323',
+      opacity: rail ? 1 : 0, transition: `opacity ${rail ? '.2s ease .06s' : '.14s ease'}`,
     }}>
       {/* 上は窓の印と、このレールを閉じる印だけ。会社名はパンくずの根に置いた */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 4px', height: 26 }}>
@@ -201,5 +214,6 @@ export function Rail({ empty }: { empty?: boolean } = {}) {
         </Pop>
       )}
     </nav>
+    </div>
   );
 }

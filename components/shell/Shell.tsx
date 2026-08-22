@@ -52,7 +52,7 @@ export function CompanyPicker() {
       {open && (
         <>
           <span onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 39 }} />
-          <div style={{
+          <div className="pop" style={{
             position: 'absolute', top: 32, left: 0, width: 224, zIndex: 40, boxSizing: 'border-box', padding: 5,
             borderRadius: 11, background: '#1A1A1A', border: '1px solid #2E2E2E',
             boxShadow: '0 18px 44px rgba(0,0,0,0.72)',

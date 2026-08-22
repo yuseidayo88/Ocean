@@ -32,9 +32,22 @@ export const radius = { row: 8, card: 12, input: 14, composer: 18, round: 999 } 
 /** 浮いた入力欄の高さ。下に貼り付く中身はこのぶん逃がす */
 export const COMPOSER_H = 112
 
+/** 左レールの幅 */
+export const RAIL_W = 260
+/** オフィスとワークフローの盤面。絵なので縮まない */
+export const BOARD_W = 1148
+
 /**
  * 器の最小幅。**これより狭いと窓のほうが横スクロールする**（中身は縮めない）。
- * 内訳: 左レール 260 ＋ 盤面 1148（オフィスとワークフローは絵なので縮まない）。
  * これを置かないと、右ペインを開いたときに表のタイトル列が 0px まで潰れて中身が消える。
  */
-export const SHELL_MIN = 1408
+export const SHELL_MIN = RAIL_W + BOARD_W
+
+/**
+ * 動きの長さと曲がり方。**全画面で同じものを使う。**
+ * 速く始まってゆっくり止まる（指で押して離した物が止まる形）。
+ * 増やさない — 迷ったらこれ。
+ */
+export const EASE = '.3s cubic-bezier(.32,.72,0,1)'
+/** 小さいもの（面の明るさ・文字の色）はもっと短く */
+export const EASE_FAST = '.16s cubic-bezier(.32,.72,0,1)'

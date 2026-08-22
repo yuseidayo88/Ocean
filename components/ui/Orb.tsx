@@ -24,7 +24,8 @@ export function Orb({ color, size = 88, seed = 1, dim = false, spin = true }: Pr
   const rgb = hexRgb(color);
   const rand = rng(seed);
   const A = dim ? 0.4 : 1;
-  const uid = `o${seed}${size}`;
+  // 同じ名前の長さだと seed がぶつかるので、色まで入れて id を分ける
+  const uid = `o${seed}x${size}x${rgb.replace(/,/g, '')}`;
   const rgba = (a: number) => `rgba(${rgb},${Math.max(0, Math.min(1, a * A)).toFixed(3)})`;
 
   const tier = size >= 72 ? 2 : size >= 40 ? 1 : 0;
@@ -34,16 +35,17 @@ export function Orb({ color, size = 88, seed = 1, dim = false, spin = true }: Pr
     [13, 11, 22, 30, 0.7, 34, 1.0, 1.7],
   ][tier];
 
-  const spinEl = (dur: number, rev = false) =>
-    !spin || dim ? null : (
-      <animateTransform
-        attributeName="transform" type="rotate"
-        from={`${rev ? 360 : 0} 50 50`} to={`${rev ? 0 : 360} 50 50`}
-        dur={`${dur}s`} repeatCount="indefinite"
-      />
-    );
-
-  const body: React.ReactNode[] = [];
+  /**
+   * **層ごとに別の <svg> にして、CSS で回す。**
+   * SVG の中で `<animateTransform>` を回すと、その下にある何百個もの粒を
+   * ブラウザが毎フレーム計算し直す（オフィスの画面で CPU の3割を使っていた）。
+   * `<svg>` そのものを CSS の transform で回すと、絵は一度描くだけで済み、
+   * あとは GPU が向きを変える。**見た目は変わらない。**
+   */
+  const layers: { key: string; anim?: string; el: React.ReactNode }[] = [];
+  const turn = (key: string, dur: number, el: React.ReactNode, rev = false) =>
+    layers.push({ key, anim: !spin || dim ? undefined : `spin ${dur}s linear infinite${rev ? ' reverse' : ''}`, el });
+  const still = (key: string, el: React.ReactNode, anim?: string) => layers.push({ key, anim, el });
 
   if (tier === 0) {
     [[23, 11], [35, 18]].forEach(([r2, n], ri) => {
@@ -52,14 +54,12 @@ export function Orb({ color, size = 88, seed = 1, dim = false, spin = true }: Pr
         const a = ((k * 360) / n + (ri ? 18 : 0)) * (Math.PI / 180);
         dots.push(<circle key={k} cx={(50 + r2 * Math.cos(a)).toFixed(1)} cy={(50 + r2 * Math.sin(a)).toFixed(1)} r={1.6} />);
       }
-      body.push(
-        <g key={`r${ri}`} fill={rgba(ri ? 0.75 : 0.5)}>
-          <g>{dots}{spinEl(30 + ri * 24, Boolean(ri))}</g>
-        </g>,
-      );
+      turn(`r${ri}`, 30 + ri * 24, <g fill={rgba(ri ? 0.75 : 0.5)}>{dots}</g>, Boolean(ri));
     });
-    body.push(<circle key="h" cx="50" cy="50" r="9" fill={rgba(0.3)} />);
-    body.push(<circle key="c" cx="50" cy="50" r="4.4" fill={`rgba(255,255,255,${(0.92 * A).toFixed(2)})`} />);
+    still('hub', <>
+      <circle cx="50" cy="50" r="9" fill={rgba(0.3)} />
+      <circle cx="50" cy="50" r="4.4" fill={`rgba(255,255,255,${(0.92 * A).toFixed(2)})`} />
+    </>);
   } else {
     // 点でつくる球（緯度リング）。手前の粒ほど明るい
     const sphere: React.ReactNode[] = [];
@@ -82,7 +82,7 @@ export function Orb({ color, size = 88, seed = 1, dim = false, spin = true }: Pr
         );
       }
     }
-    body.push(<g key="sph">{sphere}{spinEl(96)}</g>);
+    turn('sph', 96, <>{sphere}</>);
 
     // 芯の格子（放射線 × 同心円のモアレ）
     const lat: React.ReactNode[] = [];
@@ -95,7 +95,10 @@ export function Orb({ color, size = 88, seed = 1, dim = false, spin = true }: Pr
       lat.push(<circle key={`c${i}`} cx="50" cy="50" r={(3.4 + i * 1.85).toFixed(1)} fill="none"
                        stroke={rgba(0.34)} strokeWidth={0.34} />);
     }
-    body.push(<g key="lat" clipPath={`url(#${uid}_c)`}>{lat}{spinEl(52)}</g>);
+    turn('lat', 52, <>
+      <defs><clipPath id={`${uid}_c`}><circle cx="50" cy="50" r="21" /></clipPath></defs>
+      <g clipPath={`url(#${uid}_c)`}>{lat}</g>
+    </>);
 
     // 外へ伸びるスポーク（先端に点）
     const sp: React.ReactNode[] = [];
@@ -113,7 +116,7 @@ export function Orb({ color, size = 88, seed = 1, dim = false, spin = true }: Pr
                         r={(0.4 + rand() * 0.55).toFixed(2)} fill={rgba(op + 0.26)} />);
       }
     }
-    body.push(<g key="spk">{sp}{spinEl(68, true)}</g>);
+    turn('spk', 68, <>{sp}</>, true);
 
     // 外へ散った粒
     const sc: React.ReactNode[] = [];
@@ -123,34 +126,38 @@ export function Orb({ color, size = 88, seed = 1, dim = false, spin = true }: Pr
       sc.push(<circle key={`x${i}`} cx={(50 + r * Math.cos(a)).toFixed(1)} cy={(50 + r * Math.sin(a)).toFixed(1)}
                       r={(0.3 + rand() * 0.5).toFixed(2)} fill={rgba(0.12 + rand() * 0.28)} />);
     }
-    body.push(<g key="sct">{sc}{spinEl(150)}</g>);
+    turn('sct', 150, <>{sc}</>);
 
-    body.push(<circle key="h" cx="50" cy="50" r={tier ? 4.6 : 6} fill={rgba(0.42)} />);
-    body.push(
-      <circle key="core" cx="50" cy="50" r={CORE} fill={`rgba(255,255,255,${(0.9 * A).toFixed(2)})`}>
-        {!dim && (
-          <animate attributeName="opacity"
-                   values={`${(0.55 * A).toFixed(2)};1;${(0.55 * A).toFixed(2)}`}
-                   dur="3.4s" repeatCount="indefinite" />
-        )}
-      </circle>,
-    );
+    still('hub', <circle cx="50" cy="50" r={tier ? 4.6 : 6} fill={rgba(0.42)} />);
+    // 芯の脈。層ごと明るさを動かすので、SVG の animate は要らない
+    still('core',
+      <circle cx="50" cy="50" r={CORE} fill={`rgba(255,255,255,${(0.9 * A).toFixed(2)})`} />,
+      dim ? undefined : 'blink 3.4s ease-in-out infinite');
   }
+
+  const sheet: React.CSSProperties = {
+    position: 'absolute', inset: 0, display: 'block', overflow: 'visible',
+  };
 
   return (
     <span style={{ position: 'relative', display: 'inline-block', width: size, height: size, flexShrink: 0 }}>
-      <svg width={size} height={size} viewBox="0 0 100 100" style={{ display: 'block', overflow: 'visible' }}>
+      <svg width={size} height={size} viewBox="0 0 100 100" style={sheet}>
         <defs>
           <radialGradient id={`${uid}_g`}>
             <stop offset="0" stopColor={`rgb(${rgb})`} stopOpacity={0.3 * A} />
             <stop offset="0.5" stopColor={`rgb(${rgb})`} stopOpacity={0.07 * A} />
             <stop offset="1" stopColor={`rgb(${rgb})`} stopOpacity="0" />
           </radialGradient>
-          <clipPath id={`${uid}_c`}><circle cx="50" cy="50" r="21" /></clipPath>
         </defs>
         <circle cx="50" cy="50" r="44" fill={`url(#${uid}_g)`} />
-        {body}
       </svg>
+      {layers.map((l) => (
+        <svg key={l.key} width={size} height={size} viewBox="0 0 100 100" style={{
+          ...sheet,
+          animation: l.anim,
+          willChange: l.anim?.startsWith('spin') ? 'transform' : undefined,
+        }}>{l.el}</svg>
+      ))}
     </span>
   );
 }

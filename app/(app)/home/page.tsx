@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useParam } from '@/lib/use-open';
 import { Composer, Pills, TopBar } from '@/components/shell/Chrome';
 import { Dot, Icon } from '@/components/ui/Icon';
 import { EMPLOYEES, FLOW } from '@/lib/dummy';
@@ -52,10 +52,7 @@ function Head() {
 }
 
 function Home() {
-  const router = useRouter();
-  const sp = useSearchParams();
-  const view = sp.get('view') ?? 'office';
-  const setView = (k: string) => router.replace(k === 'office' ? '/home' : `/home?view=${k}`);
+  const [view, setView] = useParam('view', 'office');
   const canvas = view === 'office' || view === 'flow';
 
   return (
@@ -66,11 +63,14 @@ function Home() {
         <Pills items={VIEWS} active={view} onPick={setView} />
       </div>
 
-      {canvas ? (
-        <Canvas head={view === 'office' ? <Head/> : <span style={{ color: '#6E6E6E' }}>{FLOW.caption}</span>}>
-          {view === 'office' ? <Office /> : <Flow />}
-        </Canvas>
-      ) : view === 'desk' ? <Desk /> : <Progress />}
+      {/* 切り替えたときは、次の面がふわっと出る（key を変えて描き直す） */}
+      <div key={view} className="rise" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+        {canvas ? (
+          <Canvas head={view === 'office' ? <Head/> : <span style={{ color: '#6E6E6E' }}>{FLOW.caption}</span>}>
+            {view === 'office' ? <Office /> : <Flow />}
+          </Canvas>
+        ) : view === 'desk' ? <Desk /> : <Progress />}
+      </div>
 
       <Composer placeholder="統括AIに指示する" />
     </div>

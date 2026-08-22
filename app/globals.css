@@ -58,12 +58,24 @@ button { background: none; border: none; padding: 0; cursor: pointer; }
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
 @keyframes drift { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(0, -7px); } }
 /** 受け渡しの粒。線の上を左右に流れる */
-@keyframes travel { 0% { left: -4%; opacity: 0; } 14% { opacity: 1; } 86% { opacity: 1; } 100% { left: 104%; opacity: 0; } }
+/* 粒が線の上を流れる。**left ではなく transform** で動かす
+   （left だと毎フレーム置き場所を計算し直すので、そのぶん重い） */
+@keyframes travel { 0% { transform: translateX(-4px); opacity: 0; } 14% { opacity: 1; } 86% { opacity: 1; } 100% { transform: translateX(var(--len)); opacity: 0; } }
 
 /* デスク — 出てくるところと、いま動いている1行 */
 @keyframes reveal { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 @keyframes shimmer { 0% { background-position: -180px 0; } 100% { background-position: 220px 0; } }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* 右ペイン ── 幅 0 から広がって出る。閉じるときは畳んでから消える。
+   `--pw` にその画面のペイン幅が入る（画面ごとに 400〜480） */
+@keyframes panein  { from { width: 0; opacity: 0; } to { width: var(--pw); opacity: 1; } }
+@keyframes paneout { from { width: var(--pw); opacity: 1; } to { width: 0; opacity: 0; } }
+
+/* 出てくるもの ── 下から少し上がって出る（質問の板・行動の行） */
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+/* めくれて出るもの ── 押した場所から開く（会社の切り替え・わたし） */
+@keyframes pop  { from { opacity: 0; transform: translateY(-4px) scale(.985); } to { opacity: 1; transform: none; } }
 .rv { animation: reveal .5s ease-out both; }
 .sh {
   background: linear-gradient(90deg, #6E6E6E 0%, #EDEDED 42%, #6E6E6E 84%);
@@ -152,11 +164,19 @@ input:focus-visible, textarea:focus-visible { outline: none; }
 ::-webkit-scrollbar-thumb:hover { background: #333; background-clip: padding-box; }
 ::-webkit-scrollbar-corner { background: transparent; }
 
+/* 動きの長さと曲がり方は1つだけ（lib/design/tokens.ts の EASE と同じ値）。
+   速く始まってゆっくり止まる ── 指で押して離した物が止まる形 */
+.rise { animation: rise .26s cubic-bezier(.32, .72, 0, 1) both; }
+.panein  { animation: panein  .28s cubic-bezier(.32, .72, 0, 1) both; }
+.paneout { animation: paneout .22s cubic-bezier(.32, .72, 0, 1) both; }
+.pop  { animation: pop  .16s cubic-bezier(.32, .72, 0, 1) both; }
+
 /* 動きを減らす設定の人には、**飾りの動きだけ**止める。
    回っている印と脈は「いま動いている」という事実なので残す */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: .01ms !important; }
   [style*="drift"], [style*="travel"], [style*="blink"], [style*="breathe"],
-  .rv, .sh { animation: none !important; }
+  .rv, .sh, .rise, .pop { animation: none !important; }
+  .panein, .paneout { animation-duration: .01ms !important; }
   .sh { color: var(--t1); background: none; -webkit-text-fill-color: currentColor; }
 }

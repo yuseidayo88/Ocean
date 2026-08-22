@@ -138,8 +138,12 @@ export function Office() {
           }}>
             {!dim && [0, 1.2].map((d) => (
               <div key={d} style={{
-                position: 'absolute', top: -3, width: 7, height: 7, borderRadius: 999, background: c,
-                boxShadow: `0 0 9px ${c}CC`, animation: `travel 3s linear ${d}s infinite reverse`,
+                position: 'absolute', top: -3, left: 0, width: 7, height: 7, borderRadius: 999, background: c,
+                boxShadow: `0 0 9px ${c}CC`,
+                // 線の長さを渡して transform で流す（left を動かすと毎フレーム計算し直しになる）
+                ['--len' as string]: `${r2(len - GAP0 - GAP1)}px`,
+                animation: `travel 3s linear ${d}s infinite reverse`,
+                willChange: 'transform',
               }} />
             ))}
           </div>
