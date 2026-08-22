@@ -41,6 +41,7 @@ supabase db push                       # Supabase CLI
 psql "$DATABASE_URL" -f supabase/migrations/0001_init.sql
 psql "$DATABASE_URL" -f supabase/migrations/0002_entry_chat_ledger.sql
 psql "$DATABASE_URL" -f supabase/migrations/0003_rls.sql
+psql "$DATABASE_URL" -f supabase/migrations/0004_notes.sql
 ```
 
 `0003` は RLS と、不変条件をデータベース側で守るためのトリガを入れます。
@@ -50,6 +51,11 @@ PostgREST に公開されないので、`/rest/v1/rpc/` から呼ばれません
 `public` に置くと、SECURITY DEFINER の関数が外から叩ける状態になります。
 
 流したあとは Supabase のリンターを見てください。**警告0件が正常です。**
+
+`0004` は注釈だけです（表は足しません）。**複数社は Phase 11**。
+1対1を仮定しているのは `users.account_id` の1列だけで、業務データは
+ユーザーではなく `accounts` にぶら下がっています。
+→ `docs/design/05-tech-and-cost.md` 判断ログ
 
 ### データベース側で守っていること
 
