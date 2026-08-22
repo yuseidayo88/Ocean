@@ -3,10 +3,10 @@
 import Link from 'next/link';
 import { openHref } from '@/lib/use-open';
 
-import { useOpen } from '@/lib/use-open';
-import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
+import { useTabs } from '@/lib/use-open';
+import { Centre, Composer, Pane, PaneFooter, PaneHead, PaneLoading, TopBar } from '@/components/shell/Chrome';
 import { Dot, Icon } from '@/components/ui/Icon';
-import { DELIVERABLES, DELIVERABLE_BODY, employee, type Preview } from '@/lib/dummy';
+import { DELIVERABLES, DELIVERABLE_BODY, employee, type Deliverable, type Preview } from '@/lib/dummy';
 import { pressable } from '@/lib/a11y';
 
 /**
@@ -16,7 +16,7 @@ import { pressable } from '@/lib/a11y';
  */
 
 const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
-const AMBER = '#E37400', AMBER_T = '#FDD663', GREEN_T = '#5BB974';
+const AMBER = '#E37400', AMBER_T = '#FDD663', GREEN = '#1E8E3E', GREEN_T = '#5BB974';
 
 function Thumb({ p }: { p: Preview }) {
   return (
@@ -62,16 +62,25 @@ function Thumb({ p }: { p: Preview }) {
   );
 }
 
+/** タブの色は状態から。要確認だけ橙、承認済は緑、それ以外は灰 */
+const tabDot = (s: Deliverable['state']) => (s === '要確認' ? AMBER : s === '承認済' ? GREEN : '#4A4A4A');
+
 export default function DeliverablesPage() {
-  const [open, setOpen] = useOpen();
   const need = DELIVERABLES.filter((d) => d.state === '要確認').length;
-  const b = DELIVERABLE_BODY;
-  const top = DELIVERABLES.find((d) => d.id === b.id)!;
+
+  /**
+   * **タブは本物。** 開いている並びと、いま見ているものを URL に持つ（`?open=d-rev,d-mkt&at=1`）。
+   * まだ書けていないもの（生成中）も開ける。中身のかわりに「作っている」を出す。
+   */
+  const tabs = useTabs(DELIVERABLES.map((d) => d.id));
+  const docs = tabs.ids.map((id) => DELIVERABLES.find((d) => d.id === id)!);
+  const top = docs[tabs.at];
+  const b = top ? DELIVERABLE_BODY[top.id] : undefined;
 
   return (
     <>
       <Centre>
-        <TopBar title="成果物" onPanel={() => setOpen(open ? null : DELIVERABLES[0].id)} panelOn={!!open} right={<span style={{ color: T5, fontSize: 12 }}>日本語学習サービス</span>} />
+        <TopBar title="成果物" onPanel={() => (docs.length ? tabs.clear() : tabs.open(DELIVERABLES[0].id))} panelOn={docs.length > 0} right={<span style={{ color: T5, fontSize: 12 }}>日本語学習サービス</span>} />
 
         <div style={{
           height: 44, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 9,
@@ -92,10 +101,10 @@ export default function DeliverablesPage() {
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '16px 16px 112px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
             {DELIVERABLES.map((d) => (
-              <div key={d.id} className="card" {...pressable(() => setOpen(d.id))} style={{
+              <div key={d.id} className="card" {...pressable(() => tabs.open(d.id))} style={{
                 boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 11,
                 padding: 12, borderRadius: 12, background: '#121212',
-                border: `1px solid ${open === d.id ? '#333' : 'transparent'}`,
+                border: `1px solid ${top?.id === d.id ? '#333' : 'transparent'}`,
               }}>
                 <Thumb p={d.preview} />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
@@ -123,12 +132,15 @@ export default function DeliverablesPage() {
         <Composer placeholder="統括AIに指示する" />
       </Centre>
 
-      {open && (
-      <Pane onClose={() => setOpen(null)} width={480} tabs={[{ label: top.title, dot: AMBER }, { label: '市場調査レポート v2', dot: '#1E8E3E' }]}>
+      {top && (
+      <Pane width={480} onClose={tabs.close}
+            tabs={docs.map((d) => ({ label: d.title, dot: tabDot(d.state) }))}
+            tab={tabs.at} onTab={tabs.select}>
+        {!b ? <PaneLoading lines={6} /> : (
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 20px 0' }}>
           <span style={{ fontSize: 16, display: 'block' }}>{top.title}</span>
           <span style={{ color: T5, fontSize: 12, display: 'block', paddingTop: 5 }}>
-            {employee(top.by).name} · {top.version} · {top.when}
+            {employee(top.by).name}{top.version && ` · ${top.version}`}{top.when && ` · ${top.when}`}
           </span>
           <p style={{ color: T2, fontSize: 13.5, lineHeight: '22px', margin: '16px 0 0' }}>{b.lead}</p>
 
@@ -171,7 +183,8 @@ export default function DeliverablesPage() {
           <PaneHead>結論</PaneHead>
           <p style={{ color: T2, fontSize: 13.5, lineHeight: '22px', margin: 0 }}>{b.conclusion}</p>
         </div>
-        <PaneFooter primary="承認する" secondary="修正を依頼" />
+        )}
+        {b && <PaneFooter primary="承認する" secondary="修正を依頼" />}
       </Pane>
       )}
     </>

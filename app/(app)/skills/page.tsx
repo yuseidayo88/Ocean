@@ -1,10 +1,11 @@
 'use client';
 
-import { useOpen } from '@/lib/use-open';
+import { useTabs } from '@/lib/use-open';
 import { Centre, Composer, Pane, TopBar } from '@/components/shell/Chrome';
 import { Icon } from '@/components/ui/Icon';
 import { Toggle } from '@/components/shell/Controls';
 import { pressable } from '@/lib/a11y';
+import { SKILLS, SKILL_BODY, type Skill } from '@/lib/dummy';
 
 /**
  * スキル ＝ SKILL.md のファイル管理（参考: Base44 の Knowledge files）。
@@ -16,32 +17,11 @@ import { pressable } from '@/lib/a11y';
 const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
 const BLUE = '#1A73E8';
 
-type Row = { name: string; file: string; used: string; on: boolean };
+// 名簿は lib/dummy がひとつの出どころ。画面ごとに書かない
+const MINE = SKILLS.filter((s) => s.scope === 'employee');
+const SHARED = SKILLS.filter((s) => s.scope === 'company');
 
-const MINE: Row[] = [
-  { name: '競合分析のやり方',   file: 'competitor-analysis.md', used: '12回', on: true },
-  { name: '市場規模の見積もり', file: 'market-sizing.md',       used: '5回',  on: true },
-  { name: '出典の付け方',       file: 'source-citation.md',     used: '20回', on: true },
-  { name: '価格帯の調べ方',     file: 'price-band.md',          used: '—',    on: false },
-];
-const SHARED: Row[] = [
-  { name: 'うちの書き方',       file: 'house-style.md', used: '48回', on: true },
-  { name: '日本語の言い回し',   file: 'tone-ja.md',     used: '31回', on: true },
-];
 
-const BODY = `---
-name: 競合分析のやり方
-description: 競合を並べて比較するとき。
-  ポジショニングや価格の比較を頼まれたら読む
----
-
-## 手順
-1. 競合を5〜8社に絞る。選んだ理由を1行で書く
-2. 比較軸は「価格 / 対象 / 強み / 弱み」の4つから
-3. 表にする。出典URLを各セルに残す
-
-## この会社での注意
-- 韓国市場では、韓国語のストア評価も必ず含める`;
 
 
 function Head({ label, note, actions = [] }: { label: string; note?: string; actions?: string[] }) {
@@ -63,7 +43,7 @@ function Head({ label, note, actions = [] }: { label: string; note?: string; act
   );
 }
 
-function Rows({ rows, onOpen }: { rows: Row[]; onOpen: (f: string) => void }) {
+function Rows({ rows, onOpen }: { rows: Skill[]; onOpen: (f: string) => void }) {
   return (
     <>
       {rows.map((s, i) => (
@@ -78,7 +58,7 @@ function Rows({ rows, onOpen }: { rows: Row[]; onOpen: (f: string) => void }) {
             <span style={{ color: T5, fontSize: 11, fontFamily: 'ui-monospace, monospace' }}>{s.file}</span>
           </div>
           <div style={{ flex: 1 }} />
-          <span style={{ width: 44, textAlign: 'right', color: T5, fontSize: 11 }} className="tnum">{s.used}</span>
+          <span style={{ width: 44, textAlign: 'right', color: T5, fontSize: 11 }} className="tnum">{s.used || '—'}</span>
           <Toggle on={s.on} />
           <Icon name="download" color="#3A3A3A" size={14} />
           <Icon name="edit" color="#3A3A3A" size={14} />
@@ -90,15 +70,17 @@ function Rows({ rows, onOpen }: { rows: Row[]; onOpen: (f: string) => void }) {
 }
 
 export default function SkillsPage() {
-  const [open, setOpen] = useOpen();
+  // タブは本物。開いている並びといま見ているものを URL に持つ（`?open=a.md,b.md&at=1`）
+  const tabs = useTabs(SKILLS.map((s) => s.file));
+  const open = tabs.ids[tabs.at];
   return (
     <>
       <Centre>
-        <TopBar crumb="メンバー / 調査担当" title="スキル" onPanel={() => setOpen(open ? null : MINE[0].file)} panelOn={!!open} />
+        <TopBar crumb="メンバー / 調査担当" title="スキル" onPanel={() => (open ? tabs.clear() : tabs.open(MINE[0].file))} panelOn={!!open} />
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 26px 112px', display: 'flex', flexDirection: 'column', gap: 34 }}>
           <div>
             <Head label="この社員のスキル" actions={['SKILL.md を読み込む', '新しく書く']} />
-            <Rows rows={MINE} onOpen={setOpen} />
+            <Rows rows={MINE} onOpen={tabs.open} />
             <div style={{
               marginTop: 14, display: 'flex', flexDirection: 'column', alignItems: 'center',
               justifyContent: 'center', gap: 7, height: 104, borderRadius: 12, border: '1px dashed #262626',
@@ -111,19 +93,20 @@ export default function SkillsPage() {
 
           <div>
             <Head label="会社ぜんぶのスキル" note="全員に効きます" />
-            <Rows rows={SHARED} onOpen={setOpen} />
+            <Rows rows={SHARED} onOpen={tabs.open} />
           </div>
         </div>
         <Composer placeholder="スキルについて統括AIに聞く" />
       </Centre>
 
       {open && (
-      <Pane onClose={() => setOpen(null)} width={440} tabs={[{ label: 'competitor-analysis.md' }]} right={<Icon name="download" color={T4} size={14} />}>
+      <Pane width={440} onClose={tabs.close} right={<Icon name="download" color={T4} size={14} />}
+            tabs={tabs.ids.map((f) => ({ label: f }))} tab={tabs.at} onTab={tabs.select}>
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 18 }}>
           <pre style={{
             margin: 0, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
             fontSize: 12, lineHeight: '20px', color: T2, whiteSpace: 'pre-wrap',
-          }}>{BODY}</pre>
+          }}>{SKILL_BODY[open]}</pre>
         </div>
         {/* 保存は右下に小さく。ペイン幅いっぱいの青にしない */}
         <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', padding: 16, borderTop: '1px solid #161616' }}>

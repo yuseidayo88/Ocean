@@ -137,15 +137,21 @@ export function Composer({ placeholder, mode = '統括AI', effort = '自動', ab
  *
  * 全部をタブの見た目にすると、撤去したはずの「ブラウザの真似」が小さく戻ってくる。
  */
-export function Pane({ width = 430, title, icon, dot, tabs, right, onClose, children }: {
+export function Pane({ width = 430, title, icon, dot, tabs, tab: tabAt, onTab, right, onClose, children }: {
   width?: number;
   title?: string; icon?: IconName; dot?: string;
+  /** タブは「持ち出して読み比べる文書」だけ。中身も一緒に入れ替わる */
   tabs?: { label: string; dot?: string }[];
+  tab?: number;
+  onTab?: (i: number) => void;
   right?: React.ReactNode;
+  /** タブのときは「いま見ているタブを閉じる」。素の見出しのときはペインを閉じる */
   onClose?: () => void;
   children: React.ReactNode;
 }) {
-  const [tab, setTab] = useState(0);
+  const [tabIn, setTabIn] = useState(0);
+  const tab = tabAt ?? tabIn;
+  const setTab = onTab ?? setTabIn;
   // Esc で閉じる。右ペインはどの画面でも同じ作法にする
   useEffect(() => {
     if (!onClose) return;
