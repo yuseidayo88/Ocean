@@ -13,7 +13,9 @@ const probe = `(() => {
     const cs = getComputedStyle(el), r = el.getBoundingClientRect();
     if (!r.width || !r.height) continue;
     // 「…」で切れている（本当に読めない）
-    if (cs.textOverflow === 'ellipsis' && el.scrollWidth > el.clientWidth + 1 && el.clientWidth)
+    // .clip は「切れていて正しい」の印（長いコードの行など）
+    if (cs.textOverflow === 'ellipsis' && el.scrollWidth > el.clientWidth + 1 && el.clientWidth
+        && !el.classList.contains('clip'))
       out.ell.push({ tag: name(el), full: (el.textContent||'').trim().slice(0,60), lost: el.scrollWidth - el.clientWidth });
     // 横スクロールしないと見えない
     if ((cs.overflowX === 'auto' || cs.overflowX === 'scroll') && el.scrollWidth > el.clientWidth + 2)

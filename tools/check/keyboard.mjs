@@ -1,5 +1,5 @@
 import { WebSocket } from 'ws';
-const PORT=process.argv[2], url=process.argv[3];
+const PORT=process.argv[2], url=process.argv[3] ?? (process.env.BASE ?? 'http://localhost:3300') + '/tasks';
 const r=await fetch(`http://127.0.0.1:${PORT}/json/new?${encodeURIComponent(url)}`,{method:'PUT'});
 const t=await r.json(); const ws=new WebSocket(t.webSocketDebuggerUrl);
 let id=0; const pend=new Map(); await new Promise(res=>ws.on('open',res));

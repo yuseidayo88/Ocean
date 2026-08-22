@@ -21,7 +21,7 @@ import { AGENT_COLOR, EMPLOYEES, LANES, employee, type DeskBody } from '@/lib/du
 
 const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
 const AMBER = '#E37400', AMBER_T = '#FDD663', GREEN = '#1E8E3E', GREEN_T = '#5BB974';
-const LANE_W = 268;
+const LANE_W = 268, LANE_MIN = 240;
 
 /** 出てくる順に少しずつ遅らせる */
 const rv = (d: number) => ({ animationDelay: `${d.toFixed(1)}s` });
@@ -70,7 +70,8 @@ function Body({ b }: { b: DeskBody }) {
             }}>
               <span style={{ color: '#333', width: 16, textAlign: 'right', flexShrink: 0 }} className="tnum">{n}</span>
               <span style={{ width: 8, flexShrink: 0, color: added ? GREEN_T : 'transparent' }}>+</span>
-              <span style={{ color: added ? GREEN_T : T4, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {/* コードの行は長いので**わざと**切る。clip は「切れていて正しい」の印 */}
+              <span className="clip" style={{ color: added ? GREEN_T : T4, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {code}
               </span>
             </div>
@@ -132,7 +133,9 @@ export function Desk() {
             const last = n === LANES.length - 1 && idle.length === 0;
             return (
               <div key={l.id} className="hit" style={{
-                width: LANE_W, flexShrink: 0, boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
+                // 少なければ伸びて画面を埋め、増えたら LANE_MIN まで縮んでから横スクロール
+                flex: `1 1 ${LANE_W}px`, minWidth: LANE_MIN, maxWidth: 320,
+                boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
                 padding: '2px 15px 10px 0', marginRight: last ? 0 : 15,
                 borderRight: last ? undefined : '1px solid #161616',
               }}>
