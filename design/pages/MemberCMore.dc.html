@@ -27,7 +27,7 @@
   <div style="display: flex; flex-direction: column; gap: 7px">
     <span style="color: #5F5F5F; font-size: 12px">C案に足したいこと</span>
     <span style="font-size: 22px">気づいた5つ</span>
-    <span class="p" style="max-width: 760px">直したモデルとエフォート以外に、この画面を作るなら決めておきたいこと。<b style="color:#B8B8B8">4つは提案、最後の1つは質問です。</b></span>
+    <span class="p" style="max-width: 760px">直したモデルとエフォート以外に、この画面を作るなら決めておきたいこと。<b style="color:#B8B8B8">1〜4 は提案、5 は決まったことです。</b></span>
   </div>
 
   <!-- 1 -->
@@ -132,35 +132,32 @@
 
   <div style="height: 1px; background: #161616"></div>
 
-  <!-- 5 質問 -->
+  <!-- 5 決まったこと -->
   <div style="display: flex; gap: 30px; align-items: flex-start">
-    <span class="n" style="color: #E37400">?</span>
+    <span class="n" style="color: #1E8E3E">&#10003;</span>
     <div style="width: 330px; flex-shrink: 0; display: flex; flex-direction: column; gap: 7px">
-      <span class="h" style="color: #FDD663">社員を選んで書いたら、誰に届く？</span>
-      <span class="p">いまの入力欄は「この社員に頼む、または統括AIに聞く」。<b style="color:#B8B8B8">でも入力欄に書くと右に統括AIとの会話が開く仕様にしたばかり</b>。ここが食い違っています。</span>
+      <span class="h">書いたものは、いつでも統括AIに届く</span>
+      <span class="p">社員に直接は頼めない。<b style="color:#B8B8B8">統括AIが聞いて、誰にやらせるかを決める。</b>
+      「社長はゴールを示し、採用し、判断だけを行う」という建て付けのまま。</span>
     </div>
     <div class="box" style="flex: 1; display: flex; flex-direction: column; gap: 14px">
-      <div style="display: flex; gap: 12px; align-items: flex-start">
-        <span style="color: #5BB974; font-size: 12px; width: 30px; flex-shrink: 0">A</span>
-        <div style="display: flex; flex-direction: column; gap: 3px">
-          <span style="font-size: 12.5px">いつでも統括AIに届く</span>
-          <span style="color: #6E6E6E; font-size: 11.5px">社員に直接は頼めない。統括AIが誰にやらせるか決める ── いまの設計思想どおり</span>
-        </div>
-      </div>
-      <div style="display: flex; gap: 12px; align-items: flex-start">
-        <span style="color: #6E6E6E; font-size: 12px; width: 30px; flex-shrink: 0">B</span>
-        <div style="display: flex; flex-direction: column; gap: 3px">
-          <span style="font-size: 12.5px; color: #B8B8B8">選んでいる社員に届く</span>
-          <span style="color: #6E6E6E; font-size: 11.5px">入力欄の左に宛先が出る。速いが、社長が誰にやらせるかを決めることになる</span>
-        </div>
-      </div>
-      <div style="display: flex; align-items: center; gap: 9px; height: 40px; padding: 0 12px; border-radius: 10px; background: #131313; border: 1px solid #232323">
-        <span style="display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 8px; border-radius: 6px; background: rgba(154,92,208,.16); color: #B8B8B8; font-size: 11.5px">
-          <span style="width: 5px; height: 5px; border-radius: 9px; background: #9A5CD0"></span>戦略担当 へ ✕
-        </span>
-        <span style="color: #4A4A4A; font-size: 12px">価格の根拠をもう一度まとめて</span>
+      <div style="display: flex; align-items: center; gap: 9px; height: 44px; padding: 0 12px; border-radius: 12px; background: #131313; border: 1px solid #232323">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:999px;color:#5F5F5F;font-size:15px">＋</span>
+        <span style="color: #4A4A4A; font-size: 12.5px">統括AIに聞く</span>
         <div style="flex: 1"></div>
-        <span style="color: #3E3E3E; font-size: 11px">B案だとこうなる</span>
+        <span style="color: #8B8B8B; font-size: 11.5px">統括AI &#8964;</span>
+        <span style="color: #8B8B8B; font-size: 11.5px">自動</span>
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:999px;background:#242424;color:#5F5F5F;font-size:12px">&uarr;</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px">
+        <span style="color: #6E6E6E; font-size: 12px">社員を選んでいても、宛先は変わらない</span>
+        <span style="flex: 1; height: 1px; background: #1A1A1A"></span>
+        <span style="color: #4A4A4A; font-size: 11.5px">宛先チップは置かない</span>
+      </div>
+      <div style="display: flex; align-items: flex-start; gap: 12px; padding-top: 2px">
+        <span style="width: 30px; flex-shrink: 0; color: #5BB974; font-size: 12px">なら</span>
+        <span style="color: #8B8B8B; font-size: 12.5px; line-height: 20px">メンバー画面の入力欄も、ほかの画面と同じ「統括AIに聞く」でいい。
+        いまの「この社員に頼む、または統括AIに聞く」は消す ── <b style="color:#B8B8B8">全画面で同じ1文</b>になる。</span>
       </div>
     </div>
   </div>
@@ -168,7 +165,7 @@
   <div style="display: flex; align-items: center; gap: 10px; color: #4A4A4A; font-size: 12px; padding-top: 4px">
     <span>1〜4 は入れてよければ入れます</span>
     <span style="flex: 1; height: 1px; background: #161616"></span>
-    <span>5 は決めてもらえると実装できます</span>
+    <span>5 は A で決まり</span>
   </div>
 </div>
 </x-dc>
