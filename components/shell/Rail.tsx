@@ -5,7 +5,7 @@ import type { Route } from 'next';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { Icon, Dot, type IconName } from '@/components/ui/Icon';
-import { COMPANIES, ME, THREADS } from '@/lib/dummy';
+import { COMPANIES, ME, THREADS, WORKS } from '@/lib/dummy';
 
 const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
 const AMBER = '#E37400', GREEN = '#1E8E3E', BLUE = '#1A73E8';
@@ -77,6 +77,7 @@ export function Rail({ empty, company }: { empty?: boolean; company?: string } =
   const name = company ?? (blank ? 'あなたの会社' : COMPANIES[0].name);
 
   const active = (href: string) => path === href || path.startsWith(href + '/');
+  const open = WORKS.find((w) => path.startsWith(`/work/${w.id}`));
 
   return (
     <div style={{
@@ -107,10 +108,24 @@ export function Rail({ empty, company }: { empty?: boolean; company?: string } =
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
         {NAV.map((n) => (
-          <NavRow key={n.href} {...n} on={active(n.href) || (blank && n.href === '/home')} dim={blank}
-                  live={n.href === '/work' && !blank}
-                  badge={blank ? undefined : n.href === '/inbox' ? '2' : n.href === '/team' ? '4' : undefined}
-                  badgeColor={n.href === '/inbox' ? AMBER : T5} />
+          <span key={n.href}>
+            <NavRow {...n} on={active(n.href) || (blank && n.href === '/home')} dim={blank}
+                    live={n.href === '/work' && !blank}
+                    badge={blank ? undefined : n.href === '/inbox' ? '2' : n.href === '/team' ? '4' : undefined}
+                    badgeColor={n.href === '/inbox' ? AMBER : T5} />
+            {/* 開いている Work だけ、その下にぶら下げる（本物の親子） */}
+            {n.href === '/work' && open && (
+              <Link href={`/work/${open.id}`} style={{
+                display: 'flex', alignItems: 'center', gap: 9, height: 30, padding: '0 10px 0 22px',
+                borderRadius: 8, color: T1,
+              }}>
+                <Dot color={GREEN} size={7} />
+                <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {open.title}
+                </span>
+              </Link>
+            )}
+          </span>
         ))}
       </div>
 
@@ -166,14 +181,14 @@ export function Rail({ empty, company }: { empty?: boolean; company?: string } =
       </button>
 
       {switcher && (
-        <Pop pos={{ top: 44, right: 12 }}>
+        <Pop pos={{ top: 46, left: 12, right: 12, width: 'auto' }}>
           {COMPANIES.map((c) => <PopRow key={c.id} label={c.name} right={`Work ${c.works}`} on={c.current} />)}
           <Hair />
           <PopRow label="会社を追加" color={T3} />
         </Pop>
       )}
       {account && (
-        <Pop pos={{ bottom: 54, left: 12 }}>
+        <Pop pos={{ bottom: 56, left: 12, right: 24, width: 'auto' }}>
           <PopRow label="設定" />
           <PopRow label="請求" />
           <Hair />

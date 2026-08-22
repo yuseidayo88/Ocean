@@ -84,8 +84,8 @@ export function Composer({ placeholder, mode = '統括AI', effort = '自動', ab
 }
 
 /** 右ペイン。タブで開くもの */
-export function Pane({ width = 430, tabs, children }:
-  { width?: number; tabs: { label: string; dot?: string }[]; children: React.ReactNode }) {
+export function Pane({ width = 430, tabs, right, children }:
+  { width?: number; tabs: { label: string; dot?: string }[]; right?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div style={{
       width, flexShrink: 0, boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
@@ -107,7 +107,7 @@ export function Pane({ width = 430, tabs, children }:
           </span>
         ))}
         <div style={{ flex: 1 }} />
-        <Icon name="plus" color={T4} size={14} />
+        {right ?? <Icon name="plus" color={T4} size={14} />}
       </div>
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         {children}

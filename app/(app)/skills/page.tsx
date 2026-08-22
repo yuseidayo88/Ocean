@@ -1,4 +1,4 @@
-import { Centre, Composer, Pane, PaneFooter, TopBar } from '@/components/shell/Chrome';
+import { Centre, Composer, Pane, TopBar } from '@/components/shell/Chrome';
 import { Icon } from '@/components/ui/Icon';
 
 /**
@@ -47,15 +47,19 @@ const Toggle = ({ on }: { on: boolean }) => (
   </span>
 );
 
-function Head({ label, note, actions }: { label: string; note?: string; actions: string[] }) {
+function Head({ label, note, actions = [] }: { label: string; note?: string; actions?: string[] }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, paddingBottom: 6 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 34, paddingBottom: 6 }}>
       <span style={{ color: T3 }}>{label}</span>
-      {note && <span style={{ color: T5, fontSize: 11 }}>{note}</span>}
       <div style={{ flex: 1 }} />
+      {note && <span style={{ color: T5, fontSize: 12 }}>{note}</span>}
+      {/* 押せるものだけが面と枠を持てる */}
       {actions.map((a) => (
-        <span key={a} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: T4, fontSize: 12 }}>
-          <Icon name={a.startsWith('SKILL') ? 'upload' : 'plus'} color={T4} size={12} />{a}
+        <span key={a} style={{
+          display: 'inline-flex', alignItems: 'center', gap: 7, height: 32, padding: '0 13px',
+          borderRadius: 8, background: '#141414', border: '1px solid #262626', color: T2, fontSize: 12.5,
+        }}>
+          <Icon name={a.startsWith('SKILL') ? 'down' : 'plus'} color={T4} size={12} />{a}
         </span>
       ))}
     </div>
@@ -67,7 +71,7 @@ function Rows({ rows }: { rows: Row[] }) {
     <>
       {rows.map((s, i) => (
         <div key={s.file} style={{
-          display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0',
+          display: 'flex', alignItems: 'center', gap: 14, padding: '17px 0',
           borderBottom: i === rows.length - 1 ? undefined : '1px solid #161616',
         }}>
           <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -78,10 +82,10 @@ function Rows({ rows }: { rows: Row[] }) {
           </div>
           <div style={{ flex: 1 }} />
           <span style={{ width: 44, textAlign: 'right', color: T5, fontSize: 11 }} className="tnum">{s.used}</span>
+          <Toggle on={s.on} />
           <Icon name="download" color="#3A3A3A" size={14} />
           <Icon name="edit" color="#3A3A3A" size={14} />
           <Icon name="trash" color="#3A3A3A" size={14} />
-          <Toggle on={s.on} />
         </div>
       ))}
     </>
@@ -94,10 +98,6 @@ export default function SkillsPage() {
       <Centre>
         <TopBar crumb="メンバー / 調査担当" title="スキル" />
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 26px 112px', display: 'flex', flexDirection: 'column', gap: 34 }}>
-          <span style={{ color: T3, fontSize: 13, lineHeight: '21px', maxWidth: 620 }}>
-            スキルは<b style={{ color: T2 }}>必要なときだけ</b>読む手順書、ルールは<b style={{ color: T2 }}>毎回</b>効く制約です。
-          </span>
-
           <div>
             <Head label="この社員のスキル" actions={['SKILL.md を読み込む', '新しく書く']} />
             <Rows rows={MINE} />
@@ -105,28 +105,34 @@ export default function SkillsPage() {
               marginTop: 14, display: 'flex', flexDirection: 'column', alignItems: 'center',
               justifyContent: 'center', gap: 7, height: 104, borderRadius: 12, border: '1px dashed #262626',
             }}>
-              <Icon name="upload" color={T4} size={18} />
+              <Icon name="down" color={T4} size={16} />
               <span style={{ color: T4, fontSize: 12.5 }}>SKILL.md をここに落とす、または <span style={{ color: T2 }}>選ぶ</span></span>
               <span style={{ color: '#3A3A3A', fontSize: 11 }}>.md · .zip · 何個でも</span>
             </div>
           </div>
 
           <div>
-            <Head label="会社ぜんぶのスキル" note="全員に効きます" actions={['新しく書く']} />
+            <Head label="会社ぜんぶのスキル" note="全員に効きます" />
             <Rows rows={SHARED} />
           </div>
         </div>
         <Composer placeholder="スキルについて統括AIに聞く" />
       </Centre>
 
-      <Pane width={440} tabs={[{ label: 'competitor-analysis.md' }]}>
+      <Pane width={440} tabs={[{ label: 'competitor-analysis.md' }]} right={<Icon name="download" color={T4} size={14} />}>
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 18 }}>
           <pre style={{
             margin: 0, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
             fontSize: 12, lineHeight: '20px', color: T2, whiteSpace: 'pre-wrap',
           }}>{BODY}</pre>
         </div>
-        <PaneFooter primary="保存する" />
+        {/* 保存は右下に小さく。ペイン幅いっぱいの青にしない */}
+        <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', padding: 16, borderTop: '1px solid #161616' }}>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', height: 32, padding: '0 16px',
+            borderRadius: 8, background: BLUE, color: '#fff', fontSize: 12.5,
+          }}>保存する</span>
+        </div>
       </Pane>
     </>
   );

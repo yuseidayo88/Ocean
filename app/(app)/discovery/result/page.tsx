@@ -9,7 +9,7 @@ import { Icon } from '@/components/ui/Icon';
  */
 
 const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
-const BLUE = '#1A73E8', GREEN_T = '#5BB974';
+const BLUE = '#1A73E8', GREEN = '#1E8E3E', GREEN_T = '#5BB974';
 
 const COND: [string, string][] = [
   ['使える時間', '週10時間'], ['元手', '〜50万円'], ['強み', '日本語教育'], ['形', '在庫を持たない'],
@@ -33,7 +33,7 @@ export default function DiscoveryResultPage() {
   return (
     <>
       <Centre>
-        <TopBar crumb="何をやるか決める" title="候補" />
+        <TopBar title="候補" />
 
         {/* 集めた条件は上に貼る。答え終わったものだけ */}
         <div style={{
@@ -57,35 +57,42 @@ export default function DiscoveryResultPage() {
             条件に合う道を3つ。<b>いちばん上をおすすめします。</b>
           </span>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {CANDS.map((c) => (
+          {/* **同じ器を縦に並べない。** ヘアラインで区切った行にして、
+              強調したい1つだけ左に色帯と薄い面を敷く */}
+          <div>
+            {CANDS.map((c, n) => (
               <div key={c.title} style={{
-                display: 'flex', gap: 24, padding: '18px 20px', borderRadius: 12,
-                background: c.rec ? '#0C0C0C' : 'transparent',
-                border: `1px solid ${c.rec ? '#262626' : '#1A1A1A'}`,
-                borderLeft: c.rec ? `3px solid ${BLUE}` : '1px solid #1A1A1A',
+                position: 'relative', display: 'flex', gap: 20, alignItems: 'center',
+                padding: c.rec ? '20px 20px 20px 22px' : '20px 20px 20px 22px',
+                background: c.rec ? 'rgba(30,142,62,0.05)' : undefined,
+                borderRadius: c.rec ? 10 : undefined,
+                borderBottom: n === CANDS.length - 1 ? undefined : '1px solid #161616',
               }}>
-                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
+                {c.rec && <span style={{
+                  position: 'absolute', left: 0, top: 14, bottom: 14, width: 3,
+                  borderRadius: '0 2px 2px 0', background: GREEN,
+                }} />}
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-                    <span style={{ fontSize: 16 }}>{c.title}</span>
-                    {c.rec && <span style={{ color: GREEN_T, fontSize: 11 }}>おすすめ</span>}
+                    <span style={{ fontSize: 16, whiteSpace: 'nowrap' }}>{c.title}</span>
+                    {c.rec && <span style={{ color: GREEN_T, fontSize: 11, whiteSpace: 'nowrap' }}>おすすめ</span>}
                   </div>
                   <span style={{ color: T2, fontSize: 13, lineHeight: '21px' }}>{c.lead}</span>
                 </div>
-                <div style={{ width: 210, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 4 }}>
+                <div style={{ width: 186, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {AXES.map((a, i) => (
                     <div key={a} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ width: 92, color: T5, fontSize: 11 }}>{a}</span>
+                      <span style={{ width: 88, flexShrink: 0, color: T5, fontSize: 11, textAlign: 'right' }}>{a}</span>
                       <span style={{ flex: 1, height: 4, borderRadius: 2, background: '#1A1A1A', overflow: 'hidden' }}>
-                        <span style={{ display: 'block', width: `${c.scores[i]}%`, height: '100%', background: c.rec ? '#4A6C9B' : '#333' }} />
+                        <span style={{ display: 'block', width: `${c.scores[i]}%`, height: '100%', background: c.rec ? GREEN : '#333' }} />
                       </span>
                     </div>
                   ))}
                 </div>
                 <span style={{
-                  alignSelf: 'center', display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px',
+                  flexShrink: 0, display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px',
                   borderRadius: 8, whiteSpace: 'nowrap',
-                  background: c.rec ? BLUE : 'transparent',
+                  background: c.rec ? BLUE : undefined,
                   border: c.rec ? undefined : '1px solid #2A2A2A',
                   color: c.rec ? '#fff' : T3,
                 }}>{c.rec ? 'この案ではじめる' : 'この案にする'}</span>

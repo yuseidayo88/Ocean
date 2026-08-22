@@ -27,11 +27,10 @@ export default function NewWorkPage() {
               display: 'flex', alignItems: 'center', gap: 12, height: 48,
               borderBottom: i === SUGGEST.length - 1 ? undefined : '1px solid #161616',
             }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-                <span style={{ color: T2 }}>{t}</span>
-                <span style={{ color: T5, fontSize: 11 }}>{sub}</span>
-              </div>
+              {/* どこから来た提案かは**右に列として**並べる。タイトルの下に積まない */}
+              <span style={{ minWidth: 0, color: T2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t}</span>
               <div style={{ flex: 1 }} />
+              <span style={{ color: T5, fontSize: 11, whiteSpace: 'nowrap' }}>{sub}</span>
               <Icon name="chev" color="#3A3A3A" size={13} />
             </div>
           ))}
