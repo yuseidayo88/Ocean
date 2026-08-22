@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useOpen } from '@/lib/use-open';
 import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
@@ -29,7 +29,7 @@ const DETAIL = {
 };
 
 export default function HirePage() {
-  const [open, setOpen] = useState<string | null>(null);
+  const [open, setOpen] = useOpen();
   const top = HIRE_CANDIDATES[0];
   return (
     <>

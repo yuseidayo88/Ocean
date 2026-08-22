@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useOpen } from '@/lib/use-open';
 import Link from 'next/link';
 import { Centre, Composer, Pane, Section, TopBar } from '@/components/shell/Chrome';
 import { EffortPick, ModelPick, Toggle } from '@/components/shell/Controls';
@@ -8,6 +8,7 @@ import { COMPOSER_H } from '@/lib/design/tokens';
 import { Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
 import { AGENT_COLOR, EMPLOYEES, HIRE_SUGGESTION, RULES, SKILLS, employee } from '@/lib/dummy';
+import { openHref } from '@/lib/use-open';
 
 /**
  * メンバー＝表（人数が増えても崩れない）。1行=1社員。
@@ -26,8 +27,8 @@ const COLS: [string, number][] = [
 
 export default function TeamPage() {
   // 右は閉じた状態から始まる。社員の行を押すと、その社員の設定が開く
-  const [openId, setOpenId] = useState<string | null>(null);
-  const sel = openId ? employee(openId) : null;
+  const [openId, setOpenId] = useOpen();
+  const sel = EMPLOYEES.find((e) => e.id === openId) ?? null;
   const mine = SKILLS.filter((s) => s.scope === 'employee');
   const shared = SKILLS.filter((s) => s.scope === 'company');
 
@@ -142,7 +143,7 @@ export default function TeamPage() {
             </span>
           }>
             {[...mine, ...shared].map((s, i) => (
-              <div key={s.id} className="row" style={{
+              <Link key={s.id} href={openHref('/skills', s.file)} className="row" style={{
                 display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0',
                 borderBottom: i === SKILLS.length - 1 ? undefined : '1px solid #161616',
               }}>
@@ -151,8 +152,8 @@ export default function TeamPage() {
                   <span style={{ color: T5, fontSize: 11, fontFamily: 'ui-monospace, monospace' }}>{s.file}</span>
                 </div>
                 <div style={{ flex: 1 }} />
-                <Toggle on={s.on} />
-              </div>
+                <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}><Toggle on={s.on} /></span>
+              </Link>
             ))}
           </Section>
 

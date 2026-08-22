@@ -1,6 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import type { Route } from 'next';
+import Link from 'next/link';
+import { openHref } from '@/lib/use-open';
+
+import { useOpen } from '@/lib/use-open';
 import { Centre, Composer, Pane, PaneFooter, TopBar } from '@/components/shell/Chrome';
 import { Diamond, Dot, Icon } from '@/components/ui/Icon';
 import { DECISION_BODY, NOTICE_GROUPS } from '@/lib/dummy';
@@ -10,6 +14,12 @@ import { DECISION_BODY, NOTICE_GROUPS } from '@/lib/dummy';
  * **まとめて届くものは1件にして中身をぶら下げる。**
  * 未読は左の帯＋青い点だけで示す（面を塗らない）。日付でひとまとまりにする。
  */
+
+/** まとめて届いた中身の行き先 */
+const CHILD_HREF: Record<string, Route> = {
+  '収益モデル比較レポート — 戦略担当': openHref('/deliverables', 'd-rev'),
+  '競合ポジショニング図 — 調査担当': openHref('/deliverables', 'd-target'),
+};
 
 const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
 const BLUE = '#1A73E8', AMBER = '#E37400', AMBER_T = '#FDD663', GREEN_T = '#5BB974';
@@ -22,7 +32,7 @@ function Mark({ kind }: { kind: string }) {
 }
 
 export default function InboxPage() {
-  const [open, setOpen] = useState<string | null>(null);
+  const [open, setOpen] = useOpen();
   const unread = NOTICE_GROUPS.flatMap((g) => g.items).filter((n) => n.unread).length;
   const b = DECISION_BODY;
 
@@ -64,12 +74,13 @@ export default function InboxPage() {
                     {n.children && (
                       <div style={{ display: 'flex', flexDirection: 'column', paddingTop: 8 }}>
                         {n.children.map(([c, w]) => (
-                          <div key={c} className="row" style={{ display: 'flex', alignItems: 'center', gap: 10, height: 28, borderRadius: 6, padding: '0 6px', margin: '0 -6px' }}>
+                          <Link key={c} href={CHILD_HREF[c] ?? '/deliverables'} onClick={(e) => e.stopPropagation()}
+                            className="row" style={{ display: 'flex', alignItems: 'center', gap: 10, height: 28, borderRadius: 6, padding: '0 6px', margin: '0 -6px' }}>
                             <Dot color="#2E2E2E" size={5} />
                             <span style={{ color: T3, fontSize: 12.5 }}>{c}</span>
                             <div style={{ flex: 1 }} />
                             <span style={{ color: T5, fontSize: 11 }}>{w}</span>
-                          </div>
+                          </Link>
                         ))}
                       </div>
                     )}

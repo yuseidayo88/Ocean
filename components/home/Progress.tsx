@@ -1,5 +1,8 @@
 'use client';
 
+import Link from 'next/link';
+import { openHref } from '@/lib/use-open';
+
 import { Icon } from '@/components/ui/Icon';
 import { AGENT_COLOR, DONE_WORKS, TICKS, TODAY_X, WORKS, employee, type Phase, type Work } from '@/lib/dummy';
 
@@ -52,12 +55,15 @@ function Lane({ w, last }: { w: Work; last: boolean }) {
       flex: 1, minHeight: 104, display: 'flex', alignItems: 'center', gap: 12,
       borderBottom: last ? undefined : '1px solid #161616',
     }}>
-      <div style={{ width: LABEL, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+      <Link href={`/work/${w.id}`} className="row" style={{
+        width: LABEL, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0,
+        borderRadius: 7, padding: '6px 8px', margin: '0 -8px',
+      }}>
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.title}</span>
         <span style={{ color: T5, fontSize: 11, whiteSpace: 'nowrap' }} className="tnum">
           フェーズ {w.phaseIndex} / {w.phases.length} · {w.progress}%
         </span>
-      </div>
+      </Link>
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ position: 'relative', height: 36 }}>
@@ -79,15 +85,15 @@ function Lane({ w, last }: { w: Work; last: boolean }) {
         {/* 下段: ◆のラベルと、担当がいまどこにいるか */}
         <div style={{ position: 'relative', height: 16, marginTop: 11 }}>
           {w.gate && (
-            <span style={{
+            <Link href={openHref('/decisions', 'dec-price')} className="lnk" style={{
               position: 'absolute', left: `${w.gate.x}%`, top: 0, transform: 'translateX(-100%)',
               paddingRight: 9, color: AMBER_T, fontSize: 11, whiteSpace: 'nowrap',
-            }}>{w.gate.label}</span>
+            }}>{w.gate.label}</Link>
           )}
           {w.crew.map((c) => {
             const e = employee(c.id);
             return (
-              <span key={c.id} style={{
+              <Link key={c.id} href={openHref('/team', c.id)} className="lnk" style={{
                 position: 'absolute', left: `${c.x}%`, top: 0, transform: 'translateX(-50%)',
                 display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap',
               }}>
@@ -96,7 +102,7 @@ function Lane({ w, last }: { w: Work; last: boolean }) {
                   opacity: c.dim ? 0.45 : 1,
                 }} />
                 <span style={{ color: c.dim ? T5 : T4, fontSize: 11 }}>{e.name}</span>
-              </span>
+              </Link>
             );
           })}
         </div>

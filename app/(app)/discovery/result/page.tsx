@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import Link from 'next/link';
+
+import { useOpen } from '@/lib/use-open';
 import { Composer, Pane, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Centre } from '@/components/shell/Chrome';
 import { Icon } from '@/components/ui/Icon';
@@ -33,7 +35,7 @@ const CANDS = [
 ];
 
 export default function DiscoveryResultPage() {
-  const [open, setOpen] = useState<string | null>(null);
+  const [open, setOpen] = useOpen();
   return (
     <>
       <Centre>
@@ -53,7 +55,7 @@ export default function DiscoveryResultPage() {
           ))}
           <span style={{ color: '#3A3A3A', fontSize: 11 }}>期限 未定</span>
           <div style={{ flex: 1 }} />
-          <span className="lnk" style={{ color: T4, fontSize: 12 }}>条件を変える</span>
+          <Link href="/discovery" className="lnk" style={{ color: T4, fontSize: 12 }}>条件を変える</Link>
         </div>
 
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 26px 112px' }}>
@@ -93,13 +95,13 @@ export default function DiscoveryResultPage() {
                     </div>
                   ))}
                 </div>
-                <span className={c.rec ? 'solid' : 'btn'} style={{
+                <Link href="/work/new" onClick={(e) => e.stopPropagation()} className={c.rec ? 'solid' : 'btn'} style={{
                   flexShrink: 0, display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px',
                   borderRadius: 8, whiteSpace: 'nowrap',
                   background: c.rec ? BLUE : undefined,
                   border: c.rec ? undefined : '1px solid #2A2A2A',
                   color: c.rec ? '#fff' : T3,
-                }}>{c.rec ? 'この案ではじめる' : 'この案にする'}</span>
+                }}>{c.rec ? 'この案ではじめる' : 'この案にする'}</Link>
               </div>
             ))}
           </div>

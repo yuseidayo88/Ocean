@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useOpen } from '@/lib/use-open';
 import { Centre, Composer, Pane, TopBar } from '@/components/shell/Chrome';
 import { Icon } from '@/components/ui/Icon';
 import { Toggle } from '@/components/shell/Controls';
@@ -89,7 +89,7 @@ function Rows({ rows, onOpen }: { rows: Row[]; onOpen: (f: string) => void }) {
 }
 
 export default function SkillsPage() {
-  const [open, setOpen] = useState<string | null>(null);
+  const [open, setOpen] = useOpen();
   return (
     <>
       <Centre>

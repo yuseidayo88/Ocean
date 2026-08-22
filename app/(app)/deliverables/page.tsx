@@ -1,6 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import Link from 'next/link';
+import { openHref } from '@/lib/use-open';
+
+import { useOpen } from '@/lib/use-open';
 import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Dot, Icon } from '@/components/ui/Icon';
 import { DELIVERABLES, DELIVERABLE_BODY, employee, type Preview } from '@/lib/dummy';
@@ -59,7 +62,7 @@ function Thumb({ p }: { p: Preview }) {
 }
 
 export default function DeliverablesPage() {
-  const [open, setOpen] = useState<string | null>(null);
+  const [open, setOpen] = useOpen();
   const need = DELIVERABLES.filter((d) => d.state === '要確認').length;
   const b = DELIVERABLE_BODY;
   const top = DELIVERABLES.find((d) => d.id === b.id)!;
@@ -97,7 +100,8 @@ export default function DeliverablesPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ color: T5 }}>{employee(d.by).name}</span>
+                    <Link href={openHref('/team', d.by)} onClick={(e) => e.stopPropagation()} className="lnk"
+                      style={{ color: T5 }}>{employee(d.by).name}</Link>
                     <div style={{ flex: 1 }} />
                     {d.state === '要確認' && (
                       <span style={{

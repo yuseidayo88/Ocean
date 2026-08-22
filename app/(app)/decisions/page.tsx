@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import type { Route } from 'next';
+import Link from 'next/link';
+import { openHref, useOpen } from '@/lib/use-open';
 import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Dot, Icon, type IconName } from '@/components/ui/Icon';
 import { DECISIONS, DECISION_BODY, type Decision } from '@/lib/dummy';
@@ -11,6 +13,16 @@ import { DECISIONS, DECISION_BODY, type Decision } from '@/lib/dummy';
  * 質問はここに出さない。事業判断だけが昇格する。
  */
 
+/** 根拠の行き先。実在するものだけ張る */
+const BASIS_HREF: Record<string, Route> = {
+  '収益モデル比較レポート': openHref('/deliverables', 'd-rev'),
+  '競合の価格 12件': openHref('/deliverables', 'd-price'),
+};
+const AFTER_HREF: Record<string, Route> = {
+  '収益シミュレーションが始まる': openHref('/tasks', 'tk-sim'),
+  'フェーズ3の計画が作られる': '/work/w-japanese' as Route,
+};
+
 const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
 const AMBER = '#E37400', AMBER_T = '#FDD663', GREEN = '#1E8E3E', GREEN_T = '#5BB974', BLUE = '#1A73E8';
 
@@ -18,12 +30,13 @@ export default function DecisionsPage() {
   const gates = DECISIONS.filter((d) => d.state === '判断待ち');
   const b = DECISION_BODY;
   // 右は閉じた状態から始まる。台帳の1件を押すと、その1件が開く
-  const [open, setOpen] = useState<Decision | null>(null);
+  const [openId, setOpen] = useOpen();
+  const open = DECISIONS.find((d) => d.id === openId) ?? null;
 
   return (
     <>
       <Centre>
-        <TopBar title="決定事項" onPanel={() => setOpen(open ? null : DECISIONS[0])} panelOn={!!open}
+        <TopBar title="決定事項" onPanel={() => setOpen(open ? null : DECISIONS[0].id)} panelOn={!!open}
           right={<span style={{ color: T5, fontSize: 12 }}>日本語学習サービス</span>} />
 
         <div style={{
@@ -46,9 +59,9 @@ export default function DecisionsPage() {
             const wait = d.state === '判断待ち';
             const first = i === 0;
             return (
-              <div key={d.id} className="row" onClick={() => setOpen(d)} style={{
+              <div key={d.id} className="row" onClick={() => setOpen(d.id)} style={{
                 display: 'flex', gap: 16, borderRadius: 8,
-                background: open?.id === d.id ? '#0B0B0B' : undefined,
+                background: openId === d.id ? '#0B0B0B' : undefined,
               }}>
                 {/* 左の時刻と印 */}
                 <span style={{ width: 58, flexShrink: 0, textAlign: 'right', color: T5, fontSize: 11, paddingTop: 14 }}>
@@ -132,26 +145,28 @@ export default function DecisionsPage() {
 
           <PaneHead>根拠</PaneHead>
           {b.basis.map((x, i) => (
-            <div key={x.label} style={{
-              display: 'flex', alignItems: 'center', gap: 11, height: 40,
+            <Link key={x.label} href={BASIS_HREF[x.label] ?? '/deliverables'} onClick={(e) => e.stopPropagation()} className="row" style={{
+              display: 'flex', alignItems: 'center', gap: 11, height: 40, borderRadius: 7,
+              padding: '0 8px', margin: '0 -8px',
               borderBottom: i === b.basis.length - 1 ? undefined : '1px solid #161616',
             }}>
               <Icon name={x.icon as IconName} color={T4} size={14} />
               <span style={{ color: T2, fontSize: 13 }}>{x.label}</span>
               <div style={{ flex: 1 }} />
               <Icon name="chev" color="#3A3A3A" size={12} />
-            </div>
+            </Link>
           ))}
 
           <PaneHead>決めたあとに起きること</PaneHead>
           {b.after.map((x, i) => (
-            <div key={x.label} style={{
-              display: 'flex', alignItems: 'center', gap: 11, height: 40,
+            <Link key={x.label} href={AFTER_HREF[x.label] ?? '/tasks'} onClick={(e) => e.stopPropagation()} className="row" style={{
+              display: 'flex', alignItems: 'center', gap: 11, height: 40, borderRadius: 7,
+              padding: '0 8px', margin: '0 -8px',
               borderBottom: i === b.after.length - 1 ? undefined : '1px solid #161616',
             }}>
               <Icon name={x.icon as IconName} color={T4} size={14} />
               <span style={{ color: T2, fontSize: 13 }}>{x.label}</span>
-            </div>
+            </Link>
           ))}
         </div>
         {open.state === '判断待ち'

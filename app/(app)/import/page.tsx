@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import Link from 'next/link';
+
+import { useOpen } from '@/lib/use-open';
 import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Icon, type IconName } from '@/components/ui/Icon';
 
@@ -24,7 +26,7 @@ const READ: [string, string][] = [
 ];
 
 export default function ImportPage() {
-  const [open, setOpen] = useState<string | null>(null);
+  const [open, setOpen] = useOpen();
   const done = SOURCES.filter((s) => s.state === '完了').length;
   return (
     <>
@@ -83,10 +85,10 @@ export default function ImportPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <span style={{ color: T5, fontSize: 12.5 }}>読み終わってから診断します</span>
             <div style={{ flex: 1 }} />
-            <span className="solid" style={{
+            <Link href="/diagnosis" className="solid" style={{
               display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px',
               borderRadius: 8, background: BLUE, color: '#fff',
-            }}>診断する</span>
+            }}>診断する</Link>
           </div>
         </div>
         <Composer placeholder="取り込みについて統括AIに聞く" />

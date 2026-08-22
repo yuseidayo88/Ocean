@@ -1,5 +1,7 @@
 'use client';
 
+import type { Route } from 'next';
+import Link from 'next/link';
 import { Icon } from '@/components/ui/Icon';
 import { FLOW, type FlowKind } from '@/lib/dummy';
 
@@ -31,11 +33,11 @@ const SKIN: Record<FlowKind, Skin> = {
   work: { bg: '#0C0C0C', border: '1px solid #272727', bar: '#2E2E2E', title: T2, sub: T5 },
 };
 
-function Node({ x, y, w, title, sub, kind }:
-  { x: number; y: number; w: number; title: string; sub: string; kind: FlowKind }) {
+function Node({ x, y, w, title, sub, kind, href = '/work/w-japanese' }:
+  { x: number; y: number; w: number; title: string; sub: string; kind: FlowKind; href?: string }) {
   const s = SKIN[kind];
   return (
-    <div style={{
+    <Link href={href as Route} style={{
       position: 'absolute', left: x, top: y, width: w, height: NH, boxSizing: 'border-box',
       display: 'flex', alignItems: 'center', padding: '0 14px 0 15px', borderRadius: 14,
       background: s.bg, border: s.border, overflow: 'hidden',
@@ -49,7 +51,7 @@ function Node({ x, y, w, title, sub, kind }:
         </span>
         <span style={{ color: s.sub, fontSize: 11, lineHeight: '15px', whiteSpace: 'nowrap' }}>{sub}</span>
       </div>
-    </div>
+    </Link>
   );
 }
 

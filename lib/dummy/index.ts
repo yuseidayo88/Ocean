@@ -134,27 +134,29 @@ export const TICKS = [
 // ════════════════════════ タスク ════════════════════════
 
 export type Task = {
+  /** 別の画面から `?open=` で名指しできるように、行にも id を持たせる */
+  id: string;
   title: string; state: State; progress: number;
   owner: string | 'me'; due: string; workId: string; phase: string;
 };
 
 /** 放っておけない順（判断待ち → 要確認 → 実行中 → 待機 → 完了） */
 export const TASKS: Task[] = [
-  { title: '価格モデルの決定',      state: '判断待ち', progress: 90,  owner: 'me',         due: '8月21日', workId: 'w-japanese', phase: '戦略' },
-  { title: '収益モデル比較レポート', state: '要確認',  progress: 100, owner: 'e-strategy', due: '8月21日', workId: 'w-japanese', phase: '戦略' },
-  { title: '競合ポジショニング分析', state: '実行中',  progress: 62,  owner: 'e-research', due: '8月21日', workId: 'w-japanese', phase: '調査' },
-  { title: '申込フォームのコピー',   state: '実行中',  progress: 48,  owner: 'e-strategy', due: '8月22日', workId: 'w-lp',       phase: '制作' },
-  { title: '投稿カレンダー作成',     state: '実行中',  progress: 30,  owner: 'e-plan',     due: '8月22日', workId: 'w-sns',      phase: '運用設計' },
-  { title: '申込フォームの実装',     state: '実行中',  progress: 45,  owner: 'e-dev',      due: '8月23日', workId: 'w-lp',       phase: '制作' },
-  { title: '競合1社の料金を調べる',  state: '実行中',  progress: 40,  owner: 'e-research', due: '8月21日', workId: 'w-japanese', phase: '調査' },
-  { title: '価格戦略ドラフト',       state: '実行中',  progress: 32,  owner: 'e-strategy', due: '8月21日', workId: 'w-japanese', phase: '戦略' },
-  { title: '収益シミュレーション',   state: '待機',    progress: 0,   owner: 'e-strategy', due: '8月23日', workId: 'w-japanese', phase: '戦略' },
-  { title: '初回10投稿の下書き',     state: '待機',    progress: 0,   owner: 'e-plan',     due: '8月25日', workId: 'w-sns',      phase: '実行' },
-  { title: '市場規模の推計',         state: '完了',    progress: 100, owner: 'e-research', due: '8月14日', workId: 'w-japanese', phase: '調査' },
-  { title: '発信テーマの洗い出し',   state: '完了',    progress: 100, owner: 'e-research', due: '8月16日', workId: 'w-sns',      phase: '方針' },
-  { title: 'ワイヤーフレーム作成',   state: '完了',    progress: 100, owner: 'e-plan',     due: '8月19日', workId: 'w-lp',       phase: '要件' },
-  { title: 'LPの見出しを3案',        state: '完了',    progress: 100, owner: 'e-plan',     due: '8月20日', workId: 'w-lp',       phase: '要件' },
-  { title: 'LPのコーディング',       state: '完了',    progress: 100, owner: 'e-dev',      due: '8月19日', workId: 'w-lp',       phase: '制作' },
+  { id: 'tk-price', title: '価格モデルの決定',      state: '判断待ち', progress: 90,  owner: 'me',         due: '8月21日', workId: 'w-japanese', phase: '戦略' },
+  { id: 'tk-revenue', title: '収益モデル比較レポート', state: '要確認',  progress: 100, owner: 'e-strategy', due: '8月21日', workId: 'w-japanese', phase: '戦略' },
+  { id: 'tk-position', title: '競合ポジショニング分析', state: '実行中',  progress: 62,  owner: 'e-research', due: '8月21日', workId: 'w-japanese', phase: '調査' },
+  { id: 'tk-lpcopy', title: '申込フォームのコピー',   state: '実行中',  progress: 48,  owner: 'e-strategy', due: '8月22日', workId: 'w-lp',       phase: '制作' },
+  { id: 'tk-calendar', title: '投稿カレンダー作成',     state: '実行中',  progress: 30,  owner: 'e-plan',     due: '8月22日', workId: 'w-sns',      phase: '運用設計' },
+  { id: 'tk-formimpl', title: '申込フォームの実装',     state: '実行中',  progress: 45,  owner: 'e-dev',      due: '8月23日', workId: 'w-lp',       phase: '制作' },
+  { id: 'tk-rival1', title: '競合1社の料金を調べる',  state: '実行中',  progress: 40,  owner: 'e-research', due: '8月21日', workId: 'w-japanese', phase: '調査' },
+  { id: 'tk-pricedraft', title: '価格戦略ドラフト',       state: '実行中',  progress: 32,  owner: 'e-strategy', due: '8月21日', workId: 'w-japanese', phase: '戦略' },
+  { id: 'tk-sim', title: '収益シミュレーション',   state: '待機',    progress: 0,   owner: 'e-strategy', due: '8月23日', workId: 'w-japanese', phase: '戦略' },
+  { id: 'tk-first10', title: '初回10投稿の下書き',     state: '待機',    progress: 0,   owner: 'e-plan',     due: '8月25日', workId: 'w-sns',      phase: '実行' },
+  { id: 'tk-market', title: '市場規模の推計',         state: '完了',    progress: 100, owner: 'e-research', due: '8月14日', workId: 'w-japanese', phase: '調査' },
+  { id: 'tk-themes', title: '発信テーマの洗い出し',   state: '完了',    progress: 100, owner: 'e-research', due: '8月16日', workId: 'w-sns',      phase: '方針' },
+  { id: 'tk-wire', title: 'ワイヤーフレーム作成',   state: '完了',    progress: 100, owner: 'e-plan',     due: '8月19日', workId: 'w-lp',       phase: '要件' },
+  { id: 'tk-heads', title: 'LPの見出しを3案',        state: '完了',    progress: 100, owner: 'e-plan',     due: '8月20日', workId: 'w-lp',       phase: '要件' },
+  { id: 'tk-lpcode', title: 'LPのコーディング',       state: '完了',    progress: 100, owner: 'e-dev',      due: '8月19日', workId: 'w-lp',       phase: '制作' },
 ];
 
 /**
@@ -359,7 +361,7 @@ export type Lane = {
   steps: [string, string][];
   body: DeskBody;
   /** レーンの足もと。タスク名 ＋ 進み具合 ＋ かかった時間 */
-  task: string; pct: number; elapsed: string;
+  task: string; taskId: string; pct: number; elapsed: string;
 };
 
 export const LANES: Lane[] = [
@@ -370,7 +372,7 @@ export const LANES: Lane[] = [
       '韓国の日本語学習者 約64万人（2024・国際交流基金）',
       '競合A 月額 ₩19,900 / 月間 12万DL',
       '競合B は会話特化。読解の受け皿が薄い'] },
-    task: '競合ポジショニング分析', pct: 68, elapsed: '12分' },
+    task: '競合ポジショニング分析', taskId: 'tk-position', pct: 68, elapsed: '12分' },
   { id: 'e-plan', state: '実行中',
     line: 'SNSの投稿カレンダーを1ヶ月ぶん書いています',
     steps: [['先月の反応が良かった投稿を並べた', '1分38秒'], ['週3本の型に落としている', '4分22秒']],
@@ -379,7 +381,7 @@ export const LANES: Lane[] = [
       '火＝学習のコツ、木＝生徒の声、土＝日本の',
       '暮らし。先月いちばん伸びたのは木でした。',
       '土曜は写真だけでも回せます。'] },
-    task: '投稿カレンダー作成', pct: 45, elapsed: '9分' },
+    task: '投稿カレンダー作成', taskId: 'tk-calendar', pct: 45, elapsed: '9分' },
   { id: 'e-dev', state: '実行中',
     line: '申込フォームの送信まわりを実装しています',
     steps: [['既存のフォームを読んだ', '34秒'], ['テストを4件 通した', '1分07秒'], ['submit.ts を書き換えている', '2分18秒']],
@@ -389,18 +391,18 @@ export const LANES: Lane[] = [
       [33, 'if (err) return json({ ok: false, err }, 422)', true],
       [34, 'await db.signups.insert(data)', false],
       [35, 'return json({ ok: true }, 201)', true]] },
-    task: '申込フォームの実装', pct: 52, elapsed: '21分' },
+    task: '申込フォームの実装', taskId: 'tk-formimpl', pct: 52, elapsed: '21分' },
   { id: 'e-strategy', state: '要確認',
     line: '収益モデル比較レポートを出しました。見てください',
     steps: [['3案の損益を計算した', '56秒'], ['推奨の理由を書いた', '3分04秒']],
     body: { kind: 'review', title: '収益モデル比較 3案', when: '2時間前', action: '決める' },
-    task: '収益モデル比較レポート', pct: 100, elapsed: '2時間' },
+    task: '収益モデル比較レポート', taskId: 'tk-revenue', pct: 100, elapsed: '2時間' },
 ];
 
 // ════════════════════════ ワークフロー ════════════════════════
 
 export type FlowKind = 'done' | 'sel' | 'gate' | 'wait' | 'work';
-export type FlowNode = { id: string; title: string; sub: string; kind: FlowKind };
+export type FlowNode = { id: string; title: string; sub: string; kind: FlowKind; href?: string };
 
 /**
  * ワークフローの盤面。**色がつくのは判断待ちのノードだけ**（gate）。
@@ -413,14 +415,14 @@ export const FLOW = {
   chain: [
     { id: 'p1', title: '調査',           sub: 'フェーズ 1 · 完了',  kind: 'done' as const },
     { id: 'p2', title: '戦略',           sub: 'フェーズ 2 · 32%',   kind: 'sel'  as const },
-    { id: 'd1', title: '収益モデル比較', sub: '成果物 · 要確認',    kind: 'done' as const },
-    { id: 'g1', title: '価格モデル',     sub: '判断 · B案を推奨',   kind: 'gate' as const },
+    { id: 'd1', title: '収益モデル比較', sub: '成果物 · 要確認',    kind: 'done' as const, href: '/deliverables?open=d-rev' },
+    { id: 'g1', title: '価格モデル',     sub: '判断 · B案を推奨',   kind: 'gate' as const, href: '/decisions?open=dec-price' },
   ],
   /** 右の列。上から 新しい Work / 次のフェーズ / 新しい Work */
   right: [
-    { id: 'b1', title: 'LPと申込フォーム',   sub: '新しい Work · 準備中', kind: 'work' as const, edge: '新しい Work' },
+    { id: 'b1', title: 'LPと申込フォーム',   sub: '新しい Work · 準備中', kind: 'work' as const, edge: '新しい Work', href: '/work/w-lp' },
     { id: 'p3', title: 'プロダクト',         sub: 'フェーズ 3 · 待機',    kind: 'wait' as const, edge: '次のフェーズ' },
-    { id: 'b2', title: 'SNS運用の立ち上げ',  sub: '新しい Work · 準備中', kind: 'work' as const, edge: '新しい Work' },
+    { id: 'b2', title: 'SNS運用の立ち上げ',  sub: '新しい Work · 準備中', kind: 'work' as const, edge: '新しい Work', href: '/work/w-sns' },
   ],
   /** 選択中のノードにぶら下がるサブポート */
   subs: ['担当 2', '成果物 1'],

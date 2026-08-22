@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { openHref } from '@/lib/use-open';
+
+import { useOpen } from '@/lib/use-open';
 import Link from 'next/link';
 import { notFound, useParams } from 'next/navigation';
 import { Centre, Composer, Pane, PaneHead, TopBar } from '@/components/shell/Chrome';
@@ -53,7 +55,9 @@ const PhaseMark = ({ state }: { state: 'done' | 'now' | 'next' }) => {
 export default function WorkPage() {
   const { id } = useParams<{ id: string }>();
   // 右は閉じた状態から始まる。トップバーの板アイコンで出し入れする
-  const [pane, setPane] = useState(false);
+  const [openId, setOpen] = useOpen();
+  const pane = openId === 'about';
+  const setPane = (v: boolean) => setOpen(v ? 'about' : null);
   const w = WORKS.find((x) => x.id === id);
   if (!w) notFound();
 
@@ -104,7 +108,7 @@ export default function WorkPage() {
           <div>
             <span style={{ color: T3, display: 'block', paddingBottom: 8 }}>フェーズ</span>
             {w.phases.map((p, i) => (
-              <div key={p.name} className="row" style={{
+              <Link key={p.name} href="/tasks" className="row" style={{
                 display: 'flex', alignItems: 'center', gap: 14, height: 46, borderRadius: 7,
                 borderBottom: i === w.phases.length - 1 ? undefined : '1px solid #161616',
               }}>
@@ -128,7 +132,7 @@ export default function WorkPage() {
                 <span style={{ width: 92, flexShrink: 0, textAlign: 'right', color: '#4A4A4A', fontSize: 11 }} className="tnum">
                   {p.from} – {p.to}
                 </span>
-              </div>
+              </Link>
             ))}
           </div>
 
@@ -136,7 +140,7 @@ export default function WorkPage() {
           <div>
             <span style={{ color: T3, display: 'block', paddingBottom: 8 }}>いま動いているもの</span>
             {live.map((t, i) => (
-              <div key={t.title} className="row" style={{
+              <Link key={t.title} href={openHref('/tasks', t.id)} className="row" style={{
                 display: 'flex', alignItems: 'center', gap: 12, height: 44, borderRadius: 7,
                 borderBottom: i === live.length - 1 ? undefined : '1px solid #161616',
               }}>
@@ -154,7 +158,7 @@ export default function WorkPage() {
                 <span style={{ width: 52, textAlign: 'right', color: t.state === '判断待ち' ? AMBER_T : T5, fontSize: 12 }} className="tnum">
                   {t.state === '判断待ち' ? '決める' : t.state === '待機' ? '待機' : `${t.progress}%`}
                 </span>
-              </div>
+              </Link>
             ))}
           </div>
 
@@ -167,7 +171,7 @@ export default function WorkPage() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 28 }}>
               {dels.map((d, i) => (
-                <div key={d.id} className="row" style={{
+                <Link key={d.id} href={openHref('/deliverables', d.id)} className="row" style={{
                   display: 'flex', alignItems: 'center', gap: 13, height: 56, borderRadius: 7,
                   borderBottom: i >= dels.length - 2 ? undefined : '1px solid #161616',
                 }}>
@@ -191,7 +195,7 @@ export default function WorkPage() {
                       background: 'rgba(227,116,0,0.18)', color: AMBER_T, fontSize: 12, whiteSpace: 'nowrap',
                     }}>要確認</span>
                   )}
-                </div>
+                </Link>
               ))}
             </div>
           </div>
@@ -224,14 +228,15 @@ export default function WorkPage() {
             </span>
           )}
           {decs.map(([when, what], i) => (
-            <div key={what} style={{
-              display: 'flex', alignItems: 'center', gap: 12, height: 40,
+            <Link key={what} href="/decisions" className="row" style={{
+              display: 'flex', alignItems: 'center', gap: 12, height: 40, borderRadius: 7,
+              padding: '0 8px', margin: '0 -8px',
               borderBottom: i === decs.length - 1 ? undefined : '1px solid #161616',
             }}>
               <span style={{ width: 52, flexShrink: 0, color: T5, fontSize: 11 }}>{when}</span>
               <Icon name="check" color={GREEN_T} size={12} width={2.2} />
               <span style={{ color: T2, fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{what}</span>
-            </div>
+            </Link>
           ))}
 
           <PaneHead>AI社員</PaneHead>
@@ -239,8 +244,9 @@ export default function WorkPage() {
             const e = employee(c.id);
             const n = TASKS.filter((t) => t.workId === w.id && t.owner === c.id && t.state !== '完了').length;
             return (
-              <div key={c.id} style={{
-                display: 'flex', alignItems: 'center', gap: 11, height: 44,
+              <Link key={c.id} href={openHref('/team', c.id)} className="row" style={{
+                display: 'flex', alignItems: 'center', gap: 11, height: 44, borderRadius: 7,
+                padding: '0 8px', margin: '0 -8px',
                 borderBottom: i === w.crew.length - 1 ? undefined : '1px solid #161616',
               }}>
                 <Orb color={AGENT_COLOR[e.color]} size={24} seed={e.name.length * 7 + 3} dim={Boolean(c.dim)} />
@@ -249,7 +255,7 @@ export default function WorkPage() {
                 <span style={{ color: c.dim ? T5 : T4, fontSize: 12 }} className="tnum">
                   {c.dim ? '待機' : `${n}タスク`}
                 </span>
-              </div>
+              </Link>
             );
           })}
         </div>

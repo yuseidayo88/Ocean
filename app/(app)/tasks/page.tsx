@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
+import Link from 'next/link';
+import { openHref, useOpen } from '@/lib/use-open';import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Diamond, Dot, Icon, type IconName } from '@/components/ui/Icon';
 import { TASKS, TASK_BODY, employee, work, type State, type Task } from '@/lib/dummy';
 
@@ -30,13 +30,14 @@ export default function TasksPage() {
   const todo = TASKS.filter((t) => t.state !== '完了').length;
   const gates = TASKS.filter((t) => t.state === '判断待ち').length;
   // **右は閉じた状態から始まる。** 行を押すと、その行のぶんだけ開く
-  const [open, setOpen] = useState<Task | null>(null);
+  const [openId, setOpen] = useOpen();
+  const open = TASKS.find((t) => t.id === openId) ?? null;
 
   return (
     <>
     <Centre>
       <TopBar title="タスク"
-        onPanel={() => setOpen(open ? null : TASKS[0])} panelOn={!!open}
+        onPanel={() => setOpen(open ? null : TASKS[0].id)} panelOn={!!open}
         right={
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: AMBER_T, fontSize: 12 }}>
           <Dot color={AMBER} size={7} />判断待ち <span className="tnum">{gates}</span>
@@ -70,9 +71,9 @@ export default function TasksPage() {
             const done = t.state === '完了';
             const who = t.owner === 'me' ? 'あなた' : employee(t.owner).name;
             return (
-              <div key={t.title} className="row" onClick={() => setOpen(t)} style={{
+              <div key={t.title} className="row" onClick={() => setOpen(t.id)} style={{
                 display: 'flex', alignItems: 'center', gap: 12, height: 42, borderBottom: '1px solid #161616',
-                background: t.title === open?.title ? '#0C0C0C' : undefined,
+                background: t.id === openId ? '#0C0C0C' : undefined,
               }}>
                 <span style={{ width: W.mark, flexShrink: 0, display: 'inline-flex', justifyContent: 'center' }}>
                   <Mark s={t.state} />
@@ -89,10 +90,15 @@ export default function TasksPage() {
                     }} />
                   </span>
                 </span>
-                <span style={{ width: W.work, flexShrink: 0, color: T4, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {/* 行は開く、中のリンクは別の画面へ。食い合わないように止める */}
+                <Link href={`/work/${t.workId}`} onClick={(e) => e.stopPropagation()} className="lnk"
+                  style={{ width: W.work, flexShrink: 0, color: T4, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {work(t.workId).title}
-                </span>
-                <span style={{ width: W.who, flexShrink: 0, color: t.owner === 'me' ? AMBER_T : T4, fontSize: 12 }}>{who}</span>
+                </Link>
+                {t.owner === 'me'
+                  ? <span style={{ width: W.who, flexShrink: 0, color: AMBER_T, fontSize: 12 }}>{who}</span>
+                  : <Link href={openHref('/team', t.owner)} onClick={(e) => e.stopPropagation()} className="lnk"
+                      style={{ width: W.who, flexShrink: 0, color: T4, fontSize: 12 }}>{who}</Link>}
                 <span style={{ width: W.due, flexShrink: 0, textAlign: 'right', color: done ? '#3A3A3A' : T5, fontSize: 12 }} className="tnum">
                   {t.due}
                 </span>

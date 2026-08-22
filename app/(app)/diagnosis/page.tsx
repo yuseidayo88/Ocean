@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import Link from 'next/link';
+
+import { useOpen } from '@/lib/use-open';
 import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Icon } from '@/components/ui/Icon';
 
@@ -30,7 +32,7 @@ const WEIGHT: Record<string, string> = { '重い': RED_T, '中くらい': AMBER_
 
 export default function DiagnosisPage() {
   // 右は閉じた状態から始まる。見つかったことの1行を押すと開く
-  const [open, setOpen] = useState<string | null>(null);
+  const [open, setOpen] = useOpen();
   return (
     <>
       <Centre>
@@ -83,10 +85,10 @@ export default function DiagnosisPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <span style={{ color: T3, fontSize: 13 }}>上の3つから Work を立てます</span>
             <div style={{ flex: 1 }} />
-            <span className="solid" style={{
+            <Link href="/work/w-japanese/plan" className="solid" style={{
               display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px',
               borderRadius: 8, background: BLUE, color: '#fff',
-            }}>この3つを始める</span>
+            }}>この3つを始める</Link>
           </div>
         </div>
         <Composer placeholder="診断について統括AIに聞く" />

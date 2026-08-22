@@ -8,6 +8,9 @@ import { Icon, Dot, type IconName } from '@/components/ui/Icon';
 import { ME, THREADS, WORKS } from '@/lib/dummy';
 import { isBlank, useShell } from '@/components/shell/Shell';
 
+/** レールに出すチャットの数。これを超えたら「すべて見る」を出す */
+const SHOWN = 6;
+
 const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
 const AMBER = '#E37400', GREEN = '#1E8E3E', BLUE = '#1A73E8';
 
@@ -146,7 +149,7 @@ export function Rail({ empty }: { empty?: boolean } = {}) {
           </div>
         ) : (
           <>
-            {THREADS.map((t) => {
+            {THREADS.slice(0, SHOWN).map((t) => {
               const on = path === `/chat/${t.id}`;
               return (
                 <Link key={t.id} href={`/chat/${t.id}`} className={on ? 'hit' : 'row'} style={{
@@ -161,11 +164,14 @@ export function Rail({ empty }: { empty?: boolean } = {}) {
                 </Link>
               );
             })}
-            <Link href="/chat/new" className="row" style={{
-              display: 'flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 8,
-            }}>
-              <span className="lnk" style={{ color: T5, fontSize: 12 }}>すべて見る</span>
-            </Link>
+            {/* レールに入りきらないときだけ出す。行き先のないリンクは置かない */}
+            {THREADS.length > SHOWN && (
+              <div className="row" style={{
+                display: 'flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 8,
+              }}>
+                <span className="lnk" style={{ color: T5, fontSize: 12 }}>すべて見る</span>
+              </div>
+            )}
           </>
         )}
       </div>

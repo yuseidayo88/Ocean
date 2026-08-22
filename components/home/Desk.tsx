@@ -1,5 +1,8 @@
 'use client';
 
+import Link from 'next/link';
+import { openHref } from '@/lib/use-open';
+
 import { Orb } from '@/components/ui/Orb';
 import { Dot, Icon } from '@/components/ui/Icon';
 import { AGENT_COLOR, EMPLOYEES, LANES, employee, type DeskBody } from '@/lib/dummy';
@@ -98,10 +101,10 @@ function Body({ b }: { b: DeskBody }) {
           <span style={{ color: T5, fontSize: 10 }}>{b.when}</span>
         </div>
       </div>
-      <span style={{
+      <Link href={openHref('/decisions', 'dec-price')} className="solid" style={{
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 32,
         borderRadius: 8, background: AMBER, color: '#fff', fontSize: 12,
-      }}>{b.action}</span>
+      }}>{b.action}</Link>
     </div>
   );
 }
@@ -133,7 +136,10 @@ export function Desk() {
                 padding: '2px 15px 10px 0', marginRight: last ? 0 : 15,
                 borderRight: last ? undefined : '1px solid #161616',
               }}>
-                <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 9 }}>
+                <Link href={openHref('/team', e.id)} className="row" style={{
+                  flexShrink: 0, display: 'flex', alignItems: 'center', gap: 9, borderRadius: 8,
+                  padding: '4px 6px', margin: '-4px -6px',
+                }}>
                   <Orb color={AGENT_COLOR[e.color]} size={30} seed={e.name.length * 7 + 3} dim={wait} />
                   <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.name}</span>
@@ -147,7 +153,7 @@ export function Desk() {
                       background: 'rgba(227,116,0,0.16)', color: AMBER_T, fontSize: 11, whiteSpace: 'nowrap',
                     }}>要確認</span>
                   ) : <Dot color={GREEN} size={6} />}
-                </div>
+                </Link>
 
                 <div style={{ flexShrink: 0, padding: '10px 0 9px' }}>
                   <span style={{ color: T2, fontSize: 13, lineHeight: '20px' }}>{l.line}</span>
@@ -189,9 +195,10 @@ export function Desk() {
                   flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8,
                   paddingTop: 9, borderTop: '1px solid #161616',
                 }}>
-                  <span style={{ minWidth: 0, color: T5, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <Link href={l.taskId ? openHref('/tasks', l.taskId) : '/tasks'} className="lnk"
+                    style={{ minWidth: 0, color: T5, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {l.task}
-                  </span>
+                  </Link>
                   <div style={{ flex: 1 }} />
                   <span style={{ width: 48, flexShrink: 0, height: 5, borderRadius: 3, background: '#1C1C1C', overflow: 'hidden' }}>
                     <span style={{ display: 'block', width: `${l.pct}%`, height: '100%', background: wait ? AMBER : T4 }} />

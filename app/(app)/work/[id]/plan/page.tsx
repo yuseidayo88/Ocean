@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import Link from 'next/link';
+
+import { useOpen } from '@/lib/use-open';
 import { notFound, useParams } from 'next/navigation';
 import { Centre, Composer, Pane, TopBar } from '@/components/shell/Chrome';
 import { Icon } from '@/components/ui/Icon';
@@ -35,7 +37,9 @@ const MAKES: [string, string][][] = [
 export default function PlanPage() {
   const { id } = useParams<{ id: string }>();
   // 右は閉じた状態から始まる。トップバーの板アイコンで出し入れする
-  const [pane, setPane] = useState(false);
+  const [openId, setOpen] = useOpen();
+  const pane = openId === 'why';
+  const setPane = (v: boolean) => setOpen(v ? 'why' : null);
   const w = WORKS.find((x) => x.id === id);
   if (!w) notFound();
 
@@ -163,9 +167,9 @@ export default function PlanPage() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 14 }}>
-            <span className="solid" style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px', borderRadius: 8, background: BLUE, color: '#fff' }}>
+            <Link href={`/work/${w.id}`} className="solid" style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px', borderRadius: 8, background: BLUE, color: '#fff' }}>
               承認して始める
-            </span>
+            </Link>
             <span className="btn" style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 14px', borderRadius: 8, color: T3 }}>
               直したい
             </span>

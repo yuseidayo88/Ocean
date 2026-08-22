@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { CompanyPicker, useShell } from '@/components/shell/Shell';
@@ -18,6 +19,7 @@ export const COMPOSER_H = TOKEN_COMPOSER_H;
 export function TopBar({ crumb, title, right, onPanel, panelOn }:
   { crumb?: string; title: string; right?: React.ReactNode; onPanel?: () => void; panelOn?: boolean }) {
   const { rail, setRail } = useShell();
+  const router = useRouter();
   return (
     <div style={{
       height: 46, flexShrink: 0, boxSizing: 'border-box', display: 'flex', alignItems: 'center',
@@ -30,8 +32,13 @@ export function TopBar({ crumb, title, right, onPanel, panelOn }:
           <Icon name="panel" color={T4} size={15} />
         </button>
       )}
-      <Icon name="back" color="#3A3A3A" size={14} />
-      <Icon name="fwd" color="#3A3A3A" size={14} />
+      {/* 開く・閉じるも URL に入っているので、ここが本当に効く */}
+      <button onClick={() => router.back()} className="icob" title="戻る" style={{ display: 'inline-flex', padding: 4 }}>
+        <Icon name="back" color={T4} size={14} />
+      </button>
+      <button onClick={() => router.forward()} className="icob" title="進む" style={{ display: 'inline-flex', padding: 4 }}>
+        <Icon name="fwd" color={T4} size={14} />
+      </button>
 
       {/* いま見ているものは全部この会社のもの。だから**パンくずの根**に置く */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 1, minWidth: 0 }}>

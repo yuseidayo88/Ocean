@@ -1,5 +1,8 @@
 'use client';
 
+import Link from 'next/link';
+import { openHref } from '@/lib/use-open';
+
 import { Orb } from '@/components/ui/Orb';
 import { Icon } from '@/components/ui/Icon';
 import { AGENT_COLOR, WORKS, employee } from '@/lib/dummy';
@@ -81,10 +84,10 @@ export function Office() {
       </g>,
     );
     labels.push(
-      <div key={w.id} style={{
+      <Link key={w.id} href={`/work/${w.id}`} className="lnk" style={{
         position: 'absolute', left: lx - 7, top: ly, transform: 'translate(-100%, -50%)',
         paddingRight: 9, color: T4, fontSize: 11, whiteSpace: 'nowrap',
-      }}>{w.title}</div>,
+      }}>{w.title}</Link>,
     );
     w.crew.forEach((c) => {
       const [x, y] = on(rx, ry, c.ring);
@@ -141,7 +144,7 @@ export function Office() {
       })}
 
       {/* 統括AI（白）。社長は描かない */}
-      <div style={{
+      <Link href="/chat/new" className="hit" style={{
         position: 'absolute', left: CX, top: CY, transform: 'translate(-50%, -50%)',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
       }}>
@@ -160,17 +163,17 @@ export function Office() {
           ))}
         </div>
         <span style={{ whiteSpace: 'nowrap', fontSize: 14 }}>統括AI</span>
-      </div>
+      </Link>
 
       {people.map(({ x, y, e, dim }, i) => (
-        <div key={e.id} className="hit" style={{
+        <Link key={e.id} href={openHref('/team', e.id)} className="hit" style={{
           position: 'absolute', left: x, top: y, transform: 'translate(-50%, -50%)',
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
           animation: dim ? undefined : `drift 6.5s ease-in-out ${(i * 1.4).toFixed(1)}s infinite`,
         }}>
           <Orb color={AGENT_COLOR[e.color]} size={88} seed={e.name.length * 7 + 3} dim={dim} />
           <span style={{ color: dim ? T5 : T2, whiteSpace: 'nowrap', fontSize: 13 }}>{e.name}</span>
-        </div>
+        </Link>
       ))}
 
       {/* 拡大縮小・移動（Figma のような形） */}

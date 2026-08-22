@@ -23,7 +23,7 @@ export default function NewWorkPage() {
         <div style={{ width: '100%', maxWidth: 748, display: 'flex', flexDirection: 'column', paddingTop: 8 }}>
           <span style={{ color: T5, fontSize: 11, paddingBottom: 6 }}>いま動いている仕事から</span>
           {SUGGEST.map(([t, sub], i) => (
-            <div key={t} className="row" style={{
+            <Link key={t} href="/work/w-japanese/plan" className="row" style={{
               display: 'flex', alignItems: 'center', gap: 12, height: 48, borderRadius: 7,
               borderBottom: i === SUGGEST.length - 1 ? undefined : '1px solid #161616',
             }}>
@@ -32,7 +32,7 @@ export default function NewWorkPage() {
               <div style={{ flex: 1 }} />
               <span style={{ color: T5, fontSize: 11, whiteSpace: 'nowrap' }}>{sub}</span>
               <Icon name="chev" color="#3A3A3A" size={13} />
-            </div>
+            </Link>
           ))}
         </div>
       </div>
