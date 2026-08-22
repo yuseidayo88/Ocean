@@ -5,7 +5,8 @@ import type { Route } from 'next';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { Icon, Dot, type IconName } from '@/components/ui/Icon';
-import { COMPANIES, ME, THREADS, WORKS } from '@/lib/dummy';
+import { ME, THREADS, WORKS } from '@/lib/dummy';
+import { isBlank, useShell } from '@/components/shell/Shell';
 
 const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
 const AMBER = '#E37400', GREEN = '#1E8E3E', BLUE = '#1A73E8';
@@ -66,15 +67,14 @@ function PopRow({ label, right, on, color, onClick }: {
 
 const Hair = () => <div style={{ height: 1, margin: '5px 8px', background: '#262626' }} />;
 
-/** まだ何もない会社の画面。ここではレールを空の姿にする（→ docs/design/01-data-model.md 入口） */
-const EMPTY_ROUTES = ['/start', '/discovery', '/import', '/diagnosis'];
-
-export function Rail({ empty, company }: { empty?: boolean; company?: string } = {}) {
+export function Rail({ empty }: { empty?: boolean } = {}) {
   const path = usePathname();
-  const [switcher, setSwitcher] = useState(false);
+  const { rail, setRail } = useShell();
   const [account, setAccount] = useState(false);
-  const blank = empty ?? EMPTY_ROUTES.some((r) => path === r || path.startsWith(r + '/'));
-  const name = company ?? (blank ? 'あなたの会社' : COMPANIES[0].name);
+  const blank = empty ?? isBlank(path);
+
+  // 閉じたら**端に何も残さない**。戻り道はトップバーの左端
+  if (!rail) return null;
 
   const active = (href: string) => path === href || path.startsWith(href + '/');
   const open = WORKS.find((w) => path.startsWith(`/work/${w.id}`));
@@ -85,14 +85,13 @@ export function Rail({ empty, company }: { empty?: boolean; company?: string } =
       display: 'flex', flexDirection: 'column', gap: 14, padding: '14px 12px',
       background: '#141414', borderRight: '1px solid #232323',
     }}>
-      {/* 上は「いまどの会社にいるか」だけ */}
+      {/* 上は窓の印と、このレールを閉じる印だけ。会社名はパンくずの根に置いた */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 4px', height: 26 }}>
         <Dot color="#2E2E2E" size={9} /><Dot color="#2E2E2E" size={9} /><Dot color="#2E2E2E" size={9} />
         <div style={{ flex: 1 }} />
-        <button onClick={() => { setSwitcher(!switcher); setAccount(false); }} className="btn"
-                style={{ display: 'flex', alignItems: 'center', gap: 7, height: 26, padding: '0 7px', borderRadius: 7 }}>
-          <span style={{ color: switcher ? T1 : T2 }}>{name}</span>
-          <Icon name="down" color={switcher ? T3 : T4} size={13} />
+        <button onClick={() => setRail(false)} className="icob" title="左を閉じる"
+                style={{ display: 'inline-flex', padding: 4, marginRight: -2 }}>
+          <Icon name="collapse" color={T4} size={15} />
         </button>
       </div>
 
@@ -174,7 +173,7 @@ export function Rail({ empty, company }: { empty?: boolean; company?: string } =
       <div style={{ flex: 1 }} />
 
       {/* 下は「わたし」 */}
-      <button onClick={() => { setAccount(!account); setSwitcher(false); }} className={account ? 'hit' : 'row'} style={{
+      <button onClick={() => setAccount(!account)} className={account ? 'hit' : 'row'} style={{
         display: 'flex', alignItems: 'center', gap: 10, height: 36, padding: '0 10px',
         borderRadius: 8, background: account ? '#1E1E1E' : undefined, width: '100%',
       }}>
@@ -187,13 +186,6 @@ export function Rail({ empty, company }: { empty?: boolean; company?: string } =
         <Icon name="down" color={account ? T3 : T4} size={13} />
       </button>
 
-      {switcher && (
-        <Pop pos={{ top: 46, left: 12, right: 12, width: 'auto' }}>
-          {COMPANIES.map((c) => <PopRow key={c.id} label={c.name} right={`Work ${c.works}`} on={c.current} />)}
-          <Hair />
-          <PopRow label="会社を追加" color={T3} />
-        </Pop>
-      )}
       {account && (
         <Pop pos={{ bottom: 56, left: 12, right: 24, width: 'auto' }}>
           <PopRow label="設定" />

@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { Icon, type IconName } from '@/components/ui/Icon';
+import { CompanyPicker, useShell } from '@/components/shell/Shell';
 import { COMPOSER_H as TOKEN_COMPOSER_H } from '@/lib/design/tokens';
 
 const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
@@ -16,30 +17,39 @@ export const COMPOSER_H = TOKEN_COMPOSER_H;
  */
 export function TopBar({ crumb, title, right, onPanel, panelOn }:
   { crumb?: string; title: string; right?: React.ReactNode; onPanel?: () => void; panelOn?: boolean }) {
+  const { rail, setRail } = useShell();
   return (
     <div style={{
       height: 46, flexShrink: 0, boxSizing: 'border-box', display: 'flex', alignItems: 'center',
-      gap: 10, padding: '0 18px 0 14px', borderBottom: '1px solid #161616',
+      gap: 10, padding: '0 12px 0 14px', borderBottom: '1px solid #161616',
     }}>
-      {/* 右ペインの出し入れ。閉じたら端に何も残さないので、戻り道はここ */}
-      <button onClick={onPanel} disabled={!onPanel} title={panelOn ? '右を閉じる' : '右を開く'}
-              className={onPanel ? 'icob' : undefined}
-              style={{ display: 'inline-flex', padding: 5, marginLeft: -3, cursor: onPanel ? 'pointer' : 'default' }}>
-        <Icon name="panel" color={panelOn ? T2 : T4} size={15} />
-      </button>
+      {/* 左レールを閉じたときだけ、ここに戻り道が出る（端にはつまみを残さない） */}
+      {!rail && (
+        <button onClick={() => setRail(true)} className="icob" title="左を開く"
+                style={{ display: 'inline-flex', padding: 5, marginLeft: -3 }}>
+          <Icon name="panel" color={T4} size={15} />
+        </button>
+      )}
       <Icon name="back" color="#3A3A3A" size={14} />
       <Icon name="fwd" color="#3A3A3A" size={14} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 4 }}>
-        {crumb ? (
-          <>
-            <span style={{ color: T4 }}>{crumb}</span>
-            <span style={{ color: T5 }}>/</span>
-            <span>{title}</span>
-          </>
-        ) : <span>{title}</span>}
+
+      {/* いま見ているものは全部この会社のもの。だから**パンくずの根**に置く */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 1, minWidth: 0 }}>
+        <CompanyPicker />
+        <span style={{ color: T5 }}>/</span>
+        {crumb && <><span style={{ color: T4 }}>{crumb}</span><span style={{ color: T5 }}>/</span></>}
+        <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>
       </div>
+
       <div style={{ flex: 1 }} />
       {right}
+      {/* 右ペインの出し入れ。**右向きの絵**を右端に置く */}
+      {onPanel && (
+        <button onClick={onPanel} className="icob" title={panelOn ? '右を閉じる' : '右を開く'}
+                style={{ display: 'inline-flex', padding: 5, marginLeft: 4 }}>
+          <Icon name="panelr" color={panelOn ? T2 : T4} size={15} />
+        </button>
+      )}
     </div>
   );
 }
