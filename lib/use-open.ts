@@ -2,60 +2,85 @@
 
 import type { Route } from 'next';
 import { usePathname, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 /**
- * URL の `?…` だけを書き換える。**サーバーに行かない。**
+ * 右ペインで開いている1件を **URL に持つ**（`?open=<id>`）。
  *
- * `router.replace()` だと同じ画面のままでも RSC を取りに行くので、
- * 行を押してから右ペインが出るまで、その通信ぶん待つことになる
- * （手もとで 30ms、ネットワーク越しなら数百 ms）。
- * ここで見せたいものはもう全部クライアントにあるので、取りに行く必要がない。
- * Next.js は素の history API を `useSearchParams` と同期させるので、これで足りる。
+ * こうしておくと:
+ *   ・別の画面から「その1件」へ直接飛べる（`/tasks?open=tk-price`）
+ *   ・トップバーの ‹ › が意味を持つ
+ *   ・リンクを人に渡せる
+ *
+ * ただし **URL を先に書かない。**
+ *   `history.replaceState` を呼ぶと、Next.js の router が状態を作り直し、
+ *   その途中で画面の高さを読む（`dontForceLayout` のところ）。
+ *   これがページ全体の配置計算を1回強制するので、遅い機械では 40ms ほど固まる。
+ *   押した瞬間に固まると「反応が遅い」になる。
+ *
+ * だから **開くのは手もとの state で先にやり、URL は描いたあとで書く。**
+ * 見えるものは同じで、待たされるところだけ無くなる。
  */
 const write = (path: string, q: URLSearchParams) => {
   const s = q.toString();
   window.history.replaceState(null, '', s ? `${path}?${s}` : path);
 };
 
-/**
- * 右ペインで開いている1件を **URL に持つ**（`?open=<id>`）。
- *
- * こうしておくと:
- *   ・別の画面から「その1件」へ直接飛べる（`/tasks?open=t-price`）
- *   ・トップバーの ‹ › が意味を持つ（開く・閉じるも履歴になる）
- *   ・リンクを人に渡せる
- */
-export function useOpen() {
+/** URL の1つの値を、描いたあとで書き戻す形で持つ */
+function useLate(key: string, fallback: string | null) {
   const sp = useSearchParams();
   const path = usePathname();
-  const open = sp.get('open');
+  const url = sp.get(key) ?? fallback;
+  const [now, setNow] = useState(url);
 
-  const set = (id: string | null) => {
-    const q = new URLSearchParams(sp.toString());
-    if (id) q.set('open', id); else q.delete('open');
+  // 外から URL が変わったとき（別画面から来た・戻るを押した）は合わせる
+  useEffect(() => { setNow(url); }, [url]);
+
+  // 開け閉めしたあと、**描き終わってから** URL を書く
+  useEffect(() => {
+    if (now === url) return;
+    const q = new URLSearchParams(window.location.search);
+    if (now && now !== fallback) q.set(key, now); else q.delete(key);
     write(path, q);
-  };
-  return [open, set] as const;
+  }, [now, url, key, path, fallback]);
+
+  return [now, setNow] as const;
+}
+
+export function useOpen() {
+  return useLate('open', null);
+}
+
+/** 画面の中の切り替え（ホームの `?view=desk` など） */
+export function useParam(key: string, fallback: string) {
+  const [v, set] = useLate(key, fallback);
+  return [v ?? fallback, set as (next: string) => void] as const;
 }
 
 /**
  * タブの形のペイン（成果物・スキル）は、開いている**並び**と**いま見ているもの**の2つを持つ。
  * `?open=d-rev,d-mkt&at=1` — 並びは動かさない（読み比べるので、押すたびに順番が変わると困る）。
- * 2つを1回で書き換えるので、片方が古いまま上書きされることがない。
  */
 export function useTabs(all: string[]) {
   const sp = useSearchParams();
   const path = usePathname();
+  const urlIds = sp.get('open') ?? '';
+  const urlAt = sp.get('at') ?? '0';
+  const [raw, setRaw] = useState<[string, string]>([urlIds, urlAt]);
 
-  const ids = (sp.get('open') ?? '').split(',').filter((id) => all.includes(id));
-  const at = Math.min(Math.max(Number(sp.get('at') ?? 0) || 0, 0), Math.max(ids.length - 1, 0));
-
-  const set = (next: string[], nextAt: number) => {
-    const q = new URLSearchParams(sp.toString());
-    if (next.length) q.set('open', next.join(',')); else q.delete('open');
-    if (next.length > 1 && nextAt > 0) q.set('at', String(nextAt)); else q.delete('at');
+  useEffect(() => { setRaw([urlIds, urlAt]); }, [urlIds, urlAt]);
+  useEffect(() => {
+    if (raw[0] === urlIds && raw[1] === urlAt) return;
+    const q = new URLSearchParams(window.location.search);
+    if (raw[0]) q.set('open', raw[0]); else q.delete('open');
+    if (raw[1] !== '0') q.set('at', raw[1]); else q.delete('at');
     write(path, q);
-  };
+  }, [raw, urlIds, urlAt, path]);
+
+  const ids = raw[0].split(',').filter((id) => all.includes(id));
+  const at = Math.min(Math.max(Number(raw[1]) || 0, 0), Math.max(ids.length - 1, 0));
+  const set = (next: string[], nextAt: number) =>
+    setRaw([next.join(','), String(next.length > 1 ? nextAt : 0)]);
 
   return {
     ids, at,
@@ -75,21 +100,6 @@ export function useTabs(all: string[]) {
     /** 全部閉じる */
     clear: () => set([], 0),
   };
-}
-
-/**
- * 画面の中の切り替えを URL に持つ（ホームの `?view=desk` など）。
- * これも**サーバーには行かない** — 見せるものはもうクライアントにある。
- */
-export function useParam(key: string, fallback: string) {
-  const sp = useSearchParams();
-  const path = usePathname();
-  const set = (next: string) => {
-    const q = new URLSearchParams(sp.toString());
-    if (next === fallback) q.delete(key); else q.set(key, next);
-    write(path, q);
-  };
-  return [sp.get(key) ?? fallback, set] as const;
 }
 
 /** 一覧の行に張るリンク先。その行を開いた状態の URL */

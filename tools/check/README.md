@@ -19,6 +19,7 @@ node tools/check/keyboard.mjs 9335            # Tab → Enter → Esc
 node tools/check/rail.mjs     9335 1408 800 <url…>   # 左レールを閉じた状態
 node tools/check/cpu.mjs      9335 http://localhost:3300 /home /team
 node tools/check/motion.mjs   9335 http://localhost:3300   # 出入りが動いているか
+CPU=4 node tools/check/press.mjs 9335                     # 押してから右ペインが見えるまで
 ```
 
 `BASE` で見に行く先を変えられる（既定 `http://localhost:3300`）。
@@ -32,6 +33,11 @@ node tools/check/motion.mjs   9335 http://localhost:3300   # 出入りが動い�
 | `rail.mjs` | 左レールを閉じたときに中身が崩れないか。閉じているのに中のボタンが触れないか（`inert`） |
 | `cpu.mjs` | **何もしていないとき**の CPU・レイアウト・スタイル再計算。`/home` は 5% 以下が目安 |
 | `motion.mjs` | 右ペイン・左レール・入力欄が1フレームごとにどう動いたか（数字が段になっていれば動いている） |
+| `press.mjs` | **押してから右ペインが見えるまで**（ページの中で計測）。`CPU=4` で遅い機械のふりをする |
+
+**GPU を切らない。** `--disable-gpu` で立てた Chrome はソフトウェアで描くので、
+オフィスの画面が 35fps に見える（実機は 60fps）。無い問題を追いかけることになるので、
+`--use-gl=swiftshader --enable-gpu-rasterization` で立てる。
 
 「消えた文字」は、閉じた状態にあって開いた状態に無い文字。
 **器が潰れて中身が消える**のはこれで見つかる（1120px で `/tasks` の

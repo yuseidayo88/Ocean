@@ -66,16 +66,25 @@ export function TopBar({ crumb, title, right, onPanel, panelOn }:
  * **中身の上に浮かせる**（重なってよい）。入力欄が主役の画面だけ floating=false。
  */
 /**
- * 入力欄は書いたぶんだけ伸びる。**伸びるところも滑らかにする。**
- * 高さを測るには一度 0 に落とす必要があるが、そのままだと 0 まで縮んでから伸びる。
- * 測るあいだだけ動きを止め、いまの高さに戻してから、次の高さへ動かす。
+ * 入力欄は書いたぶんだけ伸びる。
+ *
+ * ブラウザが `field-sizing: content` を知っていれば、**CSS だけで伸びる**（JS は要らない）。
+ * 知らないブラウザのためだけに測る道を残す。ただし測るのは高くつく —
+ * 高さを一度 0 に落として読み直すので、そのたびに**ページ全体の配置計算が走る**。
+ * 1文字ごとにやると、重い画面（オフィス）で目に見えて遅れる。
+ * だから **1行ぶん変わったときだけ**測り直す。
  */
+const AUTO_GROW =
+  typeof CSS !== 'undefined' && CSS.supports?.('field-sizing', 'content');
+
 function grow(t: HTMLTextAreaElement) {
+  if (AUTO_GROW) return;
   const before = t.offsetHeight;
   const keep = t.style.transition;
   t.style.transition = 'none';
   t.style.height = '0px';
   const next = Math.min(t.scrollHeight, 168);
+  if (next === before) { t.style.height = `${before}px`; t.style.transition = keep; return; }
   t.style.height = `${before}px`;
   void t.offsetHeight;
   t.style.transition = keep;
@@ -84,7 +93,13 @@ function grow(t: HTMLTextAreaElement) {
 
 export function Composer({ placeholder, mode = '統括AI', effort = '自動', above, floating = true }:
   { placeholder: string; mode?: string; effort?: string; above?: React.ReactNode; floating?: boolean }) {
-  const [text, setText] = useState('');
+  /**
+   * **打つたびに描き直さない。**
+   * 見た目が変わるのは「書いたかどうか」の1点だけ（送信ボタンが青くなる）。
+   * 中身そのものを state に持つと1文字ごとに入力欄まわり全部を作り直すことになるので、
+   * 持つのは真偽値ひとつにして、文字はブラウザに預けたままにする。
+   */
+  const [can, setCan] = useState(false);
   const wrap: React.CSSProperties = floating
     ? {
         position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 5, boxSizing: 'border-box',
@@ -103,16 +118,18 @@ export function Composer({ placeholder, mode = '統括AI', effort = '自動', ab
         background: '#141414', border: '1px solid #2A2A2A',
       }}>
         <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onInput={(e) => grow(e.currentTarget)}
+          onInput={(e) => {
+            const next = !!e.currentTarget.value.trim();
+            if (next !== can) setCan(next);
+            grow(e.currentTarget);
+          }}
           placeholder={placeholder}
           rows={1}
           style={{
             width: '100%', resize: 'none', background: 'none', border: 'none', outline: 'none',
             color: T1, fontSize: 14, lineHeight: '22px', maxHeight: 168, overflowY: 'auto',
-            transition: `height ${EASE}`,
-          }}
+            fieldSizing: 'content', transition: `height ${EASE}`,
+          } as React.CSSProperties}
         />
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <span className="icob" style={{ width: 26, height: 26, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -128,14 +145,14 @@ export function Composer({ placeholder, mode = '統括AI', effort = '自動', ab
           }}><Icon name="bars" color={T4} size={13} />{effort}</span>
           <div style={{ flex: 1 }} />
           {/* **書いていないときは送れない。** 押せないものを押せる顔にしない */}
-          <button disabled={!text.trim()} className={text.trim() ? 'solid' : undefined} style={{
+          <button disabled={!can} className={can ? 'solid' : undefined} style={{
             width: 30, height: 30, borderRadius: 999, flexShrink: 0,
-            background: text.trim() ? BLUE : '#242424',
+            background: can ? BLUE : '#242424',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            cursor: text.trim() ? 'pointer' : 'default',
+            cursor: can ? 'pointer' : 'default',
             transition: 'background-color .14s ease',
           }}>
-            <Icon name="up" color={text.trim() ? '#fff' : '#5F5F5F'} size={16} width={1.8} />
+            <Icon name="up" color={can ? '#fff' : '#5F5F5F'} size={16} width={1.8} />
           </button>
         </div>
       </div>

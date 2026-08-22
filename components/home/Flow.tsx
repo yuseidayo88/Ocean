@@ -106,6 +106,8 @@ export function Flow() {
   return (
     <div style={{
       position: 'relative', width: GW, height: GH, flexShrink: 0, overflow: 'hidden',
+      // 大きさが決まっていて中身も外に出ないので、外の計算から切り離す
+      contain: 'strict',
       backgroundColor: BG, backgroundImage: 'radial-gradient(#161616 1px, transparent 1px)', backgroundSize: '22px 22px',
     }}>
       <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(70% 70% at 42% 40%, rgba(255,255,255,0.028), rgba(0,0,0,0) 72%)' }} />

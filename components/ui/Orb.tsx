@@ -1,3 +1,5 @@
+import { memo } from 'react';
+
 /**
  * AI社員のアバターは粒子で描く（→ docs/design/03-agent-schema.md）。
  * 点の緯度リングでできた球 ＋ 芯の格子 ＋ 外へ伸びるスポーク ＋ 散り ＋ 芯。
@@ -20,7 +22,10 @@ const hexRgb = (hex: string) =>
 
 type Props = { color: string; size?: number; seed?: number; dim?: boolean; spin?: boolean };
 
-export function Orb({ color, size = 88, seed = 1, dim = false, spin = true }: Props) {
+/** 同じ色・大きさ・種なら絵は同じ。親が描き直しても作り直さない */
+export const Orb = memo(OrbInner);
+
+function OrbInner({ color, size = 88, seed = 1, dim = false, spin = true }: Props) {
   const rgb = hexRgb(color);
   const rand = rng(seed);
   const A = dim ? 0.4 : 1;
@@ -28,11 +33,17 @@ export function Orb({ color, size = 88, seed = 1, dim = false, spin = true }: Pr
   const uid = `o${seed}x${size}x${rgb.replace(/,/g, '')}`;
   const rgba = (a: number) => `rgba(${rgb},${Math.max(0, Math.min(1, a * A)).toFixed(3)})`;
 
+  /**
+   * 大きさで作りを変える。**DENS は1本のリングに並べる粒の密度。**
+   * 44px の球に300個の粒を置いても、1粒が 0.4px にしかならず滲むだけで見えない。
+   * 見えないものは作らない（右ペインを開くたびに数百の節点を作ることになる）。
+   * **大きく出る 72px 以上（オフィス）は触らない。** そこは見えるので減らさない。
+   */
   const tier = size >= 72 ? 2 : size >= 40 ? 1 : 0;
-  const [LAT, LATTICE, SPOKES, SCAT, DOT, R, BOOST, CORE] = [
-    [5, 0, 0, 0, 1.7, 40, 1.55, 3.0],
-    [9, 7, 13, 10, 1.0, 36, 1.2, 2.1],
-    [13, 11, 22, 30, 0.7, 34, 1.0, 1.7],
+  const [LAT, LATTICE, SPOKES, SCAT, DOT, R, BOOST, CORE, DENS] = [
+    [5, 0, 0, 0, 1.7, 40, 1.55, 3.0, 0],
+    [7, 6, 10, 8, 1.35, 36, 1.2, 2.1, 0.55],
+    [13, 11, 22, 30, 0.7, 34, 1.0, 1.7, 1.2],
   ][tier];
 
   /**
@@ -70,7 +81,7 @@ export function Orb({ color, size = 88, seed = 1, dim = false, spin = true }: Pr
       const rx = Math.sqrt(Math.max(0, R * R - (y - 50) ** 2));
       if (rx < 2) continue;
       const ry = Math.max(1.4, rx * 0.3);
-      const cnt = Math.max(9, Math.floor(rx * 1.2));
+      const cnt = Math.max(8, Math.floor(rx * DENS));
       for (let k = 0; k < cnt; k++) {
         const a = ((k * 360) / cnt + (rand() * 6 - 3)) * (Math.PI / 180);
         const near = 0.5 + 0.5 * Math.sin(a);
@@ -140,7 +151,12 @@ export function Orb({ color, size = 88, seed = 1, dim = false, spin = true }: Pr
   };
 
   return (
-    <span style={{ position: 'relative', display: 'inline-block', width: size, height: size, flexShrink: 0 }}>
+    /* 大きさが決まっているので、外の計算から切り離す。
+       スポークと散りは枠の外へ伸びるので、paint は封じない（切れてしまう） */
+    <span style={{
+      position: 'relative', display: 'inline-block', width: size, height: size, flexShrink: 0,
+      contain: 'layout size',
+    }}>
       <svg width={size} height={size} viewBox="0 0 100 100" style={sheet}>
         <defs>
           <radialGradient id={`${uid}_g`}>

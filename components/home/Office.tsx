@@ -99,7 +99,9 @@ export function Office() {
   });
 
   return (
-    <div style={{ position: 'relative', width: OW, height: OH, flexShrink: 0, overflow: 'hidden' }}>
+    /* 盤面は大きさが決まっていて中身も外に出ない。**外の計算から切り離す** —
+       入力欄に1文字打つたびに、ここの何千個もの粒まで 数え直さなくてよくなる */
+    <div style={{ position: 'relative', width: OW, height: OH, flexShrink: 0, overflow: 'hidden', contain: 'strict' }}>
       <svg width={OW} height={OH} viewBox={`0 0 ${OW} ${OH}`} style={{ position: 'absolute', inset: 0 }}>
         {rings}
         {/* 外周の目盛り */}
