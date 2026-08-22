@@ -41,7 +41,8 @@ html, body {
 b, strong, h1, h2, h3, h4, h5, h6 { font-weight: 400; }
 h1, h2, h3, h4, h5, h6 { margin: 0; }
 
-a { color: var(--blue-t); text-decoration: none; }
+/* リンクだから青、にしない。色は意味だけに使う（青＝次に押すもの） */
+a { color: inherit; text-decoration: none; }
 
 button, input, textarea, select { font: inherit; color: inherit; }
 button { background: none; border: none; padding: 0; cursor: pointer; }

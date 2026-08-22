@@ -41,9 +41,12 @@ const CORE: [number, number, number][] = [
   [38, 30, 0], [58, 46, 0.8], [44, 60, 1.5], [62, 32, 2.2], [50, 42, 1.1], [34, 52, 1.8],
 ];
 
+/** Math.cos/sin は実装で最後の桁が変わる。server と client でずれるので必ず丸める */
+const r2 = (n: number) => Number(n.toFixed(2));
+
 const on = (rx: number, ry: number, pct: number) => {
   const a = ((-90 + (360 * pct) / 100) * Math.PI) / 180;
-  return [CX + rx * Math.cos(a), CY + ry * Math.sin(a)] as const;
+  return [r2(CX + rx * Math.cos(a)), r2(CY + ry * Math.sin(a))] as const;
 };
 
 function arc(rx: number, ry: number, pct: number) {
@@ -65,14 +68,14 @@ export function Office() {
   works.forEach((w, i) => {
     const { rx, ry } = RINGS[i];
     const a = (LANGS[i] * Math.PI) / 180;
-    const lx = CX + rx * Math.cos(a), ly = CY + ry * Math.sin(a);
+    const lx = r2(CX + rx * Math.cos(a)), ly = r2(CY + ry * Math.sin(a));
     const [ex, ey] = on(rx, ry, w.progress);
     rings.push(
       <g key={w.id}>
         <ellipse cx={CX} cy={CY} rx={rx} ry={ry} fill="none" stroke="#1B1B1B" strokeWidth={1} />
         {arc(rx, ry, w.progress)}
         <line x1={CX} y1={CY - ry - 5} x2={CX} y2={CY - ry + 5} stroke="#2E2E2E" strokeWidth={1} />
-        <line x1={lx - 7} y1={ly} x2={lx + 2} y2={ly} stroke="#2E2E2E" strokeWidth={1} />
+        <line x1={r2(lx - 7)} y1={ly} x2={r2(lx + 2)} y2={ly} stroke="#2E2E2E" strokeWidth={1} />
         {/* 弧の先端＝その Work のいま。判断待ちの Work だけ橙の菱形 */}
         {w.gate
           ? <>
@@ -85,7 +88,7 @@ export function Office() {
     );
     labels.push(
       <Link key={w.id} href={`/work/${w.id}`} className="lnk" style={{
-        position: 'absolute', left: lx - 7, top: ly, transform: 'translate(-100%, -50%)',
+        position: 'absolute', left: r2(lx - 7), top: ly, transform: 'translate(-100%, -50%)',
         paddingRight: 9, color: T4, fontSize: 11, whiteSpace: 'nowrap',
       }}>{w.title}</Link>,
     );
@@ -105,8 +108,8 @@ export function Office() {
           const lg = i % 4 === 0;
           const r1 = lg ? 0.965 : 0.982;
           return <line key={i}
-            x1={CX + 500 * r1 * Math.cos(ang)} y1={CY + 283 * r1 * Math.sin(ang)}
-            x2={CX + 500 * Math.cos(ang)} y2={CY + 283 * Math.sin(ang)}
+            x1={r2(CX + 500 * r1 * Math.cos(ang))} y1={r2(CY + 283 * r1 * Math.sin(ang))}
+            x2={r2(CX + 500 * Math.cos(ang))} y2={r2(CY + 283 * Math.sin(ang))}
             stroke={lg ? '#1E1E1E' : '#151515'} />;
         })}
       </svg>
@@ -129,8 +132,8 @@ export function Office() {
         return (
           <div key={`l-${e.id}`} style={{
             position: 'absolute',
-            left: CX + (GAP0 * dx) / len, top: CY + (GAP0 * dy) / len,
-            width: len - GAP0 - GAP1, height: 1, background: dim ? '#141414' : '#1F1F1F',
+            left: r2(CX + (GAP0 * dx) / len), top: r2(CY + (GAP0 * dy) / len),
+            width: r2(len - GAP0 - GAP1), height: 1, background: dim ? '#141414' : '#1F1F1F',
             transformOrigin: '0 50%', transform: `rotate(${deg.toFixed(2)}deg)`,
           }}>
             {!dim && [0, 1.2].map((d) => (
@@ -145,7 +148,7 @@ export function Office() {
 
       {/* 統括AI（白）。社長は描かない */}
       <Link href="/chat/new" className="hit" style={{
-        position: 'absolute', left: CX, top: CY, transform: 'translate(-50%, -50%)',
+        position: 'absolute', left: CX, top: CY, transform: 'translate(-50%, -50%)', color: '#E8E8E8',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
       }}>
         <div style={{ position: 'relative', width: 112, height: 112 }}>
