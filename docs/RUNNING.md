@@ -21,6 +21,19 @@ npx wrangler dev --local # workerd の上で動かす
 
 `/api/health` で土台の状態が見られます。
 
+## ダミーデータで全画面を見る（Phase 4）
+
+`.env.local` に `NEXT_PUBLIC_DEMO=1` を入れると、ログインを通さずに全画面が触れます。
+**本番では立てないこと。** 中身はダミーで、押しても書き込みはどこにも届きません。
+
+```
+/home            ホーム（?view=desk / progress / flow で切替）
+/work/w-japanese  Work / その /plan で計画の承認
+/tasks /deliverables /decisions /team /inbox /hire /skills
+/chat/t-price     チャット / /chat/new で新規
+/start /discovery /discovery/result /import /diagnosis   入口
+```
+
 ```json
 {
   "ok": true,

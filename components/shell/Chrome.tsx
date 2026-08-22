@@ -1,0 +1,344 @@
+'use client';
+
+import { Icon } from '@/components/ui/Icon';
+
+const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
+const BLUE = '#1A73E8';
+
+export const COMPOSER_H = 112;
+
+/**
+ * トップバー。**偽の階層を作らない** — 本物の親子があるときだけ crumb を渡す。
+ * それ以外は画面の名前ひとつ。日付や時刻は出さない（OS が出している）。
+ */
+export function TopBar({ crumb, title, right }:
+  { crumb?: string; title: string; right?: React.ReactNode }) {
+  return (
+    <div style={{
+      height: 46, flexShrink: 0, boxSizing: 'border-box', display: 'flex', alignItems: 'center',
+      gap: 10, padding: '0 18px 0 14px', borderBottom: '1px solid #161616',
+    }}>
+      <Icon name="panel" color={T4} size={15} />
+      <Icon name="back" color="#3A3A3A" size={14} />
+      <Icon name="fwd" color="#3A3A3A" size={14} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 4 }}>
+        {crumb ? (
+          <>
+            <span style={{ color: T4 }}>{crumb}</span>
+            <span style={{ color: T5 }}>/</span>
+            <span>{title}</span>
+          </>
+        ) : <span>{title}</span>}
+      </div>
+      <div style={{ flex: 1 }} />
+      {right}
+    </div>
+  );
+}
+
+/**
+ * 入力欄は全画面で同じものを1つ。中央下部・幅748・角丸18。
+ * **中身の上に浮かせる**（重なってよい）。入力欄が主役の画面だけ floating=false。
+ */
+export function Composer({ placeholder, mode = '統括AI', effort = '自動', above, floating = true }:
+  { placeholder: string; mode?: string; effort?: string; above?: React.ReactNode; floating?: boolean }) {
+  const wrap: React.CSSProperties = floating
+    ? {
+        position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 5, boxSizing: 'border-box',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '42px 24px 18px',
+        background: 'linear-gradient(to top, #000 0%, #000 44%, rgba(0,0,0,0.86) 66%, rgba(0,0,0,0) 100%)',
+      }
+    : { width: '100%', boxSizing: 'border-box', flexShrink: 0, display: 'flex',
+        flexDirection: 'column', alignItems: 'center', gap: 8, padding: '0 24px' };
+
+  return (
+    <div style={wrap}>
+      {above}
+      <div style={{
+        width: '100%', maxWidth: 748, boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
+        gap: 12, padding: '13px 14px 11px 16px', borderRadius: 18,
+        background: '#141414', border: '1px solid #2A2A2A',
+      }}>
+        <span style={{ color: T5, fontSize: 14 }}>{placeholder}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <Icon name="plus" color={T4} size={16} />
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: T2 }}>
+            {mode}<Icon name="down" color={T4} size={12} />
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: T2 }}>
+            <Icon name="bars" color={T4} size={13} />{effort}
+          </span>
+          <div style={{ flex: 1 }} />
+          <span style={{
+            width: 30, height: 30, borderRadius: 999, background: BLUE,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Icon name="up" color="#fff" size={16} width={1.8} />
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** 右ペイン。タブで開くもの */
+export function Pane({ width = 430, tabs, children }:
+  { width?: number; tabs: { label: string; dot?: string }[]; children: React.ReactNode }) {
+  return (
+    <div style={{
+      width, flexShrink: 0, boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
+      background: '#000', minHeight: 0,
+    }}>
+      <div style={{
+        height: 46, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6,
+        padding: '0 12px', borderBottom: '1px solid #161616',
+      }}>
+        {tabs.map((t, i) => (
+          <span key={t.label} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8, height: 28, padding: '0 11px',
+            borderRadius: 8, background: i === 0 ? '#1C1C1C' : undefined,
+            color: i === 0 ? T1 : T4, fontSize: 12.5,
+          }}>
+            {t.dot && <span style={{ width: 7, height: 7, borderRadius: 999, background: t.dot }} />}
+            {t.label}
+            {i === 0 && <Icon name="close" color={T5} size={11} />}
+          </span>
+        ))}
+        <div style={{ flex: 1 }} />
+        <Icon name="plus" color={T4} size={14} />
+      </div>
+      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/** 中央のペイン */
+export function Centre({ children, border = true }: { children: React.ReactNode; border?: boolean }) {
+  return (
+    <div style={{
+      flex: 1, minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column',
+      background: '#000', borderRight: border ? '1px solid #232323' : undefined,
+    }}>{children}</div>
+  );
+}
+
+/** セクションは見出しと中身だけ。面も枠も置かず、余白で区切る */
+export function Section({ label, right, children, style }:
+  { label: string; right?: React.ReactNode; children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', ...style }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', paddingBottom: 6 }}>
+        <span style={{ color: T3 }}>{label}</span>
+        <div style={{ flex: 1 }} />
+        {right}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/**
+ * 質問は入力欄の上にくっついた板として出す（会話には流さない）。
+ * 見出し＋1行の説明＋番号キー。最後の行は自由入力。右上に ‹ N / M › と ✕
+ */
+export function Ask({ q, idx, total, options, free }: {
+  q: string; idx: number; total: number;
+  options: { label: string; note: string; recommended?: boolean }[];
+  free: string;
+}) {
+  return (
+    <div style={{
+      width: '100%', maxWidth: 748, boxSizing: 'border-box', borderRadius: 14,
+      background: '#101010', border: '1px solid #262626', overflow: 'hidden',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px 10px' }}>
+        <span style={{ color: T1, fontSize: 14 }}>{q}</span>
+        <div style={{ flex: 1 }} />
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: T5, fontSize: 12 }}>
+          <Icon name="back" color={T5} size={12} />{idx} / {total}<Icon name="fwd" color={T5} size={12} />
+        </span>
+        <Icon name="close" color={T5} size={13} />
+      </div>
+      {options.map((o, i) => (
+        <div key={o.label} style={{
+          display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px',
+          borderTop: '1px solid #1B1B1B',
+        }}>
+          <span style={{
+            width: 20, height: 20, borderRadius: 5, background: '#1C1C1C', color: T4,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, flexShrink: 0,
+          }}>{i + 1}</span>
+          <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {o.label}
+              {o.recommended && <span style={{ color: '#5BB974', fontSize: 11 }}>おすすめ</span>}
+            </span>
+            <span style={{ color: T5, fontSize: 12 }}>{o.note}</span>
+          </div>
+        </div>
+      ))}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderTop: '1px solid #1B1B1B',
+      }}>
+        <span style={{ width: 20, display: 'inline-flex', justifyContent: 'center', flexShrink: 0 }}>
+          <Icon name="pencil" color={T4} size={13} />
+        </span>
+        <span style={{ color: T3 }}>{free}</span>
+        <div style={{ flex: 1 }} />
+        <span style={{ color: T5, fontSize: 12 }}>スキップ</span>
+      </div>
+    </div>
+  );
+}
+
+/** 答え終わった条件は緑のチェック＋項目名つきのチップ */
+export function Chips({ items }: { items: [string, string][] }) {
+  return (
+    <div style={{ width: '100%', maxWidth: 748, display: 'flex', flexDirection: 'column', gap: 7, padding: '0 4px' }}>
+      <span style={{ color: T5, fontSize: 11 }}>答えてもらった条件</span>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {items.map(([k, v]) => (
+          <span key={k} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 7, height: 26, padding: '0 10px',
+            borderRadius: 999, background: '#121212', border: '1px solid #232323',
+          }}>
+            <Icon name="check" color="#5BB974" size={11} width={2.4} />
+            <span style={{ color: T5, fontSize: 11 }}>{k}</span>
+            <span style={{ color: T2, fontSize: 12 }}>{v}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** 上部ピルで切り替える（ホームの4ビュー） */
+export function Pills({ items, active, onPick }: {
+  items: { key: string; label: string; icon: React.ReactNode }[];
+  active: string; onPick: (k: string) => void;
+}) {
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'center', gap: 2, padding: 5, borderRadius: 14,
+      background: '#0D0D0D', border: '1px solid #1E1E1E',
+    }}>
+      {items.map((it) => {
+        const on = it.key === active;
+        return (
+          <button key={it.key} onClick={() => onPick(it.key)} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8, height: 32, padding: '0 15px',
+            borderRadius: 10, background: on ? '#1F1F1F' : undefined, color: on ? T1 : T4,
+          }}>
+            {it.icon}{it.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** 思考の深さ = スライダー（自動のときは沈める） */
+export function EffortSlider({ pct = 58, dim = false, width }:
+  { pct?: number; dim?: boolean; width?: number }) {
+  const cols = 46, rows = 5;
+  const cells: React.ReactNode[] = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const t = c / (cols - 1);
+      const a = 0.2 + 0.66 * Math.pow(t, 1.35);
+      cells.push(<span key={`${r}-${c}`} style={{
+        width: 2, height: 2, borderRadius: 1, background: `rgba(255,255,255,${(a * (dim ? 0.5 : 1)).toFixed(3)})`,
+      }} />);
+    }
+  }
+  return (
+    <div style={{
+      position: 'relative', width: width ?? '100%', height: 34, borderRadius: 9,
+      background: '#141414', border: '1px solid #232323', overflow: 'hidden',
+      opacity: dim ? 0.72 : 1, display: 'flex', alignItems: 'center', padding: '0 8px',
+    }}>
+      <div style={{
+        display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 3, width: '100%',
+      }}>{cells}</div>
+      <span style={{
+        position: 'absolute', left: `calc(${pct}% - 5px)`, top: 6, width: 10, height: 20,
+        borderRadius: 5, background: dim ? '#7A7A7A' : '#EDEDED',
+      }} />
+    </div>
+  );
+}
+
+// ══════════════ B群の宿題: 器の振る舞い ══════════════
+
+/**
+ * 統括AIの3状態。**演出ではないので、止まっているときは止まっていると出す。**
+ *   待機 = 何もしていない / 考え中 = 動いている / 判断待ち = あなたで止まっている
+ */
+export function ExecStatus({ state }: { state: 'idle' | 'thinking' | 'blocked' }) {
+  const map = {
+    idle:     { c: T5,        t: '待機',   pulse: false },
+    thinking: { c: '#B8B8B8', t: '考えています', pulse: true },
+    blocked:  { c: '#FDD663', t: '判断を待っています', pulse: false },
+  }[state];
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: map.c, fontSize: 12 }}>
+      <span style={{
+        width: 7, height: 7, borderRadius: 999,
+        background: state === 'blocked' ? '#E37400' : state === 'thinking' ? '#6E6E6E' : '#2E2E2E',
+        animation: map.pulse ? 'pulse 1.4s ease-in-out infinite' : undefined,
+      }} />
+      {map.t}
+    </span>
+  );
+}
+
+/** 右ペインの3状態。**空を空のまま置かない**（次にやることを書く） */
+export function PaneEmpty({ title, lead, action }: { title: string; lead: string; action?: string }) {
+  return (
+    <div style={{
+      flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      gap: 10, padding: 28, textAlign: 'center',
+    }}>
+      <span style={{ color: T2, fontSize: 14 }}>{title}</span>
+      <span style={{ color: T5, fontSize: 12.5, lineHeight: '20px', maxWidth: 260 }}>{lead}</span>
+      {action && (
+        <span style={{
+          marginTop: 6, display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 14px',
+          borderRadius: 8, background: '#1A1A1A', border: '1px solid #2A2A2A', color: T2, fontSize: 12.5,
+        }}>{action}</span>
+      )}
+    </div>
+  );
+}
+
+export function PaneLoading({ lines = 4 }: { lines?: number }) {
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 14, padding: 18 }}>
+      {Array.from({ length: lines }, (_, i) => (
+        <div key={i} style={{
+          height: 10, borderRadius: 3, background: '#141414',
+          width: `${[92, 78, 88, 64, 84][i % 5]}%`,
+          animation: 'pulse 1.6s ease-in-out infinite', animationDelay: `${i * 0.12}s`,
+        }} />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * 失敗は隠さない。**何が起きて、何を変えれば進むか**を書く。謝らない。
+ */
+export function PaneError({ what, next, retry = 'もう一度' }: { what: string; next: string; retry?: string }) {
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, padding: 18 }}>
+      <span style={{ color: '#F28B82', fontSize: 13 }}>{what}</span>
+      <span style={{ color: T3, fontSize: 12.5, lineHeight: '20px' }}>{next}</span>
+      <span style={{
+        alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 14px',
+        borderRadius: 8, background: '#1A1A1A', border: '1px solid #2A2A2A', color: T2, fontSize: 12.5,
+      }}>{retry}</span>
+    </div>
+  );
+}

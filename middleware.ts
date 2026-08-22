@@ -6,6 +6,10 @@ const PUBLIC = ['/login', '/auth', '/api/health', '/_next', '/favicon.ico']
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request })
 
+  // Phase 4 のダミーデータ表示モード。ログインを通さずに全画面を触れるようにする。
+  // **本番では立てない。** 中身はダミーで、書き込みはどこにも届かない
+  if (process.env.NEXT_PUBLIC_DEMO === '1') return response
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   // 未設定のうちは素通し（Phase 3 の途中でも画面が見られるように）
