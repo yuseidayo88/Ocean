@@ -14,7 +14,8 @@ const open = async (path) => {
   return { ev, close: async()=>{ws.close(); await fetch(`http://127.0.0.1:${PORT}/json/close/${t.id}`)} };
 };
 console.log(`CPU ${process.env.CPU??1}倍おそく — 押してから右ペインが見えるまで（ページ内で計測）`);
-for (const path of ['/tasks','/deliverables','/team','/decisions','/inbox','/hire']) {
+// 通知は右ペインを持たない（画面そのものが2列）ので、ここには入れない
+for (const path of ['/tasks','/deliverables','/team','/decisions','/hire']) {
   const { ev, close } = await open(path);
   const out = await ev(`(async()=>{
     const pick=()=>[...document.querySelectorAll('[role=button]')].filter(e=>e.className.match(/row|card/))[1]

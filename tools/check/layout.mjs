@@ -2,15 +2,20 @@ import { scan } from './_probe.mjs';
 const B = process.env.BASE ?? 'http://localhost:3300';
 const q = (s) => encodeURIComponent(s);
 
-/** 20画面。ペインを持つものは「閉じた URL / 開いた URL」の組で見る */
+/** 24画面。ペインを持つものは「閉じた URL / 開いた URL」の組で見る */
 const pairs = [
   ['/tasks',               `${B}/tasks`,               `${B}/tasks?open=tk-price`],
+  ['/tasks?done=1',        `${B}/tasks?done=1`,        `${B}/tasks?done=1&open=tk-market`],
   ['/deliverables',        `${B}/deliverables`,        `${B}/deliverables?open=d-rev,d-mkt,d-target,d-price,d-persona&at=2`],
   ['/decisions',           `${B}/decisions`,           `${B}/decisions?open=dec-price`],
   ['/team',                `${B}/team`,                `${B}/team?open=e-research`],
   ['/hire',                `${B}/hire`,                `${B}/hire?open=c-writer`],
   ['/skills',              `${B}/skills`,              `${B}/skills?open=${q('competitor-analysis.md')},${q('market-sizing.md')},${q('price-band.md')},${q('source-citation.md')}&at=1`],
-  ['/inbox',               `${B}/inbox`,               `${B}/inbox?open=n2`],
+  // 通知は右ペインを持たない（画面そのものが2列）。選び直すと右の中身が入れ替わるので、
+  // 「開/閉」ではなく**状態ごとに1行ずつ**見る
+  ['/inbox',               `${B}/inbox`,               null],
+  ['/inbox?open=i-review', `${B}/inbox?open=i-review`, null],
+  ['/inbox?open=i-blocked',`${B}/inbox?open=i-blocked`,null],
   ['/work/w-japanese',     `${B}/work/w-japanese`,     `${B}/work/w-japanese?open=about`],
   ['/work/w-japanese/plan',`${B}/work/w-japanese/plan`,`${B}/work/w-japanese/plan?open=why`],
   ['/diagnosis',           `${B}/diagnosis`,           `${B}/diagnosis?open=${q('継続率を測れていない')}`],

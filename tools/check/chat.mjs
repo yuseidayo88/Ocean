@@ -7,7 +7,9 @@ import { WebSocket } from 'ws';
  */
 const PORT = process.argv[2];
 const BASE = process.argv[3] ?? process.env.BASE ?? 'http://localhost:3300';
-const W = Number(process.argv[4] || 1408), H = Number(process.argv[5] || 800);
+// 既定は SHELL_MIN。これより狭いと器のほうが窓より広くなり、
+// 右にあるものが全部「はみ出し」に見える（それは仕様なので、ここで測る幅ではない）
+const W = Number(process.argv[4] || 1440), H = Number(process.argv[5] || 800);
 
 const PROBE = `(() => {
   const a = document.querySelector('aside'); if (!a) return null;

@@ -30,19 +30,59 @@ export const ME = { initial: 'Y', name: 'あなた' };
 export type Employee = {
   id: string; name: string; role: string; color: EmployeeColor;
   state: State; now: string; load: number; tasks: number; deliverables: number; since: string;
+  /** メンバー画面（C案）で出すもの */
+  en: string;
+  /** 1行の約束。**できることと同じことを言わない**（癖・守ることを書く） */
+  lead: string;
+  /** 頼めることの名前。**読むだけ。ここからは足せない**（→ SKILL.md か採用で決まる） */
+  can: string[];
+  /** 行に出すのは can の3つまで。残りの件数 */
+  canMore: number;
+  /** モデルは固定。深さは**そのモデルの中でどれだけ考えるか**（thinking）で、モデルを変えない */
+  model: string;
+  effort: number;
 };
+
+/** モデルの選択肢。**Thinking 版を並べない** — それは深さのほう */
+export const MODELS = ['自動', 'Haiku 4.5', 'Sonnet 5', 'Opus 5'] as const;
+
+/** 深さ ＝ thinking の量。いちばん左は考えずに答える */
+export const EFFORT_WORDS = ['考えずに答える', '浅め', '標準', 'やや深め', '深め', 'いちばん深く'] as const;
 
 export const EMPLOYEES: Employee[] = [
   { id: 'e-research', name: '調査担当', role: '調査・競合分析', color: 'cyan',
-    state: '実行中', now: '競合ポジショニング分析', load: 74, tasks: 4, deliverables: 5, since: '8月14日' },
+    state: '実行中', now: '競合ポジショニング分析', load: 74, tasks: 4, deliverables: 5, since: '8月14日',
+    en: 'Research Analyst', lead: '数字には必ず出典を付けます。',
+    can: ['競合表を作る', '市場規模を出す', '価格の帯を調べる'], canMore: 2,
+    model: 'Sonnet 5', effort: 2 },
   { id: 'e-strategy', name: '戦略担当', role: '収益設計・価格', color: 'purple',
-    state: '要確認', now: '収益モデル比較レポート', load: 41, tasks: 3, deliverables: 2, since: '8月14日' },
+    state: '要確認', now: '収益モデル比較レポート', load: 41, tasks: 3, deliverables: 2, since: '8月14日',
+    en: 'Revenue Strategist', lead: '案は2つ以上出して、選んだ理由を書きます。',
+    can: ['価格を決める', '損益を引く', '継続率を読む'], canMore: 0,
+    model: 'Opus 5', effort: 4 },
   { id: 'e-dev',      name: '開発担当', role: '実装・テスト', color: 'green',
-    state: '実行中', now: '申込フォームの実装', load: 62, tasks: 2, deliverables: 1, since: '8月17日' },
+    state: '実行中', now: '申込フォームの実装', load: 62, tasks: 2, deliverables: 1, since: '8月17日',
+    en: 'Full-stack Engineer', lead: 'テストを通してから渡します。',
+    can: ['画面を作る', 'APIをつなぐ', 'テストを書く'], canMore: 3,
+    model: 'Sonnet 5', effort: 3 },
   { id: 'e-plan',     name: '企画担当', role: '要件・仕様', color: 'indigo',
-    state: '実行中', now: '投稿カレンダー作成', load: 38, tasks: 4, deliverables: 2, since: '8月16日' },
+    state: '実行中', now: '投稿カレンダー作成', load: 38, tasks: 4, deliverables: 2, since: '8月16日',
+    en: 'Product Planner', lead: '作らないものも決めます。',
+    can: ['仕様に落とす', '作らないものを決める'], canMore: 0,
+    model: 'Haiku 4.5', effort: 1 },
 ];
 export const employee = (id: string) => EMPLOYEES.find((e) => e.id === id)!;
+
+/**
+ * 統括AI。**AI社員ではないので EMPLOYEES に入れない**（採用も解雇もできない）。
+ * メンバー画面ではいちばん上に固定で出し、モデル・深さ・設定は社員と同じに持つ。
+ */
+export const EXEC = {
+  id: 'exec', name: '統括AI', en: 'Executive', color: '#D2D2D2', state: '実行中' as State,
+  lead: 'あなたの言葉は全部ここに届きます。',
+  can: ['Workを立てる', '計画を作る', '社員を選ぶ'], canMore: 1,
+  model: 'Opus 5', effort: 4,
+};
 
 /** 統括AIからの採用提案（1件だけ。無ければ提案の行そのものを出さない） */
 export const HIRE_SUGGESTION = {
@@ -350,6 +390,67 @@ export type Notice = {
   title: string; sub: string; when: string; unread: boolean;
   children?: [string, string][];
 };
+
+/**
+ * 通知＝**読むものではなく片づけるもの**（参考: Linear Inbox / Plane Inbox / Lemni）。
+ * 左に未処理を積み、右で中身を見て決める。片づけたら次の未処理へ。
+ *
+ * `止まっている` は状態の6語ではなく、**赤（＝止まっている・遅れている）の知らせ**。
+ * タスクや Work の状態としては使わない。
+ */
+export type InboxKind = '判断待ち' | '要確認' | '止まっている';
+
+export type InboxRow = { k: string; v: string; pct: number; note: string; hi?: boolean };
+
+export type InboxItem = {
+  id: string; kind: InboxKind; when: string; title: string; sub: string;
+  /** 右の1行 — 誰が・いつ・どの Work のどこで */
+  meta: string;
+  /** 本文。1段落1文で書く */
+  lead: string[];
+  /** 案を比べるとき（判断待ち） */
+  table?: { cols: [string, string, string, string]; rows: InboxRow[] };
+  /** 見るものを並べるとき（要確認）。[名前, 担当] */
+  look?: [string, string][];
+  /** 片づけたあとに起きること。[こと, 誰] */
+  after?: [string, string][];
+  primary: string; secondary: string;
+};
+
+export const INBOX: InboxItem[] = [
+  { id: 'i-price', kind: '判断待ち', when: '3時間', title: '価格モデルの決定', sub: '日本語学習サービス',
+    meta: '統括AI · 3時間前 · 日本語学習サービス / フェーズ2',
+    lead: [
+      '競合12件の中央値は ¥1,650。値ごろ感を保ちつつ、無料期間との差がはっきり出る帯を選びたい。',
+      'ここが決まらないと収益シミュレーションが始められません。',
+    ],
+    table: { cols: ['案', '月額', '想定継続率', 'ひとこと'], rows: [
+      { k: 'A', v: '¥980',   pct: 0,  note: '継続率が読めない' },
+      { k: 'B', v: '¥1,980', pct: 61, note: '競合と同じ帯・利益が残る', hi: true },
+      { k: 'C', v: '¥3,980', pct: 22, note: '選ぶ理由を用意する' },
+    ] },
+    after: [['収益シミュレーションが始まる', '戦略担当'], ['LPの価格表が書ける', '企画担当']],
+    primary: 'B案 ¥1,980 で決める', secondary: '統括AIに相談する' },
+
+  { id: 'i-review', kind: '要確認', when: '2時間', title: '成果物が2件できました', sub: '収益モデル比較レポート ほか1件',
+    meta: '統括AI · 2時間前 · 日本語学習サービス / フェーズ2',
+    lead: ['見て、直すところがあれば言ってください。承認すると次のフェーズの計画が作られます。'],
+    look: [['収益モデル比較レポート', '戦略担当'], ['競合ポジショニング図', '調査担当']],
+    after: [['フェーズ3の計画が作られる', '統括AI']],
+    primary: '2件とも承認する', secondary: '1件ずつ見る' },
+
+  { id: 'i-blocked', kind: '止まっている', when: '40分', title: '競合サイトが読めませんでした', sub: '調査担当 · 競合ポジショニング分析',
+    meta: '調査担当 · 40分前 · 日本語学習サービス / フェーズ1',
+    lead: [
+      '3社のうち1社だけ、サイト側に読み取りを止められています。ほかの2社は取れました。',
+      'このまま進めると、競合表の1行が空欄のまま残ります。',
+    ],
+    after: [['競合表の1行が「非公開」になる', '調査担当'], ['価格の帯は11件で出す', '戦略担当']],
+    primary: '空欄のまま進める', secondary: '統括AIに相談する' },
+];
+
+/** 左の下段。片づけ終わったものは日ごとにまとめて畳む */
+export const INBOX_DONE = { label: 'きのう片づけた', count: 2 };
 
 export const NOTICE_GROUPS: { label: string; items: Notice[] }[] = [
   { label: '今日', items: [
