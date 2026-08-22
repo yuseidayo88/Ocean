@@ -23,8 +23,11 @@ npx wrangler dev --local # workerd の上で動かす
 
 ## ダミーデータで全画面を見る（Phase 4）
 
-レビュー用のプレビューを Vercel に置いています（**中身はダミー。押しても何も起きません**）。
+レビュー用のプレビュー: https://onefound-yuseidayo88-3854s-projects.vercel.app
+
+**中身はダミーで、押しても書き込みはどこにも届きません。**
 本番の行き先は Cloudflare Workers のままで、ここは静止画の代わりです。
+ブランチに push すると作り直されます（Vercel プロジェクト `onefound`）。
 
 `.env.local` に `NEXT_PUBLIC_DEMO=1` を入れると、ログインを通さずに全画面が触れます。
 **本番では立てないこと。** 中身はダミーで、押しても書き込みはどこにも届きません。

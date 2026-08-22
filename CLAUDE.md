@@ -241,6 +241,8 @@
   **APIキーが要る**（この環境には未設定）
 - タスクなどの「追加」ボタンは置かない。**タスクは統括AIとの会話から作られる**
 - 成果物: `design/canvas/*.dc.html` + `design/canvas/canvas.json` / `docs/design/*.md` / `docs/PLAN.md`
+- **動くプレビュー（Phase 4・ダミーデータ）**: https://onefound-yuseidayo88-3854s-projects.vercel.app
+  中身はダミーで書き込みは届かない。本番の行き先は Cloudflare Workers のまま
 - プレビュー: 画面 https://claude.ai/code/artifact/10950880-aa8e-430f-9bc9-48cec22bd920
   / 設計 https://claude.ai/code/artifact/9f7ac75e-3b7e-4662-a483-a3420b795125
   / 計画 https://claude.ai/code/artifact/b271ddac-42df-443f-8a7f-a431547ce4e5
