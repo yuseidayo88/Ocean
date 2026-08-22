@@ -1,0 +1,190 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #000; color: #EDEDED;
+           font-family: system-ui, "Noto Sans JP", sans-serif; font-weight: 400;
+           -webkit-font-smoothing: antialiased; }
+    * { font-weight: 400; box-sizing: border-box; }
+    .tnum { font-variant-numeric: tabular-nums; }
+    .cell { width: 118px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  </style>
+</helmet>
+
+<div style="width: 1180px; display: flex; flex-direction: column">
+
+  <div style="padding: 26px 30px 0; display: flex; flex-direction: column; gap: 5px">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <span style="color: #669DF6; font-size: 12px">A案</span>
+      <span style="font-size: 20px">能力の表</span>
+    </div>
+    <span style="color: #6E6E6E; font-size: 13px; line-height: 21px">
+      行＝会社が持っている力、列＝社員。<b style="color:#8B8B8B">空いているマスが、この会社にできないこと。</b><br>
+      参考: StackAI Roles / Workable の権限表 / 15Five ── 能力は表で見るのがいちばん速い。
+    </span>
+  </div>
+
+  <div style="height: 20px"></div>
+  <div style="height: 1px; background: #1C1C1C"></div>
+
+  <div style="padding: 20px 26px 26px; display: flex; flex-direction: column; gap: 22px">
+
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <span style="font-size: 16px; line-height: 26px">この先のフェーズで要る力のうち、<b style="color:#FDD663">1つを誰も持っていません</b>。</span>
+      <div style="flex: 1"></div>
+      <span style="display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px; border-radius: 8px; background: #141414; border: 1px solid #262626; color: #B8B8B8; font-size: 12.5px">＋ 採用する</span>
+    </div>
+
+    <!-- 表 -->
+    <div style="display: flex; flex-direction: column">
+
+      <!-- 見出し -->
+      <div style="display: flex; align-items: flex-end; height: 56px; border-bottom: 1px solid #232323">
+        <span style="flex: 1; min-width: 0; color: #5F5F5F; font-size: 11px; padding-bottom: 8px">できること</span>
+        <div class="cell" style="flex-direction: column; gap: 6px; padding-bottom: 6px">
+          <span style="width: 20px; height: 20px; border-radius: 999px; background: radial-gradient(circle at 40% 35%, rgba(42,169,191,.9), rgba(42,169,191,.14) 62%, rgba(42,169,191,0) 72%)"></span>
+          <span style="font-size: 11.5px; color: #B8B8B8">調査担当</span>
+        </div>
+        <div class="cell" style="flex-direction: column; gap: 6px; padding-bottom: 6px">
+          <span style="width: 20px; height: 20px; border-radius: 999px; background: radial-gradient(circle at 40% 35%, rgba(154,92,208,.9), rgba(154,92,208,.14) 62%, rgba(154,92,208,0) 72%)"></span>
+          <span style="font-size: 11.5px; color: #B8B8B8">戦略担当</span>
+        </div>
+        <div class="cell" style="flex-direction: column; gap: 6px; padding-bottom: 6px">
+          <span style="width: 20px; height: 20px; border-radius: 999px; background: radial-gradient(circle at 40% 35%, rgba(52,168,83,.9), rgba(52,168,83,.14) 62%, rgba(52,168,83,0) 72%)"></span>
+          <span style="font-size: 11.5px; color: #B8B8B8">開発担当</span>
+        </div>
+        <div class="cell" style="flex-direction: column; gap: 6px; padding-bottom: 6px">
+          <span style="width: 20px; height: 20px; border-radius: 999px; background: radial-gradient(circle at 40% 35%, rgba(92,107,192,.9), rgba(92,107,192,.14) 62%, rgba(92,107,192,0) 72%)"></span>
+          <span style="font-size: 11.5px; color: #B8B8B8">企画担当</span>
+        </div>
+        <div class="cell" style="flex-direction: column; gap: 6px; padding-bottom: 6px; opacity: .55">
+          <span style="width: 20px; height: 20px; border-radius: 999px; border: 1px dashed #333"></span>
+          <span style="font-size: 11.5px; color: #5F5F5F">空き</span>
+        </div>
+      </div>
+
+      <!-- 行 -->
+      <div style="display: flex; align-items: center; height: 46px; border-bottom: 1px solid #161616">
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 13.5px">競合を並べて比べる</span>
+          <span style="color: #5F5F5F; font-size: 11px; font-family: ui-monospace, monospace">competitor-analysis.md</span>
+        </div>
+        <span class="cell"><span class="tnum" style="color: #5BB974; font-size: 12.5px">12回</span></span>
+        <span class="cell"><span style="width: 5px; height: 5px; border-radius: 9px; background: #1F1F1F"></span></span>
+        <span class="cell"><span style="width: 5px; height: 5px; border-radius: 9px; background: #1F1F1F"></span></span>
+        <span class="cell"><span style="width: 5px; height: 5px; border-radius: 9px; background: #1F1F1F"></span></span>
+        <span class="cell"></span>
+      </div>
+
+      <div style="display: flex; align-items: center; height: 46px; border-bottom: 1px solid #161616">
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 13.5px">市場の大きさを見積もる</span>
+          <span style="color: #5F5F5F; font-size: 11px; font-family: ui-monospace, monospace">market-sizing.md</span>
+        </div>
+        <span class="cell"><span class="tnum" style="color: #5BB974; font-size: 12.5px">5回</span></span>
+        <span class="cell"><span class="tnum" style="color: #6E6E6E; font-size: 12.5px">—</span></span>
+        <span class="cell"><span style="width: 5px; height: 5px; border-radius: 9px; background: #1F1F1F"></span></span>
+        <span class="cell"><span style="width: 5px; height: 5px; border-radius: 9px; background: #1F1F1F"></span></span>
+        <span class="cell"></span>
+      </div>
+
+      <div style="display: flex; align-items: center; height: 46px; border-bottom: 1px solid #161616">
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 13.5px">価格の帯を調べる</span>
+          <span style="color: #5F5F5F; font-size: 11px; font-family: ui-monospace, monospace">price-band.md</span>
+        </div>
+        <span class="cell"><span style="width: 5px; height: 5px; border-radius: 9px; background: #1F1F1F"></span></span>
+        <span class="cell"><span class="tnum" style="color: #5BB974; font-size: 12.5px">8回</span></span>
+        <span class="cell"><span style="width: 5px; height: 5px; border-radius: 9px; background: #1F1F1F"></span></span>
+        <span class="cell"><span style="width: 5px; height: 5px; border-radius: 9px; background: #1F1F1F"></span></span>
+        <span class="cell"></span>
+      </div>
+
+      <div style="display: flex; align-items: center; height: 46px; border-bottom: 1px solid #161616">
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 13.5px">フォームを実装してテストする</span>
+          <span style="color: #5F5F5F; font-size: 11px; font-family: ui-monospace, monospace">form-impl.md</span>
+        </div>
+        <span class="cell"><span style="width: 5px; height: 5px; border-radius: 9px; background: #1F1F1F"></span></span>
+        <span class="cell"><span style="width: 5px; height: 5px; border-radius: 9px; background: #1F1F1F"></span></span>
+        <span class="cell"><span class="tnum" style="color: #5BB974; font-size: 12.5px">21回</span></span>
+        <span class="cell"><span style="width: 5px; height: 5px; border-radius: 9px; background: #1F1F1F"></span></span>
+        <span class="cell"></span>
+      </div>
+
+      <!-- 空いている行＝穴 -->
+      <div style="display: flex; align-items: center; height: 52px; border-bottom: 1px solid #161616; background: rgba(227,116,0,.06); border-radius: 8px; padding: 0 10px; margin: 0 -10px">
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 13.5px">読める文章に書き直す</span>
+          <span style="color: #FDD663; font-size: 11.5px">フェーズ3の記事とLPで要る。誰も持っていません</span>
+        </div>
+        <span class="cell"><span style="width: 5px; height: 5px; border-radius: 9px; background: #1F1F1F"></span></span>
+        <span class="cell"><span style="width: 5px; height: 5px; border-radius: 9px; background: #1F1F1F"></span></span>
+        <span class="cell"><span style="width: 5px; height: 5px; border-radius: 9px; background: #1F1F1F"></span></span>
+        <span class="cell"><span style="width: 5px; height: 5px; border-radius: 9px; background: #1F1F1F"></span></span>
+        <span class="cell"><span style="display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:8px;background:#1A73E8;color:#fff;font-size:12px">採用する</span></span>
+      </div>
+
+      <div style="display: flex; align-items: center; height: 46px; border-bottom: 1px solid #161616">
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 13.5px; color: #B8B8B8">要件を仕様に落とす</span>
+          <span style="color: #5F5F5F; font-size: 11px; font-family: ui-monospace, monospace">spec-writing.md</span>
+        </div>
+        <span class="cell"><span style="width: 5px; height: 5px; border-radius: 9px; background: #1F1F1F"></span></span>
+        <span class="cell"><span style="width: 5px; height: 5px; border-radius: 9px; background: #1F1F1F"></span></span>
+        <span class="cell"><span style="width: 5px; height: 5px; border-radius: 9px; background: #1F1F1F"></span></span>
+        <span class="cell"><span class="tnum" style="color: #5BB974; font-size: 12.5px">9回</span></span>
+        <span class="cell"></span>
+      </div>
+
+      <!-- 会社ぜんぶ -->
+      <div style="display: flex; align-items: center; height: 46px; border-bottom: 1px solid #161616">
+        <div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px">
+          <span style="font-size: 13.5px; color: #B8B8B8">出典の付け方</span>
+          <span style="display:inline-flex;align-items:center;height:19px;padding:0 7px;border-radius:5px;background:#141414;color:#6E6E6E;font-size:11px">全員</span>
+        </div>
+        <span class="cell"><span class="tnum" style="color: #4A4A4A; font-size: 12.5px">20回</span></span>
+        <span class="cell"><span class="tnum" style="color: #4A4A4A; font-size: 12.5px">14回</span></span>
+        <span class="cell"><span class="tnum" style="color: #4A4A4A; font-size: 12.5px">3回</span></span>
+        <span class="cell"><span class="tnum" style="color: #4A4A4A; font-size: 12.5px">7回</span></span>
+        <span class="cell"></span>
+      </div>
+
+      <div style="display: flex; align-items: center; height: 46px">
+        <div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px">
+          <span style="font-size: 13.5px; color: #6E6E6E">会社の言葉づかい</span>
+          <span style="display:inline-flex;align-items:center;height:19px;padding:0 7px;border-radius:5px;background:#141414;color:#6E6E6E;font-size:11px">全員</span>
+          <span style="color: #5F5F5F; font-size: 11.5px">切ってあります</span>
+        </div>
+        <span class="cell"><span style="width: 5px; height: 5px; border-radius: 9px; background: #1A1A1A"></span></span>
+        <span class="cell"><span style="width: 5px; height: 5px; border-radius: 9px; background: #1A1A1A"></span></span>
+        <span class="cell"><span style="width: 5px; height: 5px; border-radius: 9px; background: #1A1A1A"></span></span>
+        <span class="cell"><span style="width: 5px; height: 5px; border-radius: 9px; background: #1A1A1A"></span></span>
+        <span class="cell"></span>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px; height: 38px; border-radius: 8px; padding: 0 12px; background: #0A0A0A">
+      <span style="color: #6E6E6E; font-size: 12.5px">マスを押すと、その社員のスキルの中身（SKILL.md）へ</span>
+      <div style="flex: 1"></div>
+      <span style="color: #4A4A4A; font-size: 12.5px">⬆ SKILL.md を読み込む</span>
+    </div>
+  </div>
+
+  <div style="height: 1px; background: #1C1C1C"></div>
+  <div style="padding: 16px 30px 22px; display: flex; gap: 26px">
+    <span style="color: #5BB974; font-size: 12px; flex-shrink: 0; width: 62px">推す理由</span>
+    <span style="color: #8B8B8B; font-size: 12.5px; line-height: 20px; flex: 1"><b style="color:#B8B8B8">能力</b>は、この会社のどの画面も持っていない軸。デスクは「いま何をしているか」、成果物は「何ができたか」で、<b style="color:#B8B8B8">「何ができるか」は誰も言っていない</b>。空いたマスがそのまま採用の理由になり、「人数が増えても崩れない表」も守れる。</span>
+    <span style="color: #FDD663; font-size: 12px; flex-shrink: 0; width: 62px">引き換え</span>
+    <span style="color: #8B8B8B; font-size: 12.5px; line-height: 20px; width: 268px">スキルが増えると縦に伸びる（20を超えたら束ねる必要あり）。誰が忙しいかは分からない ── それはデスクの仕事、と割り切る。</span>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -7,7 +7,20 @@
 - `Main.dc.html` — 診断（なぜ3ページが同じ形に見えるか）と、直しかた4つ
 - `Tasks.dc.html` — **いつやるか**で束ねる（今日 / あした / 今週のうち）＋判断待ちは行から出す
 - `Inbox.dc.html` — 左に積み・右で片づける2列（読むものではなく片づけるもの）
-- `Team.dc.html` — 表をやめて人を面に。下に「足りていない役割」
+- `Team.dc.html` — 表をやめて人を面に。**却下**（デスク・オフィス・成果物と重なる）
+
+## メンバー 3案（2ページ目）
+
+第1案が却下になった理由: 「いま何をしているか」はデスク、「誰がいるか」はオフィス、
+「何ができたか」は成果物が持っている。カードの面はその3つの寄せ集めになっていた。
+
+**メンバーだけが持てる軸は「この会社は何ができて、何ができないか」。**
+
+- `MemberA.dc.html` — **能力の表**（行＝できること、列＝社員）。空いたマスが穴。**推し**
+- `MemberB.dc.html` — **これから要る力**（先のフェーズが要求する力 × いまの陣容）
+- `MemberC.dc.html` — **調整卓**（右ペインの設定を面に出す。1人ずつその場で直す）
+
+参考: StackAI Roles / Workable の権限表 / 15Five Competency（A案）
 
 Mobbin で見た参考:
 Todoist Upcoming / Attio Tasks / Evernote Tasks（期限で束ねる）·
@@ -25,6 +38,9 @@ node "$SK/seed-canvas.mjs" --template "$SK/payload.template.html" \
   --artboard design/pages/Tasks.dc.html \
   --artboard design/pages/Inbox.dc.html \
   --artboard design/pages/Team.dc.html \
+  --artboard design/pages/MemberA.dc.html \
+  --artboard design/pages/MemberB.dc.html \
+  --artboard design/pages/MemberC.dc.html \
   --canvas design/pages/canvas.json
 ```
 

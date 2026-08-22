@@ -1,0 +1,172 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #000; color: #EDEDED;
+           font-family: system-ui, "Noto Sans JP", sans-serif; font-weight: 400;
+           -webkit-font-smoothing: antialiased; }
+    * { font-weight: 400; box-sizing: border-box; }
+    .tnum { font-variant-numeric: tabular-nums; }
+  </style>
+</helmet>
+
+<div style="width: 1180px; display: flex; flex-direction: column">
+
+  <div style="padding: 26px 30px 0; display: flex; flex-direction: column; gap: 5px">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <span style="color: #669DF6; font-size: 12px">B案</span>
+      <span style="font-size: 20px">これから要る力</span>
+    </div>
+    <span style="color: #6E6E6E; font-size: 13px; line-height: 21px">
+      この先のフェーズが要求する力を先に置き、<b style="color:#8B8B8B">いつ人が足りなくなるか</b>を見せる。<br>
+      一人社長がメンバー画面に来る本当の理由は「いま採るべきか」だから。
+    </span>
+  </div>
+
+  <div style="height: 20px"></div>
+  <div style="height: 1px; background: #1C1C1C"></div>
+
+  <div style="padding: 20px 26px 26px; display: flex; flex-direction: column; gap: 24px">
+
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <span style="font-size: 16px; line-height: 26px"><b style="color:#FDD663">2週間後</b>、書ける社員がいなくて止まります。</span>
+      <div style="flex: 1"></div>
+      <span style="color: #5F5F5F; font-size: 12px">在籍 4 · 稼働 3</span>
+    </div>
+
+    <!-- 時間軸 -->
+    <div style="display: flex; flex-direction: column; gap: 0">
+      <div style="display: flex; height: 22px; align-items: center">
+        <span style="width: 132px; flex-shrink: 0"></span>
+        <span style="flex: 1; color: #5F5F5F; font-size: 11px">いま · フェーズ2 戦略</span>
+        <span style="flex: 1; color: #5F5F5F; font-size: 11px">2週間後 · フェーズ3 プロダクト</span>
+        <span style="flex: 1; color: #5F5F5F; font-size: 11px">6週間後 · フェーズ4 ローンチ</span>
+      </div>
+      <div style="display: flex; height: 1px; background: #232323"></div>
+
+      <!-- 社員ごとの帯 -->
+      <div style="display: flex; align-items: center; height: 52px; border-bottom: 1px solid #161616">
+        <div style="width: 132px; flex-shrink: 0; display: flex; align-items: center; gap: 9px">
+          <span style="width: 18px; height: 18px; border-radius: 999px; background: radial-gradient(circle at 40% 35%, rgba(42,169,191,.9), rgba(42,169,191,.14) 62%, rgba(42,169,191,0) 72%)"></span>
+          <span style="font-size: 13px">調査担当</span>
+        </div>
+        <span style="flex: 1; padding-right: 6px"><span style="display:block;height:26px;border-radius:6px;background:rgba(42,169,191,.24);border-left:3px solid #2AA9BF"></span></span>
+        <span style="flex: 1; padding-right: 6px"><span style="display:block;height:26px;border-radius:6px;background:rgba(42,169,191,.10)"></span></span>
+        <span style="flex: 1"></span>
+      </div>
+
+      <div style="display: flex; align-items: center; height: 52px; border-bottom: 1px solid #161616">
+        <div style="width: 132px; flex-shrink: 0; display: flex; align-items: center; gap: 9px">
+          <span style="width: 18px; height: 18px; border-radius: 999px; background: radial-gradient(circle at 40% 35%, rgba(154,92,208,.9), rgba(154,92,208,.14) 62%, rgba(154,92,208,0) 72%)"></span>
+          <span style="font-size: 13px">戦略担当</span>
+        </div>
+        <span style="flex: 1; padding-right: 6px"><span style="display:block;height:26px;border-radius:6px;background:rgba(154,92,208,.24);border-left:3px solid #9A5CD0"></span></span>
+        <span style="flex: 1; padding-right: 6px"></span>
+        <span style="flex: 1"><span style="display:block;height:26px;border-radius:6px;background:rgba(154,92,208,.10)"></span></span>
+      </div>
+
+      <div style="display: flex; align-items: center; height: 52px; border-bottom: 1px solid #161616">
+        <div style="width: 132px; flex-shrink: 0; display: flex; align-items: center; gap: 9px">
+          <span style="width: 18px; height: 18px; border-radius: 999px; background: radial-gradient(circle at 40% 35%, rgba(52,168,83,.9), rgba(52,168,83,.14) 62%, rgba(52,168,83,0) 72%)"></span>
+          <span style="font-size: 13px">開発担当</span>
+        </div>
+        <span style="flex: 1; padding-right: 6px"><span style="display:block;height:26px;border-radius:6px;background:rgba(52,168,83,.24);border-left:3px solid #34A853"></span></span>
+        <span style="flex: 1; padding-right: 6px"><span style="display:block;height:26px;border-radius:6px;background:rgba(52,168,83,.24);border-left:3px solid #34A853"></span></span>
+        <span style="flex: 1"><span style="display:block;height:26px;border-radius:6px;background:rgba(52,168,83,.10)"></span></span>
+      </div>
+
+      <div style="display: flex; align-items: center; height: 52px; border-bottom: 1px solid #161616">
+        <div style="width: 132px; flex-shrink: 0; display: flex; align-items: center; gap: 9px">
+          <span style="width: 18px; height: 18px; border-radius: 999px; background: radial-gradient(circle at 40% 35%, rgba(92,107,192,.9), rgba(92,107,192,.14) 62%, rgba(92,107,192,0) 72%)"></span>
+          <span style="font-size: 13px">企画担当</span>
+        </div>
+        <span style="flex: 1; padding-right: 6px"><span style="display:block;height:26px;border-radius:6px;background:rgba(92,107,192,.24);border-left:3px solid #5C6BC0"></span></span>
+        <span style="flex: 1; padding-right: 6px"><span style="display:block;height:26px;border-radius:6px;background:rgba(92,107,192,.24);border-left:3px solid #5C6BC0"></span></span>
+        <span style="flex: 1"></span>
+      </div>
+
+      <!-- 穴 -->
+      <div style="display: flex; align-items: center; height: 60px; border-bottom: 1px solid #161616">
+        <div style="width: 132px; flex-shrink: 0; display: flex; align-items: center; gap: 9px; opacity: .8">
+          <span style="width: 18px; height: 18px; border-radius: 999px; border: 1px dashed #3A3A3A"></span>
+          <span style="font-size: 13px; color: #FDD663">執筆担当</span>
+        </div>
+        <span style="flex: 1; padding-right: 6px"></span>
+        <span style="flex: 1; padding-right: 6px">
+          <span style="display: flex; align-items: center; gap: 10px; height: 34px; border-radius: 6px; background: rgba(227,116,0,.10); border: 1px dashed rgba(227,116,0,.45); padding: 0 10px">
+            <span style="color: #FDD663; font-size: 12px">記事とLPの文章</span>
+            <div style="flex: 1"></div>
+            <span style="display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:6px;background:#1A73E8;color:#fff;font-size:11.5px">採用する</span>
+          </span>
+        </span>
+        <span style="flex: 1"><span style="display:block;height:26px;border-radius:6px;background:rgba(227,116,0,.06);border:1px dashed rgba(227,116,0,.22)"></span></span>
+      </div>
+
+      <div style="display: flex; align-items: center; height: 56px">
+        <div style="width: 132px; flex-shrink: 0; display: flex; align-items: center; gap: 9px; opacity: .55">
+          <span style="width: 18px; height: 18px; border-radius: 999px; border: 1px dashed #2A2A2A"></span>
+          <span style="font-size: 13px; color: #6E6E6E">品質担当</span>
+        </div>
+        <span style="flex: 1"></span>
+        <span style="flex: 1"></span>
+        <span style="flex: 1">
+          <span style="display: flex; align-items: center; gap: 10px; height: 30px; border-radius: 6px; border: 1px dashed #232323; padding: 0 10px">
+            <span style="color: #6E6E6E; font-size: 12px">出す前の点検</span>
+            <div style="flex: 1"></div>
+            <span style="color: #4A4A4A; font-size: 11.5px">まだ先 ›</span>
+          </span>
+        </span>
+      </div>
+    </div>
+
+    <div style="height: 1px; background: #1C1C1C"></div>
+
+    <!-- 在籍の一覧は下に畳む -->
+    <div style="display: flex; flex-direction: column; gap: 12px">
+      <span style="color: #8B8B8B; font-size: 13px">いまの4人</span>
+      <div style="display: flex; flex-direction: column">
+        <div style="display: flex; align-items: center; gap: 14px; height: 42px; border-top: 1px solid #161616">
+          <span style="width: 92px; flex-shrink: 0">調査担当</span>
+          <span style="flex: 1; min-width: 0; color: #8B8B8B; font-size: 12.5px">競合の継続率を、公開レポートから拾っています</span>
+          <span style="color: #5BB974; font-size: 12px; width: 62px; flex-shrink: 0">実行中</span>
+          <span style="width: 74px; height: 4px; border-radius: 2px; background: #1A1A1A; flex-shrink: 0"><span style="display:block;width:74%;height:100%;border-radius:2px;background:#2AA9BF"></span></span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 14px; height: 42px; border-top: 1px solid #161616">
+          <span style="width: 92px; flex-shrink: 0">戦略担当</span>
+          <span style="flex: 1; min-width: 0; color: #8B8B8B; font-size: 12.5px">収益モデル比較レポートを出しました</span>
+          <span style="color: #FDD663; font-size: 12px; width: 62px; flex-shrink: 0">要確認</span>
+          <span style="width: 74px; height: 4px; border-radius: 2px; background: #1A1A1A; flex-shrink: 0"><span style="display:block;width:41%;height:100%;border-radius:2px;background:#9A5CD0"></span></span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 14px; height: 42px; border-top: 1px solid #161616">
+          <span style="width: 92px; flex-shrink: 0">開発担当</span>
+          <span style="flex: 1; min-width: 0; color: #8B8B8B; font-size: 12.5px">申込フォームの送信まわりを実装しています</span>
+          <span style="color: #5BB974; font-size: 12px; width: 62px; flex-shrink: 0">実行中</span>
+          <span style="width: 74px; height: 4px; border-radius: 2px; background: #1A1A1A; flex-shrink: 0"><span style="display:block;width:62%;height:100%;border-radius:2px;background:#34A853"></span></span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 14px; height: 42px; border-top: 1px solid #161616; border-bottom: 1px solid #161616">
+          <span style="width: 92px; flex-shrink: 0">企画担当</span>
+          <span style="flex: 1; min-width: 0; color: #8B8B8B; font-size: 12.5px">SNSの投稿カレンダーを1ヶ月ぶん書いています</span>
+          <span style="color: #5BB974; font-size: 12px; width: 62px; flex-shrink: 0">実行中</span>
+          <span style="width: 74px; height: 4px; border-radius: 2px; background: #1A1A1A; flex-shrink: 0"><span style="display:block;width:38%;height:100%;border-radius:2px;background:#5C6BC0"></span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height: 1px; background: #1C1C1C"></div>
+  <div style="padding: 16px 30px 22px; display: flex; gap: 26px">
+    <span style="color: #5BB974; font-size: 12px; flex-shrink: 0; width: 62px">よい点</span>
+    <span style="color: #8B8B8B; font-size: 12.5px; line-height: 20px; flex: 1">「いま採るべきか」に直接答える唯一の画面になる。採用ボタンが<b style="color:#B8B8B8">要る時期の上に置かれる</b>ので、いつ押すかも分かる。</span>
+    <span style="color: #FDD663; font-size: 12px; flex-shrink: 0; width: 62px">引き換え</span>
+    <span style="color: #8B8B8B; font-size: 12.5px; line-height: 20px; width: 268px">進捗のガントと形が似る（3つめの時間軸）。計画が当てにならないと、この画面ごと当てにならない。いまの4人を「手当てする」道は無い。</span>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
