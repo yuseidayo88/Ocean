@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { Go as Link } from '@/components/ui/Go';
 import type { Route } from 'next';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
@@ -31,11 +31,7 @@ function NavRow({ href, label, icon, on, badge, badgeColor, live, dim }: {
   badge?: string; badgeColor?: string; live?: boolean; dim?: boolean;
 }) {
   return (
-    /**
-     * `prefetch` を明示する。行き先は7つしかないので先に取っておける。
-     * これが無いと押してから取りに行くので、そのぶん待つ。
-     */
-    <Link href={href} prefetch className={on ? 'hit' : 'row'} style={{
+    <Link href={href} className={on ? 'hit' : 'row'} style={{
       display: 'flex', alignItems: 'center', gap: 11, height: 34, padding: '0 10px',
       borderRadius: 8, background: on ? '#232323' : undefined,
       color: on ? T1 : dim ? T4 : T2, transition: `color ${EASE_FAST}`,

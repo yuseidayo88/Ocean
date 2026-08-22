@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Go as Link } from '@/components/ui/Go';
 import { Composer, TopBar } from '@/components/shell/Chrome';
 import { Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';

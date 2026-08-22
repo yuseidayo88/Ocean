@@ -1,7 +1,7 @@
 'use client';
 
 import type { Route } from 'next';
-import Link from 'next/link';
+import { Go as Link } from '@/components/ui/Go';
 import { Icon } from '@/components/ui/Icon';
 import { FLOW, type FlowKind } from '@/lib/dummy';
 

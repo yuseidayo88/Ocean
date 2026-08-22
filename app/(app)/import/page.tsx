@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { Go as Link } from '@/components/ui/Go';
 
 import { useOpen } from '@/lib/use-open';
 import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';

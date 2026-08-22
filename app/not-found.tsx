@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Go as Link } from '@/components/ui/Go';
 
 /** 見つからないときも、次にやることを書く。空のまま置かない */
 export default function NotFound() {

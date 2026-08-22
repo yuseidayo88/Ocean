@@ -34,8 +34,14 @@ export async function middleware(request: NextRequest) {
     },
   })
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user && !isPublic(request)) {
+  // **`getUser()` を使わない。**
+  // getUser() は毎回 Supabase の認証サーバーに問い合わせに行く。middleware は
+  // 画面の移動だけでなく、先読み（prefetch）の1本1本にも走るので、
+  // 1画面ひらくだけで往復が数十回になる。そのぶんが丸ごと待ち時間になる。
+  // getClaims() は署名鍵を1度だけ取って**手もとで JWT を検証する**ので、往復が要らない。
+  // （鍵が共有鍵のままの間は内部で問い合わせに落ちる。非対称鍵に切り替えると効く）
+  const { data: claims } = await supabase.auth.getClaims()
+  if (!claims && !isPublic(request)) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
   return response

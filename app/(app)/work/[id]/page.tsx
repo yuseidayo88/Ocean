@@ -3,7 +3,7 @@
 import { openHref } from '@/lib/use-open';
 
 import { useOpen } from '@/lib/use-open';
-import Link from 'next/link';
+import { Go as Link } from '@/components/ui/Go';
 import { notFound, useParams } from 'next/navigation';
 import { Centre, Composer, Pane, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Diamond, Dot, Icon } from '@/components/ui/Icon';

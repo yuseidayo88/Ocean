@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { Go as Link } from '@/components/ui/Go';
 import { openHref, useOpen } from '@/lib/use-open';import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Diamond, Dot, Icon, type IconName } from '@/components/ui/Icon';
 import { TASKS, TASK_BODY, employee, work, type State, type Task } from '@/lib/dummy';

@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { Go as Link } from '@/components/ui/Go';
 import { openHref } from '@/lib/use-open';
 
 import { Orb } from '@/components/ui/Orb';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useOpen } from '@/lib/use-open';
-import Link from 'next/link';
+import { Go as Link } from '@/components/ui/Go';
 import { Centre, Composer, Pane, Section, TopBar } from '@/components/shell/Chrome';
 import { EffortPick, ModelPick, Toggle } from '@/components/shell/Controls';
 import { COMPOSER_H } from '@/lib/design/tokens';

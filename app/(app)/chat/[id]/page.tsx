@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
+import { Go as Link } from '@/components/ui/Go';
 import { Ask, Composer, TopBar } from '@/components/shell/Chrome';
 import { Orb } from '@/components/ui/Orb';
 import { Dot, Icon } from '@/components/ui/Icon';

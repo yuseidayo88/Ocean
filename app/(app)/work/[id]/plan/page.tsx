@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { Go as Link } from '@/components/ui/Go';
 
 import { useOpen } from '@/lib/use-open';
 import { notFound, useParams } from 'next/navigation';

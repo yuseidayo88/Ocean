@@ -353,6 +353,12 @@
   - **何もしていないときに CPU を使わない。** SVG の中で `<animateTransform>` を回すと
     その下の粒を毎フレーム計算し直す → 層ごとに `<svg>` を分けて CSS で回す。
     `left` ではなく `transform` で動かす。`/home` は 31% → 5%
+  - **行き先は先に取る。** 素の `<Link>` は使わず `components/ui/Go.tsx`（`<Link prefetch>`）。
+    Next の既定は「毎回サーバーで作る画面なら先に取らない」なので、そのままだと
+    押してから取りに行く（60ms の遅延で 169ms → 87ms）
+  - **認証で毎回 Supabase に行かない。** `getUser()` は毎回認証サーバーへ往復する。
+    middleware は先読みの1本1本にも走るので、1画面で往復が数十回になる → `getClaims()`
+  - **Cloudflare は遅くない。** workerd と Node の差は1回 7〜10ms（実測）
   - **機械で確かめる** → `tools/check/`（レイアウト / キーボード / レール / CPU / 動き）
 - **器の最小幅は 1408px**（左レール 260 ＋ 盤面 1148 → `SHELL_MIN`）。
   **これより狭い窓では中身を縮めず、窓のほうを横に滑らせる**（→ `docs/design/08-panes.md`）。
