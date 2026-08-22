@@ -1,18 +1,17 @@
 import { Rail } from '@/components/shell/Rail';
-import { Shell } from '@/components/shell/Shell';
-import { SHELL_MIN } from '@/lib/design/tokens';
+import { Shell, ShellBox } from '@/components/shell/Shell';
+import { ChatPane } from '@/components/shell/ChatPane';
 
 /** 3ペイン。左＝ナビ＋チャット履歴、中＝主役、右＝閉じた状態から始まるパネル */
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <Shell>
-      <div style={{ height: '100vh', background: '#000', overflowX: 'auto', overflowY: 'hidden' }}>
-        {/* 狭い窓では中身を潰さず、窓のほうを横に滑らせる */}
-        <div style={{ display: 'flex', height: '100%', minWidth: SHELL_MIN }}>
-          <Rail />
-          {children}
-        </div>
-      </div>
+      <ShellBox>
+        <Rail />
+        {children}
+        {/* 統括AIとの会話。**どの画面からでも開く**ので、ここに1つだけ置く */}
+        <ChatPane />
+      </ShellBox>
     </Shell>
   );
 }

@@ -104,7 +104,7 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
             <span style={{ color: T5, fontSize: 12.5 }}>待っています</span>
           </div>
         </div>
-        <Composer placeholder="統括AIに書く" />
+        <Composer placeholder="統括AIに書く" local />
       </div>
     );
   }
@@ -147,7 +147,7 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
         <div style={{ flex: 1 }} />
       </div>
 
-      <Composer placeholder="統括AIに書く"
+      <Composer placeholder="統括AIに書く" local
         above={c.ask && <Ask q={c.ask.q} idx={c.ask.idx} total={c.ask.total} free={c.ask.free} options={c.ask.options} />} />
     </div>
   );

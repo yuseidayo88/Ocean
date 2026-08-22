@@ -18,7 +18,9 @@ export const COMPOSER_H = TOKEN_COMPOSER_H;
  */
 export function TopBar({ crumb, title, right, onPanel, panelOn }:
   { crumb?: string; title: string; right?: React.ReactNode; onPanel?: () => void; panelOn?: boolean }) {
-  const { rail, setRail } = useShell();
+  const { rail, setRail, chat } = useShell();
+  // 会話が開いているあいだ、右はその1枚。画面側のペインの印は引っ込める
+  const paneOn = panelOn || chat.on;
   const router = useRouter();
   return (
     <div style={{
@@ -63,8 +65,8 @@ export function TopBar({ crumb, title, right, onPanel, panelOn }:
         * 消したり出したりせず、幅を 0 にして横の並びが飛ばないようにする。
         */}
       {onPanel && (
-        <span aria-hidden={panelOn} inert={panelOn} style={{
-          width: panelOn ? 0 : 25, marginLeft: panelOn ? -6 : 4, opacity: panelOn ? 0 : 1,
+        <span aria-hidden={paneOn} inert={paneOn} style={{
+          width: paneOn ? 0 : 25, marginLeft: paneOn ? -6 : 4, opacity: paneOn ? 0 : 1,
           flexShrink: 0, overflow: 'hidden', display: 'inline-flex',
           transition: `width ${EASE}, margin-left ${EASE}, opacity .18s ease`,
         }}>
@@ -116,8 +118,13 @@ function grow(t: HTMLTextAreaElement) {
   });
 }
 
-export function Composer({ placeholder, mode = '統括AI', effort = '自動', above, floating = true }:
-  { placeholder: string; mode?: string; effort?: string; above?: React.ReactNode; floating?: boolean }) {
+export function Composer({ placeholder, mode = '統括AI', effort = '自動', above, floating = true,
+                           inPane = false, local = false }:
+  { placeholder: string; mode?: string; effort?: string; above?: React.ReactNode; floating?: boolean;
+    /** 右ペインの中に置くほう。器の余白と幅を、ペインに合わせる */
+    inPane?: boolean;
+    /** チャット画面のように、その場で会話が続く画面。右ペインを開かない */
+    local?: boolean }) {
   /**
    * **打つたびに描き直さない。**
    * 見た目が変わるのは「書いたかどうか」の1点だけ（送信ボタンが青くなる）。
@@ -125,7 +132,27 @@ export function Composer({ placeholder, mode = '統括AI', effort = '自動', ab
    * 持つのは真偽値ひとつにして、文字はブラウザに預けたままにする。
    */
   const [can, setCan] = useState(false);
-  const wrap: React.CSSProperties = floating
+  const box = useRef<HTMLTextAreaElement>(null);
+  const { chat: talk, say } = useShell();
+
+  /**
+   * **入力欄は全画面で1つ。** 会話が開いたら、中央のものは引っ込んでペインの中のものになる。
+   * 読む目と書く手を同じ場所に置く（→ components/shell/ChatPane.tsx）。
+   */
+  if (talk.on && !inPane && !local) return null;
+
+  const send = () => {
+    const t = box.current;
+    if (!t || !t.value.trim()) return;
+    say(t.value.trim());
+    t.value = '';
+    t.style.height = '';
+    setCan(false);
+  };
+  const wrap: React.CSSProperties = inPane
+    ? { width: '100%', boxSizing: 'border-box', flexShrink: 0, display: 'flex',
+        flexDirection: 'column', alignItems: 'center', gap: 8, padding: '8px 14px 14px' }
+    : floating
     ? {
         position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 5, boxSizing: 'border-box',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '42px 24px 18px',
@@ -139,12 +166,20 @@ export function Composer({ placeholder, mode = '統括AI', effort = '自動', ab
       {above}
       <div className="field" style={{
         width: '100%', maxWidth: 748, boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
-        gap: 12, padding: '13px 14px 11px 16px', borderRadius: 18,
+        gap: 12, padding: inPane ? '11px 12px 9px 14px' : '13px 14px 11px 16px',
+        borderRadius: inPane ? 15 : 18,
         background: '#141414', border: '1px solid #2A2A2A',
         // 高さを測るときの計算を、この器の中だけで済ませる
         contain: 'layout',
       }}>
         <textarea
+          ref={box}
+          onKeyDown={(e) => {
+            // Enter で送る。改行は Shift ＋ Enter（チャットの作法に合わせる）
+            if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+              e.preventDefault(); send();
+            }
+          }}
           onInput={(e) => {
             const next = !!e.currentTarget.value.trim();
             if (next !== can) setCan(next);
@@ -172,7 +207,7 @@ export function Composer({ placeholder, mode = '統括AI', effort = '自動', ab
           }}><Icon name="bars" color={T4} size={13} />{effort}</span>
           <div style={{ flex: 1 }} />
           {/* **書いていないときは送れない。** 押せないものを押せる顔にしない */}
-          <button disabled={!can} className={can ? 'solid' : undefined} style={{
+          <button disabled={!can} onClick={send} className={can ? 'solid' : undefined} style={{
             width: 30, height: 30, borderRadius: 999, flexShrink: 0,
             background: can ? BLUE : '#242424',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -207,9 +242,11 @@ const BARE_W = 26;
  *
  * 全部をタブの見た目にすると、撤去したはずの「ブラウザの真似」が小さく戻ってくる。
  */
-export function Pane({ width = 430, title, icon, dot, tabs, tab: tabAt, onTab, right, onClose, children }: {
+export function Pane({ width = 430, title, icon, dot, tabs, tab: tabAt, onTab, right, onClose, chat, children }: {
   width?: number;
   title?: string; icon?: IconName; dot?: string;
+  /** 統括AIとの会話のペイン。**開いているあいだ、画面側のペインは引っ込む**（右は1枚だけ） */
+  chat?: boolean;
   /** タブは「持ち出して読み比べる文書」だけ。中身も一緒に入れ替わる */
   tabs?: { label: string; dot?: string }[];
   tab?: number;
@@ -219,6 +256,7 @@ export function Pane({ width = 430, title, icon, dot, tabs, tab: tabAt, onTab, r
   onClose?: () => void;
   children: React.ReactNode;
 }) {
+  const { chat: talk } = useShell();
   const [tabIn, setTabIn] = useState(0);
   const tab = tabAt ?? tabIn;
   const setTab = onTab ?? setTabIn;
@@ -256,6 +294,9 @@ export function Pane({ width = 430, title, icon, dot, tabs, tab: tabAt, onTab, r
     return () => window.removeEventListener('keydown', h);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onClose]);
+
+  // 右は1枚だけ。会話が開いているあいだ、画面側のペインは引っ込む
+  if (talk.on && !chat) return null;
 
   return (
     <aside aria-label={title ?? tabs?.[tab]?.label} className={leaving ? 'paneout' : 'panein'}

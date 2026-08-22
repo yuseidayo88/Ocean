@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { usePathname } from 'next/navigation';
 import { COMPANIES } from '@/lib/dummy';
+import { SHELL_MIN } from '@/lib/design/tokens';
 
 /**
  * 器の開け閉め。左レールはレールの中の印で閉じ、閉じたら**端に何も残さない**。
@@ -12,13 +13,69 @@ import { COMPANIES } from '@/lib/dummy';
 
 const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
 
-const Ctx = createContext<{ rail: boolean; setRail: (v: boolean) => void }>({ rail: true, setRail: () => {} });
+/**
+ * 統括AIとの会話は**どの画面からでも始められる**。
+ * 入力欄に書いて送ると、右ペインがその会話になって開く
+ * （参考: ClickUp Brain / Fabric / HoneyBook — 右にAIを出すアプリは
+ *  例外なく**入力欄もそのパネルの中**に入れている）。
+ * `said` は自分が書いたぶん。**返事は作らない**（Phase 5 まで、統括AIは「考えています」で止まる）。
+ */
+export type Chat = { on: boolean; thread: string | null; said: string[] };
+
+type Shell = {
+  rail: boolean; setRail: (v: boolean) => void;
+  chat: Chat;
+  /** 入力欄から送る。会話が閉じていれば開く */
+  say: (text: string, thread?: string | null) => void;
+  /** 新しいチャットにする */
+  fresh: () => void;
+  closeChat: () => void;
+};
+
+const Ctx = createContext<Shell>({
+  rail: true, setRail: () => {},
+  chat: { on: false, thread: null, said: [] },
+  say: () => {}, fresh: () => {}, closeChat: () => {},
+});
 export const useShell = () => useContext(Ctx);
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const [rail, setRail] = useState(true);
-  return <Ctx.Provider value={{ rail, setRail }}>{children}</Ctx.Provider>;
+  const [chat, setChat] = useState<Chat>({ on: false, thread: null, said: [] });
+
+  const say = (text: string, thread?: string | null) =>
+    setChat((c) => ({
+      on: true,
+      thread: c.on ? c.thread : thread ?? null,
+      said: [...(c.on ? c.said : []), text],
+    }));
+  const fresh = () => setChat({ on: true, thread: null, said: [] });
+  const closeChat = () => setChat((c) => ({ ...c, on: false }));
+
+  return (
+    <Ctx.Provider value={{ rail, setRail, chat, say, fresh, closeChat }}>{children}</Ctx.Provider>
+  );
 }
+
+/**
+ * 器。**狭い窓では中身を潰さず、窓のほうを横に滑らせる**（→ docs/design/08-panes.md）。
+ *
+ * ただし会話のペインぶんまで器を広げると、開いた会話そのものが画面の外に出てしまう。
+ * 盤面（オフィス / ワークフロー）は**絵なので、入る大きさに縮める**（→ Canvas）。
+ * 文字は縮めない。縮んでいいのは絵だけ。
+ */
+export function ShellBox({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ height: '100vh', background: '#000', overflowX: 'auto', overflowY: 'hidden' }}>
+      <div style={{ display: 'flex', height: '100%', minWidth: SHELL_MIN }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/** 会話のペインの幅 */
+export const CHAT_W = 430;
 
 /**
  * 会社の切り替え。**いま見ているものは全部この会社のもの**なので、

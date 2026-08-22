@@ -14,9 +14,10 @@ npm run build && DEMO_MODE=1 npx next start -p 3300
   --no-sandbox --disable-gpu --remote-debugging-port=9335 about:blank &
 
 # 3. 走らせる（第1引数は CDP のポート）
-node tools/check/layout.mjs   9335 1408 800   # 幅ごとに全画面 × 開/閉
+node tools/check/layout.mjs   9335 1440 800   # 幅ごとに全画面 × 開/閉
 node tools/check/keyboard.mjs 9335            # Tab → Enter → Esc
-node tools/check/rail.mjs     9335 1408 800 <url…>   # 左レールを閉じた状態
+node tools/check/rail.mjs     9335 1440 800 <url…>   # 左レールを閉じた状態
+node tools/check/chat.mjs     9335                    # どの画面からでも統括AIと話せるか
 node tools/check/cpu.mjs      9335 http://localhost:3300 /home /team
 node tools/check/motion.mjs   9335 http://localhost:3300   # 出入りが動いているか
 CPU=4 node tools/check/press.mjs 9335                     # 押してから右ペインが見えるまで
@@ -28,12 +29,13 @@ CPU=4 node tools/check/press.mjs 9335                     # 押してから右�
 
 | | 見ているもの |
 |---|---|
-| `layout.mjs` | `…` で切れている文字 / 画面の外に出た文字 / **閉じたときと比べて消えた文字** / 横スクロール / コンソールのエラー。幅は `1408`（`SHELL_MIN`）· `1440` · `1920` で回す |
+| `layout.mjs` | `…` で切れている文字 / 画面の外に出た文字 / **閉じたときと比べて消えた文字** / 横スクロール / コンソールのエラー。幅は `1440`（`SHELL_MIN`）· `1920` で回す |
 | `keyboard.mjs` | 表の行に Tab でたどり着けるか、Enter で開いて URL に乗るか、Esc で閉じて URL からも消えるか、青い輪が出るか |
 | `rail.mjs` | 左レールを閉じたときに中身が崩れないか。閉じているのに中のボタンが触れないか（`inert`） |
 | `cpu.mjs` | **何もしていないとき**の CPU・レイアウト・スタイル再計算。`/home` は 5% 以下が目安 |
 | `motion.mjs` | 右ペイン・左レール・入力欄が1フレームごとにどう動いたか（数字が段になっていれば動いている） |
 | `press.mjs` | **押してから右ペインが見えるまで**（ページの中で計測）。`CPU=4` で遅い機械のふりをする |
+| `chat.mjs` | どの画面でも入力欄に書いて Enter → 右ペインが会話になって開くか。**入力欄が1つのまま**ペインの中へ移るか |
 
 **GPU を切らない。** `--disable-gpu` で立てた Chrome はソフトウェアで描くので、
 オフィスの画面が 35fps に見える（実機は 60fps）。無い問題を追いかけることになるので、

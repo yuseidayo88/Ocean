@@ -6,6 +6,7 @@ import { openHref } from '@/lib/use-open';
 import { Orb } from '@/components/ui/Orb';
 import { Icon } from '@/components/ui/Icon';
 import { AGENT_COLOR, WORKS, employee } from '@/lib/dummy';
+import { useZoom } from '@/components/home/Zoom';
 
 /**
  * オフィス＝1枚の絵だけ。
@@ -58,6 +59,7 @@ function arc(rx: number, ry: number, pct: number) {
 }
 
 export function Office() {
+  const zoom = useZoom();
   /** 判断待ちの Work をいちばん内側へ。あとは Work の並びのまま */
   const works = [...WORKS].sort((a, b) => Number(!!b.gate) - Number(!!a.gate));
 
@@ -191,7 +193,7 @@ export function Office() {
         padding: 5, borderRadius: 12, background: '#101010', border: '1px solid #262626',
       }}>
         <span className="hit" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, height: 28, padding: '0 10px', color: '#8B8B8B', fontSize: 12 }}>
-          <Icon name="search" color={T4} size={13} />100%
+          <Icon name="search" color={T4} size={13} /><span className="tnum">{Math.round(zoom * 100)}%</span>
         </span>
         <span style={{ width: 1, height: 16, background: '#242424' }} />
         {(['plus', 'minus', 'expand'] as const).map((n, i) => (

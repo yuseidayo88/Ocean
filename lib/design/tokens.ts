@@ -37,11 +37,15 @@ export const RAIL_W = 260
 /** オフィスとワークフローの盤面。絵なので縮まない */
 export const BOARD_W = 1148
 
+/** 盤面のまわりの余白（左右16ずつ） */
+export const BOARD_PAD = 32
+
 /**
  * 器の最小幅。**これより狭いと窓のほうが横スクロールする**（中身は縮めない）。
  * これを置かないと、右ペインを開いたときに表のタイトル列が 0px まで潰れて中身が消える。
+ * 盤面の余白ぶんも入れておく — ここで盤面がちょうど 100% で収まる。
  */
-export const SHELL_MIN = RAIL_W + BOARD_W
+export const SHELL_MIN = RAIL_W + BOARD_W + BOARD_PAD
 
 /**
  * 動きの長さと曲がり方。**全画面で同じものを使う。増やさない。**

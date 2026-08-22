@@ -1,10 +1,12 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { useParam } from '@/lib/use-open';
 import { Composer, Pills, TopBar } from '@/components/shell/Chrome';
 import { Dot, Icon } from '@/components/ui/Icon';
 import { EMPLOYEES, FLOW } from '@/lib/dummy';
+import { BOARD_W, EASE } from '@/lib/design/tokens';
+import { Zoom } from '@/components/home/Zoom';
 import { Office } from '@/components/home/Office';
 import { Desk } from '@/components/home/Desk';
 import { Progress } from '@/components/home/Progress';
@@ -19,20 +21,43 @@ const VIEWS = [
 ];
 
 /** 盤面2つ（オフィス / ワークフロー）は同じ器。見出しの1行 ＋ 1148×760 の盤面 */
+/**
+ * 盤面（オフィス / ワークフロー）は 1148×760 の**絵**。
+ * 右に会話を開くと横幅が足りなくなるので、**入る大きさに縮める**（100% を超えては拡大しない）。
+ * 文字を縮めるのは読めなくなるので駄目だが、絵なら縮んでいい。
+ * ツールバーの「100%」は、いま実際にどれだけ縮んでいるかを言う（数字と絵を食い違わせない）。
+ */
 function Canvas({ head, children }: { head: React.ReactNode; children: React.ReactNode }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [k, setK] = useState(1);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => {
+      const w = e.contentRect.width;
+      setK(w > 0 ? Math.min(1, Math.round((w / BOARD_W) * 100) / 100) : 1);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   return (
-    <div style={{
-      flex: 1, minHeight: 0, overflow: 'hidden',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px 16px 0',
-    }}>
+    <Zoom.Provider value={k}>
       <div style={{
-        width: '100%', maxWidth: 1148, flex: 1, minHeight: 0, boxSizing: 'border-box',
-        display: 'flex', flexDirection: 'column', gap: 6, padding: '2px 0 0',
+        flex: 1, minHeight: 0, overflow: 'hidden',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px 16px 0',
       }}>
-        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10, height: 20 }}>{head}</div>
-        <div style={{ display: 'flex', justifyContent: 'center' }}>{children}</div>
+        <div ref={box} style={{
+          width: '100%', maxWidth: BOARD_W, flex: 1, minHeight: 0, boxSizing: 'border-box',
+          display: 'flex', flexDirection: 'column', gap: 6, padding: '2px 0 0',
+        }}>
+          <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10, height: 20 }}>{head}</div>
+          <div style={{
+            width: BOARD_W, transformOrigin: 'top left', transform: k < 1 ? `scale(${k})` : undefined,
+            transition: `transform ${EASE}`,
+          }}>{children}</div>
+        </div>
       </div>
-    </div>
+    </Zoom.Provider>
   );
 }
 

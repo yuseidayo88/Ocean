@@ -3,6 +3,7 @@
 import type { Route } from 'next';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useShell } from '@/components/shell/Shell';
 
 /**
  * 右ペインで開いている1件を **URL に持つ**（`?open=<id>`）。
@@ -30,6 +31,7 @@ const write = (path: string, q: URLSearchParams) => {
 function useLate(key: string, fallback: string | null) {
   const sp = useSearchParams();
   const path = usePathname();
+  const { chat, closeChat } = useShell();
   const url = sp.get(key) ?? fallback;
   const [now, setNow] = useState(url);
 
@@ -44,7 +46,12 @@ function useLate(key: string, fallback: string | null) {
     write(path, q);
   }, [now, url, key, path, fallback]);
 
-  return [now, setNow] as const;
+  /**
+   * 右は1枚だけ。**会話を開いたまま行を選んだら、選んだほうに入れ替わる。**
+   * 押しても何も出ない、をつくらない。
+   */
+  const set = (v: string | null) => { if (chat.on) closeChat(); setNow(v); };
+  return [now, set] as const;
 }
 
 export function useOpen() {
@@ -64,6 +71,7 @@ export function useParam(key: string, fallback: string) {
 export function useTabs(all: string[]) {
   const sp = useSearchParams();
   const path = usePathname();
+  const { chat, closeChat } = useShell();
   const urlIds = sp.get('open') ?? '';
   const urlAt = sp.get('at') ?? '0';
   const [raw, setRaw] = useState<[string, string]>([urlIds, urlAt]);
@@ -79,8 +87,10 @@ export function useTabs(all: string[]) {
 
   const ids = raw[0].split(',').filter((id) => all.includes(id));
   const at = Math.min(Math.max(Number(raw[1]) || 0, 0), Math.max(ids.length - 1, 0));
-  const set = (next: string[], nextAt: number) =>
+  const set = (next: string[], nextAt: number) => {
+    if (chat.on) closeChat();   // 右は1枚だけ
     setRaw([next.join(','), String(next.length > 1 ? nextAt : 0)]);
+  };
 
   return {
     ids, at,
