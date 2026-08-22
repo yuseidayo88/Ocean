@@ -170,7 +170,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
         <Composer placeholder="直したいところを書く、@ で資料を参照" />
       </Centre>
 
-      <Pane width={440} tabs={[{ label: 'この計画の根拠' }]}>
+      <Pane width={440} icon="roadmap" title="この計画の根拠">
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 18px 0' }}>
           <span style={{ color: T3, display: 'block', paddingBottom: 3 }}>時間の使い方</span>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7, padding: '8px 0 4px' }}>

@@ -129,7 +129,7 @@ export default function TeamPage() {
       </Centre>
 
       {/* AI社員の設定。道具（capabilities）は社長に触らせない */}
-      <Pane width={430} tabs={[{ label: 'AI社員の設定' }]}>
+      <Pane width={430} icon="gear" title="AI社員の設定">
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 18px 24px', display: 'flex', flexDirection: 'column', gap: 26 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
             <Orb color={AGENT_COLOR[sel.color]} size={44} seed={sel.name.length * 7 + 3} />

@@ -104,7 +104,7 @@ export default function DiscoveryResultPage() {
         <Composer placeholder="候補について統括AIに聞く" />
       </Centre>
 
-      <Pane width={420} tabs={[{ label: 'この案をすすめる理由' }]}>
+      <Pane width={420} icon="dec" title="この案をすすめる理由">
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 18px 0' }}>
           <span style={{ fontSize: 15, display: 'block' }}>韓国人向け 日本語学習サービス</span>
           <div style={{ paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>

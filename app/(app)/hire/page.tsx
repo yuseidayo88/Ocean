@@ -96,7 +96,7 @@ export default function HirePage() {
         <Composer placeholder="採用について統括AIに聞く" />
       </Centre>
 
-      <Pane width={420} tabs={[{ label: '候補の詳細' }]}>
+      <Pane width={420} icon="team" title="候補の詳細">
         <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', padding: '10px 18px 0' }}>
           <span style={{ color: T5, fontSize: 12 }}>未採用</span>
         </div>

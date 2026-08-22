@@ -199,7 +199,7 @@ export default async function WorkPage({ params }: { params: Promise<{ id: strin
         <Composer placeholder="この Work について統括AIに相談する" />
       </Centre>
 
-      <Pane width={400} tabs={[{ label: 'この Work について' }]}>
+      <Pane width={400} icon="work" title="この Work について">
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 18px 24px' }}>
           <PaneHead top>最新の状況</PaneHead>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '4px 0 8px' }}>

@@ -9,7 +9,7 @@ import { TASKS, TASK_BODY, employee, work, type State } from '@/lib/dummy';
  * 「追加」ボタンは置かない。タスクは統括AIとの会話から作られる。
  */
 
-const T1 = '#EDEDED', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
+const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
 const AMBER = '#E37400', AMBER_T = '#FDD663', GREEN_T = '#5BB974';
 
 /** 見出しの幅。タイトルだけ伸び縮みさせる（右ペインが開いても列が落ちない） */
@@ -104,7 +104,19 @@ export default function TasksPage() {
 function TaskPane() {
   const b = TASK_BODY;
   return (
-    <Pane width={420} tabs={[{ label: b.title, dot: AMBER }, { label: '履歴' }, { label: '資料' }]}>
+    <Pane width={420} dot={AMBER} title={b.title} right={<span style={{ color: T5, fontSize: 11 }}>{b.created}に作成</span>}>
+      {/* 1つのタスクの中の行き先。**開いた文書ではない**ので、タブではなく選ぶ列 */}
+      <div style={{ flexShrink: 0, display: 'flex', gap: 4, padding: '10px 16px 0' }}>
+        {(['概要', '履歴', '資料'] as const).map((t, i) => (
+          <span key={t} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 7, height: 28, padding: '0 11px',
+            borderRadius: 8, background: i === 0 ? '#1A1A1A' : undefined, color: i === 0 ? T1 : T4, fontSize: 12.5,
+          }}>
+            <Icon name={i === 0 ? 'home' : i === 1 ? 'history' : 'deliv'} color={i === 0 ? T2 : '#3A3A3A'} size={12} />{t}
+          </span>
+        ))}
+      </div>
+
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '14px 18px 20px' }}>
         <PaneHead top>フィールド</PaneHead>
         {b.fields.map((f) => (

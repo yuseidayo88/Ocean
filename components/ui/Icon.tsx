@@ -34,6 +34,7 @@ export const ICONS = {
   hand: <path d="M8 12.5V6.2a1.4 1.4 0 0 1 2.8 0v5M10.8 11V5.2a1.4 1.4 0 0 1 2.8 0v5.6M13.6 11.2V6.4a1.4 1.4 0 0 1 2.8 0V14c0 3.3-2 5.8-5 5.8-2.6 0-3.9-1.4-5.2-3.6l-1.5-2.6a1.4 1.4 0 0 1 2.3-1.6l.8 1.1" />,
   expand: <path d="M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15" />,
   minus: <path d="M6 12h12" />,
+  history: <><path d="M4.5 12a7.5 7.5 0 1 0 2.4-5.5" /><path d="M4.2 4.6v3.9h3.9" /><path d="M12 8v4.3l2.8 1.7" /></>,
 } as const;
 
 export type IconName = keyof typeof ICONS;

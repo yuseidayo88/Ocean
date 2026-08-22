@@ -88,7 +88,7 @@ export default function ImportPage() {
         <Composer placeholder="取り込みについて統括AIに聞く" />
       </Centre>
 
-      <Pane width={400} tabs={[{ label: 'nihongo-lesson.jp' }]}>
+      <Pane width={400} icon="globe" title="nihongo-lesson.jp">
         <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', padding: '10px 18px 0' }}>
           <span style={{ color: T5, fontSize: 12 }}>読み取り</span>
         </div>

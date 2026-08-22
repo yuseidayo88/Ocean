@@ -1,6 +1,6 @@
 'use client';
 
-import { Icon } from '@/components/ui/Icon';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import { COMPOSER_H as TOKEN_COMPOSER_H } from '@/lib/design/tokens';
 
 const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
@@ -83,9 +83,25 @@ export function Composer({ placeholder, mode = '統括AI', effort = '自動', ab
   );
 }
 
-/** 右ペイン。タブで開くもの */
-export function Pane({ width = 430, tabs, right, children }:
-  { width?: number; tabs: { label: string; dot?: string }[]; right?: React.ReactNode; children: React.ReactNode }) {
+/**
+ * 右ペインは2つの形しかない。
+ *
+ *   **パネル**（既定）— 選んだ1件の詳細と、画面そのものの付き添い。
+ *     行を選び直すと中身が入れ替わるので、同時に2つ持つ意味がない。
+ *     素の見出し ＋ ✕ だけ。タブの器も ＋ も置かない。
+ *
+ *   **タブ**（`tabs`）— **持ち出して読み比べる文書だけ**（成果物 / SKILL.md）。
+ *     ✕ で閉じて ＋ で足せる。画面を移っても開いたまま。
+ *
+ * 全部をタブの見た目にすると、撤去したはずの「ブラウザの真似」が小さく戻ってくる。
+ */
+export function Pane({ width = 430, title, icon, dot, tabs, right, children }: {
+  width?: number;
+  title?: string; icon?: IconName; dot?: string;
+  tabs?: { label: string; dot?: string }[];
+  right?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <div style={{
       width, flexShrink: 0, boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
@@ -93,21 +109,34 @@ export function Pane({ width = 430, tabs, right, children }:
     }}>
       <div style={{
         height: 46, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6,
-        padding: '0 12px', borderBottom: '1px solid #161616',
+        padding: tabs ? '0 12px' : '0 16px', borderBottom: '1px solid #161616',
       }}>
-        {tabs.map((t, i) => (
-          <span key={t.label} style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8, height: 28, padding: '0 11px',
-            borderRadius: 8, background: i === 0 ? '#1C1C1C' : undefined,
-            color: i === 0 ? T1 : T4, fontSize: 12.5,
-          }}>
-            {t.dot && <span style={{ width: 7, height: 7, borderRadius: 999, background: t.dot }} />}
-            {t.label}
-            {i === 0 && <Icon name="close" color={T5} size={11} />}
-          </span>
-        ))}
-        <div style={{ flex: 1 }} />
-        {right ?? <Icon name="plus" color={T4} size={14} />}
+        {tabs ? (
+          <>
+            {tabs.map((t, i) => (
+              <span key={t.label} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8, height: 28, padding: '0 11px',
+                borderRadius: 8, background: i === 0 ? '#1C1C1C' : undefined,
+                color: i === 0 ? T1 : T4, fontSize: 12.5,
+              }}>
+                {t.dot && <span style={{ width: 7, height: 7, borderRadius: 999, background: t.dot }} />}
+                {t.label}
+                {i === 0 && <Icon name="close" color={T5} size={11} />}
+              </span>
+            ))}
+            <div style={{ flex: 1 }} />
+            {right ?? <Icon name="plus" color={T4} size={14} />}
+          </>
+        ) : (
+          <>
+            {icon && <Icon name={icon} color={T4} size={14} />}
+            {dot && <span style={{ width: 7, height: 7, borderRadius: 999, background: dot }} />}
+            <span style={{ color: T2, fontSize: 12.5 }}>{title}</span>
+            <div style={{ flex: 1 }} />
+            {right}
+            <Icon name="close" color={T5} size={13} />
+          </>
+        )}
       </div>
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         {children}

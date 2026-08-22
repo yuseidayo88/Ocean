@@ -87,7 +87,7 @@ export default function DiagnosisPage() {
         <Composer placeholder="診断について統括AIに聞く" />
       </Centre>
 
-      <Pane width={420} tabs={[{ label: '継続率を測れていない' }]}>
+      <Pane width={420} icon="dec" title="継続率を測れていない">
         <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', padding: '10px 18px 0' }}>
           <span style={{
             display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 9px', borderRadius: 6,

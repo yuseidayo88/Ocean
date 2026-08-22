@@ -12,8 +12,9 @@ OneFound の設計書。**Phase 1（画面）で決めた見た目を、動く�
 | 03 | [AI社員スキーマ](./03-agent-schema.md) | AI社員の定義フォーマット（agency-agents 準拠）と初期ロスター |
 | 04 | [状態遷移](./04-state-machines.md) | Work / タスク / 成果物 / 決定事項 の状態と、画面の色との対応 |
 | 05 | [技術構成とコスト](./05-tech-and-cost.md) | Cloudflare ＋ Supabase ＋ Anthropic / OpenAI 直。原価・トークン・料金プラン |
-| 06 | [Work の粒度と、用事](./06-work-and-scope.md) | 3つの入れ物（用事 / フェーズ / Work）。昇格と降格 |
+| 06 | [Work の粒度](./06-work-and-scope.md) | 2つの入れ物（フェーズ / Work）。昇格と降格 |
 | 07 | [統括AIの憲法](./07-executive-constitution.md) | 人格と判断基準。トーンの基準 |
+| 08 | [右ペインの2つの形](./08-panes.md) | タブにするもの（文書）と、閉じられるパネルにするもの（詳細） |
 
 ---
 

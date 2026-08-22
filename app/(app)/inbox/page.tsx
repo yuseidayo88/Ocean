@@ -79,7 +79,7 @@ export default function InboxPage() {
         <Composer placeholder="統括AIに聞く" />
       </Centre>
 
-      <Pane width={420} tabs={[{ label: '価格モデルの決定', dot: AMBER }]}>
+      <Pane width={420} dot={AMBER} title="価格モデルの決定">
         <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', padding: '10px 18px 0' }}>
           <span style={{ color: AMBER_T, fontSize: 12 }}>{b.waited}</span>
         </div>

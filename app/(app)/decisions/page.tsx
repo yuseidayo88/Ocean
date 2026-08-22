@@ -105,7 +105,7 @@ export default function DecisionsPage() {
         <Composer placeholder="統括AIに指示する" />
       </Centre>
 
-      <Pane width={480} tabs={[{ label: '価格モデル', dot: AMBER }, { label: '無料期間', dot: AMBER }]}>
+      <Pane width={480} dot={AMBER} title="価格モデルの決定">
         <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', padding: '10px 20px 0' }}>
           <span style={{ color: AMBER_T, fontSize: 12 }}>{b.waited}</span>
         </div>
