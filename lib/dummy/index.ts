@@ -34,13 +34,13 @@ export type Employee = {
 
 export const EMPLOYEES: Employee[] = [
   { id: 'e-research', name: '調査担当', role: '調査・競合分析', color: 'cyan',
-    state: '実行中', now: '競合ポジショニング分析', load: 78, tasks: 4, deliverables: 5, since: '8月13日' },
+    state: '実行中', now: '競合ポジショニング分析', load: 74, tasks: 4, deliverables: 5, since: '8月14日' },
   { id: 'e-strategy', name: '戦略担当', role: '収益設計・価格', color: 'purple',
-    state: '要確認', now: '収益モデル比較レポート', load: 52, tasks: 3, deliverables: 2, since: '8月13日' },
+    state: '要確認', now: '収益モデル比較レポート', load: 41, tasks: 3, deliverables: 2, since: '8月14日' },
   { id: 'e-dev',      name: '開発担当', role: '実装・テスト', color: 'green',
-    state: '実行中', now: '申込フォームの実装', load: 64, tasks: 2, deliverables: 1, since: '8月17日' },
+    state: '実行中', now: '申込フォームの実装', load: 62, tasks: 2, deliverables: 1, since: '8月17日' },
   { id: 'e-plan',     name: '企画担当', role: '要件・仕様', color: 'indigo',
-    state: '実行中', now: '投稿カレンダー作成', load: 41, tasks: 4, deliverables: 2, since: '8月16日' },
+    state: '実行中', now: '投稿カレンダー作成', load: 38, tasks: 4, deliverables: 2, since: '8月16日' },
 ];
 export const employee = (id: string) => EMPLOYEES.find((e) => e.id === id)!;
 

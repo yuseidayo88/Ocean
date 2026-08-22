@@ -1,71 +1,118 @@
-import { Composer, TopBar } from '@/components/shell/Chrome';
-import { Diamond, Icon } from '@/components/ui/Icon';
+import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
+import { Icon } from '@/components/ui/Icon';
 
 /**
  * ⓪-d 診断結果。**診断は必ず「次に何をするか（Work）」まで持つ。**
- * 見つけたことを並べて終わりにしない。
+ * 見つけたことを並べて終わりにしない。数はラベル（小）→数字（大）→補足。
  */
 
 const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
 const BLUE = '#1A73E8', AMBER_T = '#FDD663', RED_T = '#F28B82', GREEN_T = '#5BB974';
 
-const FINDINGS: [string, string, string, string][] = [
-  ['high', '申込フォームで7割が離脱している', '入力が11項目あります', 'Work「LPと申込フォーム」'],
-  ['high', '価格がどこにも書かれていない', '問い合わせページにだけあります', 'Work「日本語学習サービス」'],
-  ['mid',  '検索から人が来ていない', '記事が3本しかありません', 'Work「SNS運用の立ち上げ」'],
-  ['low',  'SNSが更新されていない', '最終投稿 3ヶ月前', 'Work「SNS運用の立ち上げ」'],
+const FACTS: [string, string, string, string?][] = [
+  ['月の売上', '¥412,000', '12ヶ月で +8%'],
+  ['生徒数', '23人', '新規 4 / 解約 3'],
+  ['継続率', '—', '測れていません', RED_T],
+  ['サイト来訪', '1,840', '月 · 申込 12'],
 ];
 
-const COL: Record<string, string> = { high: RED_T, mid: AMBER_T, low: T5 };
+const FINDINGS: [string, string, string, string][] = [
+  ['重い', '継続率を測れていない',   '解約の記録がどこにも残っていない',          'Work「継続率を見えるようにする」'],
+  ['重い', '申込までの導線が長い',   'サイト来訪1,840に対して申込12（0.65%）',    'Work「申込フォームの作り直し」'],
+  ['中くらい', '単価が競合より低い', '1回¥3,500。同条件の競合は¥4,200〜',         'Work「価格の見直し」'],
+  ['軽い', 'SNSが更新されていない',  '最終投稿 3ヶ月前',                          'Work「SNS運用の立ち上げ」'],
+];
+
+const WEIGHT: Record<string, string> = { '重い': RED_T, '中くらい': AMBER_T, '軽い': '#4A4A4A' };
 
 export default function DiagnosisPage() {
   return (
-    <div style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column', background: '#000' }}>
-      <TopBar crumb="事業の取り込み" title="診断結果" />
-      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 26px 112px', display: 'flex', flexDirection: 'column', gap: 28 }}>
-        <span style={{ fontSize: 15, lineHeight: '25px', maxWidth: 700 }}>
-          4つ見つけました。<span style={{ color: RED_T }}>上の2つが売上に直接効きます。</span>
-          そのまま Work にできます。
-        </span>
+    <>
+      <Centre>
+        <TopBar crumb="事業の取り込み" title="診断結果" />
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 26px 112px', display: 'flex', flexDirection: 'column', gap: 28 }}>
+          <span style={{ fontSize: 15, lineHeight: '25px', maxWidth: 720 }}>
+            いちばん効くのは、<b>継続率を測れていないこと。</b>ここが見えないと、他の改善の効果も測れません。
+          </span>
 
-        <div>
-          <span style={{ color: T3, display: 'block', paddingBottom: 6 }}>見つけたこと</span>
-          {FINDINGS.map(([lv, title, why, next], i) => (
-            <div key={title} style={{
-              display: 'flex', alignItems: 'center', gap: 14, padding: '13px 0',
-              borderBottom: i === FINDINGS.length - 1 ? undefined : '1px solid #161616',
-            }}>
-              <span style={{ width: 3, height: 30, borderRadius: 2, background: COL[lv], opacity: lv === 'low' ? 0.4 : 1, flexShrink: 0 }} />
-              <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>
-                <span style={{ color: T5, fontSize: 11.5 }}>{why}</span>
+          {/* ラベル（小）→ 数字（大）→ 補足。説明文は置かない */}
+          <div style={{ display: 'flex', gap: 26 }}>
+            {FACTS.map(([k, v, sub, c], i) => (
+              <div key={k} style={{
+                flex: 1, display: 'flex', flexDirection: 'column', gap: 4,
+                borderRight: i === FACTS.length - 1 ? undefined : '1px solid #161616',
+              }}>
+                <span style={{ color: T4, fontSize: 12 }}>{k}</span>
+                <span style={{ fontSize: 24, lineHeight: '30px', color: c ?? T1 }} className="tnum">{v}</span>
+                <span style={{ color: c ?? T5, fontSize: 11 }}>{sub}</span>
               </div>
-              <div style={{ flex: 1 }} />
-              <span style={{ color: T4, fontSize: 12, whiteSpace: 'nowrap' }}>{next}</span>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
 
-        <div>
-          <span style={{ color: T3, display: 'block', paddingBottom: 8 }}>次にやること</span>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 16, padding: '16px 18px', borderRadius: 12,
-            background: '#0C0C0C', border: '1px solid #262626', borderLeft: '3px solid #1A73E8',
-          }}>
-            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <span style={{ fontSize: 16 }}>LPと申込フォーム</span>
-              <span style={{ color: T2, fontSize: 13 }}>
-                入力を4項目に減らし、価格を出します。3フェーズ・およそ4週。AI社員は2体。
-              </span>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, paddingBottom: 6 }}>
+              <span style={{ color: T3 }}>見つかったこと</span>
+              <span style={{ color: T5, fontSize: 12 }} className="tnum">· {FINDINGS.length}</span>
+              <div style={{ flex: 1 }} />
+              <span style={{ color: T5, fontSize: 12 }}>効きそうな順</span>
             </div>
+            {FINDINGS.map(([w, title, why, next], i) => (
+              <div key={title} style={{
+                display: 'flex', alignItems: 'center', gap: 14, padding: '13px 0',
+                borderBottom: i === FINDINGS.length - 1 ? undefined : '1px solid #161616',
+              }}>
+                <span style={{ width: 3, height: 30, borderRadius: 2, background: WEIGHT[w], flexShrink: 0 }} />
+                <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>
+                  <span style={{ color: T5, fontSize: 11.5 }}>{why}</span>
+                </div>
+                <div style={{ flex: 1 }} />
+                <span style={{ width: 56, textAlign: 'right', color: WEIGHT[w], fontSize: 11.5 }}>{w}</span>
+                <span style={{ width: 220, textAlign: 'right', color: T4, fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {next}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <span style={{ color: T3, fontSize: 13 }}>上の3つから Work を立てます</span>
+            <div style={{ flex: 1 }} />
             <span style={{
               display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px',
-              borderRadius: 8, background: BLUE, color: '#fff', whiteSpace: 'nowrap',
-            }}>この Work をはじめる</span>
+              borderRadius: 8, background: BLUE, color: '#fff',
+            }}>この3つを始める</span>
           </div>
         </div>
-      </div>
-      <Composer placeholder="診断について統括AIに聞く" />
-    </div>
+        <Composer placeholder="診断について統括AIに聞く" />
+      </Centre>
+
+      <Pane width={420} tabs={[{ label: '継続率を測れていない' }]}>
+        <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', padding: '10px 18px 0' }}>
+          <span style={{ color: RED_T, fontSize: 12 }}>重い</span>
+        </div>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '8px 18px 0' }}>
+          <span style={{ fontSize: 15, display: 'block' }}>継続率を測れていない</span>
+          <p style={{ color: T2, fontSize: 13, lineHeight: '21px', margin: '12px 0 0' }}>
+            解約がいつ・なぜ起きたかの記録がありません。いまの「新規4・解約3」は月次の差分から逆算した数字で、
+            誰がいつ辞めたかは分かりません。
+          </p>
+
+          <PaneHead>根拠</PaneHead>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+            {['2025年の売上.xlsx に解約日の列がない',
+              'サイトに解約フォームがなく、メール対応',
+              'Analytics に会員IDが渡っていない'].map((t) => (
+              <span key={t} style={{ color: T2, fontSize: 12.5, lineHeight: '20px' }}>・{t}</span>
+            ))}
+          </div>
+
+          <PaneHead>提案する Work</PaneHead>
+          <span style={{ fontSize: 14, display: 'block' }}>継続率を見えるようにする</span>
+          <span style={{ color: T5, fontSize: 12, display: 'block', paddingTop: 5 }}>3フェーズ · およそ3週 · AI社員2人</span>
+        </div>
+        <PaneFooter primary="この Work を立てる" secondary="あとで" />
+      </Pane>
+    </>
   );
 }
