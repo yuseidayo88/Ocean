@@ -107,7 +107,7 @@ export function Pane({ width = 430, tabs, children }:
         <div style={{ flex: 1 }} />
         <Icon name="plus" color={T4} size={14} />
       </div>
-      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         {children}
       </div>
     </div>
@@ -339,6 +339,38 @@ export function PaneError({ what, next, retry = 'もう一度' }: { what: string
         alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 14px',
         borderRadius: 8, background: '#1A1A1A', border: '1px solid #2A2A2A', color: T2, fontSize: 12.5,
       }}>{retry}</span>
+    </div>
+  );
+}
+
+/** 右ペインの下に貼り付く行動の行（承認する / 決定する など） */
+export function PaneFooter({ primary, secondary }: { primary: string; secondary?: string }) {
+  return (
+    <div style={{ flexShrink: 0, display: 'flex', gap: 10, padding: 16, borderTop: '1px solid #161616' }}>
+      <span style={{
+        flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 38,
+        borderRadius: 8, background: BLUE, color: '#fff',
+      }}>{primary}</span>
+      {secondary && (
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', height: 38, padding: '0 16px', borderRadius: 8,
+          background: '#1A1A1A', border: '1px solid #2A2A2A', color: T2, whiteSpace: 'nowrap',
+        }}>{secondary}</span>
+      )}
+    </div>
+  );
+}
+
+/** ペインの中の小見出し。面も枠も置かない */
+export function PaneHead({ children, top = false }: { children: React.ReactNode; top?: boolean }) {
+  return <div style={{ padding: top ? '0 0 4px' : '22px 0 4px' }}><span style={{ color: T3 }}>{children}</span></div>;
+}
+
+/** ペインのタブ右端に出す小さな注記（「3時間 待機」など） */
+export function PaneNote({ children, color = '#FDD663' }: { children: React.ReactNode; color?: string }) {
+  return (
+    <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', padding: '10px 18px 0' }}>
+      <span style={{ color, fontSize: 12 }}>{children}</span>
     </div>
   );
 }

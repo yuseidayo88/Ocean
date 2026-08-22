@@ -1,15 +1,42 @@
-import { Centre, Composer, Section, TopBar } from '@/components/shell/Chrome';
+import { Centre, Composer, Pane, PaneFooter, TopBar } from '@/components/shell/Chrome';
 import { Icon } from '@/components/ui/Icon';
-import { SKILLS } from '@/lib/dummy';
 
 /**
  * スキル ＝ SKILL.md のファイル管理（参考: Base44 の Knowledge files）。
- * 行の先頭にアイコンは置かない（ここにはスキルしか並ばない）。
- * 有効かどうかは青のトグル。追加はセクション見出しの右上。
+ * **行の先頭にアイコンは置かない**（ここにはスキルしか並ばない）。
+ * 有効かどうかは**青のトグル**で示す（「有効」と文字で書かない）。
+ * 追加はセクション見出しの右上。下に点線の行は置かず、落とす場所だけ用意する。
  */
 
 const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
 const BLUE = '#1A73E8';
+
+type Row = { name: string; file: string; used: string; on: boolean };
+
+const MINE: Row[] = [
+  { name: '競合分析のやり方',   file: 'competitor-analysis.md', used: '12回', on: true },
+  { name: '市場規模の見積もり', file: 'market-sizing.md',       used: '5回',  on: true },
+  { name: '出典の付け方',       file: 'source-citation.md',     used: '20回', on: true },
+  { name: '価格帯の調べ方',     file: 'price-band.md',          used: '—',    on: false },
+];
+const SHARED: Row[] = [
+  { name: 'うちの書き方',       file: 'house-style.md', used: '48回', on: true },
+  { name: '日本語の言い回し',   file: 'tone-ja.md',     used: '31回', on: true },
+];
+
+const BODY = `---
+name: 競合分析のやり方
+description: 競合を並べて比較するとき。
+  ポジショニングや価格の比較を頼まれたら読む
+---
+
+## 手順
+1. 競合を5〜8社に絞る。選んだ理由を1行で書く
+2. 比較軸は「価格 / 対象 / 強み / 弱み」の4つから
+3. 表にする。出典URLを各セルに残す
+
+## この会社での注意
+- 韓国市場では、韓国語のストア評価も必ず含める`;
 
 const Toggle = ({ on }: { on: boolean }) => (
   <span style={{
@@ -20,60 +47,87 @@ const Toggle = ({ on }: { on: boolean }) => (
   </span>
 );
 
-const Add = () => (
-  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: T4, fontSize: 12 }}>
-    <Icon name="plus" color={T4} size={12} />追加
-  </span>
-);
-
-function Row({ name, file, on, last }: { name: string; file: string; on: boolean; last: boolean }) {
+function Head({ label, note, actions }: { label: string; note?: string; actions: string[] }) {
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0',
-      borderBottom: last ? undefined : '1px solid #161616',
-    }}>
-      <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
-        <span style={{ color: T5, fontSize: 11, fontFamily: 'ui-monospace, monospace' }}>{file}</span>
-      </div>
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, paddingBottom: 6 }}>
+      <span style={{ color: T3 }}>{label}</span>
+      {note && <span style={{ color: T5, fontSize: 11 }}>{note}</span>}
       <div style={{ flex: 1 }} />
-      <Icon name="download" color="#3A3A3A" size={14} />
-      <Icon name="edit" color="#3A3A3A" size={14} />
-      <Icon name="trash" color="#3A3A3A" size={14} />
-      <Toggle on={on} />
+      {actions.map((a) => (
+        <span key={a} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: T4, fontSize: 12 }}>
+          <Icon name={a.startsWith('SKILL') ? 'upload' : 'plus'} color={T4} size={12} />{a}
+        </span>
+      ))}
     </div>
   );
 }
 
-export default function SkillsPage() {
-  const mine = SKILLS.filter((s) => s.scope === 'employee');
-  const shared = SKILLS.filter((s) => s.scope === 'company');
+function Rows({ rows }: { rows: Row[] }) {
   return (
-    <Centre border={false}>
-      <TopBar title="スキル" />
-      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 26px 112px', display: 'flex', flexDirection: 'column', gap: 34 }}>
-        <span style={{ color: T3, fontSize: 13, lineHeight: '21px', maxWidth: 620 }}>
-          スキルは<b style={{ color: T2 }}>必要なときだけ</b>読む手順書、ルールは<b style={{ color: T2 }}>毎回</b>効く制約です。
-        </span>
-
-        <Section label="この社員のスキル" right={<Add />}>
-          {mine.map((s, i) => <Row key={s.id} name={s.name} file={s.file} on={s.on} last={i === mine.length - 1} />)}
-        </Section>
-
-        <Section label="会社ぜんぶのスキル" right={<Add />}>
-          {shared.map((s, i) => <Row key={s.id} name={s.name} file={s.file} on={s.on} last={i === shared.length - 1} />)}
-        </Section>
-
-        {/* 点線のドロップ領域に .md / .zip を落として何個でも足せる */}
-        <div style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          gap: 9, height: 116, borderRadius: 12, border: '1px dashed #262626',
+    <>
+      {rows.map((s, i) => (
+        <div key={s.file} style={{
+          display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0',
+          borderBottom: i === rows.length - 1 ? undefined : '1px solid #161616',
         }}>
-          <Icon name="upload" color={T4} size={18} />
-          <span style={{ color: T4, fontSize: 12.5 }}>.md / .zip をここに落とす</span>
+          <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <span style={{ color: s.on ? T1 : T4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {s.name}
+            </span>
+            <span style={{ color: T5, fontSize: 11, fontFamily: 'ui-monospace, monospace' }}>{s.file}</span>
+          </div>
+          <div style={{ flex: 1 }} />
+          <span style={{ width: 44, textAlign: 'right', color: T5, fontSize: 11 }} className="tnum">{s.used}</span>
+          <Icon name="download" color="#3A3A3A" size={14} />
+          <Icon name="edit" color="#3A3A3A" size={14} />
+          <Icon name="trash" color="#3A3A3A" size={14} />
+          <Toggle on={s.on} />
         </div>
-      </div>
-      <Composer placeholder="スキルを書いてもらう" />
-    </Centre>
+      ))}
+    </>
+  );
+}
+
+export default function SkillsPage() {
+  return (
+    <>
+      <Centre>
+        <TopBar crumb="メンバー / 調査担当" title="スキル" />
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 26px 112px', display: 'flex', flexDirection: 'column', gap: 34 }}>
+          <span style={{ color: T3, fontSize: 13, lineHeight: '21px', maxWidth: 620 }}>
+            スキルは<b style={{ color: T2 }}>必要なときだけ</b>読む手順書、ルールは<b style={{ color: T2 }}>毎回</b>効く制約です。
+          </span>
+
+          <div>
+            <Head label="この社員のスキル" actions={['SKILL.md を読み込む', '新しく書く']} />
+            <Rows rows={MINE} />
+            <div style={{
+              marginTop: 14, display: 'flex', flexDirection: 'column', alignItems: 'center',
+              justifyContent: 'center', gap: 7, height: 104, borderRadius: 12, border: '1px dashed #262626',
+            }}>
+              <Icon name="upload" color={T4} size={18} />
+              <span style={{ color: T4, fontSize: 12.5 }}>SKILL.md をここに落とす、または <span style={{ color: T2 }}>選ぶ</span></span>
+              <span style={{ color: '#3A3A3A', fontSize: 11 }}>.md · .zip · 何個でも</span>
+            </div>
+          </div>
+
+          <div>
+            <Head label="会社ぜんぶのスキル" note="全員に効きます" actions={['新しく書く']} />
+            <Rows rows={SHARED} />
+          </div>
+        </div>
+        <Composer placeholder="スキルについて統括AIに聞く" />
+      </Centre>
+
+      <Pane width={440} tabs={[{ label: 'competitor-analysis.md' }]}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 18 }}>
+          <pre style={{
+            margin: 0, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+            fontSize: 12, lineHeight: '20px', color: T2, whiteSpace: 'pre-wrap',
+          }}>{BODY}</pre>
+        </div>
+        <PaneFooter primary="保存する" />
+      </Pane>
+    </>
   );
 }
