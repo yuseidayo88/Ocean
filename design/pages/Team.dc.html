@@ -1,0 +1,180 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #000; color: #EDEDED;
+           font-family: system-ui, "Noto Sans JP", sans-serif; font-weight: 400;
+           -webkit-font-smoothing: antialiased; }
+    * { font-weight: 400; box-sizing: border-box; }
+    a { color: inherit; text-decoration: none; }
+    .tnum { font-variant-numeric: tabular-nums; }
+  </style>
+</helmet>
+
+<div style="width: 1180px; display: flex; flex-direction: column">
+
+  <div style="padding: 26px 30px 0; display: flex; flex-direction: column; gap: 4px">
+    <span style="color: #5F5F5F; font-size: 12px">メンバー</span>
+    <span style="font-size: 20px">名簿ではなく、いまの陣容</span>
+    <span style="color: #6E6E6E; font-size: 13px; line-height: 21px; padding-top: 2px">
+      参考: ClickUp Team / Notion Team / Airtable Gallery ── 人は<b style="color:#8B8B8B">行ではなく面</b>で見せている。表は「並べて比べる」ためのもので、社員は比べるものではない。
+    </span>
+  </div>
+
+  <div style="height: 22px"></div>
+  <div style="height: 1px; background: #1C1C1C"></div>
+
+  <div style="padding: 20px 26px 26px; display: flex; flex-direction: column; gap: 24px">
+
+    <!-- 答えの1行 -->
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <span style="font-size: 16px; line-height: 26px">4人のうち<b style="color:#5BB974">3人が動いています</b>。戦略担当があなたの確認を待っています。</span>
+      <div style="flex: 1"></div>
+      <span style="display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px; border-radius: 8px; background: #141414; border: 1px solid #262626; color: #B8B8B8; font-size: 12.5px">＋ 採用する</span>
+    </div>
+
+    <!-- 人のカード -->
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px">
+
+      <div style="border-radius: 12px; background: #0E0E0E; border: 1px solid #1E1E1E; padding: 16px; display: flex; flex-direction: column; gap: 13px">
+        <div style="display: flex; align-items: center; gap: 11px">
+          <span style="width: 34px; height: 34px; border-radius: 999px; background: radial-gradient(circle at 40% 35%, rgba(42,169,191,.9), rgba(42,169,191,.16) 62%, rgba(42,169,191,0) 72%); flex-shrink: 0"></span>
+          <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+            <span style="font-size: 14px">調査担当</span>
+            <span style="color: #5F5F5F; font-size: 11.5px">調査・競合分析</span>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 7px">
+          <span style="width: 7px; height: 7px; border-radius: 9px; background: #1E8E3E"></span>
+          <span style="color: #5BB974; font-size: 12px">実行中</span>
+        </div>
+        <span style="color: #B8B8B8; font-size: 12.5px; line-height: 19px; min-height: 38px">競合の継続率を、公開レポートから拾っています</span>
+        <div style="display: flex; flex-direction: column; gap: 5px">
+          <div style="display: flex; align-items: baseline"><span style="color:#5F5F5F;font-size:11px">今週の稼働</span><div style="flex:1"></div><span class="tnum" style="color:#8B8B8B;font-size:11.5px">74%</span></div>
+          <span style="height: 4px; border-radius: 2px; background: #1A1A1A; display: block"><span style="display:block;width:74%;height:100%;border-radius:2px;background:#2AA9BF"></span></span>
+        </div>
+        <div style="height: 1px; background: #1A1A1A"></div>
+        <div style="display: flex; align-items: center; gap: 16px">
+          <span class="tnum" style="color: #6E6E6E; font-size: 12px">タスク 4</span>
+          <span class="tnum" style="color: #6E6E6E; font-size: 12px">成果物 5</span>
+        </div>
+      </div>
+
+      <div style="border-radius: 12px; background: #0E0E0E; border: 1px solid rgba(227,116,0,.30); padding: 16px; display: flex; flex-direction: column; gap: 13px">
+        <div style="display: flex; align-items: center; gap: 11px">
+          <span style="width: 34px; height: 34px; border-radius: 999px; background: radial-gradient(circle at 40% 35%, rgba(154,92,208,.9), rgba(154,92,208,.16) 62%, rgba(154,92,208,0) 72%); flex-shrink: 0"></span>
+          <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+            <span style="font-size: 14px">戦略担当</span>
+            <span style="color: #5F5F5F; font-size: 11.5px">収益設計・価格</span>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 7px">
+          <span style="width: 7px; height: 7px; border-radius: 9px; background: #E37400"></span>
+          <span style="color: #FDD663; font-size: 12px">要確認</span>
+        </div>
+        <span style="color: #B8B8B8; font-size: 12.5px; line-height: 19px; min-height: 38px">収益モデル比較レポートを出しました。見てください</span>
+        <span style="display: inline-flex; align-items: center; justify-content: center; height: 30px; border-radius: 8px; background: #E37400; color: #fff; font-size: 12.5px">見て決める</span>
+        <div style="height: 1px; background: #1A1A1A"></div>
+        <div style="display: flex; align-items: center; gap: 16px">
+          <span class="tnum" style="color: #6E6E6E; font-size: 12px">タスク 3</span>
+          <span class="tnum" style="color: #6E6E6E; font-size: 12px">成果物 2</span>
+        </div>
+      </div>
+
+      <div style="border-radius: 12px; background: #0E0E0E; border: 1px solid #1E1E1E; padding: 16px; display: flex; flex-direction: column; gap: 13px">
+        <div style="display: flex; align-items: center; gap: 11px">
+          <span style="width: 34px; height: 34px; border-radius: 999px; background: radial-gradient(circle at 40% 35%, rgba(52,168,83,.9), rgba(52,168,83,.16) 62%, rgba(52,168,83,0) 72%); flex-shrink: 0"></span>
+          <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+            <span style="font-size: 14px">開発担当</span>
+            <span style="color: #5F5F5F; font-size: 11.5px">実装・テスト</span>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 7px">
+          <span style="width: 7px; height: 7px; border-radius: 9px; background: #1E8E3E"></span>
+          <span style="color: #5BB974; font-size: 12px">実行中</span>
+        </div>
+        <span style="color: #B8B8B8; font-size: 12.5px; line-height: 19px; min-height: 38px">申込フォームの送信まわりを実装しています</span>
+        <div style="display: flex; flex-direction: column; gap: 5px">
+          <div style="display: flex; align-items: baseline"><span style="color:#5F5F5F;font-size:11px">今週の稼働</span><div style="flex:1"></div><span class="tnum" style="color:#8B8B8B;font-size:11.5px">62%</span></div>
+          <span style="height: 4px; border-radius: 2px; background: #1A1A1A; display: block"><span style="display:block;width:62%;height:100%;border-radius:2px;background:#34A853"></span></span>
+        </div>
+        <div style="height: 1px; background: #1A1A1A"></div>
+        <div style="display: flex; align-items: center; gap: 16px">
+          <span class="tnum" style="color: #6E6E6E; font-size: 12px">タスク 2</span>
+          <span class="tnum" style="color: #6E6E6E; font-size: 12px">成果物 1</span>
+        </div>
+      </div>
+
+      <div style="border-radius: 12px; background: #0E0E0E; border: 1px solid #1E1E1E; padding: 16px; display: flex; flex-direction: column; gap: 13px">
+        <div style="display: flex; align-items: center; gap: 11px">
+          <span style="width: 34px; height: 34px; border-radius: 999px; background: radial-gradient(circle at 40% 35%, rgba(92,107,192,.9), rgba(92,107,192,.16) 62%, rgba(92,107,192,0) 72%); flex-shrink: 0"></span>
+          <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+            <span style="font-size: 14px">企画担当</span>
+            <span style="color: #5F5F5F; font-size: 11.5px">要件・仕様</span>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 7px">
+          <span style="width: 7px; height: 7px; border-radius: 9px; background: #1E8E3E"></span>
+          <span style="color: #5BB974; font-size: 12px">実行中</span>
+        </div>
+        <span style="color: #B8B8B8; font-size: 12.5px; line-height: 19px; min-height: 38px">SNSの投稿カレンダーを1ヶ月ぶん書いています</span>
+        <div style="display: flex; flex-direction: column; gap: 5px">
+          <div style="display: flex; align-items: baseline"><span style="color:#5F5F5F;font-size:11px">今週の稼働</span><div style="flex:1"></div><span class="tnum" style="color:#8B8B8B;font-size:11.5px">38%</span></div>
+          <span style="height: 4px; border-radius: 2px; background: #1A1A1A; display: block"><span style="display:block;width:38%;height:100%;border-radius:2px;background:#5C6BC0"></span></span>
+        </div>
+        <div style="height: 1px; background: #1A1A1A"></div>
+        <div style="display: flex; align-items: center; gap: 16px">
+          <span class="tnum" style="color: #6E6E6E; font-size: 12px">タスク 4</span>
+          <span class="tnum" style="color: #6E6E6E; font-size: 12px">成果物 2</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 足りていない役割（＝下を空けない） -->
+    <div style="display: flex; flex-direction: column; gap: 12px; padding-top: 6px">
+      <div style="display: flex; align-items: baseline; gap: 10px">
+        <span style="color: #8B8B8B; font-size: 13px">足りていない役割</span>
+        <span style="color: #5F5F5F; font-size: 12px">この先のフェーズから見て</span>
+        <div style="flex: 1"></div>
+        <span style="color: #6E6E6E; font-size: 12px">ほかの候補を見る ›</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px">
+        <div style="border-radius: 12px; border: 1px dashed #262626; padding: 15px 16px; display: flex; align-items: center; gap: 14px">
+          <span style="width: 30px; height: 30px; border-radius: 999px; background: radial-gradient(circle at 40% 35%, rgba(42,169,191,.55), rgba(42,169,191,.10) 62%, rgba(42,169,191,0) 72%); flex-shrink: 0"></span>
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+            <span style="font-size: 13.5px">執筆担当</span>
+            <span style="color: #6E6E6E; font-size: 12px">フェーズ3の記事とLPの文章を書ける社員がいません</span>
+          </div>
+          <span style="display:inline-flex;align-items:center;height:30px;padding:0 14px;border-radius:8px;background:#1A73E8;color:#fff;font-size:12.5px;flex-shrink:0">採用する</span>
+        </div>
+
+        <div style="border-radius: 12px; border: 1px dashed #1E1E1E; padding: 15px 16px; display: flex; align-items: center; gap: 14px; opacity: .72">
+          <span style="width: 30px; height: 30px; border-radius: 999px; background: radial-gradient(circle at 40% 35%, rgba(154,92,208,.45), rgba(154,92,208,.08) 62%, rgba(154,92,208,0) 72%); flex-shrink: 0"></span>
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+            <span style="font-size: 13.5px; color: #B8B8B8">品質担当</span>
+            <span style="color: #5F5F5F; font-size: 12px">ローンチのフェーズに入ってから。いまは要りません</span>
+          </div>
+          <span style="color: #4A4A4A; font-size: 12.5px; flex-shrink: 0">見ておく ›</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height: 1px; background: #1C1C1C"></div>
+  <div style="padding: 16px 30px 22px; display: flex; gap: 30px">
+    <span style="color: #5BB974; font-size: 12px; flex-shrink: 0">よくなる点</span>
+    <span style="color: #8B8B8B; font-size: 12.5px; line-height: 20px; flex: 1">4人が横一列で、<b style="color:#B8B8B8">誰が待っているか</b>が面の色で分かる。空いていた下2/3に「足りていない役割」が入り、採用への道が画面の中で完結する。</span>
+    <span style="color: #FDD663; font-size: 12px; flex-shrink: 0">引き換えに</span>
+    <span style="color: #8B8B8B; font-size: 12.5px; line-height: 20px; width: 300px"><b style="color:#B8B8B8">「人数が増えても崩れない表」という現在地の決めごとを外す</b>ことになる。10人を超えたら4列×3段。20人なら表に戻したほうがいい。</span>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

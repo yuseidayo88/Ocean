@@ -1,0 +1,134 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #000; color: #EDEDED;
+           font-family: system-ui, "Noto Sans JP", sans-serif; font-weight: 400;
+           -webkit-font-smoothing: antialiased; }
+    * { font-weight: 400; }
+    a { color: inherit; text-decoration: none; }
+  </style>
+</helmet>
+
+<div style="width: 1180px; box-sizing: border-box; padding: 40px 44px 44px; display: flex; flex-direction: column; gap: 40px">
+
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <span style="color: #5F5F5F; font-size: 12px">診断</span>
+    <span style="font-size: 26px; line-height: 34px">中身は違うのに、形が同じ</span>
+    <span style="color: #8B8B8B; font-size: 14px; line-height: 24px; max-width: 720px; text-wrap: pretty">タスク・通知・メンバーを並べると、載っている事実は全部違うのに、<b style="color:#B8B8B8">読み方が一種類</b>しかない。だから「どのページを見ているか」を思い出すのに一拍かかる。</span>
+  </div>
+
+  <!-- 3ページの骨格を並べる -->
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px">
+
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <span style="color: #6E6E6E; font-size: 12px">いまのタスク</span>
+      <div style="height: 214px; border-radius: 12px; background: #0A0A0A; border: 1px solid #1A1A1A; padding: 12px 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 0">
+        <div style="height: 16px; display: flex; align-items: center; gap: 8px">
+          <span style="width: 44px; height: 5px; border-radius: 3px; background: #2A2A2A"></span>
+          <span style="width: 18px; height: 5px; border-radius: 3px; background: #1E1E1E"></span>
+        </div>
+        <div style="height: 12px"></div>
+        <div style="display: flex; flex-direction: column">
+          <div style="height: 21px; display: flex; align-items: center; gap: 9px; border-bottom: 1px solid #141414"><span style="width:5px;height:5px;border-radius:9px;background:#E37400"></span><span style="flex:1;height:5px;border-radius:3px;background:#2E2E2E"></span><span style="width:34px;height:5px;border-radius:3px;background:#1C1C1C"></span></div>
+          <div style="height: 21px; display: flex; align-items: center; gap: 9px; border-bottom: 1px solid #141414"><span style="width:5px;height:5px;border-radius:9px;background:#333"></span><span style="flex:1;height:5px;border-radius:3px;background:#242424"></span><span style="width:34px;height:5px;border-radius:3px;background:#1C1C1C"></span></div>
+          <div style="height: 21px; display: flex; align-items: center; gap: 9px; border-bottom: 1px solid #141414"><span style="width:5px;height:5px;border-radius:9px;background:#333"></span><span style="flex:1;height:5px;border-radius:3px;background:#242424"></span><span style="width:34px;height:5px;border-radius:3px;background:#1C1C1C"></span></div>
+          <div style="height: 21px; display: flex; align-items: center; gap: 9px; border-bottom: 1px solid #141414"><span style="width:5px;height:5px;border-radius:9px;background:#333"></span><span style="flex:1;height:5px;border-radius:3px;background:#242424"></span><span style="width:34px;height:5px;border-radius:3px;background:#1C1C1C"></span></div>
+          <div style="height: 21px; display: flex; align-items: center; gap: 9px; border-bottom: 1px solid #141414"><span style="width:5px;height:5px;border-radius:9px;background:#333"></span><span style="flex:1;height:5px;border-radius:3px;background:#242424"></span><span style="width:34px;height:5px;border-radius:3px;background:#1C1C1C"></span></div>
+          <div style="height: 21px; display: flex; align-items: center; gap: 9px"><span style="width:5px;height:5px;border-radius:9px;background:#333"></span><span style="flex:1;height:5px;border-radius:3px;background:#242424"></span><span style="width:34px;height:5px;border-radius:3px;background:#1C1C1C"></span></div>
+        </div>
+        <div style="flex: 1"></div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <span style="color: #6E6E6E; font-size: 12px">いまの通知</span>
+      <div style="height: 214px; border-radius: 12px; background: #0A0A0A; border: 1px solid #1A1A1A; padding: 12px 14px; box-sizing: border-box; display: flex; flex-direction: column">
+        <div style="height: 16px; display: flex; align-items: center; gap: 8px">
+          <span style="width: 26px; height: 5px; border-radius: 3px; background: #2A2A2A"></span>
+        </div>
+        <div style="height: 12px"></div>
+        <div style="display: flex; flex-direction: column">
+          <div style="height: 21px; display: flex; align-items: center; gap: 9px; border-bottom: 1px solid #141414"><span style="width:5px;height:5px;border-radius:9px;background:#E37400"></span><span style="flex:1;height:5px;border-radius:3px;background:#2E2E2E"></span><span style="width:34px;height:5px;border-radius:3px;background:#1C1C1C"></span></div>
+          <div style="height: 21px; display: flex; align-items: center; gap: 9px; border-bottom: 1px solid #141414"><span style="width:5px;height:5px;border-radius:9px;background:#333"></span><span style="flex:1;height:5px;border-radius:3px;background:#242424"></span><span style="width:34px;height:5px;border-radius:3px;background:#1C1C1C"></span></div>
+          <div style="height: 21px; display: flex; align-items: center; gap: 9px; border-bottom: 1px solid #141414"><span style="width:5px;height:5px;border-radius:9px;background:#333"></span><span style="flex:1;height:5px;border-radius:3px;background:#242424"></span><span style="width:34px;height:5px;border-radius:3px;background:#1C1C1C"></span></div>
+          <div style="height: 21px; display: flex; align-items: center; gap: 9px"><span style="width:5px;height:5px;border-radius:9px;background:#333"></span><span style="flex:1;height:5px;border-radius:3px;background:#242424"></span><span style="width:34px;height:5px;border-radius:3px;background:#1C1C1C"></span></div>
+        </div>
+        <div style="flex: 1"></div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <span style="color: #6E6E6E; font-size: 12px">いまのメンバー</span>
+      <div style="height: 214px; border-radius: 12px; background: #0A0A0A; border: 1px solid #1A1A1A; padding: 12px 14px; box-sizing: border-box; display: flex; flex-direction: column">
+        <div style="height: 16px; display: flex; align-items: center; gap: 8px">
+          <span style="width: 52px; height: 5px; border-radius: 3px; background: #2A2A2A"></span>
+        </div>
+        <div style="height: 12px"></div>
+        <div style="display: flex; flex-direction: column">
+          <div style="height: 21px; display: flex; align-items: center; gap: 9px; border-bottom: 1px solid #141414"><span style="width:5px;height:5px;border-radius:9px;background:#333"></span><span style="flex:1;height:5px;border-radius:3px;background:#242424"></span><span style="width:34px;height:5px;border-radius:3px;background:#1C1C1C"></span></div>
+          <div style="height: 21px; display: flex; align-items: center; gap: 9px; border-bottom: 1px solid #141414"><span style="width:5px;height:5px;border-radius:9px;background:#E37400"></span><span style="flex:1;height:5px;border-radius:3px;background:#2E2E2E"></span><span style="width:34px;height:5px;border-radius:3px;background:#1C1C1C"></span></div>
+          <div style="height: 21px; display: flex; align-items: center; gap: 9px; border-bottom: 1px solid #141414"><span style="width:5px;height:5px;border-radius:9px;background:#333"></span><span style="flex:1;height:5px;border-radius:3px;background:#242424"></span><span style="width:34px;height:5px;border-radius:3px;background:#1C1C1C"></span></div>
+          <div style="height: 21px; display: flex; align-items: center; gap: 9px"><span style="width:5px;height:5px;border-radius:9px;background:#333"></span><span style="flex:1;height:5px;border-radius:3px;background:#242424"></span><span style="width:34px;height:5px;border-radius:3px;background:#1C1C1C"></span></div>
+        </div>
+        <div style="flex: 1"></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height: 1px; background: #1C1C1C"></div>
+
+  <!-- 直す規則 -->
+  <div style="display: flex; flex-direction: column; gap: 20px">
+    <span style="color: #5F5F5F; font-size: 12px">直しかた ── 4つ</span>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px 40px">
+
+      <div style="display: flex; gap: 16px; align-items: flex-start">
+        <span style="flex-shrink: 0; width: 22px; color: #3E3E3E; font-size: 20px; line-height: 24px">1</span>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 15px; line-height: 24px">最初の1行で答えを言う</span>
+          <span style="color: #6E6E6E; font-size: 13px; line-height: 21px; text-wrap: pretty">「10件」ではなく「<b style="color:#FDD663">今日中に決めるのが1件</b>、あとは走っている」。進捗の画面だけが持っていた作法を、全ページに広げる。</span>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 16px; align-items: flex-start">
+        <span style="flex-shrink: 0; width: 22px; color: #3E3E3E; font-size: 20px; line-height: 24px">2</span>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 15px; line-height: 24px">例外は、例外の大きさで出す</span>
+          <span style="color: #6E6E6E; font-size: 13px; line-height: 21px; text-wrap: pretty">判断待ちの1件が、ふつうの行と同じ 42px で並んでいる。<b style="color:#B8B8B8">放っておけないものだけ、行から出す。</b></span>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 16px; align-items: flex-start">
+        <span style="flex-shrink: 0; width: 22px; color: #3E3E3E; font-size: 20px; line-height: 24px">3</span>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 15px; line-height: 24px">ページごとに束ね方を変える</span>
+          <span style="color: #6E6E6E; font-size: 13px; line-height: 21px; text-wrap: pretty">タスクは<b style="color:#B8B8B8">いつ</b>で束ね、通知は<b style="color:#B8B8B8">片づける／片づいた</b>で分け、メンバーは<b style="color:#B8B8B8">人</b>を面にする。束ね方が違えば、開いた瞬間に違うページだと分かる。</span>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 16px; align-items: flex-start">
+        <span style="flex-shrink: 0; width: 22px; color: #3E3E3E; font-size: 20px; line-height: 24px">4</span>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 15px; line-height: 24px">下を空けたままにしない</span>
+          <span style="color: #6E6E6E; font-size: 13px; line-height: 21px; text-wrap: pretty">3ページとも下2/3が黒い。器が大きすぎるのではなく、<b style="color:#B8B8B8">次にやることを置いていない</b>だけ。</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 10px; color: #4A4A4A; font-size: 12px">
+    <span>色・文字・角丸・行の高さは いまのまま。</span>
+    <span style="flex: 1; height: 1px; background: #161616"></span>
+    <span>変えるのは 並べ方だけ</span>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

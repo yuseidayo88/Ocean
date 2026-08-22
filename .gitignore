@@ -10,3 +10,6 @@ cloudflare-env.d.ts
 
 # next dev と next build で中身が入れ替わるので追跡しない（どちらのコマンドでも生成される）
 next-env.d.ts
+
+# デザインキャンバスの書き出し（design/pages/*.dc.html から作り直せる。2MB あるので追跡しない）
+/onefound-*.html
