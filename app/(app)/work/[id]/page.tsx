@@ -69,7 +69,7 @@ export default function WorkPage() {
   return (
     <>
       <Centre>
-        <TopBar crumb="Work" title={w.title} onPanel={() => setPane(!pane)} panelOn={pane} right={
+        <TopBar crumb="Work" title={w.title} onPanel={() => setPane(true)} panelOn={pane} right={
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
             <Dot color={late ? '#D93025' : GREEN} size={7} />
             <span style={{ color: late ? RED_T : GREEN_T, fontSize: 12 }}>

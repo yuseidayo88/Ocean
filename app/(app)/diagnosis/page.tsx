@@ -37,7 +37,7 @@ export default function DiagnosisPage() {
   return (
     <>
       <Centre>
-        <TopBar title="診断結果" onPanel={() => setOpen(open ? null : FINDINGS[0][1])} panelOn={!!open} />
+        <TopBar title="診断結果" onPanel={() => setOpen(FINDINGS[0][1])} panelOn={!!open} />
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 26px 112px', display: 'flex', flexDirection: 'column', gap: 28 }}>
           <span style={{ fontSize: 15, lineHeight: '25px', maxWidth: 720 }}>
             いちばん効くのは、<b>継続率を測れていないこと。</b>ここが見えないと、他の改善の効果も測れません。

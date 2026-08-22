@@ -32,7 +32,7 @@ export default function ImportPage() {
   return (
     <>
       <Centre>
-        <TopBar title="事業の取り込み" onPanel={() => setOpen(open ? null : SOURCES[0].name)} panelOn={!!open} />
+        <TopBar title="事業の取り込み" onPanel={() => setOpen(SOURCES[0].name)} panelOn={!!open} />
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 26px 112px', display: 'flex', flexDirection: 'column', gap: 24 }}>
           <span style={{ fontSize: 15, lineHeight: '25px', maxWidth: 680 }}>
             いまの事業のことを教えてください。<b>あるものだけで構いません。</b>

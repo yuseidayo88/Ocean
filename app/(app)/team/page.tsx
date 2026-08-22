@@ -36,7 +36,7 @@ export default function TeamPage() {
   return (
     <>
       <Centre>
-        <TopBar title="メンバー" onPanel={() => setOpenId(openId ? null : EMPLOYEES[0].id)} panelOn={!!openId} />
+        <TopBar title="メンバー" onPanel={() => setOpenId(EMPLOYEES[0].id)} panelOn={!!openId} />
         <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '18px 0 0' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: '0 26px 12px' }}>
             <span style={{ color: T3 }}>在籍しているAI社員</span>

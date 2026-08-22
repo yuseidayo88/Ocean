@@ -76,7 +76,7 @@ export default function SkillsPage() {
   return (
     <>
       <Centre>
-        <TopBar crumb="メンバー / 調査担当" title="スキル" onPanel={() => (open ? tabs.clear() : tabs.open(MINE[0].file))} panelOn={!!open} />
+        <TopBar crumb="メンバー / 調査担当" title="スキル" onPanel={() => tabs.open(MINE[0].file)} panelOn={!!open} />
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 26px 112px', display: 'flex', flexDirection: 'column', gap: 34 }}>
           <div>
             <Head label="この社員のスキル" actions={['SKILL.md を読み込む', '新しく書く']} />

@@ -5,11 +5,11 @@ const q = (s) => encodeURIComponent(s);
 /** 20画面。ペインを持つものは「閉じた URL / 開いた URL」の組で見る */
 const pairs = [
   ['/tasks',               `${B}/tasks`,               `${B}/tasks?open=tk-price`],
-  ['/deliverables',        `${B}/deliverables`,        `${B}/deliverables?open=d-rev,d-mkt,d-tam&at=1`],
+  ['/deliverables',        `${B}/deliverables`,        `${B}/deliverables?open=d-rev,d-mkt,d-target,d-price,d-persona&at=2`],
   ['/decisions',           `${B}/decisions`,           `${B}/decisions?open=dec-price`],
   ['/team',                `${B}/team`,                `${B}/team?open=e-research`],
   ['/hire',                `${B}/hire`,                `${B}/hire?open=c-writer`],
-  ['/skills',              `${B}/skills`,              `${B}/skills?open=${q('competitor-analysis.md')},${q('price-band.md')}&at=1`],
+  ['/skills',              `${B}/skills`,              `${B}/skills?open=${q('competitor-analysis.md')},${q('market-sizing.md')},${q('price-band.md')},${q('source-citation.md')}&at=1`],
   ['/inbox',               `${B}/inbox`,               `${B}/inbox?open=n2`],
   ['/work/w-japanese',     `${B}/work/w-japanese`,     `${B}/work/w-japanese?open=about`],
   ['/work/w-japanese/plan',`${B}/work/w-japanese/plan`,`${B}/work/w-japanese/plan?open=why`],

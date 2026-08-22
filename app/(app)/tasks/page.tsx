@@ -38,7 +38,7 @@ export default function TasksPage() {
     <>
     <Centre>
       <TopBar title="タスク"
-        onPanel={() => setOpen(open ? null : TASKS[0].id)} panelOn={!!open}
+        onPanel={() => setOpen(TASKS[0].id)} panelOn={!!open}
         right={
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: AMBER_T, fontSize: 12 }}>
           <Dot color={AMBER} size={7} />判断待ち <span className="tnum">{gates}</span>

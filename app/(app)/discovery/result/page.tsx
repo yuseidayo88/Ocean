@@ -40,7 +40,7 @@ export default function DiscoveryResultPage() {
   return (
     <>
       <Centre>
-        <TopBar title="候補" onPanel={() => setOpen(open ? null : CANDS[0].title)} panelOn={!!open} />
+        <TopBar title="候補" onPanel={() => setOpen(CANDS[0].title)} panelOn={!!open} />
 
         {/* 集めた条件は上に貼る。答え終わったものだけ */}
         <div style={{

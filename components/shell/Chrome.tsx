@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { CompanyPicker, useShell } from '@/components/shell/Shell';
-import { COMPOSER_H as TOKEN_COMPOSER_H, EASE } from '@/lib/design/tokens';
+import { COMPOSER_H as TOKEN_COMPOSER_H, EASE, EASE_FAST } from '@/lib/design/tokens';
 
 const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
 const BLUE = '#1A73E8';
@@ -56,12 +56,23 @@ export function TopBar({ crumb, title, right, onPanel, panelOn }:
 
       <div style={{ flex: 1 }} />
       {right}
-      {/* 右ペインの出し入れ。**右向きの絵**を右端に置く */}
+      {/**
+        * 右ペインへの戻り道。**閉じているときだけ出す。**
+        * 開いているあいだはペインの中に ✕ があるので、ここにも置くと同じことを2回言うことになる。
+        * 左レールとまったく同じ作法 — 開け閉めは器の中、戻り道はトップバー。
+        * 消したり出したりせず、幅を 0 にして横の並びが飛ばないようにする。
+        */}
       {onPanel && (
-        <button onClick={onPanel} className="icob" title={panelOn ? '右を閉じる' : '右を開く'}
-                style={{ display: 'inline-flex', padding: 5, marginLeft: 4 }}>
-          <Icon name="panelr" color={panelOn ? T2 : T4} size={15} />
-        </button>
+        <span aria-hidden={panelOn} inert={panelOn} style={{
+          width: panelOn ? 0 : 25, marginLeft: panelOn ? -6 : 4, opacity: panelOn ? 0 : 1,
+          flexShrink: 0, overflow: 'hidden', display: 'inline-flex',
+          transition: `width ${EASE}, margin-left ${EASE}, opacity .18s ease`,
+        }}>
+          <button onClick={onPanel} className="icob" title="右を開く"
+                  style={{ display: 'inline-flex', padding: 5, flexShrink: 0 }}>
+            <Icon name="panelr" color={T4} size={15} />
+          </button>
+        </span>
       )}
     </div>
   );
@@ -177,6 +188,14 @@ export function Composer({ placeholder, mode = '統括AI', effort = '自動', ab
 }
 
 /**
+ * 名前を出すのに要る幅。日本語で7〜8文字ぶん。
+ * これを割るくらいなら**出さないほうがいい** — 「市場調…」が並んでも見分けられない。
+ */
+const MIN_TAB = 112;
+/** 名前を畳んだタブの幅（印だけ） */
+const BARE_W = 26;
+
+/**
  * 右ペインは2つの形しかない。
  *
  *   **パネル**（既定）— 選んだ1件の詳細と、画面そのものの付き添い。
@@ -203,6 +222,17 @@ export function Pane({ width = 430, title, icon, dot, tabs, tab: tabAt, onTab, r
   const [tabIn, setTabIn] = useState(0);
   const tab = tabAt ?? tabIn;
   const setTab = onTab ?? setTabIn;
+
+  /**
+   * **入らないときは名前を出さない。**
+   * 名前を全部出そうとして押し込むと、どれも読めない幅になって器が崩れる。
+   * 見ているタブだけ名前を出し、ほかは印だけに畳む（押せばそれが開いて名前が出る）。
+   * 幅は決まっているので測らずに決められる — ペインの幅から引き算するだけ。
+   */
+  const n = tabs?.length ?? 0;
+  const room = width - 24 - 30 - (n - 1) * 6;              // 左右の余白 と ＋ と すき間
+  const rest = room - Math.min(240, Math.round(room * 0.55)); // 見ているタブに先に取らせた残り
+  const tight = n > 1 && rest / (n - 1) < MIN_TAB;
 
   /**
    * 出入りを滑らかにする。**どちらも出た最初のフレームから動く。**
@@ -240,29 +270,47 @@ export function Pane({ width = 430, title, icon, dot, tabs, tab: tabAt, onTab, r
       }}>
         {tabs ? (
           <>
-            {tabs.map((t, i) => (
-              <button key={t.label} onClick={() => setTab(i)} className={i === tab ? undefined : 'btn'} style={{
-                display: 'inline-flex', alignItems: 'center', gap: 8, height: 28, padding: '0 11px',
-                borderRadius: 8, background: i === tab ? '#1C1C1C' : undefined,
-                color: i === tab ? T1 : T4, fontSize: 12.5,
-                transition: 'background-color .12s ease, color .12s ease',
+            {tabs.map((t, i) => {
+              const on = i === tab;
+              const bare = tight && !on;   // 入らないときは、見ていないタブの名前を出さない
+              return (
+              <button key={t.label} onClick={() => setTab(i)} title={t.label}
+                      className={on ? undefined : 'btn'} style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: bare ? 'center' : undefined,
+                gap: bare ? 0 : 8, height: 28, padding: bare ? 0 : '0 11px',
+                flex: bare ? `0 0 ${BARE_W}px` : on ? '1.7 1 0' : '1 1 0', minWidth: 0,
+                maxWidth: bare ? BARE_W : on && tight ? 260 : 240,
+                borderRadius: 8, background: on ? '#1C1C1C' : bare ? '#121212' : undefined,
+                color: on ? T1 : T4, fontSize: 12.5,
+                transition: `background-color .12s ease, color .12s ease, width ${EASE_FAST}`,
               }}>
-                {t.dot && <span style={{ width: 7, height: 7, borderRadius: 999, background: t.dot }} />}
-                {t.label}
-                {i === tab && (
+                {/* 名前を出さないときは、印だけで「そこに1枚ある」と分かるようにする */}
+                <span style={{
+                  width: 7, height: 7, borderRadius: 999, flexShrink: 0,
+                  background: t.dot ?? (bare ? '#3A3A3A' : 'transparent'),
+                  display: t.dot || bare ? 'block' : 'none',
+                }} />
+                {/* タブの名前は**わざと**切る（ブラウザのタブと同じ）。clip は「切れていて正しい」の印 */}
+                {!bare && (
+                  <span className="clip" style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {t.label}
+                  </span>
+                )}
+                {on && (
                   <span role="button" tabIndex={0} className="icob" aria-label="閉じる"
                         onClick={(e) => { e.stopPropagation(); close(); }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); close(); }
                         }}
-                        style={{ display: 'inline-flex', padding: 2, marginRight: -3 }}>
+                        style={{ display: 'inline-flex', padding: 2, marginRight: -3, flexShrink: 0 }}>
                     <Icon name="close" color={T5} size={11} />
                   </span>
                 )}
               </button>
-            ))}
+              );
+            })}
             <div style={{ flex: 1 }} />
-            {right ?? <span className="icob" style={{ display: 'inline-flex', padding: 4 }}><Icon name="plus" color={T4} size={14} /></span>}
+            {right ?? <span className="icob" style={{ display: 'inline-flex', padding: 4, flexShrink: 0 }}><Icon name="plus" color={T4} size={14} /></span>}
           </>
         ) : (
           <>

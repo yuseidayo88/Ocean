@@ -46,7 +46,7 @@ export default function PlanPage() {
   return (
     <>
       <Centre>
-        <TopBar crumb={w.title} title="計画案" onPanel={() => setPane(!pane)} panelOn={pane} />
+        <TopBar crumb={w.title} title="計画案" onPanel={() => setPane(true)} panelOn={pane} />
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '14px 26px 14px' }}>
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <span style={{ maxWidth: '78%', padding: '9px 16px', borderRadius: 18, background: '#24354A', color: '#DCE7F5' }}>

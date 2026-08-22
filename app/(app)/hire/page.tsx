@@ -35,7 +35,7 @@ export default function HirePage() {
   return (
     <>
       <Centre>
-        <TopBar title="採用" onPanel={() => setOpen(open ? null : top.id)} panelOn={!!open} right={<span style={{ color: T5, fontSize: 12 }}>日本語学習サービス</span>} />
+        <TopBar title="採用" onPanel={() => setOpen(top.id)} panelOn={!!open} right={<span style={{ color: T5, fontSize: 12 }}>日本語学習サービス</span>} />
 
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 26px 112px', display: 'flex', flexDirection: 'column', gap: 18 }}>
           <span style={{ fontSize: 15, lineHeight: '25px' }}>

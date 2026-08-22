@@ -7,7 +7,7 @@ const probe = `(() => {
   for (const el of document.querySelectorAll('body *')) {
     if(!vis(el))continue; const cs=getComputedStyle(el), r=el.getBoundingClientRect();
     if(!r.width||!r.height)continue;
-    if(cs.textOverflow==='ellipsis'&&el.scrollWidth>el.clientWidth+1&&el.clientWidth)
+    if(cs.textOverflow==='ellipsis'&&el.scrollWidth>el.clientWidth+1&&el.clientWidth&&!el.classList.contains('clip'))
       out.ell.push((el.textContent||'').trim().slice(0,40)+' -'+(el.scrollWidth-el.clientWidth)+'px');
     if(!el.children.length){const t=(el.textContent||'').trim(); if(t)out.text.push(t.slice(0,50));}
   }

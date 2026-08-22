@@ -80,7 +80,7 @@ export default function DeliverablesPage() {
   return (
     <>
       <Centre>
-        <TopBar title="成果物" onPanel={() => (docs.length ? tabs.clear() : tabs.open(DELIVERABLES[0].id))} panelOn={docs.length > 0} right={<span style={{ color: T5, fontSize: 12 }}>日本語学習サービス</span>} />
+        <TopBar title="成果物" onPanel={() => tabs.open(DELIVERABLES[0].id)} panelOn={docs.length > 0} right={<span style={{ color: T5, fontSize: 12 }}>日本語学習サービス</span>} />
 
         <div style={{
           height: 44, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 9,
