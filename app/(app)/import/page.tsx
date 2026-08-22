@@ -6,6 +6,7 @@ import { useOpen } from '@/lib/use-open';
 import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { pressable } from '@/lib/a11y';
+import { COMPOSER_H } from '@/lib/design/tokens';
 
 /** ⓪-c 事業の取り込み。あるものだけ渡せばいい。読み終わってから診断する */
 
@@ -33,7 +34,7 @@ export default function ImportPage() {
     <>
       <Centre>
         <TopBar title="事業の取り込み" onPanel={() => setOpen(SOURCES[0].name)} panelOn={!!open} />
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 26px 112px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: `20px 26px ${COMPOSER_H}px`, display: 'flex', flexDirection: 'column', gap: 24 }}>
           <span style={{ fontSize: 15, lineHeight: '25px', maxWidth: 680 }}>
             いまの事業のことを教えてください。<b>あるものだけで構いません。</b>
           </span>

@@ -9,6 +9,7 @@ import { Centre, Composer, Pane, PaneHead, TopBar } from '@/components/shell/Chr
 import { Diamond, Dot, Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
 import { AGENT_COLOR, DELIVERABLES, TASKS, WORKS, WORK_DECISIONS, employee } from '@/lib/dummy';
+import { COMPOSER_H } from '@/lib/design/tokens';
 
 /**
  * Work＝会話を持たない。一目で状況が分かる1枚（参考: Upwork / Squarespace / Linear）。
@@ -78,7 +79,7 @@ export default function WorkPage() {
           </span>
         } />
 
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 26px 112px', display: 'flex', flexDirection: 'column', gap: 30 }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: `20px 26px ${COMPOSER_H}px`, display: 'flex', flexDirection: 'column', gap: 30 }}>
           <div>
             <span style={{ fontSize: 20, lineHeight: '30px', display: 'block' }}>{w.title}</span>
             <span style={{ color: T4, fontSize: 13, display: 'block', paddingTop: 6 }}>{w.goal}</span>

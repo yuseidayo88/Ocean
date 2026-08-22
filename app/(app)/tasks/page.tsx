@@ -5,6 +5,7 @@ import { openHref, useOpen } from '@/lib/use-open';import { Centre, Composer, Pa
 import { Diamond, Dot, Icon, type IconName } from '@/components/ui/Icon';
 import { TASKS, TASK_BODY, employee, work, type State, type Task } from '@/lib/dummy';
 import { pressable } from '@/lib/a11y';
+import { COMPOSER_H } from '@/lib/design/tokens';
 
 /**
  * タスク＝ふつうの1枚の表（参考: Linear）。**Workごとにグループ分けしない**
@@ -45,7 +46,7 @@ export default function TasksPage() {
         </span>
       } />
 
-      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: '18px 26px 112px' }}>
+      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: `18px 26px ${COMPOSER_H}px` }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, paddingBottom: 12 }}>
           <span style={{ color: T3 }}>やること</span>
           <span style={{ color: T5, fontSize: 12 }} className="tnum">{todo}件</span>

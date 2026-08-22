@@ -6,6 +6,7 @@ import { openHref } from '@/lib/use-open';
 import { Orb } from '@/components/ui/Orb';
 import { Dot, Icon } from '@/components/ui/Icon';
 import { AGENT_COLOR, EMPLOYEES, LANES, employee, type DeskBody } from '@/lib/dummy';
+import { COMPOSER_H } from '@/lib/design/tokens';
 
 /**
  * デスク＝縦長レーンを横に並べる（参考: Emergent / Google AI Studio）。
@@ -117,7 +118,7 @@ export function Desk() {
   return (
     <div style={{
       flex: 1, minHeight: 0, boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
-      alignItems: 'center', padding: '16px 24px 112px', overflow: 'hidden',
+      alignItems: 'center', padding: `16px 24px ${COMPOSER_H}px`, overflow: 'hidden',
     }}>
       <div style={{ width: '100%', maxWidth: 1140, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
         <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10, height: 20 }}>

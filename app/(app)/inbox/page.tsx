@@ -9,6 +9,7 @@ import { Centre, Composer, Pane, PaneFooter, TopBar } from '@/components/shell/C
 import { Diamond, Dot, Icon } from '@/components/ui/Icon';
 import { DECISION_BODY, NOTICE_GROUPS } from '@/lib/dummy';
 import { pressable } from '@/lib/a11y';
+import { COMPOSER_H } from '@/lib/design/tokens';
 
 /**
  * 通知＝時系列フィード（参考: Asana / Zendesk）。
@@ -44,7 +45,7 @@ export default function InboxPage() {
           unread > 0 ? <span style={{ color: T5, fontSize: 12 }} className="tnum">未読 {unread}</span> : undefined
         } />
 
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '8px 24px 112px' }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: `8px 24px ${COMPOSER_H}px` }}>
           {NOTICE_GROUPS.map((g) => (
             <div key={g.label}>
               <div style={{ display: 'flex', alignItems: 'center', height: 38, paddingTop: 8 }}>

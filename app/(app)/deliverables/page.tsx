@@ -8,6 +8,7 @@ import { Centre, Composer, Pane, PaneFooter, PaneHead, PaneLoading, TopBar } fro
 import { Dot, Icon } from '@/components/ui/Icon';
 import { DELIVERABLES, DELIVERABLE_BODY, employee, type Deliverable, type Preview } from '@/lib/dummy';
 import { pressable } from '@/lib/a11y';
+import { COMPOSER_H } from '@/lib/design/tokens';
 
 /**
  * 成果物＝グリッド（参考: Craft / Frame）。
@@ -98,7 +99,7 @@ export default function DeliverablesPage() {
           )}
         </div>
 
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '16px 16px 112px' }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: `16px 16px ${COMPOSER_H}px` }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
             {DELIVERABLES.map((d) => (
               <div key={d.id} className="card" {...pressable(() => tabs.open(d.id))} style={{

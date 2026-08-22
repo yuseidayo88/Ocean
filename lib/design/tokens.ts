@@ -29,8 +29,13 @@ export const agentColor = {
 
 export const radius = { row: 8, card: 12, input: 14, composer: 18, round: 999 } as const
 
-/** 浮いた入力欄の高さ。下に貼り付く中身はこのぶん逃がす */
-export const COMPOSER_H = 112
+/**
+ * 浮いた入力欄のぶん、中身が空けておく高さ。
+ * 内訳: 入力欄そのもの 52 ＋ 窓の下との間 24 ＋ **中身との間 32**。
+ * 前は 112 で、入力欄が 94 あったので、中身の終わりと入力欄の上端がちょうど重なって詰まって見えていた。
+ * （入力欄を1行にまとめて 52 になったぶん、空ける高さも詰めている）
+ */
+export const COMPOSER_H = 108
 
 /** 左レールの幅 */
 export const RAIL_W = 260

@@ -99,7 +99,7 @@ export function TopBar({ crumb, title, right, onPanel, panelOn }:
  */
 const pending = new WeakSet<HTMLTextAreaElement>();
 
-function grow(t: HTMLTextAreaElement) {
+function grow(t: HTMLTextAreaElement, onH?: (h: number) => void) {
   if (pending.has(t)) return;
   pending.add(t);
   requestAnimationFrame(() => {
@@ -111,6 +111,7 @@ function grow(t: HTMLTextAreaElement) {
     t.style.height = 'auto';
     const next = Math.min(t.scrollHeight, 168);
     t.style.height = `${before}px`;
+    onH?.(next);
     if (next === before) { t.style.transition = keep; return; }
     void t.offsetHeight;   // 「いまの高さ」を確定させてから動かす
     t.style.transition = keep;
@@ -132,6 +133,8 @@ export function Composer({ placeholder, mode = '統括AI', effort = '自動', ab
    * 持つのは真偽値ひとつにして、文字はブラウザに預けたままにする。
    */
   const [can, setCan] = useState(false);
+  /** 2行以上になったか。1行のうちは**横一列のまま**にする */
+  const [tall, setTall] = useState(false);
   const box = useRef<HTMLTextAreaElement>(null);
   const { chat: talk, say } = useShell();
 
@@ -148,6 +151,7 @@ export function Composer({ placeholder, mode = '統括AI', effort = '自動', ab
     t.value = '';
     t.style.height = '';
     setCan(false);
+    setTall(false);
   };
   const wrap: React.CSSProperties = inPane
     ? { width: '100%', boxSizing: 'border-box', flexShrink: 0, display: 'flex',
@@ -155,7 +159,7 @@ export function Composer({ placeholder, mode = '統括AI', effort = '自動', ab
     : floating
     ? {
         position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 5, boxSizing: 'border-box',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '42px 24px 18px',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '48px 24px 24px',
         background: 'linear-gradient(to top, #000 0%, #000 44%, rgba(0,0,0,0.86) 66%, rgba(0,0,0,0) 100%)',
       }
     : { width: '100%', boxSizing: 'border-box', flexShrink: 0, display: 'flex',
@@ -164,14 +168,30 @@ export function Composer({ placeholder, mode = '統括AI', effort = '自動', ab
   return (
     <div style={wrap}>
       {above}
+      {/**
+        * **1行にまとめる**（参考: ChatGPT の入力欄）。
+        * ＋ / 書くところ / 統括AI / 深さ / ↑ を横一列に置く。2段に分けない。
+        * 書いて2行以上になったら、そのときだけ縦に伸ばし、道具は下端に揃える。
+        */}
       <div className="field" style={{
-        width: '100%', maxWidth: 748, boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
-        gap: 12, padding: inPane ? '11px 12px 9px 14px' : '13px 14px 11px 16px',
-        borderRadius: inPane ? 15 : 18,
+        width: '100%', maxWidth: 748, boxSizing: 'border-box',
+        display: 'flex', alignItems: tall ? 'flex-end' : 'center', gap: inPane ? 7 : 10,
+        minHeight: inPane ? 46 : 52,
+        padding: tall
+          ? (inPane ? '10px 7px 8px 12px' : '12px 8px 10px 15px')
+          : (inPane ? '0 7px 0 12px' : '0 8px 0 15px'),
+        borderRadius: tall ? 18 : inPane ? 23 : 26,
         background: '#141414', border: '1px solid #2A2A2A',
+        transition: `border-radius ${EASE_FAST}`,
         // 高さを測るときの計算を、この器の中だけで済ませる
         contain: 'layout',
       }}>
+        <span className="icob" style={{
+          width: 28, height: 28, flexShrink: 0, borderRadius: 999,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Icon name="plus" color={T4} size={16} />
+        </span>
         <textarea
           ref={box}
           onKeyDown={(e) => {
@@ -183,40 +203,34 @@ export function Composer({ placeholder, mode = '統括AI', effort = '自動', ab
           onInput={(e) => {
             const next = !!e.currentTarget.value.trim();
             if (next !== can) setCan(next);
-            grow(e.currentTarget);
+            grow(e.currentTarget, (h) => setTall(h > 26));
           }}
           placeholder={placeholder}
           rows={1}
           style={{
-            width: '100%', resize: 'none', background: 'none', border: 'none', outline: 'none',
+            flex: 1, minWidth: 0, resize: 'none', background: 'none', border: 'none', outline: 'none',
             color: T1, fontSize: 14, lineHeight: '22px', maxHeight: 168, overflowY: 'auto',
-            transition: `height ${EASE}`,
+            padding: 0, transition: `height ${EASE}`,
           } as React.CSSProperties}
         />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span className="icob" style={{ width: 26, height: 26, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="plus" color={T4} size={16} />
-          </span>
-          <span className="btn" style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6, height: 26, padding: '0 8px',
-            borderRadius: 7, color: T2,
-          }}>{mode}<Icon name="down" color={T4} size={12} /></span>
-          <span className="btn" style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6, height: 26, padding: '0 8px',
-            borderRadius: 7, color: T2,
-          }}><Icon name="bars" color={T4} size={13} />{effort}</span>
-          <div style={{ flex: 1 }} />
-          {/* **書いていないときは送れない。** 押せないものを押せる顔にしない */}
-          <button disabled={!can} onClick={send} className={can ? 'solid' : undefined} style={{
-            width: 30, height: 30, borderRadius: 999, flexShrink: 0,
-            background: can ? BLUE : '#242424',
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            cursor: can ? 'pointer' : 'default',
-            transition: 'background-color .14s ease',
-          }}>
-            <Icon name="up" color={can ? '#fff' : '#5F5F5F'} size={16} width={1.8} />
-          </button>
-        </div>
+        <span className="btn" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 9px',
+          borderRadius: 8, color: T2, flexShrink: 0, whiteSpace: 'nowrap',
+        }}>{mode}<Icon name="down" color={T4} size={12} /></span>
+        <span className="btn" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 9px',
+          borderRadius: 8, color: T2, flexShrink: 0, whiteSpace: 'nowrap',
+        }}><Icon name="bars" color={T4} size={13} />{effort}</span>
+        {/* **書いていないときは送れない。** 押せないものを押せる顔にしない */}
+        <button disabled={!can} onClick={send} className={can ? 'solid' : undefined} style={{
+          width: 32, height: 32, borderRadius: 999, flexShrink: 0,
+          background: can ? BLUE : '#242424',
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          cursor: can ? 'pointer' : 'default',
+          transition: 'background-color .14s ease',
+        }}>
+          <Icon name="up" color={can ? '#fff' : '#5F5F5F'} size={16} width={1.8} />
+        </button>
       </div>
     </div>
   );

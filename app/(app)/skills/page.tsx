@@ -6,6 +6,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Toggle } from '@/components/shell/Controls';
 import { pressable } from '@/lib/a11y';
 import { SKILLS, SKILL_BODY, type Skill } from '@/lib/dummy';
+import { COMPOSER_H } from '@/lib/design/tokens';
 
 /**
  * スキル ＝ SKILL.md のファイル管理（参考: Base44 の Knowledge files）。
@@ -77,7 +78,7 @@ export default function SkillsPage() {
     <>
       <Centre>
         <TopBar crumb="メンバー / 調査担当" title="スキル" onPanel={() => tabs.open(MINE[0].file)} panelOn={!!open} />
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 26px 112px', display: 'flex', flexDirection: 'column', gap: 34 }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: `20px 26px ${COMPOSER_H}px`, display: 'flex', flexDirection: 'column', gap: 34 }}>
           <div>
             <Head label="この社員のスキル" actions={['SKILL.md を読み込む', '新しく書く']} />
             <Rows rows={MINE} onOpen={tabs.open} />

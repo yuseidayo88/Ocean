@@ -6,6 +6,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
 import { AGENT_COLOR, HIRE_CANDIDATES } from '@/lib/dummy';
 import { pressable } from '@/lib/a11y';
+import { COMPOSER_H } from '@/lib/design/tokens';
 
 /**
  * 採用は日本語で「どんなAIか」が分かる形。
@@ -37,7 +38,7 @@ export default function HirePage() {
       <Centre>
         <TopBar title="採用" onPanel={() => setOpen(top.id)} panelOn={!!open} right={<span style={{ color: T5, fontSize: 12 }}>日本語学習サービス</span>} />
 
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 26px 112px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: `20px 26px ${COMPOSER_H}px`, display: 'flex', flexDirection: 'column', gap: 18 }}>
           <span style={{ fontSize: 15, lineHeight: '25px' }}>
             いま足りないのは<b>書ける人</b>です。フェーズ3の記事とLPの文章が止まります。
           </span>

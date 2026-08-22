@@ -7,6 +7,7 @@ import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/componen
 import { Dot, Icon, type IconName } from '@/components/ui/Icon';
 import { DECISIONS, DECISION_BODY, type Decision } from '@/lib/dummy';
 import { pressable } from '@/lib/a11y';
+import { COMPOSER_H } from '@/lib/design/tokens';
 
 /**
  * 決定事項＝台帳タイムライン。**追記のみ**（決め直しは新しい行＋supersedes）。
@@ -55,7 +56,7 @@ export default function DecisionsPage() {
           )}
         </div>
 
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '16px 24px 112px' }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: `16px 24px ${COMPOSER_H}px` }}>
           {DECISIONS.map((d, i) => {
             const wait = d.state === '判断待ち';
             const first = i === 0;

@@ -7,6 +7,7 @@ import { Composer, Pane, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Centre } from '@/components/shell/Chrome';
 import { Icon } from '@/components/ui/Icon';
 import { pressable } from '@/lib/a11y';
+import { COMPOSER_H } from '@/lib/design/tokens';
 
 /**
  * ⓪-b 候補をくらべる。**採用しなかった候補も残す**
@@ -59,7 +60,7 @@ export default function DiscoveryResultPage() {
           <Link href="/discovery" className="lnk" style={{ color: T4, fontSize: 12 }}>条件を変える</Link>
         </div>
 
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 26px 112px' }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: `20px 26px ${COMPOSER_H}px` }}>
           <span style={{ fontSize: 15, lineHeight: '25px', display: 'block', paddingBottom: 18 }}>
             条件に合う道を3つ。<b>いちばん上をおすすめします。</b>
           </span>

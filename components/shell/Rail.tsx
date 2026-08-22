@@ -97,9 +97,12 @@ export function Rail({ empty }: { empty?: boolean } = {}) {
       background: '#141414', borderRight: '1px solid #232323',
       opacity: rail ? 1 : 0, transition: `opacity ${rail ? '.2s ease .06s' : '.14s ease'}`,
     }}>
-      {/* 上は窓の印と、このレールを閉じる印だけ。会社名はパンくずの根に置いた */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 4px', height: 26 }}>
-        <Dot color="#2E2E2E" size={9} /><Dot color="#2E2E2E" size={9} /><Dot color="#2E2E2E" size={9} />
+      {/* 上はプロダクトの名前と、このレールを閉じる印だけ。会社名はパンくずの根に置いた。
+          **窓の印（丸3つ）は置かない** — ここは OS の窓ではないので、真似をしない */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 6px', height: 26 }}>
+        <span style={{ color: T1, fontSize: 13.5, letterSpacing: '0.01em', whiteSpace: 'nowrap' }}>
+          OneFound
+        </span>
         <div style={{ flex: 1 }} />
         <button onClick={() => setRail(false)} className="icob" title="左を閉じる"
                 style={{ display: 'inline-flex', padding: 4, marginRight: -2 }}>
