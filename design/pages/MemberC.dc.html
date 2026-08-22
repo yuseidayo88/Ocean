@@ -13,9 +13,12 @@
            -webkit-font-smoothing: antialiased; }
     * { font-weight: 400; box-sizing: border-box; }
     .tnum { font-variant-numeric: tabular-nums; }
-    .chip { display: inline-flex; align-items: center; height: 24px; padding: 0 9px; border-radius: 6px;
-            background: #141414; border: 1px solid #232323; color: #B8B8B8; font-size: 11.5px; }
-    .grain { display: inline-block; width: 3px; height: 12px; border-radius: 1px; }
+    .can  { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 7px;
+            background: #141414; border: 1px solid #232323; color: #B8B8B8; font-size: 12px; }
+    .add  { display: inline-flex; align-items: center; height: 26px; padding: 0 9px; border-radius: 7px;
+            border: 1px dashed #2A2A2A; color: #5F5F5F; font-size: 12px; }
+    .seg  { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 7px; font-size: 12px; }
+    .grain{ display: inline-block; width: 3px; height: 13px; border-radius: 1px; }
   </style>
 </helmet>
 
@@ -23,19 +26,19 @@
 
   <div style="padding: 26px 30px 0; display: flex; flex-direction: column; gap: 5px">
     <div style="display: flex; align-items: baseline; gap: 10px">
-      <span style="color: #669DF6; font-size: 12px">C案</span>
-      <span style="font-size: 20px">調整卓</span>
+      <span style="color: #5BB974; font-size: 12px">C案 ── 採用</span>
+      <span style="font-size: 20px">どんなAI社員がいて、どう働かせるか</span>
     </div>
     <span style="color: #6E6E6E; font-size: 13px; line-height: 21px">
-      右ペインに隠していた設定を、そのまま面に出す。<b style="color:#8B8B8B">社員を手当てする場所</b>と割り切る。<br>
-      いまは1人直すのにペインを開いて探すことになっている。
+      <b style="color:#8B8B8B">何ができる社員なのか</b>を主役にし、モデルと考えの深さはその場で回せる。<br>
+      採用ページと同じ語り口（日本語名 ＋ 1行の説明 ＋ できることタグ）に揃える ── 採る前と後で見え方が変わらない。
     </span>
   </div>
 
   <div style="height: 20px"></div>
   <div style="height: 1px; background: #1C1C1C"></div>
 
-  <div style="padding: 20px 26px 26px; display: flex; flex-direction: column; gap: 16px">
+  <div style="padding: 20px 26px 26px; display: flex; flex-direction: column; gap: 14px">
 
     <div style="display: flex; align-items: baseline; gap: 10px">
       <span style="font-size: 16px; line-height: 26px">4人。<b style="color:#FDD663">戦略担当</b>があなたの確認を待っています。</span>
@@ -43,158 +46,189 @@
       <span style="display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px; border-radius: 8px; background: #141414; border: 1px solid #262626; color: #B8B8B8; font-size: 12.5px">＋ 採用する</span>
     </div>
 
-    <!-- 1人ぶんの帯 -->
-    <div style="display: flex; align-items: center; gap: 22px; height: 84px; border-top: 1px solid #232323; padding: 0 4px">
-      <div style="width: 168px; flex-shrink: 0; display: flex; align-items: center; gap: 12px">
-        <span style="width: 32px; height: 32px; border-radius: 999px; background: radial-gradient(circle at 40% 35%, rgba(42,169,191,.9), rgba(42,169,191,.16) 62%, rgba(42,169,191,0) 72%); flex-shrink: 0"></span>
-        <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
-          <span style="font-size: 14px">調査担当</span>
-          <span style="color: #5BB974; font-size: 11.5px">実行中</span>
+    <!-- ───────── 1人ぶん ───────── -->
+    <div style="display: flex; gap: 28px; padding: 18px 4px; border-top: 1px solid #232323">
+      <div style="flex: 1; min-width: 0; display: flex; gap: 14px">
+        <span style="width: 38px; height: 38px; border-radius: 999px; flex-shrink: 0; margin-top: 1px; background: radial-gradient(circle at 40% 35%, rgba(42,169,191,.9), rgba(42,169,191,.16) 62%, rgba(42,169,191,0) 72%)"></span>
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 9px">
+          <div style="display: flex; align-items: baseline; gap: 10px">
+            <span style="font-size: 16px">調査担当</span>
+            <span style="color: #4A4A4A; font-size: 11.5px">Research Analyst</span>
+            <span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 6px; height: 6px; border-radius: 9px; background: #1E8E3E"></span><span style="color: #5BB974; font-size: 12px">実行中</span></span>
+          </div>
+          <span style="color: #B8B8B8; font-size: 13.5px; line-height: 21px">調べて、事実にして積みます。数字には必ず出典を付けます。</span>
+          <div style="display: flex; align-items: center; gap: 7px; flex-wrap: wrap; padding-top: 2px">
+            <span style="color: #5F5F5F; font-size: 11px; margin-right: 3px">できること</span>
+            <span class="can">競合を並べて比べる</span>
+            <span class="can">市場の大きさを見積もる</span>
+            <span class="can">価格の帯を調べる</span>
+            <span class="add">＋</span>
+          </div>
         </div>
       </div>
-      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px">
-        <span style="color: #5F5F5F; font-size: 11px">知っていること <span class="tnum">3</span></span>
-        <div style="display: flex; gap: 6px; flex-wrap: wrap">
-          <span class="chip">競合を並べて比べる</span>
-          <span class="chip">市場の大きさ</span>
-          <span class="chip" style="color: #6E6E6E">出典の付け方</span>
-          <span class="chip" style="border-style: dashed; color: #5F5F5F">＋</span>
+      <div style="width: 300px; flex-shrink: 0; display: flex; flex-direction: column; gap: 13px; padding-top: 2px">
+        <div style="display: flex; align-items: center; gap: 10px">
+          <span style="width: 62px; flex-shrink: 0; color: #5F5F5F; font-size: 11px">モデル</span>
+          <span style="display: inline-flex; padding: 2px; border-radius: 9px; background: #141414; border: 1px solid #232323">
+            <span class="seg" style="background: #262626; color: #EDEDED">自動</span>
+            <span class="seg" style="color: #6E6E6E">手動</span>
+          </span>
+          <span style="color: #6E6E6E; font-size: 12px">標準</span>
         </div>
-      </div>
-      <div style="width: 96px; flex-shrink: 0; display: flex; flex-direction: column; gap: 7px">
-        <span style="color: #5F5F5F; font-size: 11px">守ること</span>
-        <span style="color: #B8B8B8; font-size: 12.5px"><span class="tnum">3</span>つ</span>
-      </div>
-      <div style="width: 108px; flex-shrink: 0; display: flex; flex-direction: column; gap: 7px">
-        <span style="color: #5F5F5F; font-size: 11px">モデル</span>
-        <span style="color: #B8B8B8; font-size: 12.5px">自動 · 標準</span>
-      </div>
-      <div style="width: 132px; flex-shrink: 0; display: flex; flex-direction: column; gap: 8px">
-        <span style="color: #5F5F5F; font-size: 11px">考えの深さ</span>
-        <span style="display: flex; align-items: center; gap: 2px">
-          <span class="grain" style="background:#3A3A3A"></span><span class="grain" style="background:#4A4A4A"></span><span class="grain" style="background:#5A5A5A"></span>
-          <span class="grain" style="background:#EDEDED"></span>
-          <span class="grain" style="background:#242424"></span><span class="grain" style="background:#202020"></span><span class="grain" style="background:#1C1C1C"></span><span class="grain" style="background:#1A1A1A"></span>
-        </span>
+        <div style="display: flex; align-items: center; gap: 10px">
+          <span style="width: 62px; flex-shrink: 0; color: #5F5F5F; font-size: 11px">考えの深さ</span>
+          <span style="display: flex; align-items: center; gap: 2px">
+            <span class="grain" style="background:#3A3A3A"></span><span class="grain" style="background:#464646"></span><span class="grain" style="background:#525252"></span>
+            <span class="grain" style="background:#EDEDED; height:17px"></span>
+            <span class="grain" style="background:#242424"></span><span class="grain" style="background:#202020"></span><span class="grain" style="background:#1C1C1C"></span><span class="grain" style="background:#1A1A1A"></span><span class="grain" style="background:#181818"></span>
+          </span>
+          <span style="color: #6E6E6E; font-size: 12px">中</span>
+        </div>
       </div>
     </div>
 
-    <div style="display: flex; align-items: center; gap: 22px; height: 84px; border-top: 1px solid #161616; padding: 0 4px; background: rgba(227,116,0,.05); border-radius: 8px; margin: 0 -4px">
-      <div style="width: 168px; flex-shrink: 0; display: flex; align-items: center; gap: 12px">
-        <span style="width: 32px; height: 32px; border-radius: 999px; background: radial-gradient(circle at 40% 35%, rgba(154,92,208,.9), rgba(154,92,208,.16) 62%, rgba(154,92,208,0) 72%); flex-shrink: 0"></span>
-        <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
-          <span style="font-size: 14px">戦略担当</span>
-          <span style="color: #FDD663; font-size: 11.5px">要確認</span>
+    <!-- ───────── 要確認の1人 ───────── -->
+    <div style="display: flex; gap: 28px; padding: 18px 10px; border-top: 1px solid #161616; background: rgba(227,116,0,.05); border-radius: 10px; margin: 0 -6px">
+      <div style="flex: 1; min-width: 0; display: flex; gap: 14px">
+        <span style="width: 38px; height: 38px; border-radius: 999px; flex-shrink: 0; margin-top: 1px; background: radial-gradient(circle at 40% 35%, rgba(154,92,208,.9), rgba(154,92,208,.16) 62%, rgba(154,92,208,0) 72%)"></span>
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 9px">
+          <div style="display: flex; align-items: baseline; gap: 10px">
+            <span style="font-size: 16px">戦略担当</span>
+            <span style="color: #4A4A4A; font-size: 11.5px">Revenue Strategist</span>
+            <span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 6px; height: 6px; border-radius: 9px; background: #E37400"></span><span style="color: #FDD663; font-size: 12px">要確認</span></span>
+            <div style="flex: 1"></div>
+            <span style="display:inline-flex;align-items:center;height:28px;padding:0 13px;border-radius:8px;background:#E37400;color:#fff;font-size:12.5px">見て決める</span>
+          </div>
+          <span style="color: #B8B8B8; font-size: 13.5px; line-height: 21px">いくらで売るかを決めます。損益と継続率で案を比べ、理由を書きます。</span>
+          <div style="display: flex; align-items: center; gap: 7px; flex-wrap: wrap; padding-top: 2px">
+            <span style="color: #5F5F5F; font-size: 11px; margin-right: 3px">できること</span>
+            <span class="can">価格の帯を調べる</span>
+            <span class="can">損益を計算する</span>
+            <span class="add">＋</span>
+          </div>
         </div>
       </div>
-      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px">
-        <span style="color: #5F5F5F; font-size: 11px">知っていること <span class="tnum">2</span></span>
-        <div style="display: flex; gap: 6px; flex-wrap: wrap">
-          <span class="chip">価格の帯を調べる</span>
-          <span class="chip" style="color: #6E6E6E">出典の付け方</span>
-          <span class="chip" style="border-style: dashed; color: #5F5F5F">＋</span>
+      <div style="width: 300px; flex-shrink: 0; display: flex; flex-direction: column; gap: 13px; padding-top: 2px">
+        <div style="display: flex; align-items: center; gap: 10px">
+          <span style="width: 62px; flex-shrink: 0; color: #5F5F5F; font-size: 11px">モデル</span>
+          <span style="display: inline-flex; padding: 2px; border-radius: 9px; background: #141414; border: 1px solid #232323">
+            <span class="seg" style="color: #6E6E6E">自動</span>
+            <span class="seg" style="background: #262626; color: #EDEDED">手動</span>
+          </span>
+          <span style="color: #B8B8B8; font-size: 12px">高精度</span>
         </div>
-      </div>
-      <div style="width: 96px; flex-shrink: 0; display: flex; flex-direction: column; gap: 7px">
-        <span style="color: #5F5F5F; font-size: 11px">守ること</span>
-        <span style="color: #B8B8B8; font-size: 12.5px"><span class="tnum">3</span>つ</span>
-      </div>
-      <div style="width: 108px; flex-shrink: 0; display: flex; flex-direction: column; gap: 7px">
-        <span style="color: #5F5F5F; font-size: 11px">モデル</span>
-        <span style="color: #B8B8B8; font-size: 12.5px">手動 · 高精度</span>
-      </div>
-      <div style="width: 132px; flex-shrink: 0; display: flex; flex-direction: column; gap: 8px">
-        <span style="color: #5F5F5F; font-size: 11px">考えの深さ</span>
-        <span style="display: flex; align-items: center; gap: 2px">
-          <span class="grain" style="background:#3A3A3A"></span><span class="grain" style="background:#4A4A4A"></span><span class="grain" style="background:#5A5A5A"></span><span class="grain" style="background:#6A6A6A"></span><span class="grain" style="background:#7A7A7A"></span><span class="grain" style="background:#8A8A8A"></span>
-          <span class="grain" style="background:#EDEDED"></span>
-          <span class="grain" style="background:#1A1A1A"></span>
-        </span>
+        <div style="display: flex; align-items: center; gap: 10px">
+          <span style="width: 62px; flex-shrink: 0; color: #5F5F5F; font-size: 11px">考えの深さ</span>
+          <span style="display: flex; align-items: center; gap: 2px">
+            <span class="grain" style="background:#3A3A3A"></span><span class="grain" style="background:#464646"></span><span class="grain" style="background:#525252"></span><span class="grain" style="background:#5E5E5E"></span><span class="grain" style="background:#6A6A6A"></span><span class="grain" style="background:#7A7A7A"></span>
+            <span class="grain" style="background:#EDEDED; height:17px"></span>
+            <span class="grain" style="background:#1C1C1C"></span><span class="grain" style="background:#1A1A1A"></span>
+          </span>
+          <span style="color: #6E6E6E; font-size: 12px">深い</span>
+        </div>
       </div>
     </div>
 
-    <div style="display: flex; align-items: center; gap: 22px; height: 84px; border-top: 1px solid #161616; padding: 0 4px">
-      <div style="width: 168px; flex-shrink: 0; display: flex; align-items: center; gap: 12px">
-        <span style="width: 32px; height: 32px; border-radius: 999px; background: radial-gradient(circle at 40% 35%, rgba(52,168,83,.9), rgba(52,168,83,.16) 62%, rgba(52,168,83,0) 72%); flex-shrink: 0"></span>
-        <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
-          <span style="font-size: 14px">開発担当</span>
-          <span style="color: #5BB974; font-size: 11.5px">実行中</span>
+    <!-- ───────── ───────── -->
+    <div style="display: flex; gap: 28px; padding: 18px 4px; border-top: 1px solid #161616">
+      <div style="flex: 1; min-width: 0; display: flex; gap: 14px">
+        <span style="width: 38px; height: 38px; border-radius: 999px; flex-shrink: 0; margin-top: 1px; background: radial-gradient(circle at 40% 35%, rgba(52,168,83,.9), rgba(52,168,83,.16) 62%, rgba(52,168,83,0) 72%)"></span>
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 9px">
+          <div style="display: flex; align-items: baseline; gap: 10px">
+            <span style="font-size: 16px">開発担当</span>
+            <span style="color: #4A4A4A; font-size: 11.5px">Full-stack Engineer</span>
+            <span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 6px; height: 6px; border-radius: 9px; background: #1E8E3E"></span><span style="color: #5BB974; font-size: 12px">実行中</span></span>
+          </div>
+          <span style="color: #B8B8B8; font-size: 13.5px; line-height: 21px">画面と裏側を作ります。書いたら必ずテストを通してから渡します。</span>
+          <div style="display: flex; align-items: center; gap: 7px; flex-wrap: wrap; padding-top: 2px">
+            <span style="color: #5F5F5F; font-size: 11px; margin-right: 3px">できること</span>
+            <span class="can">フォームを実装する</span>
+            <span class="can">テストを書く</span>
+            <span class="can">LPを組む</span>
+            <span class="add">＋</span>
+          </div>
         </div>
       </div>
-      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px">
-        <span style="color: #5F5F5F; font-size: 11px">知っていること <span class="tnum">2</span></span>
-        <div style="display: flex; gap: 6px; flex-wrap: wrap">
-          <span class="chip">フォームを実装する</span>
-          <span class="chip" style="color: #6E6E6E">出典の付け方</span>
-          <span class="chip" style="border-style: dashed; color: #5F5F5F">＋</span>
+      <div style="width: 300px; flex-shrink: 0; display: flex; flex-direction: column; gap: 13px; padding-top: 2px">
+        <div style="display: flex; align-items: center; gap: 10px">
+          <span style="width: 62px; flex-shrink: 0; color: #5F5F5F; font-size: 11px">モデル</span>
+          <span style="display: inline-flex; padding: 2px; border-radius: 9px; background: #141414; border: 1px solid #232323">
+            <span class="seg" style="background: #262626; color: #EDEDED">自動</span>
+            <span class="seg" style="color: #6E6E6E">手動</span>
+          </span>
+          <span style="color: #6E6E6E; font-size: 12px">高精度</span>
         </div>
-      </div>
-      <div style="width: 96px; flex-shrink: 0; display: flex; flex-direction: column; gap: 7px">
-        <span style="color: #5F5F5F; font-size: 11px">守ること</span>
-        <span style="color: #B8B8B8; font-size: 12.5px"><span class="tnum">4</span>つ</span>
-      </div>
-      <div style="width: 108px; flex-shrink: 0; display: flex; flex-direction: column; gap: 7px">
-        <span style="color: #5F5F5F; font-size: 11px">モデル</span>
-        <span style="color: #B8B8B8; font-size: 12.5px">自動 · 高精度</span>
-      </div>
-      <div style="width: 132px; flex-shrink: 0; display: flex; flex-direction: column; gap: 8px">
-        <span style="color: #5F5F5F; font-size: 11px">考えの深さ</span>
-        <span style="display: flex; align-items: center; gap: 2px">
-          <span class="grain" style="background:#3A3A3A"></span><span class="grain" style="background:#4A4A4A"></span><span class="grain" style="background:#5A5A5A"></span><span class="grain" style="background:#6A6A6A"></span><span class="grain" style="background:#7A7A7A"></span>
-          <span class="grain" style="background:#EDEDED"></span>
-          <span class="grain" style="background:#1C1C1C"></span><span class="grain" style="background:#1A1A1A"></span>
-        </span>
+        <div style="display: flex; align-items: center; gap: 10px">
+          <span style="width: 62px; flex-shrink: 0; color: #5F5F5F; font-size: 11px">考えの深さ</span>
+          <span style="display: flex; align-items: center; gap: 2px">
+            <span class="grain" style="background:#3A3A3A"></span><span class="grain" style="background:#464646"></span><span class="grain" style="background:#525252"></span><span class="grain" style="background:#5E5E5E"></span><span class="grain" style="background:#6A6A6A"></span>
+            <span class="grain" style="background:#EDEDED; height:17px"></span>
+            <span class="grain" style="background:#202020"></span><span class="grain" style="background:#1C1C1C"></span><span class="grain" style="background:#1A1A1A"></span>
+          </span>
+          <span style="color: #6E6E6E; font-size: 12px">やや深い</span>
+        </div>
       </div>
     </div>
 
-    <div style="display: flex; align-items: center; gap: 22px; height: 84px; border-top: 1px solid #161616; border-bottom: 1px solid #161616; padding: 0 4px">
-      <div style="width: 168px; flex-shrink: 0; display: flex; align-items: center; gap: 12px">
-        <span style="width: 32px; height: 32px; border-radius: 999px; background: radial-gradient(circle at 40% 35%, rgba(92,107,192,.9), rgba(92,107,192,.16) 62%, rgba(92,107,192,0) 72%); flex-shrink: 0"></span>
-        <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
-          <span style="font-size: 14px">企画担当</span>
-          <span style="color: #5BB974; font-size: 11.5px">実行中</span>
+    <!-- ───────── ───────── -->
+    <div style="display: flex; gap: 28px; padding: 18px 4px; border-top: 1px solid #161616; border-bottom: 1px solid #161616">
+      <div style="flex: 1; min-width: 0; display: flex; gap: 14px">
+        <span style="width: 38px; height: 38px; border-radius: 999px; flex-shrink: 0; margin-top: 1px; background: radial-gradient(circle at 40% 35%, rgba(92,107,192,.9), rgba(92,107,192,.16) 62%, rgba(92,107,192,0) 72%)"></span>
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 9px">
+          <div style="display: flex; align-items: baseline; gap: 10px">
+            <span style="font-size: 16px">企画担当</span>
+            <span style="color: #4A4A4A; font-size: 11.5px">Product Planner</span>
+            <span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 6px; height: 6px; border-radius: 9px; background: #1E8E3E"></span><span style="color: #5BB974; font-size: 12px">実行中</span></span>
+          </div>
+          <span style="color: #B8B8B8; font-size: 13.5px; line-height: 21px">やることを決めて、作れる形にします。何を作らないかも書きます。</span>
+          <div style="display: flex; align-items: center; gap: 7px; flex-wrap: wrap; padding-top: 2px">
+            <span style="color: #5F5F5F; font-size: 11px; margin-right: 3px">できること</span>
+            <span class="can">要件を仕様に落とす</span>
+            <span class="can">投稿の型を作る</span>
+            <span class="add">＋</span>
+          </div>
         </div>
       </div>
-      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px">
-        <span style="color: #5F5F5F; font-size: 11px">知っていること <span class="tnum">2</span></span>
-        <div style="display: flex; gap: 6px; flex-wrap: wrap">
-          <span class="chip">要件を仕様に落とす</span>
-          <span class="chip" style="color: #6E6E6E">出典の付け方</span>
-          <span class="chip" style="border-style: dashed; color: #5F5F5F">＋</span>
+      <div style="width: 300px; flex-shrink: 0; display: flex; flex-direction: column; gap: 13px; padding-top: 2px">
+        <div style="display: flex; align-items: center; gap: 10px">
+          <span style="width: 62px; flex-shrink: 0; color: #5F5F5F; font-size: 11px">モデル</span>
+          <span style="display: inline-flex; padding: 2px; border-radius: 9px; background: #141414; border: 1px solid #232323">
+            <span class="seg" style="background: #262626; color: #EDEDED">自動</span>
+            <span class="seg" style="color: #6E6E6E">手動</span>
+          </span>
+          <span style="color: #6E6E6E; font-size: 12px">標準</span>
         </div>
-      </div>
-      <div style="width: 96px; flex-shrink: 0; display: flex; flex-direction: column; gap: 7px">
-        <span style="color: #5F5F5F; font-size: 11px">守ること</span>
-        <span style="color: #B8B8B8; font-size: 12.5px"><span class="tnum">3</span>つ</span>
-      </div>
-      <div style="width: 108px; flex-shrink: 0; display: flex; flex-direction: column; gap: 7px">
-        <span style="color: #5F5F5F; font-size: 11px">モデル</span>
-        <span style="color: #B8B8B8; font-size: 12.5px">自動 · 標準</span>
-      </div>
-      <div style="width: 132px; flex-shrink: 0; display: flex; flex-direction: column; gap: 8px">
-        <span style="color: #5F5F5F; font-size: 11px">考えの深さ</span>
-        <span style="display: flex; align-items: center; gap: 2px">
-          <span class="grain" style="background:#3A3A3A"></span><span class="grain" style="background:#4A4A4A"></span>
-          <span class="grain" style="background:#EDEDED"></span>
-          <span class="grain" style="background:#242424"></span><span class="grain" style="background:#202020"></span><span class="grain" style="background:#1C1C1C"></span><span class="grain" style="background:#1A1A1A"></span><span class="grain" style="background:#181818"></span>
-        </span>
+        <div style="display: flex; align-items: center; gap: 10px">
+          <span style="width: 62px; flex-shrink: 0; color: #5F5F5F; font-size: 11px">考えの深さ</span>
+          <span style="display: flex; align-items: center; gap: 2px">
+            <span class="grain" style="background:#3A3A3A"></span><span class="grain" style="background:#464646"></span>
+            <span class="grain" style="background:#EDEDED; height:17px"></span>
+            <span class="grain" style="background:#242424"></span><span class="grain" style="background:#202020"></span><span class="grain" style="background:#1E1E1E"></span><span class="grain" style="background:#1C1C1C"></span><span class="grain" style="background:#1A1A1A"></span><span class="grain" style="background:#181818"></span>
+          </span>
+          <span style="color: #6E6E6E; font-size: 12px">速い</span>
+        </div>
       </div>
     </div>
 
-    <div style="display: flex; flex-direction: column; gap: 12px; padding-top: 12px">
-      <span style="color: #8B8B8B; font-size: 13px">会社ぜんぶに効くこと</span>
-      <div style="display: flex; gap: 8px; flex-wrap: wrap">
-        <span class="chip" style="height: 28px">出典の付け方</span>
-        <span class="chip" style="height: 28px; color: #5F5F5F; border-style: dashed">会社の言葉づかい · 切ってあります</span>
-        <span class="chip" style="height: 28px; border-style: dashed; color: #5F5F5F">＋ 足す</span>
-      </div>
+    <!-- 会社ぜんぶ -->
+    <div style="display: flex; align-items: center; gap: 10px; padding: 4px 4px 0">
+      <span style="color: #5F5F5F; font-size: 11px; margin-right: 3px">全員に効くこと</span>
+      <span class="can">出典の付け方</span>
+      <span class="can" style="color: #5F5F5F; border-style: dashed">会社の言葉づかい · 切ってあります</span>
+      <span class="add">＋</span>
+      <div style="flex: 1"></div>
+      <span style="color: #4A4A4A; font-size: 12px">守らせていること（ルール）は、社員を選ぶと右に出ます</span>
     </div>
 
-    <div style="display: flex; align-items: center; gap: 14px; border-radius: 12px; border: 1px dashed #262626; padding: 15px 16px; margin-top: 6px">
-      <span style="width: 30px; height: 30px; border-radius: 999px; background: radial-gradient(circle at 40% 35%, rgba(42,169,191,.55), rgba(42,169,191,.10) 62%, rgba(42,169,191,0) 72%); flex-shrink: 0"></span>
-      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
-        <span style="font-size: 13.5px">執筆担当</span>
-        <span style="color: #6E6E6E; font-size: 12px">フェーズ3の記事とLPの文章を書ける社員がいません</span>
+    <!-- 足りない役割 -->
+    <div style="display: flex; align-items: center; gap: 14px; border-radius: 12px; border: 1px dashed #262626; padding: 15px 16px; margin-top: 10px">
+      <span style="width: 32px; height: 32px; border-radius: 999px; background: radial-gradient(circle at 40% 35%, rgba(42,169,191,.55), rgba(42,169,191,.10) 62%, rgba(42,169,191,0) 72%); flex-shrink: 0"></span>
+      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+        <div style="display: flex; align-items: baseline; gap: 9px">
+          <span style="font-size: 14px">執筆担当</span>
+          <span style="color: #4A4A4A; font-size: 11.5px">Content Writer</span>
+        </div>
+        <span style="color: #6E6E6E; font-size: 12.5px">調べたことを、読める文章にします ── フェーズ3の記事とLPで要ります</span>
       </div>
       <span style="display:inline-flex;align-items:center;height:30px;padding:0 14px;border-radius:8px;background:#1A73E8;color:#fff;font-size:12.5px;flex-shrink:0">採用する</span>
     </div>
@@ -202,10 +236,10 @@
 
   <div style="height: 1px; background: #1C1C1C"></div>
   <div style="padding: 16px 30px 22px; display: flex; gap: 26px">
-    <span style="color: #5BB974; font-size: 12px; flex-shrink: 0; width: 62px">よい点</span>
-    <span style="color: #8B8B8B; font-size: 12.5px; line-height: 20px; flex: 1">4人ぶんの設定が<b style="color:#B8B8B8">同時に見えて、その場で直せる</b>。「開発担当だけ深く考えさせる」のような調整が、ペインを開かずに1画面で終わる。</span>
-    <span style="color: #FDD663; font-size: 12px; flex-shrink: 0; width: 62px">引き換え</span>
-    <span style="color: #8B8B8B; font-size: 12.5px; line-height: 20px; width: 268px">設定画面になる。「会社として何ができるか」は読み取れない。1人 84px なので、8人で画面が埋まる。右ペインの設定と役割が重なる。</span>
+    <span style="color: #5BB974; font-size: 12px; flex-shrink: 0; width: 62px">変えた点</span>
+    <span style="color: #8B8B8B; font-size: 12.5px; line-height: 20px; flex: 1"><b style="color:#B8B8B8">「守ること」を面から外して詳細へ。</b>代わりに<b style="color:#B8B8B8">どんなAI社員か</b>を主役にした ── 日本語名 ＋ 英語名（小） ＋ 1行の説明 ＋ できることタグ。<b style="color:#B8B8B8">採用ページと同じ語り口</b>なので、採る前と後で見え方が変わらない。「いま何をしているか」は載せない（デスクの仕事）。</span>
+    <span style="color: #FDD663; font-size: 12px; flex-shrink: 0; width: 62px">要る作業</span>
+    <span style="color: #8B8B8B; font-size: 12.5px; line-height: 20px; width: 268px">在籍社員にも `en` / `lead` / `can` を持たせる（いまは採用候補にしか無い）。1人 116px なので、7人で画面が埋まる。</span>
   </div>
 </div>
 </x-dc>
