@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 const PUBLIC = ['/login', '/auth', '/api/health', '/_next', '/favicon.ico']
+const isPublic = (r: NextRequest) => PUBLIC.some((p) => r.nextUrl.pathname.startsWith(p))
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request })
@@ -15,8 +16,12 @@ export async function middleware(request: NextRequest) {
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  // 未設定のうちは素通し（Phase 3 の途中でも画面が見られるように）
-  if (!url || !key) return response
+  // 未設定のうちは素通し（Phase 3 の途中でも画面が見られるように）。
+  // **本番では素通ししない。** 設定漏れで全部が開くほうが危ない
+  if (!url || !key) {
+    if (process.env.APP_ENV !== 'production') return response
+    return isPublic(request) ? response : NextResponse.redirect(new URL('/login', request.url))
+  }
 
   const supabase = createServerClient(url, key, {
     cookies: {
@@ -30,11 +35,8 @@ export async function middleware(request: NextRequest) {
   })
 
   const { data: { user } } = await supabase.auth.getUser()
-  const path = request.nextUrl.pathname
-  if (!user && !PUBLIC.some((p) => path.startsWith(p))) {
-    const to = request.nextUrl.clone()
-    to.pathname = '/login'
-    return NextResponse.redirect(to)
+  if (!user && !isPublic(request)) {
+    return NextResponse.redirect(new URL('/login', request.url))
   }
   return response
 }

@@ -13,21 +13,40 @@ npm run dev              # http://localhost:3000
 ## Cloudflare Workers の上で動かす
 
 ```bash
-npm run cf:build         # OpenNext で .open-next/worker.js を作る
-npx wrangler dev --local # workerd の上で動かす
+npm run cf:build                          # OpenNext で .open-next/worker.js を作る
+npx wrangler dev --local                  # 本番と同じ設定で workerd の上に載せる
+npx wrangler dev --local --env preview    # レビュー用（ダミーで全画面）
 ```
 
 `wrangler dev` は `.env.local` を読みません。**`.dev.vars` に同じものを置きます。**
 
 `/api/health` で土台の状態が見られます。
 
+### Worker は2本
+
+| | 名前 | vars | 中身 |
+|---|---|---|---|
+| 本番 | `onefound` | `APP_ENV=production` | ログインが要る |
+| レビュー | `onefound-preview` | `APP_ENV=preview` `DEMO_MODE=1` | ダミーで全画面 |
+
+```bash
+npm run cf:deploy           # 本番
+npm run cf:deploy:preview   # レビュー用
+```
+
+**デプロイには Cloudflare の API トークンが要ります**（`CLOUDFLARE_API_TOKEN`。
+テンプレートは "Edit Cloudflare Workers"）。いまの開発環境からは `api.cloudflare.com` に
+出られないので（プロキシが 403 を返す）、**デプロイは手もとか CI から**打ちます。
+ビルドと workerd 上での動作確認はここでできています。
+
 ## ダミーデータで全画面を見る（Phase 4）
 
-レビュー用のプレビュー: https://onefound-yuseidayo88-3854s-projects.vercel.app
+いま見られるプレビュー: https://onefound-yuseidayo88-3854s-projects.vercel.app
 
 **中身はダミーで、押しても書き込みはどこにも届きません。**
-本番の行き先は Cloudflare Workers のままで、ここは静止画の代わりです。
-ブランチに push すると作り直されます（Vercel プロジェクト `onefound`）。
+ブランチに push すると作り直されます（Vercel プロジェクト `onefound`・環境変数なし）。
+**本番の行き先は Cloudflare Workers**（→ `docs/design/05-tech-and-cost.md` の判断ログ）。
+Cloudflare のトークンが入るまでは、ここが静止画の代わりです。
 
 ログインを通さずに全画面を触るには `DEMO_MODE=1` を立てます。
 
