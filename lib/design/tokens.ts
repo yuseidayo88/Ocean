@@ -1,0 +1,33 @@
+/**
+ * デザイントークン — design/canvas/DesignSystem.dc.html の確定値。
+ * 画面のCSSは globals.css の変数を使う。ここは TS から参照したいとき用。
+ */
+export const color = {
+  ground: '#000000',   // 背景は純黒
+  rail:   '#141414',   // 明るい面は左レールだけ
+  card:   '#0E0E0E',
+  line:   '#232323',   // 境界
+  hair:   '#161616',   // 並ぶものを区切るヘアライン
+
+  blue:   '#1A73E8',   // 次に押すもの（1ペインに1つ）
+  green:  '#1E8E3E',   // 済んだ・推奨
+  amber:  '#E37400',   // 判断待ち・要確認
+  red:    '#D93025',   // やめる・超過
+
+  blueText:  '#669DF6',
+  greenText: '#5BB974',
+  amberText: '#FDD663',
+  redText:   '#F28B82',
+
+  t1: '#EDEDED', t2: '#B8B8B8', t3: '#8B8B8B', t4: '#6E6E6E', t5: '#5F5F5F',
+} as const
+
+/** AI社員の色。オフィスと進捗の可視化だけに使う（表・リスト・ピルには出さない） */
+export const agentColor = {
+  cyan: '#2AA9BF', purple: '#9A5CD0', indigo: '#5C6BC0', green: '#34A853',
+} as const
+
+export const radius = { row: 8, card: 12, input: 14, composer: 18, round: 999 } as const
+
+/** 浮いた入力欄の高さ。下に貼り付く中身はこのぶん逃がす */
+export const COMPOSER_H = 112

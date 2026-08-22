@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "onefound",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-08-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "observability": { "enabled": true },
+
+  // Phase 7 以降で使う。いまは宣言だけしておく
+  // "durable_objects": { "bindings": [{ "name": "RUN", "class_name": "AgentRun" }] },
+  // "queues": { "producers": [{ "queue": "onefound-tasks", "binding": "TASKS" }] },
+  // "r2_buckets": [{ "binding": "ARTIFACTS", "bucket_name": "onefound-artifacts" }],
+
+  "vars": { "APP_ENV": "development" }
+}
