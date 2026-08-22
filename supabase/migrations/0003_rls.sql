@@ -1,5 +1,19 @@
 -- RLS — テナント表はすべて account_id で絞る。
 -- ここを1か所にまとめてあるのは、表を足したときに書き忘れないため。
+--
+-- RLS の裏方は private スキーマに置く。PostgREST に公開されないので
+-- /rest/v1/rpc から呼ばれない（SECURITY DEFINER を外に晒さない）。
+
+create schema if not exists private;
+revoke all on schema private from anon, authenticated;
+grant usage on schema private to authenticated;
+
+create or replace function private.current_account_id() returns uuid
+language sql stable security definer set search_path = public, pg_temp as $$
+  select account_id from users where id = auth.uid()
+$$;
+revoke all on function private.current_account_id() from public, anon;
+grant execute on function private.current_account_id() to authenticated;
 
 do $$
 declare t text;
@@ -20,9 +34,9 @@ end $$;
 
 -- accounts / users は自分のぶんだけ
 create policy account_self on accounts
-  for select using (id = current_account_id());
+  for select using (id = private.current_account_id());
 create policy users_same_account on users
-  for select using (account_id = current_account_id());
+  for select using (account_id = private.current_account_id());
 create policy users_update_self on users
   for update using (id = auth.uid()) with check (id = auth.uid());
 
@@ -39,8 +53,8 @@ begin
     'hire_candidates','notifications','token_ledger','audit_events'
   ] loop
     execute format(
-      'create policy %I on %I for all using (account_id = current_account_id())
-         with check (account_id = current_account_id())', t || '_tenant', t);
+      'create policy %I on %I for all using (account_id = private.current_account_id())
+         with check (account_id = private.current_account_id())', t || '_tenant', t);
   end loop;
 end $$;
 
@@ -50,18 +64,19 @@ alter table deliverable_inputs enable row level security;
 alter table decision_refs      enable row level security;
 
 create policy task_deps_tenant on task_deps for all
-  using (exists (select 1 from tasks x where x.id = task_id and x.account_id = current_account_id()))
-  with check (exists (select 1 from tasks x where x.id = task_id and x.account_id = current_account_id()));
+  using (exists (select 1 from tasks x where x.id = task_id and x.account_id = private.current_account_id()))
+  with check (exists (select 1 from tasks x where x.id = task_id and x.account_id = private.current_account_id()));
 
 create policy deliverable_inputs_tenant on deliverable_inputs for all
-  using (exists (select 1 from deliverables d where d.id = deliverable_id and d.account_id = current_account_id()))
-  with check (exists (select 1 from deliverables d where d.id = deliverable_id and d.account_id = current_account_id()));
+  using (exists (select 1 from deliverables d where d.id = deliverable_id and d.account_id = private.current_account_id()))
+  with check (exists (select 1 from deliverables d where d.id = deliverable_id and d.account_id = private.current_account_id()));
 
 create policy decision_refs_tenant on decision_refs for all
-  using (exists (select 1 from decisions d where d.id = decision_id and d.account_id = current_account_id()))
-  with check (exists (select 1 from decisions d where d.id = decision_id and d.account_id = current_account_id()));
+  using (exists (select 1 from decisions d where d.id = decision_id and d.account_id = private.current_account_id()))
+  with check (exists (select 1 from decisions d where d.id = decision_id and d.account_id = private.current_account_id()));
 
 -- 残高・実行の記録・監査は社長に書かせない（不変条件 1 / 2 / 5）。書くのはバックエンドだけ
+revoke delete on discovery_candidates from authenticated, anon;  -- 不変条件 9
 revoke insert, update, delete on token_ledger from authenticated;
 revoke insert, update, delete on run_steps    from authenticated;
 revoke insert, update, delete on audit_events from authenticated;
@@ -70,7 +85,7 @@ revoke insert, update, delete on audit_events from authenticated;
 -- 列単位の revoke は表単位の update 権限があると効かないので、トリガで止める。
 -- バックエンドだけが onefound.backend = 'on' を立てて書ける。
 create or replace function tasks_progress_is_derived() returns trigger
-language plpgsql as $$
+language plpgsql set search_path = public, pg_temp as $$
 begin
   if new.progress is distinct from old.progress
      and coalesce(current_setting('onefound.backend', true), 'off') <> 'on' then
@@ -82,8 +97,8 @@ create trigger tasks_progress_is_derived before update on tasks
   for each row execute function tasks_progress_is_derived();
 
 -- サインアップで会社と自分の行を1つずつ作る
-create or replace function handle_new_user() returns trigger
-language plpgsql security definer set search_path = public as $$
+create or replace function private.handle_new_user() returns trigger
+language plpgsql security definer set search_path = public, pg_temp as $$
 declare a uuid;
 begin
   insert into accounts (name) values (coalesce(new.email, 'あなたの会社')) returning id into a;
@@ -92,6 +107,22 @@ begin
     values (a, 500, 'grant');            -- 7日トライアルの初期枠（$5.00）
   return new;
 end $$;
+revoke all on function private.handle_new_user() from public, anon, authenticated;
 
 create trigger on_auth_user_created
-  after insert on auth.users for each row execute function handle_new_user();
+  after insert on auth.users for each row execute function private.handle_new_user();
+
+-- 退会したらデータも消える。
+-- accounts は users の親なので cascade では消えない。人がいなくなったら会社ごと落とす
+create or replace function private.drop_empty_account() returns trigger
+language plpgsql security definer set search_path = public, pg_temp as $$
+begin
+  if not exists (select 1 from users where account_id = old.account_id) then
+    delete from accounts where id = old.account_id;
+  end if;
+  return old;
+end $$;
+revoke all on function private.drop_empty_account() from public, anon, authenticated;
+
+create trigger users_drop_empty_account
+  after delete on users for each row execute function private.drop_empty_account();

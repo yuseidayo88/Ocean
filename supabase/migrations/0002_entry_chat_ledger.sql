@@ -27,9 +27,9 @@ create table discovery_candidates (
   created_at      timestamptz not null default now()
 );
 create index on discovery_candidates (account_id, session_id);
--- 不変条件 9: 候補は消さない
-create rule discovery_candidates_no_delete as
-  on delete to discovery_candidates do instead nothing;
+-- 不変条件 9: 候補は消さない。
+-- rule で止めると accounts の on delete cascade まで壊れて退会できなくなるので、
+-- 「アプリと社長が消せない」を権限で表す（0003 で revoke する）。
 
 -- ════════════════════════ 入口 — すでに事業がある人 ════════════════════════
 
@@ -153,7 +153,7 @@ create table token_ledger (
 create index on token_ledger (account_id, created_at);
 
 create or replace function account_balance_cents(a uuid) returns bigint
-language sql stable as $$
+language sql stable set search_path = public, pg_temp as $$
   select coalesce(sum(delta_cents), 0) from token_ledger where account_id = a
 $$;
 

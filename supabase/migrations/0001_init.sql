@@ -33,12 +33,6 @@ create table users (
 );
 create index on users (account_id);
 
--- ログイン中のユーザーの会社。RLS から呼ぶ
-create or replace function current_account_id() returns uuid
-language sql stable security definer set search_path = public as $$
-  select account_id from users where id = auth.uid()
-$$;
-
 -- ════════════════════════ Work / フェーズ / タスク ════════════════════════
 
 create table works (
@@ -251,7 +245,7 @@ create table decision_refs (
 
 -- 不変条件 3: decisions は書き換えない。open→decided と decided→superseded だけ許す
 create or replace function decisions_append_only() returns trigger
-language plpgsql as $$
+language plpgsql set search_path = public, pg_temp as $$
 begin
   if old.question is distinct from new.question
      or old.options  is distinct from new.options
