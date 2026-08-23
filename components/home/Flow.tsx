@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Orb } from '@/components/ui/Orb';
 import { useParam } from '@/lib/use-open';
 import { useSize } from '@/lib/use-size';
 import { COMPOSER_H, EASE } from '@/lib/design/tokens';
@@ -27,6 +28,12 @@ const ROW = [84, 180, 276, 372, 468, 564, 660];
 /** 盤面の座標系。線（SVG）とノード（HTML）は**同じ寸法で描く**（拡げると噛み合わなくなる） */
 const BOARD_W = 1180, BOARD_H = 748;
 const NW = 160, NH = 52, CHIP_H = 46;
+/**
+ * いまのフェーズに立つ社員。**オフィスと同じ粒子の球**にするので 40px は要る
+ * （それ未満は同心リングと芯だけになって、球に見えない → `components/ui/Orb.tsx`）。
+ * ノードは 52px しかないので、**右端に半分かけて置く**（列のあいだの 20px にちょうど収まる）。
+ */
+const CREW = 40;
 /** 新しい Work の枝が一度落ちる、列のあいだの通り道 */
 const TRUNK = 180;
 const cc = (col: number) => COL[col] + NW / 2;
@@ -303,6 +310,38 @@ export function Flow() {
   const drag = useRef<{ x: number; y: number; ox: number; oy: number; far: boolean } | null>(null);
   const [held, setHeld] = useState(false);
 
+  /**
+   * **行き先を追いかける。** ホイールの1目盛りは飛び飛びなので、そのまま当てると
+   * 段でカクつく。行き先だけ先に決めて、毎フレーム残りの距離を一定の割合で詰める
+   * （Figma と同じ手ざわり）。**つまんで動かすときは追いかけない** — 指と1対1でないと嘘になる。
+   */
+  const goal = useRef<Eye>(eye);
+  const now = useRef<Eye>(eye);
+  const raf = useRef(0);
+  const last = useRef(0);
+  const chase = useCallback(() => {
+    raf.current = requestAnimationFrame((t) => {
+      const dt = Math.min(64, last.current ? t - last.current : 16);
+      last.current = t;
+      const a = now.current, b = goal.current;
+      /** 時間で詰める（画面の速さが変わっても同じ手ざわりになる）。68ms でほぼ着く */
+      const k = 1 - Math.exp(-dt / 68);
+      const next = { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, z: a.z * (b.z / a.z) ** k };
+      const done = Math.abs(b.x - next.x) < 0.4 && Math.abs(b.y - next.y) < 0.4 && Math.abs(b.z - next.z) < 0.0012;
+      now.current = done ? b : next;
+      setEye(now.current);
+      if (done) { raf.current = 0; last.current = 0; } else chase();
+    });
+  }, []);
+  /** `snap` は指と1対1のとき（つまんで動かす・地図をつまむ） */
+  const aim = useCallback((next: Eye, snap = false) => {
+    goal.current = next;
+    if (raf.current) { cancelAnimationFrame(raf.current); raf.current = 0; last.current = 0; }
+    if (snap) { now.current = next; setEye(next); return; }
+    chase();
+  }, [chase]);
+  useEffect(() => () => { if (raf.current) cancelAnimationFrame(raf.current); }, []);
+
   const vw = w < 2 ? BOARD_W : w;
   /** 見えているのは入力欄より上まで。**隠れているぶんを「見えている」と言わない** */
   const vh = h < 2 ? BOARD_H : Math.max(160, h - COMPOSER_H);
@@ -326,7 +365,12 @@ export function Flow() {
     return { z, x: (vw - endX * z) / 2, y: (vh - endY * z) / 2 };
   }, [vw, vh, endX, endY]);
 
-  useEffect(() => { if (w > 1 && !touched.current) setEye(fit()); }, [w, h, fit]);
+  useEffect(() => {
+    if (w < 2 || touched.current) return;
+    /** 最初の1回は追いかけない（開いた瞬間に動いて見えると、それは演出になる） */
+    const f = fit();
+    goal.current = f; now.current = f; setEye(f);
+  }, [w, h, fit]);
 
   /** ホイールは器のほうで拾う（React のは受け身なので、拡大縮小を止められない） */
   useEffect(() => {
@@ -337,18 +381,18 @@ export function Flow() {
       touched.current = true;
       const r = el.getBoundingClientRect();
       const px = ev.clientX - r.left, py = ev.clientY - r.top;
-      setEye((v) => hold(
-        ev.ctrlKey || ev.metaKey
-          ? (() => {
-              const z = clamp(v.z * Math.exp(-ev.deltaY / 400), MIN_Z, MAX_Z);
-              return { z, x: px - (px - v.x) * (z / v.z), y: py - (py - v.y) * (z / v.z) };
-            })()
-          : { ...v, x: v.x - ev.deltaX, y: v.y - ev.deltaY },
-      ));
+      const v = goal.current;
+      if (ev.ctrlKey || ev.metaKey) {
+        const z = clamp(v.z * Math.exp(-ev.deltaY / 600), MIN_Z, MAX_Z);
+        aim(hold({ z, x: px - (px - v.x) * (z / v.z), y: py - (py - v.y) * (z / v.z) }));
+      } else {
+        /** 二本指の移動は指と1対1。**追いかけると滑って見える** */
+        aim(hold({ ...v, x: v.x - ev.deltaX, y: v.y - ev.deltaY }), true);
+      }
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
-  }, [board, hold]);
+  }, [board, hold, aim]);
 
   /** Esc で選択を外す（右ペインと同じ作法）。⇧1 で全体、⇧0 で等倍 */
   useEffect(() => {
@@ -356,8 +400,8 @@ export function Flow() {
       const t = ev.target as HTMLElement | null;
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
       if (ev.key === 'Escape' && of) { setOf(''); return; }
-      if (ev.key === '!') { touched.current = false; setEye(fit()); }
-      if (ev.key === ')') { touched.current = true; setEye((v) => hold({ ...v, z: 1 })); }
+      if (ev.key === '!') { touched.current = false; aim(fit()); }
+      if (ev.key === ')') { touched.current = true; aim(hold({ ...goal.current, z: 1 })); }
     };
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
@@ -370,7 +414,8 @@ export function Flow() {
   /** 地図をつまんだとき。中身のその点を真ん中に持ってくる */
   const go = (cx: number, cy: number) => {
     touched.current = true;
-    setEye((v) => hold({ ...v, x: vw / 2 - cx * v.z, y: vh / 2 - cy * v.z }));
+    const v = goal.current;
+    aim(hold({ ...v, x: vw / 2 - cx * v.z, y: vh / 2 - cy * v.z }), true);
   };
 
   const view: [number, number, number, number] =
@@ -382,7 +427,7 @@ export function Flow() {
       /* 空きをつまんだら盤面が付いてくる。**動かさずに離したら「空きを押した」** */
       onPointerDown={(ev) => {
         if (!(ev.button === 1 || (ev.button === 0 && empty(ev)))) return;
-        drag.current = { x: ev.clientX, y: ev.clientY, ox: eye.x, oy: eye.y, far: false };
+        drag.current = { x: ev.clientX, y: ev.clientY, ox: goal.current.x, oy: goal.current.y, far: false };
         ev.currentTarget.setPointerCapture(ev.pointerId);
         setHeld(true);
       }}
@@ -392,7 +437,7 @@ export function Flow() {
         const dx = ev.clientX - d.x, dy = ev.clientY - d.y;
         if (!d.far && Math.hypot(dx, dy) < 4) return;
         d.far = true; touched.current = true;
-        setEye((v) => hold({ ...v, x: d.ox + dx, y: d.oy + dy }));
+        aim(hold({ ...goal.current, x: d.ox + dx, y: d.oy + dy }), true);
       }}
       onPointerUp={() => {
         const d = drag.current;
@@ -400,7 +445,7 @@ export function Flow() {
         setHeld(false);
         if (d && !d.far && of) setOf('');
       }}
-      onDoubleClick={(ev) => { if (empty(ev)) { touched.current = false; setEye(fit()); } }}
+      onDoubleClick={(ev) => { if (empty(ev)) { touched.current = false; aim(fit()); } }}
       style={{
       position: 'absolute', inset: 0, overflow: 'hidden', contain: 'strict',
       cursor: held ? 'grabbing' : 'grab', touchAction: 'none',
@@ -443,19 +488,20 @@ export function Flow() {
 
       {nodes.map((n, i) => <Node key={i} {...n} lit={lit(n.of)} pick={() => pick(n.of)} />)}
 
-      {/* 社員はいまのフェーズのノードの右に粒で置く（⊕ で足すものではない） */}
+      {/* 社員はいまのフェーズのノードの右に置く（⊕ で足すものではない）。
+          **オフィスと同じ粒子のアバター**。ここだけ別の丸を描かない */}
       {FLOWMAP.works.map((w) => {
         const fs = fold(w.phases);
         const i = fs.findIndex((f) => f.kind === 'now');
         if (i < 0 || !w.crew.length) return null;
-        const x = COL[w.col + i] + NW - 14, y = ROW[w.row] + NH / 2;
+        const x = COL[w.col + i] + NW, y = ROW[w.row] + NH / 2;
         return w.crew.map((c, k) => (
           <span key={`${w.id}-${c}`} style={{
-            position: 'absolute', left: x - (w.crew.length - 1 - k) * 11 - 8, top: y - 8,
-            width: 16, height: 16, borderRadius: 999,
-            background: `radial-gradient(circle at 40% 35%, ${AGENT_COLOR[c]}, ${AGENT_COLOR[c]}22 60%, transparent 72%)`,
+            position: 'absolute', left: x - (w.crew.length - 1 - k) * 18 - CREW / 2, top: y - CREW / 2,
             opacity: lit(w.id) ? 1 : 0.26, transition: `opacity ${EASE}`, pointerEvents: 'none',
-          }} />
+          }}>
+            <Orb color={AGENT_COLOR[c]} size={CREW} seed={c.length * 7 + 3} />
+          </span>
         ));
       })}
 

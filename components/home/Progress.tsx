@@ -14,21 +14,29 @@ import { AGENT_COLOR, DONE_WORKS, DONE_WORKS_LIST, TICKS, TODAY_X, WORKS, employ
 
 const T1 = '#EDEDED', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
 const AMBER = '#E37400', AMBER_T = '#FDD663', GREEN_T = '#5BB974', RED_T = '#F28B82';
-const LABEL = 196, RIGHT = 74 + 62 + 24;
+/**
+ * 帯に余裕を持たせる。**軸に使える幅を増やす**（左の名前と右の2列を削り、
+ * 最大幅を窓いっぱいまで上げる）＋ **帯そのものを高くする**。
+ * 前は 1108 の中で 740px しか軸に使えず、フェーズ名が器に貼り付いていた。
+ */
+const LABEL = 178, RCOL = 70, RCOL2 = 56, RIGHT = RCOL + RCOL2 + 22;
+const MAXW = 1420;
+/** 帯の高さと、帯どうしのすき間（**隣と地続きに見せない**） */
+const BAR = 46, SPLIT = 4;
 const DPP = 0.28; // 軸1% = 0.28日
 
 function Seg({ p }: { p: Phase }) {
   const base: React.CSSProperties = {
-    position: 'absolute', left: `${p.x}%`, width: `${p.w}%`, top: 0, height: 36,
-    borderRadius: 5, overflow: 'hidden',
+    position: 'absolute', left: `${p.x}%`, width: `calc(${p.w}% - ${SPLIT}px)`, top: 0, height: BAR,
+    borderRadius: 7, overflow: 'hidden',
   };
   if (p.state === 'done') {
-    return <div style={{ ...base, background: '#202020' }}><Label c={T3}>{p.name}</Label></div>;
+    return <div style={{ ...base, background: '#1D1D1D' }}><Label c={T3}>{p.name}</Label></div>;
   }
   if (p.state === 'now') {
     return (
       <div style={{ ...base, background: '#2E2E2E' }}>
-        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, borderRadius: '5px 0 0 5px', background: '#6E6E6E' }} />
+        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, borderRadius: '7px 0 0 7px', background: '#6E6E6E' }} />
         <Label c={T1}>{p.name}</Label>
       </div>
     );
@@ -36,10 +44,10 @@ function Seg({ p }: { p: Phase }) {
   return <div style={{ ...base, border: '1px dashed #262626' }}><Label c={T5}>{p.name}</Label></div>;
 }
 
-const Label = ({ c, children }: { c: string; children: React.ReactNode }) => (
+const Label = ({ c, pad = 13, children }: { c: string; pad?: number; children: React.ReactNode }) => (
   <span style={{
-    position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', padding: '0 10px',
-    color: c, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+    position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', padding: `0 ${pad}px`,
+    color: c, fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
   }}>{children}</span>
 );
 
@@ -52,7 +60,7 @@ function Lane({ w, last }: { w: Work; last: boolean }) {
 
   return (
     <div style={{
-      flex: 1, minHeight: 104, display: 'flex', alignItems: 'center', gap: 12,
+      flex: 1, minHeight: 118, display: 'flex', alignItems: 'center', gap: 16,
       borderBottom: last ? undefined : '1px solid #161616',
     }}>
       <Link href={`/work/${w.id}`} className="row" style={{
@@ -66,24 +74,25 @@ function Lane({ w, last }: { w: Work; last: boolean }) {
       </Link>
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ position: 'relative', height: 36 }}>
+        <div style={{ position: 'relative', height: BAR }}>
           {w.phases.map((p) => <Seg key={p.name} p={p} />)}
           {w.over && (
             <div style={{
-              position: 'absolute', left: `${w.over.x}%`, width: `${w.over.w}%`, top: 0, height: 36,
-              borderRadius: 5, border: '1px dashed rgba(217,48,37,0.55)', boxSizing: 'border-box',
-            }}><Label c={RED_T}>{w.over.label}</Label></div>
+              /* はみ出したぶんの帯。**フェーズの帯ではないので、すき間も広い余白も取らない** */
+              position: 'absolute', left: `${w.over.x}%`, width: `${w.over.w}%`, top: 0, height: BAR,
+              borderRadius: 7, border: '1px dashed rgba(217,48,37,0.55)', boxSizing: 'border-box',
+            }}><Label c={RED_T} pad={8}>{w.over.label}</Label></div>
           )}
           {w.gate && (
             <div style={{
-              position: 'absolute', left: `${w.gate.x}%`, top: 18, width: 11, height: 11,
+              position: 'absolute', left: `${w.gate.x}%`, top: BAR / 2, width: 11, height: 11,
               marginLeft: -5.5, marginTop: -5.5, background: AMBER, transform: 'rotate(45deg)',
               borderRadius: 2, boxShadow: '0 0 0 4px rgba(227,116,0,0.18)',
             }} />
           )}
         </div>
         {/* 下段: ◆のラベルと、担当がいまどこにいるか */}
-        <div style={{ position: 'relative', height: 16, marginTop: 11 }}>
+        <div style={{ position: 'relative', height: 16, marginTop: 15 }}>
           {w.gate && (
             <Link href={openHref('/decisions', 'dec-price')} className="lnk" style={{
               position: 'absolute', left: `${w.gate.x}%`, top: 0, transform: 'translateX(-100%)',
@@ -108,10 +117,10 @@ function Lane({ w, last }: { w: Work; last: boolean }) {
         </div>
       </div>
 
-      <span style={{ width: 74, flexShrink: 0, textAlign: 'right', color: scol, fontSize: 12, whiteSpace: 'nowrap', paddingBottom: 27 }}>
+      <span style={{ width: RCOL, flexShrink: 0, textAlign: 'right', color: scol, fontSize: 12, whiteSpace: 'nowrap', paddingBottom: 31 }}>
         {state}
       </span>
-      <span style={{ width: 62, flexShrink: 0, textAlign: 'right', color: T4, fontSize: 12, whiteSpace: 'nowrap', paddingBottom: 27 }} className="tnum">
+      <span style={{ width: RCOL2, flexShrink: 0, textAlign: 'right', color: T4, fontSize: 12, whiteSpace: 'nowrap', paddingBottom: 31 }} className="tnum">
         {rest}
       </span>
       <span style={{ display: 'none' }}>{nowPhase?.goal}</span>
@@ -131,7 +140,7 @@ export function Progress() {
       alignItems: 'center', gap: 18, padding: '10px 24px 108px',
     }}>
       {/* 答えを先に。状態の6語の外に新しい言い方を作らない */}
-      <div style={{ width: '100%', maxWidth: 1108, flexShrink: 0, display: 'flex', alignItems: 'baseline', gap: 12 }}>
+      <div style={{ width: '100%', maxWidth: MAXW, flexShrink: 0, display: 'flex', alignItems: 'baseline', gap: 12 }}>
         <span style={{ fontSize: 15, lineHeight: '25px' }}>
           {WORKS.length}つの Work のうち <span style={{ color: RED_T }}>{late}つが遅れています。</span>
           <span style={{ color: AMBER_T }}>判断待ちが {gates}件、要確認が 1件。</span>
@@ -141,11 +150,11 @@ export function Progress() {
       </div>
 
       <div style={{
-        width: '100%', maxWidth: 1108, flex: 1, minHeight: 0, boxSizing: 'border-box',
+        width: '100%', maxWidth: MAXW, flex: 1, minHeight: 0, boxSizing: 'border-box',
         position: 'relative', display: 'flex', flexDirection: 'column', padding: '14px 0 0',
       }}>
         {/* 目盛りと今日の線 */}
-        <div style={{ position: 'absolute', left: LABEL + 12, right: RIGHT, top: 22, bottom: 42, pointerEvents: 'none' }}>
+        <div style={{ position: 'absolute', left: LABEL + 16, right: RIGHT, top: 22, bottom: 42, pointerEvents: 'none' }}>
           {TICKS.slice(1, -1).map((t) => (
             <div key={t.x} style={{ position: 'absolute', left: `${t.x}%`, top: 0, bottom: 0, width: 1, background: '#131313' }} />
           ))}
@@ -156,7 +165,7 @@ export function Progress() {
           }}>今日</div>
         </div>
 
-        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12, padding: '0 0 8px' }}>
+        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 16, padding: '0 0 8px' }}>
           <div style={{ width: LABEL, flexShrink: 0 }} />
           <div style={{ flex: 1, position: 'relative', height: 14 }}>
             {TICKS.map((t) => (
@@ -166,7 +175,7 @@ export function Progress() {
               }}>{t.label}</span>
             ))}
           </div>
-          <span style={{ width: 74, flexShrink: 0 }} /><span style={{ width: 62, flexShrink: 0 }} />
+          <span style={{ width: RCOL, flexShrink: 0 }} /><span style={{ width: RCOL2, flexShrink: 0 }} />
         </div>
 
         {WORKS.map((w, i) => <Lane key={w.id} w={w} last={i === WORKS.length - 1} />)}
