@@ -33,6 +33,8 @@ const RX = [0.546, 0.773, 1], RY = [0.4, 0.7, 1];
 const ORB = 56, BOX = ORB + 5 + 17 + 5 + 14;
 /** 輪を1周ぶん引くのにかける時間（秒）と、その上に置くものの出方 */
 const SWEEP = 1.05, DOT = '.3s ease-out';
+/** 統括AIへ流れる粒。[かかる秒, 遅れ秒] — **同じ拍にならないよう2粒ずらす** */
+const SEND: [number, number][] = [[2.9, 0], [3.6, 1.5]];
 
 /** 背景の瞬き。[left%, top%, 遅れ秒] */
 const SPECKS: [number, number, number][] = [
@@ -181,8 +183,8 @@ export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) 
     }
     rings.push(<g key={w.id}>{parts}</g>);
 
-    /* 輪が大きいほどゆっくり回る（3本が同じ拍にならない） */
-    const lightC = tipHint(R), squash = ry / rx;
+    /* 輪が大きいほどゆっくり回る（3本が同じ拍にならない）。**光は白**（色は意味にだけ使う） */
+    const squash = ry / rx;
     orbits.push(
       <div key={`p-${w.id}`} style={{
         position: 'absolute', left: CX, top: CY, width: 0, height: 0, pointerEvents: 'none',
@@ -192,8 +194,8 @@ export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) 
           <span style={{
             position: 'absolute', left: rx - 13, top: -13, width: 26, height: 26, borderRadius: 999,
             transform: `scaleY(${(1 / squash).toFixed(4)})`,
-            background: `radial-gradient(circle, ${lightC} 0%, ${lightC}66 26%, transparent 62%)`,
-            opacity: 0.62,
+            background: 'radial-gradient(circle, #FFFFFF 0%, rgba(255,255,255,0.42) 26%, transparent 62%)',
+            opacity: 0.55,
           }} />
         </div>
       </div>,
@@ -253,16 +255,31 @@ export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) 
         </div>
       ))}
 
-      {/* 統括AI から、その区間を持っている人へ（割り当て。**引き継ぎより弱く**） */}
+      {/**
+        * 統括AI から、その区間を持っている人への線（割り当て。**引き継ぎより弱く**）。
+        * **動いている人は、その線の上を自分の色の粒が統括AIへ流れる。**
+        * 止まっている人の線には何も流れない（演出ではなく、そのままの事実）。
+        */}
       {people.map(({ x, y, id }) => {
         const dx = x - CX, dy = y - CY, len = Math.hypot(dx, dy);
+        const run = employee(id).state === '実行中';
+        const w = r2(len - 50);
         return (
           <div key={`l-${id}-${x}`} style={{
             position: 'absolute',
             left: r2(CX + (30 * dx) / len), top: r2(CY + (30 * dy) / len),
-            width: r2(len - 50), height: 1, background: '#1F1F1F',
+            width: w, height: 1, background: '#1F1F1F',
             transformOrigin: '0 50%', transform: `rotate(${((Math.atan2(dy, dx) * 180) / Math.PI).toFixed(2)}deg)`,
-          }} />
+          }}>
+            {run && SEND.map(([dur, delay], k) => (
+              <span key={k} style={{
+                position: 'absolute', left: w - 3, top: -3, width: 7, height: 7, borderRadius: 999,
+                background: `radial-gradient(circle, #FFFFFF 0%, ${AGENT_COLOR[employee(id).color]} 34%, transparent 70%)`,
+                ['--len' as string]: `${-w}px`,
+                animation: `travel ${dur}s linear ${(delay + Number(SWEEP)).toFixed(2)}s infinite`,
+              }} />
+            ))}
+          </div>
         );
       })}
 
