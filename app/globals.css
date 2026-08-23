@@ -86,6 +86,9 @@ button { background: none; border: none; padding: 0; cursor: pointer; }
 /* オフィスの輪 ── 0% から今の割合まで、時計回りに引かれる。
    `pathLength={1}` で長さを 1 に正規化してあるので、輪の大きさに関わらず同じ速さで進む */
 @keyframes draw { from { stroke-dashoffset: 1; } }
+/* 対になっている人の球。**星のように光る** ── 光の輪と、十字の光条 */
+@keyframes starin { from { opacity: 0; transform: scale(.55); } }
+@keyframes twinkle { 0%, 100% { opacity: .85; transform: scaleX(1); } 50% { opacity: .45; transform: scaleX(.72); } }
 .rv { animation: reveal .5s ease-out both; }
 .sh {
   background: linear-gradient(90deg, #6E6E6E 0%, #EDEDED 42%, #6E6E6E 84%);
@@ -206,6 +209,7 @@ input:focus-visible, textarea:focus-visible { outline: none; }
   *, *::before, *::after { transition-duration: .01ms !important; }
   [style*="drift"], [style*="travel"], [style*="blink"], [style*="breathe"],
   [style*="flowin"], [style*="flowfade"], [style*="fillin"], [style*="draw "],
+  [style*="starin"], [style*="twinkle"],
   .rv, .sh, .rise, .pop, .page, .swap { animation: none !important; }
   .panein, .paneout { animation-duration: .01ms !important; }
   .sh { color: var(--t1); background: none; -webkit-text-fill-color: currentColor; }

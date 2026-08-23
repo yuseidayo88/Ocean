@@ -47,8 +47,46 @@ const CORE: [number, number, number][] = [
 const BLINKS: [number, number][] = [[3.2, 0], [4.1, 1.1], [2.7, 2.2], [3.6, 0.6]];
 const CORES: [number, number][] = [[2.6, 0], [3.3, 1.2]];
 
+/** 先端をやっている人の色（弧の上を走る光の色） */
+const tipHint = (R: { segs: { owner: string }[] }) =>
+  AGENT_COLOR[employee(R.segs[R.segs.length - 1].owner).color];
+
 /** Math.cos/sin は実装で最後の桁が変わる。server と client でずれるので必ず丸める */
 const r2 = (n: number) => Number(n.toFixed(2));
+
+/**
+ * 対になっている人の球に差す光。**星のように光る** —
+ * 芯のまわりの光の輪と、十字＋斜めの光条。指が離れたら消える。
+ * 光条は瞬く（`twinkle`）ので、当たっているあいだ生きて見える。
+ */
+function Star({ color, on }: { color: string; on: boolean }) {
+  /** **見えていないときは瞬かせない**（16本ぶんの計算が、何もしていないのに毎フレーム走る） */
+  const ray = (deg: number, len: number, wd: number, op: number, dur: number, delay: number) => ({
+    position: 'absolute' as const, left: '50%', top: '50%', width: len, height: wd,
+    marginLeft: -len / 2, marginTop: -wd / 2, borderRadius: wd,
+    background: `linear-gradient(90deg, transparent, ${color} 50%, transparent)`,
+    opacity: op, transform: `rotate(${deg}deg)`, transformOrigin: '50% 50%',
+    animation: on ? `twinkle ${dur}s ease-in-out ${delay}s infinite` : undefined,
+  });
+  return (
+    <span aria-hidden style={{
+      position: 'absolute', left: '50%', top: '50%', width: 0, height: 0, pointerEvents: 'none',
+      opacity: on ? 1 : 0, transition: `opacity ${EASE}`,
+      animation: on ? `starin .34s cubic-bezier(.33, 1, .68, 1)` : undefined,
+    }}>
+      {/* 光の輪。芯に近いほど明るい */}
+      <span style={{
+        position: 'absolute', left: -ORB, top: -ORB, width: ORB * 2, height: ORB * 2, borderRadius: 999,
+        background: `radial-gradient(circle, ${color}59 0%, ${color}22 30%, transparent 66%)`,
+      }} />
+      {/* 光条。長い十字と、短い斜め */}
+      <span style={ray(0, ORB * 3.1, 1.6, 0.8, 3.4, 0)} />
+      <span style={ray(90, ORB * 2.5, 1.6, 0.6, 4.1, 0.5)} />
+      <span style={ray(45, ORB * 1.5, 1, 0.4, 2.9, 1.1)} />
+      <span style={ray(-45, ORB * 1.5, 1, 0.4, 3.7, 0.3)} />
+    </span>
+  );
+}
 
 export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) => void }) {
   const [box, { w: OW, h: OH }] = useSize<HTMLDivElement>();
@@ -69,6 +107,7 @@ export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) 
   const works = [...WORKS].sort((a, b) => Number(!!b.gate) - Number(!!a.gate));
 
   const rings: React.ReactNode[] = [];
+  const orbits: React.ReactNode[] = [];
   const labels: React.ReactNode[] = [];
   const people: { x: number; y: number; id: string; gate: boolean; phase: string; in: string }[] = [];
 
@@ -142,6 +181,24 @@ export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) 
     }
     rings.push(<g key={w.id}>{parts}</g>);
 
+    /* 輪が大きいほどゆっくり回る（3本が同じ拍にならない） */
+    const lightC = tipHint(R), squash = ry / rx;
+    orbits.push(
+      <div key={`p-${w.id}`} style={{
+        position: 'absolute', left: CX, top: CY, width: 0, height: 0, pointerEvents: 'none',
+        transform: `scaleY(${squash.toFixed(4)})`,
+      }}>
+        <div style={{ position: 'absolute', animation: `spin ${(13 + i * 5.5).toFixed(1)}s linear infinite` }}>
+          <span style={{
+            position: 'absolute', left: rx - 13, top: -13, width: 26, height: 26, borderRadius: 999,
+            transform: `scaleY(${(1 / squash).toFixed(4)})`,
+            background: `radial-gradient(circle, ${lightC} 0%, ${lightC}66 26%, transparent 62%)`,
+            opacity: 0.62,
+          }} />
+        </div>
+      </div>,
+    );
+
     const a = (R.labelDeg * Math.PI) / 180;
     const lx = r2(CX + rx * Math.cos(a)), ly = r2(CY + ry * Math.sin(a));
     /* **絵は行き先を持たない。** 押して別の画面へ飛ばすと、絵を見ている目が毎回外れる */
@@ -170,6 +227,14 @@ export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) 
       <svg width={OW} height={OH} viewBox={`0 0 ${OW} ${OH}`} style={{ position: 'absolute', inset: 0 }}>{rings}</svg>
 
       {labels}
+
+      {/**
+        * **惑星。輪の上を光がまわり続ける。**
+        * `stroke-dashoffset` で走らせると合成に上がらず、
+        * 何もしていないのに毎フレーム塗り直しになる（/home が 8%）。
+        * **円を回して、器のほうを縦に潰して楕円にする** — transform だけなので 0%。
+        */}
+      {orbits}
 
       {/* **瞬きは組にして掛ける。** 1粒ずつ動かすと、何もしていないのに
           22個ぶんのスタイル再計算が毎フレーム走る（/home の CPU 6.5% のうち 5.6% がこれだった）。
@@ -248,11 +313,7 @@ export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) 
               animation: `drift 6.5s ease-in-out ${(i * 1.4).toFixed(1)}s infinite`,
             }}>
               <span style={{ position: 'relative', display: 'flex' }}>
-                <span style={{
-                  position: 'absolute', inset: -14, borderRadius: 999, pointerEvents: 'none',
-                  background: `radial-gradient(circle, ${AGENT_COLOR[e.color]}2E, transparent 68%)`,
-                  opacity: lit === id ? 1 : 0, transition: `opacity ${EASE}`,
-                }} />
+                <Star color={AGENT_COLOR[e.color]} on={lit === id} />
                 <Orb color={AGENT_COLOR[e.color]} size={ORB} seed={e.name.length * 7 + 3} />
               </span>
                 <span style={{ color: lit === id ? '#EDEDED' : gate ? AMBER_T : T2, fontSize: 11.5 }}>{e.name}</span>
