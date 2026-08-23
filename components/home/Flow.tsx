@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParam } from '@/lib/use-open';
 import { useSize } from '@/lib/use-size';
 import { COMPOSER_H, EASE } from '@/lib/design/tokens';
@@ -212,33 +212,42 @@ const MINI: Record<Kind, string> = {
  * 範囲も**中身から測る**ので、Work が増えて盤面がはみ出しても地図はそのまま合う。
  * 窓の枠は、いま実際に見えている範囲（入力欄に隠れているぶんは入れない）。
  */
-function MiniMap({ nodes, links, view, at, off, lit }: {
+function MiniMap({ nodes, links, view, lit, go }: {
   nodes: ReturnType<typeof build>['nodes'];
   links: ReturnType<typeof build>['links'];
+  /** いま見えている範囲。**中身の座標で** [x0, y0, x1, y1] */
   view: [number, number, number, number];
-  at: { x: number; y: number };
-  off: { x: number; y: number };
   lit: (of: string | string[]) => boolean;
+  /** つまんで動かしたとき。中身の座標のどこを真ん中にするか */
+  go: (cx: number, cy: number) => void;
 }) {
   const PAD = 8, W = 184, M = 26;
   /** 盤面の中身と、いま見えている範囲。**両方が入る**ようにする */
-  const X0 = Math.min(view[0] - off.x, ...nodes.map((n) => n.x)) - M;
-  const Y0 = Math.min(view[1] - off.y, ...nodes.map((n) => n.y)) - M;
-  const X1 = Math.max(view[2] - off.x, ...nodes.map((n) => n.x + n.w)) + M;
-  const Y1 = Math.max(view[3] - off.y, ...nodes.map((n) => n.y + n.h)) + M;
+  const X0 = Math.min(view[0], ...nodes.map((n) => n.x)) - M;
+  const Y0 = Math.min(view[1], ...nodes.map((n) => n.y)) - M;
+  const X1 = Math.max(view[2], ...nodes.map((n) => n.x + n.w)) + M;
+  const Y1 = Math.max(view[3], ...nodes.map((n) => n.y + n.h)) + M;
   const sc = Math.min((W - PAD * 2) / (X1 - X0), 116 / (Y1 - Y0));
   const H = (Y1 - Y0) * sc + PAD * 2;
   const m = (x: number, y: number): [number, number] => [PAD + (x - X0) * sc, PAD + (y - Y0) * sc];
-  const [vx, vy] = m(view[0] - off.x, view[1] - off.y);
+  const [vx, vy] = m(view[0], view[1]);
+  /** 地図の中を押した／なぞったら、そこを真ん中にして盤面が付いてくる */
+  const at = (e: React.PointerEvent<HTMLDivElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    go(X0 + (e.clientX - r.left - PAD) / sc, Y0 + (e.clientY - r.top - PAD) / sc);
+  };
   return (
-    <div style={{
-      /* 盤面の道具なので **`COMPOSER_H` ぶん逃がす**（入力欄に隠れたままにしない）。
-         送っても右下から動かないよう、送ったぶんだけ戻す */
-      position: 'absolute', left: at.x + view[2] - view[0] - W - 24,
-      top: at.y + view[3] - view[1] - Math.round(H) - 24, width: W, height: Math.round(H),
+    <div
+      onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); at(e); }}
+      onPointerMove={(e) => { if (e.buttons & 1) at(e); }}
+      style={{
+      /* 盤面の道具なので **`COMPOSER_H` ぶん逃がす**（入力欄に隠れたままにしない） */
+      position: 'absolute', right: 24, bottom: COMPOSER_H, width: W, height: Math.round(H),
       borderRadius: 10, background: '#0A0A0A', border: '1px solid #232323', overflow: 'hidden',
+      cursor: 'pointer', touchAction: 'none',
     }}>
-      <svg width={W} height={Math.round(H)} viewBox={`0 0 ${W} ${Math.round(H)}`}>
+      <svg width={W} height={Math.round(H)} viewBox={`0 0 ${W} ${Math.round(H)}`}
+           style={{ pointerEvents: 'none' }}>
         {links.map((l, i) => (
           <path key={i} d={`M ${l.pts.map((q) => m(q[0], q[1]).map((n) => n.toFixed(1)).join(' ')).join(' L ')}`}
                 fill="none" stroke="#242424" strokeWidth={0.8} opacity={lit(l.of) ? 1 : 0.26} />
@@ -266,6 +275,11 @@ function Mark({ status }: { status?: string }) {
   return null;
 }
 
+/** 見る目の位置。中身 → 画面は `translate(x, y) scale(z)` */
+type Eye = { x: number; y: number; z: number };
+const MIN_Z = 0.3, MAX_Z = 2.4;
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
 export function Flow() {
   const { nodes, links, labels, names } = build();
   const [board, { w, h }] = useSize<HTMLDivElement>();
@@ -277,38 +291,132 @@ export function Flow() {
   const [of, setOf] = useParam('of', '');
   const lit = (o: string | string[]) => !of || (Array.isArray(o) ? o.includes(of) : o === of);
   const pick = (o: string) => setOf(of === o ? '' : o);
-  /** Esc で選択を外す（右ペインと同じ作法） */
-  useEffect(() => {
-    if (!of) return;
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOf(''); };
-    window.addEventListener('keydown', esc);
-    return () => window.removeEventListener('keydown', esc);
-  });
-  /** どこまで送ったか。**Work が増えて盤面からはみ出したときだけ動く** */
-  const [at, setAt] = useState({ x: 0, y: 0 });
-  /** 見えているのは、入力欄より上まで。**隠れているぶんを「見えている」と言わない** */
+
+  /**
+   * **動かし方は Figma と同じ。** 道具は置かない（見出しも説明文も要らない）。
+   *   二本指・ホイール＝移動 / ⌘（Ctrl）＋ホイール・ピンチ＝指の下を軸に拡大縮小 /
+   *   空きをつまんで移動 / ダブルクリック・⇧1＝全体に合わせる / ⇧0＝等倍
+   */
+  const [eye, setEye] = useState<Eye>({ x: 0, y: 0, z: 1 });
+  /** 自分で動かしたか。**動かしたあとは、窓の大きさが変わっても勝手に戻さない** */
+  const touched = useRef(false);
+  const drag = useRef<{ x: number; y: number; ox: number; oy: number; far: boolean } | null>(null);
+  const [held, setHeld] = useState(false);
+
   const vw = w < 2 ? BOARD_W : w;
-  const vh = h < 2 ? BOARD_H : Math.max(120, h - COMPOSER_H);
-  const view: [number, number, number, number] = [at.x, at.y, at.x + vw, at.y + vh];
+  /** 見えているのは入力欄より上まで。**隠れているぶんを「見えている」と言わない** */
+  const vh = h < 2 ? BOARD_H : Math.max(160, h - COMPOSER_H);
   /** 中身のいちばん端 */
   const endX = Math.max(...nodes.map((n) => n.x + n.w)) + 24;
   const endY = Math.max(...nodes.map((n) => n.y + n.h)) + 24;
-  /** 器が中身より大きいときは**真ん中に置く**（左上に寄せて右下を空けない） */
-  const offX = Math.max(0, Math.round((vw - endX) / 2));
-  const offY = Math.max(0, Math.round((vh - endY) / 2));
+
+  /** 中身が画面から消えないところまでで止める（迷子にしない） */
+  const hold = useCallback((e: Eye): Eye => {
+    const M = 160, cw = endX * e.z, ch = endY * e.z;
+    return {
+      z: e.z,
+      x: clamp(e.x, Math.min(M - cw, 0), Math.max(vw - M, 0)),
+      y: clamp(e.y, Math.min(M - ch, 0), Math.max(vh - M, 0)),
+    };
+  }, [endX, endY, vw, vh]);
+
+  /** 全体に合わせる。**入るときは拡大しない**（等倍より大きくして粗くしない） */
+  const fit = useCallback((): Eye => {
+    const z = clamp(Math.min(1, (vw - 64) / endX, (vh - 64) / endY), MIN_Z, MAX_Z);
+    return { z, x: (vw - endX * z) / 2, y: (vh - endY * z) / 2 };
+  }, [vw, vh, endX, endY]);
+
+  useEffect(() => { if (w > 1 && !touched.current) setEye(fit()); }, [w, h, fit]);
+
+  /** ホイールは器のほうで拾う（React のは受け身なので、拡大縮小を止められない） */
+  useEffect(() => {
+    const el = board.current;
+    if (!el) return;
+    const onWheel = (ev: WheelEvent) => {
+      ev.preventDefault();
+      touched.current = true;
+      const r = el.getBoundingClientRect();
+      const px = ev.clientX - r.left, py = ev.clientY - r.top;
+      setEye((v) => hold(
+        ev.ctrlKey || ev.metaKey
+          ? (() => {
+              const z = clamp(v.z * Math.exp(-ev.deltaY / 400), MIN_Z, MAX_Z);
+              return { z, x: px - (px - v.x) * (z / v.z), y: py - (py - v.y) * (z / v.z) };
+            })()
+          : { ...v, x: v.x - ev.deltaX, y: v.y - ev.deltaY },
+      ));
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [board, hold]);
+
+  /** Esc で選択を外す（右ペインと同じ作法）。⇧1 で全体、⇧0 で等倍 */
+  useEffect(() => {
+    const key = (ev: KeyboardEvent) => {
+      const t = ev.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      if (ev.key === 'Escape' && of) { setOf(''); return; }
+      if (ev.key === '!') { touched.current = false; setEye(fit()); }
+      if (ev.key === ')') { touched.current = true; setEye((v) => hold({ ...v, z: 1 })); }
+    };
+    window.addEventListener('keydown', key);
+    return () => window.removeEventListener('keydown', key);
+  });
+
+  /** 盤面の空きか（＝つまんで動かせるところ。ノードの上ではない） */
+  const empty = (ev: { target: EventTarget | null }) =>
+    !!(ev.target as HTMLElement | null)?.dataset?.pan;
+
+  /** 地図をつまんだとき。中身のその点を真ん中に持ってくる */
+  const go = (cx: number, cy: number) => {
+    touched.current = true;
+    setEye((v) => hold({ ...v, x: vw / 2 - cx * v.z, y: vh / 2 - cy * v.z }));
+  };
+
+  const view: [number, number, number, number] =
+    [-eye.x / eye.z, -eye.y / eye.z, (-eye.x + vw) / eye.z, (-eye.y + vh) / eye.z];
+
   return (
     /* 盤面は中身の領域いっぱい。**外の計算から切り離す** */
-    <div ref={board}
-      onScroll={(e) => setAt({ x: e.currentTarget.scrollLeft, y: e.currentTarget.scrollTop })}
-      onClick={(e) => { if (e.target === e.currentTarget) setOf(''); }}
+    <div ref={board} data-pan="1"
+      /* 空きをつまんだら盤面が付いてくる。**動かさずに離したら「空きを押した」** */
+      onPointerDown={(ev) => {
+        if (!(ev.button === 1 || (ev.button === 0 && empty(ev)))) return;
+        drag.current = { x: ev.clientX, y: ev.clientY, ox: eye.x, oy: eye.y, far: false };
+        ev.currentTarget.setPointerCapture(ev.pointerId);
+        setHeld(true);
+      }}
+      onPointerMove={(ev) => {
+        const d = drag.current;
+        if (!d) return;
+        const dx = ev.clientX - d.x, dy = ev.clientY - d.y;
+        if (!d.far && Math.hypot(dx, dy) < 4) return;
+        d.far = true; touched.current = true;
+        setEye((v) => hold({ ...v, x: d.ox + dx, y: d.oy + dy }));
+      }}
+      onPointerUp={() => {
+        const d = drag.current;
+        drag.current = null;
+        setHeld(false);
+        if (d && !d.far && of) setOf('');
+      }}
+      onDoubleClick={(ev) => { if (empty(ev)) { touched.current = false; setEye(fit()); } }}
       style={{
-      position: 'absolute', inset: 0, overflow: 'auto', contain: 'strict',
+      position: 'absolute', inset: 0, overflow: 'hidden', contain: 'strict',
+      cursor: held ? 'grabbing' : 'grab', touchAction: 'none',
       backgroundColor: CANVAS,
-      backgroundImage: 'radial-gradient(#161616 1px, transparent 1px)', backgroundSize: '22px 22px',
+      /* ドットも一緒に動いて、拡大縮小に付いてくる（どれだけ動いたかが目で分かる） */
+      backgroundImage: 'radial-gradient(#161616 1px, transparent 1px)',
+      backgroundSize: `${22 * eye.z}px ${22 * eye.z}px`,
+      backgroundPosition: `${eye.x}px ${eye.y}px`,
     }}>
-      {/* 中身はひとかたまりで動かす。**線とノードが同じだけずれる** */}
-      <div onClick={(e) => { if (e.target === e.currentTarget) setOf(''); }}
-           style={{ position: 'absolute', left: offX, top: offY, width: endX, height: endY }}>
+      {/* 中身はひとかたまりで動かす。**線とノードが同じだけ動いて、同じだけ伸び縮みする** */}
+      <div data-pan="1"
+           style={{
+             position: 'absolute', left: 0, top: 0, width: endX, height: endY,
+             transform: `translate(${eye.x}px, ${eye.y}px) scale(${eye.z})`,
+             transformOrigin: '0 0',
+           }}>
       {/* 線は見るだけ。**押せる面をふさがない**（空きを押したら選択が外れる）。
           **中身と同じ寸法**にする（盤面の幅で描くと、真ん中に寄せたぶん右へはみ出す） */}
       <svg width={endX} height={endY} viewBox={`0 0 ${endX} ${endY}`}
@@ -346,7 +454,7 @@ export function Flow() {
             position: 'absolute', left: x - (w.crew.length - 1 - k) * 11 - 8, top: y - 8,
             width: 16, height: 16, borderRadius: 999,
             background: `radial-gradient(circle at 40% 35%, ${AGENT_COLOR[c]}, ${AGENT_COLOR[c]}22 60%, transparent 72%)`,
-            opacity: lit(w.id) ? 1 : 0.26, transition: `opacity ${EASE}`,
+            opacity: lit(w.id) ? 1 : 0.26, transition: `opacity ${EASE}`, pointerEvents: 'none',
           }} />
         ));
       })}
@@ -355,19 +463,13 @@ export function Flow() {
         <span key={i} style={{
           position: 'absolute', left: l.x, top: l.y, transform: 'translate(-50%, -50%)',
           padding: '0 6px', color: T5, fontSize: 10.5, whiteSpace: 'nowrap', background: CANVAS,
-          opacity: lit(l.of) ? 1 : 0.26, transition: `opacity ${EASE}`,
+          opacity: lit(l.of) ? 1 : 0.26, transition: `opacity ${EASE}`, pointerEvents: 'none',
         }}>新しい Work</span>
       ))}
 
       </div>
 
-      {/* 送れる先。**中身は絶対位置なので、端を1枚置いて器に教える**（下は入力欄のぶんも） */}
-      <div style={{
-        position: 'absolute', left: 0, top: 0, pointerEvents: 'none',
-        width: offX + endX, height: offY + endY + COMPOSER_H,
-      }} />
-
-      <MiniMap nodes={nodes} links={links} view={view} at={at} off={{ x: offX, y: offY }} lit={lit} />
+      <MiniMap nodes={nodes} links={links} view={view} lit={lit} go={go} />
     </div>
   );
 }

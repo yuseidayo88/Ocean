@@ -4,6 +4,8 @@ import type { Route } from 'next';
 import { Go as Link } from '@/components/ui/Go';
 import { openHref } from '@/lib/use-open';
 import { Orb } from '@/components/ui/Orb';
+import { useRail } from '@/lib/use-rail';
+import { EASE } from '@/lib/design/tokens';
 import {
   AGENT_COLOR, DECIDED_TODAY, EMPLOYEES, EVENTS, EXEC,
   type Desk, type Employee, type Produce, type State,
@@ -168,6 +170,7 @@ function Card({ who, first }: { who: { id: string; name: string; state: State; n
 
 export function OfficeTeam() {
   const running = EMPLOYEES.filter((e) => e.state === '実行中').length;
+  const [rail, edge] = useRail<HTMLDivElement>();
   return (
     <div style={{ borderTop: `1px solid ${HAIR}`, paddingTop: 12 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', paddingBottom: 10 }}>
@@ -177,11 +180,24 @@ export function OfficeTeam() {
           {EMPLOYEES.length}人  ·  稼働 {running} / {EMPLOYEES.length}
         </span>
       </div>
-      {/* 人が増えたら横にスクロール。**1人ぶんの幅は縮めない** */}
-      <div className="sx" style={{ display: 'flex', gap: 20, alignItems: 'flex-start', paddingBottom: 6 }}>
-        <Card first who={{ ...EXEC, now: EXEC.now, color: EXEC.color }} />
-        {EMPLOYEES.map((e: Employee) => (
-          <Card key={e.id} who={{ ...e, color: AGENT_COLOR[e.color] }} />
+      {/* 人が増えたら横に送る。**1人ぶんの幅は縮めない。**
+          縦のホイールも横に効かせる（横一列はそう動くのが当たり前） */}
+      <div style={{ position: 'relative' }}>
+        <div ref={rail} className="sx"
+             style={{ display: 'flex', gap: 20, alignItems: 'flex-start', paddingBottom: 6 }}>
+          <Card first who={{ ...EXEC, now: EXEC.now, color: EXEC.color }} />
+          {EMPLOYEES.map((e: Employee) => (
+            <Card key={e.id} who={{ ...e, color: AGENT_COLOR[e.color] }} />
+          ))}
+        </div>
+        {/* 端は黒に溶かす。**本当にまだあるときだけ** */}
+        {(['l', 'r'] as const).map((k) => (
+          <div key={k} style={{
+            position: 'absolute', top: 0, bottom: 6, width: 44, pointerEvents: 'none',
+            [k === 'l' ? 'left' : 'right']: 0,
+            opacity: edge[k] ? 1 : 0, transition: `opacity ${EASE}`,
+            background: `linear-gradient(to ${k === 'l' ? 'right' : 'left'}, #000, rgba(0,0,0,0))`,
+          }} />
         ))}
       </div>
     </div>
