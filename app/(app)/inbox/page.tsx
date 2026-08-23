@@ -30,7 +30,7 @@ const LEFT = 300;
 const TONE: Record<InboxKind, { line: string; text: string; face: string }> = {
   '判断待ち':   { line: AMBER, text: AMBER_T, face: 'rgba(227,116,0,0.16)' },
   '要確認':     { line: AMBER, text: AMBER_T, face: 'rgba(227,116,0,0.16)' },
-  '止まっている': { line: RED,   text: RED_T,   face: 'rgba(217,48,37,0.16)' },
+  'エラー':      { line: RED,   text: RED_T,   face: 'rgba(217,48,37,0.16)' },
 };
 
 export default function InboxPage() {
@@ -125,9 +125,9 @@ export default function InboxPage() {
           }}>
             <span className="solid" style={{
               display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px',
-              borderRadius: 8, background: item.kind === '止まっている' ? '#1A1A1A' : BLUE,
-              border: item.kind === '止まっている' ? '1px solid #2A2A2A' : undefined,
-              color: item.kind === '止まっている' ? T1 : '#fff',
+              borderRadius: 8, background: item.kind === 'エラー' ? '#1A1A1A' : BLUE,
+              border: item.kind === 'エラー' ? '1px solid #2A2A2A' : undefined,
+              color: item.kind === 'エラー' ? T1 : '#fff',
             }}>{item.primary}</span>
             <span className="btn" style={{
               display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 14px',

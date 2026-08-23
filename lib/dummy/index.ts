@@ -395,10 +395,10 @@ export type Notice = {
  * 通知＝**読むものではなく片づけるもの**（参考: Linear Inbox / Plane Inbox / Lemni）。
  * 左に未処理を積み、右で中身を見て決める。片づけたら次の未処理へ。
  *
- * `止まっている` は状態の6語ではなく、**赤（＝止まっている・遅れている）の知らせ**。
+ * **これは状態の6語ではなく、通知の種類**。`エラー` は起きたことをそのまま言っているだけで、
  * タスクや Work の状態としては使わない。
  */
-export type InboxKind = '判断待ち' | '要確認' | '止まっている';
+export type InboxKind = '判断待ち' | '要確認' | 'エラー';
 
 export type InboxRow = { k: string; v: string; pct: number; note: string; hi?: boolean };
 
@@ -439,7 +439,7 @@ export const INBOX: InboxItem[] = [
     after: [['フェーズ3の計画が作られる', '統括AI']],
     primary: '2件とも承認する', secondary: '1件ずつ見る' },
 
-  { id: 'i-blocked', kind: '止まっている', when: '40分', title: '競合サイトが読めませんでした', sub: '調査担当 · 競合ポジショニング分析',
+  { id: 'i-blocked', kind: 'エラー', when: '40分', title: '競合サイトが読めませんでした', sub: '調査担当 · 競合ポジショニング分析',
     meta: '調査担当 · 40分前 · 日本語学習サービス / フェーズ1',
     lead: [
       '3社のうち1社だけ、サイト側に読み取りを止められています。ほかの2社は取れました。',
