@@ -184,7 +184,9 @@ RLS の with check は `account_id = private.current_account_id()` のままな�
 `OPENROUTER_MODEL_DEEP` / `_STANDARD` / `_FAST` に `:free` の slug を入れると、
 **コードを触らずに**その階層だけ差し替わる（`lib/ai/openrouter.ts`）。
 
-1. 候補は **無料 × 道具対応** で絞る:
+1. いちばん簡単な値は **`openrouter/free`** — 無料モデルの中から**自動で選ぶ型番**
+   （2026-02 から。道具が要る呼び出しには tools 対応のものだけを当てる）。
+   自分で選ぶなら **無料 × 道具対応** で絞る:
    https://openrouter.ai/models?max_price=0&supported_parameters=tools
    （統括AIは1往復で道具を5つ呼ぶ。**tools 非対応のモデルだと計画が1つも返らない**）
 2. https://openrouter.ai/settings/privacy で無料エンドポイントを有効にする
