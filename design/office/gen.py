@@ -1862,33 +1862,30 @@ RX2 = 976
 RY2 = [150, 330, 510]
 CANV = '#060606'
 
+# 左3pxの色帯は**進捗のガントと同じ読み方**にする —
+#   済＝暗い / いま＝明るい / これから＝点線 / あなたの番＝橙。
+#   前は完了が緑だったが、緑は社員の「実行中」でも使っていて読み方が2つあった
 NSKIN = {
-  'done': ('#0B0B0B', '1px solid #1D1D1D', GREEN,     T2, T5),
-  'sel':  ('#101010', '1px solid #333333', '#8A8A8A', T1, T4),
+  'done': ('#0B0B0B', '1px solid #1D1D1D', '#2A2A2A', T2, T5),
+  'now':  ('#101010', '1px solid #333333', T2,        T1, T4),
   'gate': ('rgba(227,116,0,0.05)', '1px solid rgba(227,116,0,0.28)', AMBER, T1, AMBER_T),
-  'wait': ('#080808', '1px dashed #1F1F1F', '#1C1C1C', T4, T5),
+  'wait': ('#080808', '1px dashed #1F1F1F', '#141414', T4, T5),
   'work': ('#0C0C0C', '1px solid #272727', '#2E2E2E', T2, T5),
 }
 
-def node(x, y, w, title, sub, kind, selected=False):
+def node(x, y, w, title, sub, kind, h=None):
+    h = h or NH2
     bg, bd, bar, tc, sc = NSKIN[kind]
-    ring = ('box-shadow:0 0 0 1.5px %s;' % BLUE) if selected else ''
     out = ('<div style="position:absolute;left:%dpx;top:%dpx;width:%dpx;height:%dpx;box-sizing:border-box;'
            'display:flex;align-items:center;padding:0 14px 0 15px;border-radius:14px;background:%s;'
-           'border:%s;overflow:hidden;%s">'
-           '<span style="position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 2px 2px 0;'
+           'border:%s;overflow:hidden;">'
+           '<span style="position:absolute;left:0;top:11px;bottom:11px;width:3px;border-radius:0 2px 2px 0;'
            'background:%s"></span>'
            '<div style="min-width:0;display:flex;flex-direction:column;gap:3px">'
            '<span style="color:%s;font-size:14px;line-height:19px;white-space:nowrap;overflow:hidden;'
            'text-overflow:ellipsis">%s</span>'
            '<span style="color:%s;font-size:11px;line-height:15px;white-space:nowrap">%s</span>'
-           '</div></div>' % (x, y, w, NH2, bg, bd, ring, bar, tc, title, sc, sub))
-    if selected:
-        # 選んでいる印。**四隅のつまみ**（Figma と同じ読み方）
-        for dx, dy in [(0, 0), (w, 0), (0, NH2), (w, NH2)]:
-            out += ('<div style="position:absolute;left:%.1fpx;top:%.1fpx;width:7px;height:7px;'
-                    'box-sizing:border-box;border-radius:2px;background:#000;border:1.5px solid %s"></div>'
-                    % (x + dx - 3.5, y + dy - 3.5, BLUE))
+           '</div></div>' % (x, y, w, h, bg, bd, bar, tc, title, sc, sub))
     return out
 
 def port(x, y, on=False):
@@ -1933,13 +1930,13 @@ def workflow():
     g.append('</svg>')
     h = ''.join(g)
 
-    CHAIN = [('調査', 'フェーズ 1 · 完了', 'done'), ('戦略', 'フェーズ 2 · 32%', 'sel'),
-             ('収益モデル比較', '成果物 · 要確認', 'done'), ('価格モデル', '判断 · B案を推奨', 'gate')]
+    CHAIN = [('調査', 'フェーズ 1 · 完了', 'done'), ('戦略', 'フェーズ 2 · 実行中 32%', 'now'),
+             ('収益モデル比較', '成果物 · 要確認', 'gate'), ('価格モデル', '判断 · B案を推奨', 'gate')]
     RIGHT = [('LPと申込フォーム', '新しい Work · 準備中', 'work', '新しい Work'),
              ('プロダクト', 'フェーズ 3 · 待機', 'wait', '次のフェーズ'),
              ('SNS運用の立ち上げ', '新しい Work · 準備中', 'work', '新しい Work')]
     for i, (t, sb, k) in enumerate(CHAIN):
-        h += node(CX2[i], ROW2, CW2, t, sb, k, selected=(k == 'sel'))
+        h += node(CX2[i], ROW2, CW2, t, sb, k)
     for i, (t, sb, k, _) in enumerate(RIGHT):
         h += node(RX2, RY2[i], RW2, t, sb, k)
     for i, x in enumerate(CX2):
@@ -1979,14 +1976,124 @@ def workflow():
 
     return ('<div style="position:relative;width:%dpx;height:%dpx;overflow:hidden;background:%s;'
             'background-image:radial-gradient(#161616 1px, transparent 1px);background-size:22px 22px">'
-            '<div style="position:absolute;inset:0;background:radial-gradient(70%% 70%% at 42%% 40%%,'
-            'rgba(255,255,255,0.028), rgba(0,0,0,0) 72%%)"></div>%s</div>'
-            % (GW2, GH2, CANV, h))
+            '%s</div>' % (GW2, GH2, CANV, h))
 
 io.open(OUT + '/Workflow.dc.html', 'w', encoding='utf-8').write(
-    board('盤面を箱から出して、中身の領域いっぱいに', 'ワークフロー', workflow(), BLUE_T,
-          'ピル・ツールバー・ミニマップ・入力欄は全部その上に浮く'))
+    board('画面いっぱい。青い輪はやめた', 'ワークフロー 1', workflow(), BLUE_T,
+          '色帯は 済＝暗い / いま＝明るい / これから＝点線 に揃えた'))
 print('Workflow ok')
+
+# ══════════════════════ ワークフロー 2（会社ぜんぶ・成果物と判断はぶら下げる） ══════════════════════
+# 直したこと
+#  1. **1つの Work だけでなく、会社ぜんぶを1枚に。** ほかの3ビューと同じ単位にそろえる
+#  2. **背骨はフェーズだけ。** 成果物と判断は、それが属するフェーズの下にぶら下げる
+#     （前は 調査 → 戦略 → 収益モデル比較 → 価格モデル と横一列で、
+#      成果物や判断がフェーズと同じ「順番のもの」に見えていた）
+#  3. **横位置＝時間。** 枝分かれした Work は、生まれたフェーズの位置から始める
+#  4. ポートは**繋がっているところだけ**。⊕ は押せるものだけ（採用に飛ぶ「担当」だけ残す）
+#  5. ミニマップは**中身が窓より大きいときだけ**出す（いまは全部入っているので出さない）
+
+CW3, NH3 = 170, 66
+GAP3 = 48
+COL3 = [140, 358, 576, 794]
+CHW, CHH = 158, 46
+
+def chip(x, y, title, sub, kind):
+    return node(x, y, CHW, title, sub, kind, h=CHH)
+
+def crew(x, y, w, h, keys):
+    """そのフェーズに**いま誰がいるか**。⊕ で足すものではないので、粒をそのまま置く"""
+    out = ''
+    for i, k in enumerate(reversed(keys)):
+        out += ('<div style="position:absolute;left:%.0fpx;top:%.0fpx;display:flex">%s</div>'
+                % (x + w - 16 - i * 12 - 9, y + h / 2 - 9, orb(RGB[k], 18)))
+    return out
+
+def workflow2():
+    gw, gh = 1180, 782
+    R1, R2, R3 = 110, 330, 500
+    cy = lambda y: y + NH3 / 2
+    g = ['<svg width="%d" height="%d" viewBox="0 0 %d %d" style="position:absolute;inset:0">' % (gw, gh, gw, gh)]
+    def bez(x1, y1, x2, y2, dash=False, c1=None, c2=None):
+        a = c1 or (x1 + 30, y1)
+        b = c2 or (x2 - 30, y2)
+        return ('<path d="M %.1f %.1f C %.1f %.1f, %.1f %.1f, %.1f %.1f" fill="none" stroke="#282828" '
+                'stroke-width="1.3"%s/>' % (x1, y1, a[0], a[1], b[0], b[1], x2, y2,
+                                            ' stroke-dasharray="4 4"' if dash else ''))
+    ROWS = [
+      (R1, '日本語学習サービス', 0,
+       [('調査', 'フェーズ 1 · 完了', 'done'), ('戦略', 'フェーズ 2 · 実行中 32%', 'now'),
+        ('プロダクト', 'フェーズ 3 · 待機', 'wait'), ('ローンチ', 'フェーズ 4 · 待機', 'wait')]),
+      (R2, 'SNS運用の立ち上げ', 1,
+       [('準備', 'フェーズ 1 · 完了', 'done'),
+        ('運用設計', 'フェーズ 2 · 実行中 <span style="color:%s">遅れ 2日</span>' % RED_T, 'now'),
+        ('運用', 'フェーズ 3 · 待機', 'wait')]),
+      (R3, 'LPと申込フォーム', 1,
+       [('設計', 'フェーズ 1 · 完了', 'done'), ('制作', 'フェーズ 2 · 実行中 61%', 'now'),
+        ('公開', 'フェーズ 3 · 待機', 'wait')]),
+    ]
+    # 背骨の線
+    for y, name, off, ph in ROWS:
+        for i in range(len(ph) - 1):
+            g.append(bez(COL3[off + i] + CW3, cy(y), COL3[off + i + 1], cy(y)))
+    # 統括AI → いちばん上の Work
+    g.append(bez(84, 391, COL3[0] - 9, cy(R1), False, (112, 391), (112, cy(R1))))
+    # 枝分かれ。**生まれたフェーズの位置から始める**ので、左→右の向きは壊れない
+    for y in (R2, R3):
+        g.append(bez(COL3[1] + 24, R1 + NH3, COL3[1] - 9, cy(y), True,
+                     (318, R1 + NH3 + 70), (318, cy(y) - 60)))
+    # 成果物と判断は、属するフェーズの下にぶら下げる
+    for px, py, cxs, ty in [(COL3[1], R1, [COL3[1], COL3[1] + CHW + 12], 214),
+                            (COL3[1] + 0, R3, [], 0)]:
+        for c in cxs:
+            g.append(bez(px + CW3 / 2, py + NH3, c + CHW / 2, ty, False,
+                         (px + CW3 / 2, py + NH3 + 22), (c + CHW / 2, ty - 22)))
+    g.append(bez(COL3[2] + CW3 / 2, R3 + NH3, COL3[2] + CW3 / 2, 592, False,
+                 (COL3[2] + CW3 / 2, R3 + NH3 + 16), (COL3[2] + CW3 / 2, 576)))
+    g.append('</svg>')
+    h = ''.join(g)
+
+    for y, name, off, ph in ROWS:
+        h += ('<div style="position:absolute;left:%dpx;top:%dpx;color:%s;font-size:12px;'
+              'white-space:nowrap">%s</div>' % (COL3[off], y - 24, T3, name))
+        for i, (t, sb, k) in enumerate(ph):
+            h += node(COL3[off + i], y, CW3, t, sb, k)
+        for i in range(len(ph)):
+            if off + i:
+                h += port(COL3[off + i], cy(y), True)
+            if i < len(ph) - 1:
+                h += port(COL3[off + i] + CW3, cy(y), True)
+    h += chip(COL3[1], 214, '収益モデル比較', '成果物 · 要確認', 'gate')
+    h += chip(COL3[1] + CHW + 12, 214, '価格モデル', '判断 · あなたの番', 'gate')
+    h += chip(COL3[2], 592, '申込フォーム', '成果物 · 実行中', 'work')
+    # そのフェーズにいる社員は、ノードの右に粒で置く（⊕ で足すものではない）
+    h += crew(COL3[1], R1, CW3, NH3, ['cyan', 'purple'])
+    h += crew(COL3[2], R2, CW3, NH3, ['indigo'])
+    h += crew(COL3[2], R3, CW3, NH3, ['green'])
+    h += elabel(318, (R1 + NH3 + cy(R2)) / 2, '新しい Work')
+
+    h += ('<div style="position:absolute;left:24px;top:26px;color:%s;font-size:12px">3つの Work</div>' % T4)
+    h += '<div style="position:absolute;left:0;right:0;top:18px">%s</div>' % pills('ワークフロー')
+    h += ('<div style="position:absolute;left:%dpx;top:%dpx;transform:translate(-50%%,-50%%);'
+          'display:flex;flex-direction:column;align-items:center;gap:6px">'
+          '%s<span style="color:#E8E8E8;font-size:11.5px">統括AI</span></div>'
+          % (56, 391, orb(RGB['white'], 44, glow=.5)))
+    h += ('<div style="position:absolute;left:24px;bottom:24px;display:flex;align-items:center;gap:3px;'
+          'padding:5px 7px;border-radius:12px;background:#121212;border:1px solid #2A2A2A">'
+          + tool('cursor', True) + tool('hand')
+          + '<span style="width:1px;height:18px;background:#262626;margin:0 4px"></span>'
+          + tool('minus')
+          + '<span style="color:%s;font-size:12px;padding:0 4px" class="tnum">100%%</span>' % T2
+          + tool('plus') + '</div>')
+    h += composer()
+    return ('<div style="position:relative;width:%dpx;height:%dpx;overflow:hidden;background:%s;'
+            'background-image:radial-gradient(#161616 1px, transparent 1px);background-size:22px 22px">'
+            '%s</div>' % (gw, gh, CANV, h))
+
+io.open(OUT + '/WorkflowAll.dc.html', 'w', encoding='utf-8').write(
+    board('会社ぜんぶ。背骨はフェーズだけ', 'ワークフロー 2', workflow2(), GREEN_T,
+          '成果物と判断は属するフェーズの下 · 枝は生まれた位置から'))
+print('Workflow2 ok')
 
 # ══════════════════════ canvas.json ══════════════════════
 import json
@@ -2015,7 +2122,8 @@ canvas = {
     {"file": "FigureRiver.dc.html",  "x": 2600, "y": 4790, "w": 1180, "h": 580, "title": "図B 川"},
     {"file": "FigureRings.dc.html",  "x": 3900, "y": 4790, "w": 1180, "h": 580, "title": "図C 輪＋刻み"},
     # 6段目 = ワークフロー
-    {"file": "Workflow.dc.html", "x": 0, "y": 5910, "w": 1180, "h": 860, "title": "ワークフロー（画面いっぱい）"},
+    {"file": "Workflow.dc.html",    "x": 0,    "y": 5910, "w": 1180, "h": 860, "title": "ワークフロー 1（いまの形）"},
+    {"file": "WorkflowAll.dc.html", "x": 1300, "y": 5910, "w": 1180, "h": 860, "title": "ワークフロー 2（会社ぜんぶ）"},
   ],
   "launch": {"view": "canvas"},
 }
