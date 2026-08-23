@@ -2110,6 +2110,159 @@ io.open(OUT + '/WorkflowAll.dc.html', 'w', encoding='utf-8').write(
           '参考: StackAI / n8n のグループ · n8n の左下ツールバー'))
 print('Workflow2 ok')
 
+# ══════════════════════ ワークフロー（Work が増えても読める形） ══════════════════════
+# 増えたときに効くのは、この5つ
+#  1. **済んだフェーズは細く、いまは太く、これからは細い点線。**
+#     フェーズが8つあっても行の幅が伸びきらない（済＝暗い/小さい・いま＝明るい/大きい）
+#  2. **並びは放っておけない順**（遅れ → 判断待ち → 要確認 → 実行中 → 待機）。
+#     タスクと進捗と同じ規則。いちばん上がいつも「見るべきもの」
+#  3. **完了した Work は下の1行に畳む**（進捗と同じ）
+#  4. **Work どうしの線を引かない。** 親は名前の横に `← 親の名前` と書く。
+#     線は Work が増えるほど絡まるが、文字は絡まらない
+#  5. **右端は状態の語だけ**（遅れ N日 / 判断待ち / 要確認）。列になって縦に読める
+NAMEX, STRIPX, RIGHTX = 226, 250, 1146
+WDONE, WNOW, WGAP, WH = 124, 268, 12, 44
+
+def wchip(x, y, w, h, title, kind, pct=None):
+    bg, bd, bar, tc, sc = NSKIN[kind]
+    out = ('<div style="position:absolute;left:%dpx;top:%dpx;width:%dpx;height:%dpx;box-sizing:border-box;'
+           'display:flex;align-items:center;padding:0 12px;border-radius:11px;background:%s;border:%s;'
+           'overflow:hidden">'
+           '<span style="position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:0 2px 2px 0;'
+           'background:%s"></span>'
+           '<span style="color:%s;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">%s</span>'
+           '</div>' % (x, y, w, h, bg, bd, bar, tc, title))
+    if pct is not None:
+        out += ('<div style="position:absolute;left:%dpx;top:%.1fpx;width:%dpx;height:3px;background:#1A1A1A;'
+                'border-radius:2px;overflow:hidden"><div style="width:%s%%;height:100%%;background:%s;'
+                'border-radius:2px"></div></div>' % (x + 12, y + h - 5.5, w - 24, pct, T2))
+    return out
+
+def wrow(y, name, parent, phases, status, scol, chips=(), crewkeys=()):
+    """1つの Work ＝ 1行。済＝細い / いま＝太い / これから＝細い点線"""
+    h = ''
+    hasc = bool(chips)
+    y0, y1 = y - 12, y + WH + (56 if hasc else 12)
+    h += ('<div style="position:absolute;left:32px;top:%dpx;width:1116px;height:%dpx;'
+          'border-radius:14px;background:%s"></div>' % (y0, y1 - y0, GRP))
+    h += ('<div style="position:absolute;left:40px;top:%.1fpx;width:%dpx;text-align:right;'
+          'white-space:nowrap"><span style="color:%s;font-size:13px">%s</span>%s</div>'
+          % (y + WH / 2 - 9, NAMEX - 40, T2, name,
+             ('<div style="color:%s;font-size:10.5px;padding-top:2px">← %s</div>' % (T5, parent)) if parent else ''))
+    x = STRIPX
+    nowx = None
+    g = []
+    for i, (pn, kind, pct) in enumerate(phases):
+        w = WNOW if kind == 'now' else WDONE
+        if i:
+            g.append('<line x1="%d" y1="%.1f" x2="%d" y2="%.1f" stroke="%s" stroke-width="1.3"%s/>'
+                     % (x - WGAP, y + WH / 2, x, y + WH / 2,
+                        '#3A3A3A' if kind != 'wait' else '#242424',
+                        ' stroke-dasharray="3 3"' if kind == 'wait' else ''))
+        h += wchip(x, y, w, WH, pn, kind, pct if kind == 'now' else None)
+        if kind == 'now':
+            nowx = x
+        x += w + WGAP
+    if crewkeys and nowx is not None:
+        for i, k in enumerate(reversed(crewkeys)):
+            h += ('<div style="position:absolute;left:%.0fpx;top:%.0fpx;display:flex">%s</div>'
+                  % (nowx + WNOW - 14 - i * 11 - 8, y + WH / 2 - 8, orb(RGB[k], 16)))
+    if status:
+        h += ('<div style="position:absolute;left:0;top:%.1fpx;width:%dpx;text-align:right;color:%s;'
+              'font-size:11.5px;white-space:nowrap">%s</div>' % (y + WH / 2 - 8, RIGHTX, scol, status))
+    cx = nowx if nowx is not None else STRIPX
+    for i, (ct, cs, ck) in enumerate(chips):
+        h += ('<div style="position:absolute;left:%dpx;top:%dpx;width:1px;height:12px;background:#262626"></div>'
+              % (cx + 24 + i * 212, y + WH))
+        h += wchip(cx + i * 212, y + WH + 12, 200, 34, '%s  <span style="color:%s;font-size:10.5px">%s</span>'
+                   % (ct, AMBER_T, cs), ck)
+    return h, y1
+
+def collapsed(y, n):
+    return ('<div style="position:absolute;left:32px;top:%dpx;width:1116px;height:38px;border-radius:12px;'
+            'background:%s;display:flex;align-items:center;padding:0 20px;color:%s;font-size:12px">'
+            '完了した Work %d件<span style="padding-left:8px;color:%s">›</span></div>' % (y, GRP, T5, n, DIM))
+
+# 放っておけない順（遅れ → 判断待ち → 要確認 → 実行中 → 待機）
+MANY = [
+  ('SNS運用の立ち上げ', None, [('準備','done',0),('運用設計','now',46),('運用','wait',0)],
+   '遅れ 2日', RED_T, (), ('indigo',)),
+  ('日本語学習サービス', None,
+   [('調査','done',0),('戦略','now',32),('プロダクト','wait',0),('ローンチ','wait',0)],
+   '判断待ち', AMBER_T, (('収益モデル比較','成果物','gate'), ('価格モデル','判断','gate')), ('cyan','purple')),
+  ('採用ページの改修', '日本語学習サービス',
+   [('調査','done',0),('設計','done',0),('実装','now',71),('公開','wait',0)],
+   '要確認', AMBER_T, (('求人票の下書き','成果物','gate'),), ('green',)),
+  ('LPと申込フォーム', '日本語学習サービス', [('設計','done',0),('制作','now',61),('公開','wait',0)],
+   '', T5, (), ('green',)),
+  ('価格表の作り直し', '日本語学習サービス', [('設計','done',0),('実装','now',24),('公開','wait',0)],
+   '', T5, (), ('indigo',)),
+  ('ブログの立ち上げ', None, [('企画','done',0),('執筆','now',12),('公開','wait',0)],
+   '', T5, (), ('purple',)),
+  ('問い合わせ導線', 'LPと申込フォーム',
+   [('調査','done',0),('設計','now',8),('実装','wait',0),('公開','wait',0)], '', T5, (), ('cyan',)),
+  ('メール配信の準備', None, [('準備','wait',0),('設計','wait',0),('配信','wait',0)],
+   '待機', T4, (), ()),
+]
+
+def minimap(rows, seen):
+    """中身が窓より大きいときだけ出す。**いま見えているところ**を枠で言う"""
+    bars = ''
+    for i in range(rows):
+        bars += ('<div style="position:absolute;left:14px;top:%dpx;width:%dpx;height:5px;border-radius:1px;'
+                 'background:%s"></div>' % (12 + i * 9, 70 if i % 3 else 96,
+                                            'rgba(217,48,37,0.55)' if i == 0 else
+                                            ('rgba(227,116,0,0.5)' if i in (1, 2) else '#262626')))
+    return ('<div style="position:absolute;right:24px;bottom:24px;width:132px;height:%dpx;border-radius:10px;'
+            'background:#0A0A0A;border:1px solid %s;overflow:hidden">%s'
+            '<div style="position:absolute;left:6px;top:6px;width:120px;height:%dpx;border-radius:5px;'
+            'border:1px solid #4A4A4A;background:rgba(255,255,255,0.03)"></div></div>'
+            % (rows * 9 + 18, LINE, bars, seen * 9 + 4))
+
+def canvas_frame(inner, gw=1180, gh=782):
+    return ('<div style="position:relative;width:%dpx;height:%dpx;overflow:hidden;background:%s;'
+            'background-image:radial-gradient(#161616 1px, transparent 1px);background-size:22px 22px">'
+            '%s</div>' % (gw, gh, CANV, inner))
+
+def toolbar():
+    return ('<div style="position:absolute;left:24px;bottom:24px;display:flex;align-items:center;gap:3px;'
+            'padding:5px 7px;border-radius:12px;background:#121212;border:1px solid #2A2A2A">'
+            + tool('cursor', True) + tool('hand')
+            + '<span style="width:1px;height:18px;background:#262626;margin:0 4px"></span>'
+            + tool('minus')
+            + '<span style="display:inline-flex;align-items:center;gap:5px;color:%s;font-size:12px;'
+              'padding:0 4px" class="tnum">100%%%s</span>' % (T2, icon('down', T5, 11))
+            + tool('plus') + '</div>')
+
+def workflow_rows(items, show_minimap=False, done_n=0):
+    g, h, y = [], '', 86
+    for name, parent, ph, st, sc, ch, cw in items:
+        part, y1 = wrow(y, name, parent, ph, st, sc, ch, cw)
+        h += part
+        y = y1 + 14
+    if done_n:
+        h += collapsed(y, done_n)
+    # 線は SVG でまとめて敷きたいが、行ごとに描いているのでそのまま
+    h = '<div style="position:absolute;inset:0">%s</div>' % h
+    h += '<div style="position:absolute;left:0;right:0;top:18px">%s</div>' % pills('ワークフロー')
+    h += toolbar()
+    if show_minimap:
+        h += minimap(len(items) + (1 if done_n else 0), 6)
+    h += composer()
+    return canvas_frame(h)
+
+io.open(OUT + '/WorkflowScale.dc.html', 'w', encoding='utf-8').write(
+    board('Work が 12件になっても、上から順に読める', 'ワークフロー（増えたとき）',
+          workflow_rows(MANY, show_minimap=True, done_n=4), BLUE_T,
+          '並びは 遅れ → 判断待ち → 要確認 → 実行中 → 待機'))
+print('WorkflowScale ok')
+
+io.open(OUT + '/WorkflowFew.dc.html', 'w', encoding='utf-8').write(
+    board('同じ規則で、3件のとき', 'ワークフロー（いまのダミー）',
+          workflow_rows(MANY[:3]), GREEN_T,
+          '規則は増えたときと1つも変えていない'))
+print('WorkflowFew ok')
+
 # ══════════════════════ canvas.json ══════════════════════
 import json
 canvas = {
@@ -2139,6 +2292,9 @@ canvas = {
     # 6段目 = ワークフロー
     {"file": "Workflow.dc.html",    "x": 0,    "y": 5910, "w": 1180, "h": 860, "title": "ワークフロー 1（いまの形）"},
     {"file": "WorkflowAll.dc.html", "x": 1300, "y": 5910, "w": 1180, "h": 860, "title": "ワークフロー（採用）"},
+    # 7段目 = Work が増えたとき
+    {"file": "WorkflowFew.dc.html",   "x": 0,    "y": 6910, "w": 1180, "h": 860, "title": "ワークフロー（3件）"},
+    {"file": "WorkflowScale.dc.html", "x": 1300, "y": 6910, "w": 1180, "h": 860, "title": "ワークフロー（12件）"},
   ],
   "launch": {"view": "canvas"},
 }
