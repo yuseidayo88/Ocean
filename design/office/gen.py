@@ -2407,6 +2407,115 @@ io.open(OUT + '/WorkflowFamily.dc.html', 'w', encoding='utf-8').write(
           'Work をまたぐ長い線が消える · 済んだフェーズは1枚に畳む'))
 print('WorkflowFamily ok')
 
+# ══════════════════════ ワークフロー＝地図 ══════════════════════
+# **横に区切らない。** 帯も面も置かず、鎖（Work）を2次元に置く。
+#   ・鎖は左から右へ。子の鎖は、生まれたフェーズから曲線で下へ枝分かれする
+#   ・関係のあるものが近くにいる。離れているものは関係がない
+#   ・Work 名は鎖の頭の上に浮くだけ（枠なし）
+#   ・増えたら地図が広がる。窓に入らないぶんはパンして見る（ミニマップが territory を言う）
+MW, MH = 168, 52
+MSTEP = 176
+
+def mchain(x, y, phases, crewkeys=(), w=MW):
+    h, g, nowx = '', '', None
+    ph = fold(phases)
+    for i, (pn, kind, pct, p0, p1) in enumerate(ph):
+        num = '%d〜%d' % (p0, p1) if p1 > p0 else '%d' % p0
+        sub = 'フェーズ %s · %s' % (num, {'done': '完了', 'now': '実行中', 'wait': '待機'}[kind])
+        nx = x + i * MSTEP
+        if i:
+            g += ('<line x1="%d" y1="%.1f" x2="%d" y2="%.1f" stroke="%s" stroke-width="1.3"%s/>'
+                  % (nx - (MSTEP - w), y + MH / 2, nx, y + MH / 2,
+                     '#3A3A3A' if kind != 'wait' else '#242424',
+                     ' stroke-dasharray="3 3"' if kind == 'wait' else ''))
+            h += port(nx, y + MH / 2, kind != 'wait') + port(nx - (MSTEP - w), y + MH / 2, kind != 'wait')
+        h += node(nx, y, w, pn, sub, kind, h=MH)
+        if kind == 'now':
+            nowx = nx
+            h += ('<div style="position:absolute;left:%dpx;top:%.1fpx;width:%dpx;height:3px;background:#1A1A1A;'
+                  'border-radius:2px;overflow:hidden"><div style="width:%s%%;height:100%%;background:%s;'
+                  'border-radius:2px"></div></div>' % (nx + 12, y + MH - 5.5, w - 24, pct, T2))
+    if crewkeys and nowx is not None:
+        for i, k in enumerate(reversed(crewkeys)):
+            h += ('<div style="position:absolute;left:%.0fpx;top:%.0fpx;display:flex">%s</div>'
+                  % (nowx + w - 14 - i * 11 - 8, y + MH / 2 - 8, orb(RGB[k], 16)))
+    return h, g
+
+def mname(x, y, name, status='', scol=T5):
+    return ('<div style="position:absolute;left:%dpx;top:%dpx;display:flex;align-items:baseline;gap:10px;'
+            'white-space:nowrap"><span style="color:%s;font-size:13px">%s</span>'
+            '<span style="color:%s;font-size:11.5px">%s</span></div>' % (x, y, T2, name, scol, status))
+
+def curve(x1, y1, x2, y2, c1, c2, dash=False):
+    return ('<path d="M %d %d C %d %d, %d %d, %d %d" fill="none" stroke="#2E2E2E" stroke-width="1.3"%s/>'
+            % (x1, y1, c1[0], c1[1], c2[0], c2[1], x2, y2, ' stroke-dasharray="4 4"' if dash else ''))
+
+def workflow_map():
+    h, g = '', ''
+    # ── 日本語学習サービス（根）
+    h += mname(56, 70, '日本語学習サービス', '判断待ち', AMBER_T)
+    a, b = mchain(56, 96, [('調査','done',0),('戦略','now',32),('プロダクト','wait',0),('ローンチ','wait',0)],
+                  ('cyan','purple'))
+    h += a; g += b
+    # 戦略にぶら下がる 成果物 / 判断
+    for i, (ct, cs) in enumerate([('収益モデル比較','成果物 · 要確認'), ('価格モデル','判断 · あなたの番')]):
+        cx = 296 + i * 176
+        g += curve(324, 148, cx + 84, 172, (324, 162), (cx + 84, 160))
+        h += node(cx, 172, MW, ct, cs, 'gate', h=46)
+    # ── 子: LPと申込フォーム（戦略から右下へ）
+    g += curve(344, 148, 656, 286, (344, 252), (500, 286))
+    h += mname(656, 260, 'LPと申込フォーム')
+    a, b = mchain(656, 286, [('設計','done',0),('制作','now',61),('公開','wait',0)], ('green',))
+    h += a; g += b
+    # ── 孫: 問い合わせ導線（制作から左下へ）
+    g += curve(916, 338, 656, 402, (916, 372), (790, 402))
+    h += mname(656, 376, '問い合わせ導線')
+    a, b = mchain(656, 402, [('調査','done',0),('設計','now',8),('実装','wait',0)], ('cyan',))
+    h += a; g += b
+    # ── 子: 価格表の作り直し（戦略から左下へ）
+    g += curve(268, 148, 120, 402, (196, 214), (168, 330))
+    h += mname(120, 376, '価格表の作り直し')
+    a, b = mchain(120, 402, [('設計','done',0),('実装','now',24),('公開','wait',0)], ('indigo',))
+    h += a; g += b
+    # ── 根: SNS運用の立ち上げ
+    h += mname(56, 486, 'SNS運用の立ち上げ', '遅れ 2日', RED_T)
+    a, b = mchain(56, 512, [('準備','done',0),('運用設計','now',46),('運用','wait',0)], ('indigo',))
+    h += a; g += b
+    # ── 根: 採用ページの改修
+    h += mname(656, 486, '採用ページの改修', '要確認', AMBER_T)
+    a, b = mchain(656, 512, [('調査','done',0),('設計','done',0),('試作','done',0),
+                             ('実装','now',71),('公開','wait',0)], ('green',))
+    h += a; g += b
+    g += curve(916, 564, 832 + 84, 588, (916, 578), (916, 578))
+    h += node(832, 588, MW, '求人票の下書き', '成果物 · 要確認', 'gate', h=46)
+    # ── 根: ブログの立ち上げ
+    h += mname(56, 620, 'ブログの立ち上げ')
+    a, b = mchain(56, 646, [('企画','done',0),('執筆','now',12),('公開','wait',0)], ('purple',))
+    h += a; g += b
+
+    out = ('<svg width="1180" height="782" viewBox="0 0 1180 782" style="position:absolute;inset:0">%s</svg>'
+           % g) + h
+    out += '<div style="position:absolute;left:0;right:0;top:18px">%s</div>' % pills('ワークフロー')
+    out += toolbar()
+    # 地図なので、ミニマップは**territory のどこを見ているか**を言う
+    out += ('<div style="position:absolute;right:24px;bottom:24px;width:150px;height:96px;border-radius:10px;'
+            'background:#0A0A0A;border:1px solid %s;overflow:hidden">' % LINE
+            + ''.join('<div style="position:absolute;left:%dpx;top:%dpx;width:%dpx;height:4px;border-radius:1px;'
+                      'background:%s"></div>' % v for v in
+                      [(12, 14, 46, 'rgba(227,116,0,0.5)'), (30, 24, 34, '#2A2A2A'), (58, 34, 34, '#2A2A2A'),
+                       (22, 44, 30, '#2A2A2A'), (12, 60, 30, 'rgba(217,48,37,0.55)'),
+                       (72, 60, 40, 'rgba(227,116,0,0.5)'), (12, 74, 30, '#2A2A2A'),
+                       (96, 20, 30, '#2A2A2A'), (104, 46, 26, '#2A2A2A')])
+            + '<div style="position:absolute;left:6px;top:6px;width:110px;height:76px;border-radius:5px;'
+              'border:1px solid #4A4A4A;background:rgba(255,255,255,0.03)"></div></div>')
+    out += composer()
+    return canvas_frame(out)
+
+io.open(OUT + '/WorkflowMap.dc.html', 'w', encoding='utf-8').write(
+    board('横に区切らない。鎖を地図に置く', 'ワークフロー（地図）', workflow_map(), GREEN_T,
+          '近いものは関係がある · 増えたら地図が広がる'))
+print('WorkflowMap ok')
+
 # ══════════════════════ canvas.json ══════════════════════
 import json
 canvas = {
@@ -2440,6 +2549,7 @@ canvas = {
     {"file": "WorkflowFew.dc.html",   "x": 0,    "y": 6910, "w": 1180, "h": 860, "title": "ワークフロー（3件）"},
     {"file": "WorkflowScale.dc.html", "x": 1300, "y": 6910, "w": 1180, "h": 860, "title": "（不採用）行の形にしたもの"},
     {"file": "WorkflowFamily.dc.html","x": 2600, "y": 6910, "w": 1180, "h": 880, "title": "ワークフロー（採用・増えても持つ）"},
+    {"file": "WorkflowMap.dc.html", "x": 3900, "y": 6910, "w": 1180, "h": 880, "title": "ワークフロー（地図）"},
   ],
   "launch": {"view": "canvas"},
 }
