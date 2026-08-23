@@ -9,7 +9,7 @@ import { Centre, Composer, Pane, PaneHead, TopBar } from '@/components/shell/Chr
 import { Diamond, Dot, Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
 import { WORKS, employee } from '@/lib/dummy';
-import { COMPOSER_H } from '@/lib/design/tokens';
+import { AMBER_T, COMPOSER_H, DIM, FAINT, GREEN, GREEN_T, HAIR, MUTE, RAIL, RED, RED_T, SUNK, T1, T2, T3, T4, T5, WELL } from '@/lib/design/tokens';
 import { fromDummy, fromLive, type WorkView } from '@/lib/exec/work-view';
 import { getWork } from '@/app/actions/work';
 import { useEffect, useState } from 'react';
@@ -23,19 +23,16 @@ import { useEffect, useState } from 'react';
  * 無いもの（成果物・決定・日付）は**無いと出す**。埋めるために数字を作らない。
  */
 
-const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
-const AMBER_T = '#FDD663', GREEN = '#1E8E3E', GREEN_T = '#5BB974', RED_T = '#F28B82';
-
 /** 数字の下に置く図形。文章で言い直さない */
 const Bar = ({ pct }: { pct: number }) => (
-  <span style={{ display: 'block', width: 86, height: 4, borderRadius: 2, background: '#1A1A1A', overflow: 'hidden' }}>
-    <span style={{ display: 'block', width: `${pct}%`, height: '100%', background: '#6E6E6E' }} />
+  <span style={{ display: 'block', width: 86, height: 4, borderRadius: 2, background: SUNK, overflow: 'hidden' }}>
+    <span style={{ display: 'block', width: `${pct}%`, height: '100%', background: T4 }} />
   </span>
 );
 const Seg = ({ n, on }: { n: number; on: number }) => (
   <span style={{ display: 'flex', gap: 4 }}>
     {Array.from({ length: n }, (_, i) => (
-      <span key={i} style={{ width: 18, height: 4, borderRadius: 2, background: i < on ? '#5BB974' : '#1F1F1F' }} />
+      <span key={i} style={{ width: 18, height: 4, borderRadius: 2, background: i < on ? `${GREEN_T}` : WELL }} />
     ))}
   </span>
 );
@@ -56,10 +53,10 @@ const Empty = ({ children }: { children: React.ReactNode }) => (
 const PhaseMark = ({ state }: { state: 'done' | 'now' | 'next' }) => {
   if (state === 'done') return <Icon name="check" color={GREEN_T} size={13} width={2.2} />;
   if (state === 'now') return <span style={{
-    width: 10, height: 10, borderRadius: 999, border: '1.5px solid #8B8B8B',
-    background: 'linear-gradient(90deg, #8B8B8B 50%, transparent 50%)',
+    width: 10, height: 10, borderRadius: 999, border: `1.5px solid ${T3}`,
+    background: `linear-gradient(90deg, ${T3} 50%, transparent 50%)`,
   }} />;
-  return <span style={{ width: 9, height: 9, borderRadius: 999, border: '1px dashed #3A3A3A' }} />;
+  return <span style={{ width: 9, height: 9, borderRadius: 999, border: `1px dashed ${DIM}` }} />;
 };
 
 export default function WorkPage() {
@@ -94,7 +91,7 @@ export default function WorkPage() {
       <Centre>
         <TopBar crumb="Work" title={w.title} onPanel={() => setPane(true)} panelOn={pane} right={
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <Dot color={late ? '#D93025' : GREEN} size={7} />
+            <Dot color={late ? `${RED}` : GREEN} size={7} />
             <span style={{ color: late ? RED_T : GREEN_T, fontSize: 12 }}>
               {late ? `遅れ ${w.late}日` : '進行中'}
             </span>
@@ -118,7 +115,7 @@ export default function WorkPage() {
             ] as [string, string, string | undefined, React.ReactNode][]).map(([k, v, c, shape], i, arr) => (
               <div key={k} style={{
                 flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 5,
-                borderRight: i === arr.length - 1 ? undefined : '1px solid #161616',
+                borderRight: i === arr.length - 1 ? undefined : `1px solid ${HAIR}`,
               }}>
                 <span style={{ color: T4, fontSize: 12 }}>{k}</span>
                 <span style={{ fontSize: 24, lineHeight: '30px', color: c ?? T1 }} className="tnum">{v}</span>
@@ -133,7 +130,7 @@ export default function WorkPage() {
             {w.phases.map((p, i) => (
               <Link key={p.name} href="/tasks" className="row" style={{
                 display: 'flex', alignItems: 'center', gap: 14, height: 46, borderRadius: 7,
-                borderBottom: i === w.phases.length - 1 ? undefined : '1px solid #161616',
+                borderBottom: i === w.phases.length - 1 ? undefined : `1px solid ${HAIR}`,
               }}>
                 <span style={{ width: 16, flexShrink: 0, display: 'inline-flex', justifyContent: 'center' }}>
                   <PhaseMark state={p.state} />
@@ -141,18 +138,18 @@ export default function WorkPage() {
                 <span style={{ width: 14, flexShrink: 0, color: T5 }} className="tnum">{i + 1}</span>
                 <span style={{ width: 110, flexShrink: 0, color: p.state === 'next' ? T5 : T1 }}>{p.name}</span>
                 <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: 'block', height: 4, borderRadius: 2, background: '#161616', overflow: 'hidden' }}>
+                  <span style={{ display: 'block', height: 4, borderRadius: 2, background: HAIR, overflow: 'hidden' }}>
                     <span style={{
                       display: 'block', height: '100%', borderRadius: 2,
                       width: `${p.all ? Math.round((p.done / p.all) * 100) : 0}%`,
-                      background: p.state === 'done' ? GREEN : p.state === 'now' ? '#6E6E6E' : 'transparent',
+                      background: p.state === 'done' ? GREEN : p.state === 'now' ? `${T4}` : 'transparent',
                     }} />
                   </span>
                 </span>
                 <span style={{ width: 42, flexShrink: 0, textAlign: 'right', color: T5, fontSize: 12 }} className="tnum">
                   {p.done}/{p.all}
                 </span>
-                <span style={{ width: 92, flexShrink: 0, textAlign: 'right', color: '#4A4A4A', fontSize: 11 }} className="tnum">
+                <span style={{ width: 92, flexShrink: 0, textAlign: 'right', color: MUTE, fontSize: 11 }} className="tnum">
                   {p.from && p.to ? `${p.from} – ${p.to}` : ''}
                 </span>
               </Link>
@@ -166,13 +163,13 @@ export default function WorkPage() {
             {live.map((t, i) => (
               <Link key={t.id} href={openHref('/tasks', t.id)} className="row" style={{
                 display: 'flex', alignItems: 'center', gap: 12, height: 44, borderRadius: 7,
-                borderBottom: i === live.length - 1 ? undefined : '1px solid #161616',
+                borderBottom: i === live.length - 1 ? undefined : `1px solid ${HAIR}`,
               }}>
                 <span style={{ width: 14, flexShrink: 0, display: 'inline-flex', justifyContent: 'center' }}>
                   {t.state === '判断待ち' ? <Diamond size={9} />
                     : t.state === '要確認' ? <Icon name="deliv" color={AMBER_T} size={13} />
                     : t.state === '待機' ? <span style={{ width: 8, height: 8, borderRadius: 999, border: '1px solid #333' }} />
-                    : <Dot color="#6E6E6E" size={8} />}
+                    : <Dot color={T4} size={8} />}
                 </span>
                 <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
                 <span style={{ width: 84, color: T5, fontSize: 12 }}>{t.phase ? `フェーズ${t.phase}` : ''}</span>
@@ -198,15 +195,15 @@ export default function WorkPage() {
               {dels.map((d, i) => (
                 <Link key={d.id} href={openHref('/deliverables', d.id)} className="row" style={{
                   display: 'flex', alignItems: 'center', gap: 13, height: 56, borderRadius: 7,
-                  borderBottom: i >= dels.length - 2 ? undefined : '1px solid #161616',
+                  borderBottom: i >= dels.length - 2 ? undefined : `1px solid ${HAIR}`,
                 }}>
                   {/* サムネイルだけは面と枠を持てる */}
                   <span style={{
-                    width: 34, height: 26, flexShrink: 0, borderRadius: 4, background: '#141414',
+                    width: 34, height: 26, flexShrink: 0, borderRadius: 4, background: RAIL,
                     display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, padding: '0 6px',
                   }}>
                     {[10, 16, 13].map((wd, k) => (
-                      <span key={k} style={{ height: 2, width: wd, borderRadius: 1, background: '#2E2E2E' }} />
+                      <span key={k} style={{ height: 2, width: wd, borderRadius: 1, background: FAINT }} />
                     ))}
                   </span>
                   <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -234,7 +231,7 @@ export default function WorkPage() {
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 18px 24px' }}>
           <PaneHead top>最新の状況</PaneHead>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '4px 0 8px' }}>
-            <Dot color={late ? '#D93025' : GREEN} size={7} />
+            <Dot color={late ? `${RED}` : GREEN} size={7} />
             <span style={{ color: late ? RED_T : GREEN_T }}>
               {late ? `遅れ ${w.late}日` : '順調'}
             </span>
@@ -250,7 +247,7 @@ export default function WorkPage() {
             <Link key={what} href="/decisions" className="row" style={{
               display: 'flex', alignItems: 'center', gap: 12, height: 40, borderRadius: 7,
               padding: '0 8px', margin: '0 -8px',
-              borderBottom: i === decs.length - 1 ? undefined : '1px solid #161616',
+              borderBottom: i === decs.length - 1 ? undefined : `1px solid ${HAIR}`,
             }}>
               <span style={{ width: 52, flexShrink: 0, color: T5, fontSize: 11 }}>{when}</span>
               <Icon name="check" color={GREEN_T} size={12} width={2.2} />
@@ -264,7 +261,7 @@ export default function WorkPage() {
             <Link key={c.id ?? c.name} href={c.id ? openHref('/team', c.id) : '/team'} className="row" style={{
               display: 'flex', alignItems: 'center', gap: 11, height: 44, borderRadius: 7,
               padding: '0 8px', margin: '0 -8px',
-              borderBottom: i === w.crew.length - 1 ? undefined : '1px solid #161616',
+              borderBottom: i === w.crew.length - 1 ? undefined : `1px solid ${HAIR}`,
             }}>
               <Orb color={c.color} size={24} seed={c.name.length * 7 + 3} dim={Boolean(c.dim)} />
               <span style={{ color: c.dim ? T4 : T2 }}>{c.name}</span>

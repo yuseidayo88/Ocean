@@ -5,7 +5,7 @@ import { Go as Link } from '@/components/ui/Go';
 import { openHref } from '@/lib/use-open';
 import { Orb } from '@/components/ui/Orb';
 import { useRail } from '@/lib/use-rail';
-import { EASE } from '@/lib/design/tokens';
+import { AMBER, AMBER_T, DIM, EASE, GREEN, GREEN_T, HAIR, MUTE, RED_T, T2, T3, T4, T5 } from '@/lib/design/tokens';
 import {
   AGENT_COLOR, EMPLOYEES, EVENTS, EXEC,
   type Desk, type Employee, type Produce, type State,
@@ -20,14 +20,10 @@ import {
  * 統括AIは AI社員ではないので、左に分けて置き、人数にも入れない。
  */
 
-const T2 = '#B8B8B8', T4 = '#6E6E6E', T5 = '#5F5F5F', DIM = '#3A3A3A';
-const HAIR = '#161616';
-const GREEN = '#1E8E3E', AMBER = '#E37400';
-const GREEN_T = '#5BB974', AMBER_T = '#FDD663', RED_T = '#F28B82';
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, monospace';
 
 const STATE_C: Record<string, [string, string]> = {
-  実行中: [GREEN, GREEN_T], 要確認: [AMBER, AMBER_T], 判断待ち: [AMBER, AMBER_T], 待機: ['#4A4A4A', T4],
+  実行中: [GREEN, GREEN_T], 要確認: [AMBER, AMBER_T], 判断待ち: [AMBER, AMBER_T], 待機: [`${MUTE}`, T4],
 };
 const TONE: Record<string, string> = { gate: AMBER_T, ok: GREEN_T, bad: RED_T };
 
@@ -59,7 +55,7 @@ export function OfficeLog({ w = 288 }: { w?: number }) {
             }}>
               <span style={{ color: DIM, fontSize: 10.5, width: 34, flexShrink: 0, paddingTop: 1 }} className="tnum">{e.at}</span>
               <span style={{ color: T5, fontSize: 11, width: 52, flexShrink: 0, paddingTop: 1 }}>{e.who}</span>
-              <span style={{ flex: 1, minWidth: 0, color: e.tone ? TONE[e.tone] : '#8B8B8B', fontSize: 11.5, lineHeight: '17px' }}>
+              <span style={{ flex: 1, minWidth: 0, color: e.tone ? TONE[e.tone] : T3, fontSize: 11.5, lineHeight: '17px' }}>
                 {e.what}
               </span>
             </div>

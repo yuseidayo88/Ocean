@@ -4,11 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { CompanyPicker, useShell } from '@/components/shell/Shell';
-import { COMPOSER_H as TOKEN_COMPOSER_H, EASE, EASE_FAST } from '@/lib/design/tokens';
+import { AMBER, AMBER_T, BLUE, COMPOSER_H as TOKEN_COMPOSER_H, DIM, EASE, EASE_FAST, EDGE, FAINT, GREEN_T, HAIR, LINE, RAIL, RED_T, RULE, SEAM, SUNK, T1, T2, T3, T4, T5, WELL } from '@/lib/design/tokens';
 import { EFFORT_WORDS } from '@/lib/dummy';
-
-const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
-const BLUE = '#1A73E8';
 
 /** 入力欄の高さ。**下に貼り付く中身はこのぶん逃がす**（→ lib/design/tokens.ts） */
 export const COMPOSER_H = TOKEN_COMPOSER_H;
@@ -26,7 +23,7 @@ export function TopBar({ crumb, title, right, onPanel, panelOn }:
   return (
     <div style={{
       height: 46, flexShrink: 0, boxSizing: 'border-box', display: 'flex', alignItems: 'center',
-      gap: 10, padding: '0 12px 0 14px', borderBottom: '1px solid #161616',
+      gap: 10, padding: '0 12px 0 14px', borderBottom: `1px solid ${HAIR}`,
     }}>
       {/* 左レールを閉じたときだけ、ここに戻り道が出る（端にはつまみを残さない）。
           **消したり出したりしない** — 幅を 0 にして、レールの動きと同じ速さで開く。
@@ -197,12 +194,12 @@ export function Composer({ placeholder, mode = '統括AI', effort = '自動', ab
           ? (inPane ? '10px 7px 8px 12px' : '12px 8px 10px 15px')
           : (inPane ? '0 7px 0 12px' : '0 8px 0 15px'),
         borderRadius: tall ? 18 : inPane ? 23 : 26,
-        background: '#141414', border: '1px solid #2A2A2A',
+        background: RAIL, border: `1px solid ${EDGE}`,
         transition: `border-radius ${EASE_FAST}`,
         // 高さを測るときの計算を、この器の中だけで済ませる
         contain: 'layout',
       }}>
-        <button onClick={() => say5('資料を添えられるのは Phase 5 から')} className="icob"
+        <button onClick={() => say5('資料を添えられるのは Phase 8 から')} className="icob"
           aria-label="資料を添える" style={{
             width: 28, height: 28, flexShrink: 0, borderRadius: 999,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -249,7 +246,7 @@ export function Composer({ placeholder, mode = '統括AI', effort = '自動', ab
           cursor: can && !busy ? 'pointer' : 'default',
           transition: 'background-color .14s ease',
         }}>
-          <Icon name="up" color={can && !busy ? '#fff' : '#5F5F5F'} size={16} width={1.8} />
+          <Icon name="up" color={can && !busy ? '#fff' : T5} size={16} width={1.8} />
         </button>
       </div>
     </div>
@@ -337,11 +334,11 @@ export function Pane({ width = 430, title, icon, dot, tabs, tab: tabAt, onTab, r
            style={{ ['--pw' as string]: `${width}px`, flexShrink: 0, overflow: 'hidden' }}>
     <div style={{
       width, height: '100%', flexShrink: 0, boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
-      background: '#000', minHeight: 0, borderLeft: '1px solid #161616',
+      background: '#000', minHeight: 0, borderLeft: `1px solid ${HAIR}`,
     }}>
       <div style={{
         height: 46, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6,
-        padding: tabs ? '0 12px' : '0 16px', borderBottom: '1px solid #161616',
+        padding: tabs ? '0 12px' : '0 16px', borderBottom: `1px solid ${HAIR}`,
       }}>
         {tabs ? (
           <>
@@ -355,14 +352,14 @@ export function Pane({ width = 430, title, icon, dot, tabs, tab: tabAt, onTab, r
                 gap: bare ? 0 : 8, height: 28, padding: bare ? 0 : '0 11px',
                 flex: bare ? `0 0 ${BARE_W}px` : on ? '1.7 1 0' : '1 1 0', minWidth: 0,
                 maxWidth: bare ? BARE_W : on && tight ? 260 : 240,
-                borderRadius: 8, background: on ? '#1C1C1C' : bare ? '#121212' : undefined,
+                borderRadius: 8, background: on ? `${SEAM}` : bare ? '#121212' : undefined,
                 color: on ? T1 : T4, fontSize: 12.5,
                 transition: `background-color .12s ease, color .12s ease, width ${EASE_FAST}`,
               }}>
                 {/* 名前を出さないときは、印だけで「そこに1枚ある」と分かるようにする */}
                 <span style={{
                   width: 7, height: 7, borderRadius: 999, flexShrink: 0,
-                  background: t.dot ?? (bare ? '#3A3A3A' : 'transparent'),
+                  background: t.dot ?? (bare ? `${DIM}` : 'transparent'),
                   display: t.dot || bare ? 'block' : 'none',
                 }} />
                 {/* タブの名前は**わざと**切る（ブラウザのタブと同じ）。clip は「切れていて正しい」の印 */}
@@ -441,31 +438,60 @@ export function Section({ label, right, children, style }:
  * 質問は入力欄の上にくっついた板として出す（会話には流さない）。
  * 見出し＋1行の説明＋番号キー。最後の行は自由入力。右上に ‹ N / M › と ✕
  */
-export function Ask({ q, idx, total, options, free }: {
+export function Ask({ q, idx, total, options, free, answer, onPick, onFree, onSkip, onMove, busy }: {
   q: string; idx: number; total: number;
   options: { label: string; note: string; recommended?: boolean }[];
   free: string;
+  /**
+   * **答えは板が覚えない。** 親（画面）が持って、ここへ渡し直す。
+   * 板の中に閉じ込めると、読み込み直したときに消えるし、保存もできない。
+   */
+  answer?: string;
+  /** 選択肢を選んだ */
+  onPick?: (label: string) => void;
+  /** 自分の言葉で書いた */
+  onFree?: (text: string) => void;
+  /** この質問は飛ばす（閉じる） */
+  onSkip?: () => void;
+  /** ‹ › — 前の質問 / 次の質問へ */
+  onMove?: (d: -1 | 1) => void;
+  /** 送っている最中。二度押しさせない */
+  busy?: boolean;
 }) {
   /**
-   * **選んだら、板は消えて緑のチップになる**（→ CLAUDE.md「答え終わった条件は
-   * 緑のチェック＋項目名つきのチップで見せる」）。1〜3 と Esc でも選べる。
-   * Phase 4 なので答えはどこにも届かないが、**選んだことは見える**。
+   * 質問は会話に流さず、**入力欄の上にくっついた板**として出す（スクロールで流れない）。
+   *
+   * 押せる口は4つ — **選択肢 / ‹ › / 自分の言葉で書く / スキップ**。
+   * 前はどれも飾りで、選ぶと板が緑のチップになるだけだった（答えはブラウザから出なかった）。
+   * いまは親に渡す。親が無い画面（ダミーの静止画）では、選んだ見た目だけ手もとで出す。
    */
-  const [picked, setPicked] = useState<string | null>(null);
+  const [local, setLocal] = useState<string | null>(null);
   const [gone, setGone] = useState(false);
+  const [writing, setWriting] = useState(false);
+  const [text, setText] = useState('');
+  const box = useRef<HTMLInputElement>(null);
+
+  const picked = answer ?? local;
+  const take = (v: string) => { if (onPick) onPick(v); else setLocal(v); };
+  const skip = () => { if (onSkip) onSkip(); else setGone(true); };
+
+  useEffect(() => { if (writing) box.current?.focus(); }, [writing]);
 
   useEffect(() => {
-    if (gone || picked) return;
+    if (gone || picked || writing) return;
     const h = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT')) return;
-      if (e.key === 'Escape') { setGone(true); return; }
+      if (e.key === 'Escape') { skip(); return; }
+      if (onMove && total > 1 && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        e.preventDefault(); onMove(e.key === 'ArrowLeft' ? -1 : 1); return;
+      }
       const n = Number(e.key);
-      if (n >= 1 && n <= options.length) { e.preventDefault(); setPicked(options[n - 1].label); }
+      if (n >= 1 && n <= options.length) { e.preventDefault(); take(options[n - 1].label); }
     };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
-  }, [gone, picked, options]);
+  });
 
   if (gone) return null;
 
@@ -480,60 +506,99 @@ export function Ask({ q, idx, total, options, free }: {
           display: 'inline-flex', alignItems: 'center', gap: 8, height: 30, padding: '0 12px',
           borderRadius: 8, background: 'rgba(30,142,62,0.12)', border: '1px solid rgba(30,142,62,0.35)',
         }}>
-          <Icon name="check" color="#5BB974" size={12} width={2.2} />
+          <Icon name="check" color={GREEN_T} size={12} width={2.2} />
           <span style={{ color: T5, fontSize: 11.5 }}>{q}</span>
-          <span style={{ color: '#5BB974', fontSize: 12.5 }}>{picked}</span>
+          <span style={{ color: GREEN_T, fontSize: 12.5 }}>{picked}</span>
         </span>
-        <button onClick={() => setPicked(null)} className="lnk" style={{ color: T5, fontSize: 12 }}>選び直す</button>
+        <button onClick={() => { setLocal(null); if (onPick) onPick(''); }} className="lnk"
+                style={{ color: T5, fontSize: 12 }}>選び直す</button>
+        {onMove && total > 1 && idx < total && (
+          <button onClick={() => onMove(1)} className="lnk" style={{ color: T5, fontSize: 12 }}>次の質問 ›</button>
+        )}
       </div>
     );
   }
 
+  const arrow = (d: -1 | 1, name: 'back' | 'fwd') => {
+    const can = !!onMove && total > 1 && (d < 0 ? idx > 1 : idx < total);
+    return (
+      <button disabled={!can} onClick={() => onMove?.(d)} className={can ? 'icob' : undefined}
+              aria-label={d < 0 ? '前の質問' : '次の質問'}
+              style={{ display: 'inline-flex', padding: 3, cursor: can ? 'pointer' : 'default', opacity: can ? 1 : 0.35 }}>
+        <Icon name={name} color={T5} size={12} />
+      </button>
+    );
+  };
+
   return (
     <div className="rise" style={{
       width: '100%', maxWidth: 748, boxSizing: 'border-box', borderRadius: 14,
-      background: '#101010', border: '1px solid #262626', overflow: 'hidden',
+      background: '#101010', border: `1px solid ${RULE}`, overflow: 'hidden',
+      opacity: busy ? 0.6 : 1, pointerEvents: busy ? 'none' : undefined,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px 10px' }}>
         <span style={{ color: T1, fontSize: 14 }}>{q}</span>
         <div style={{ flex: 1 }} />
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: T5, fontSize: 12 }}>
-          <span className="icob" style={{ display: 'inline-flex', padding: 3 }}><Icon name="back" color={T5} size={12} /></span>
+          {arrow(-1, 'back')}
           <span className="tnum" style={{ padding: '0 2px' }}>{idx} / {total}</span>
-          <span className="icob" style={{ display: 'inline-flex', padding: 3 }}><Icon name="fwd" color={T5} size={12} /></span>
+          {arrow(1, 'fwd')}
         </span>
-        <button onClick={() => setGone(true)} className="icob" title="閉じる"
+        <button onClick={skip} className="icob" title="閉じる"
                 style={{ display: 'inline-flex', padding: 4, marginRight: -2 }}>
           <Icon name="close" color={T5} size={13} />
         </button>
       </div>
       {options.map((o, i) => (
-        <button key={o.label} onClick={() => setPicked(o.label)} className="row" style={{
+        <button key={o.label} onClick={() => take(o.label)} className="row" style={{
           display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 14px',
-          borderTop: '1px solid #1B1B1B', textAlign: 'left',
+          borderTop: `1px solid ${SEAM}`, textAlign: 'left',
         }}>
           <span style={{
-            width: 20, height: 20, borderRadius: 5, background: '#1C1C1C', color: T4,
+            width: 20, height: 20, borderRadius: 5, background: SEAM, color: T4,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, flexShrink: 0,
           }}>{i + 1}</span>
           <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {o.label}
-              {o.recommended && <span style={{ color: '#5BB974', fontSize: 11 }}>推奨</span>}
+              {o.recommended && <span style={{ color: GREEN_T, fontSize: 11 }}>推奨</span>}
             </span>
             <span style={{ color: T5, fontSize: 12 }}>{o.note}</span>
           </div>
         </button>
       ))}
+      {/* いちばん下は自由入力。押すとその場が書くところになる */}
       <div className="row" style={{
-        display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderTop: '1px solid #1B1B1B',
+        display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderTop: `1px solid ${SEAM}`,
       }}>
         <span style={{ width: 20, display: 'inline-flex', justifyContent: 'center', flexShrink: 0 }}>
           <Icon name="pencil" color={T4} size={13} />
         </span>
-        <span style={{ color: T3 }}>{free}</span>
-        <div style={{ flex: 1 }} />
-        <button onClick={() => setGone(true)} className="lnk" style={{ color: T5, fontSize: 12 }}>スキップ</button>
+        {writing ? (
+          <input
+            ref={box} value={text} onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && text.trim()) { e.preventDefault(); (onFree ?? take)(text.trim()); }
+              if (e.key === 'Escape') { e.preventDefault(); setWriting(false); setText(''); }
+            }}
+            placeholder={free}
+            style={{
+              flex: 1, minWidth: 0, height: 24, background: 'none', border: 'none', outline: 'none',
+              color: T1, fontSize: 13, padding: 0,
+            }} />
+        ) : (
+          <button onClick={() => setWriting(true)} className="lnk"
+                  style={{ flex: 1, textAlign: 'left', color: T3 }}>{free}</button>
+        )}
+        {writing ? (
+          <button onClick={() => text.trim() && (onFree ?? take)(text.trim())}
+                  disabled={!text.trim()} className={text.trim() ? 'lnk' : undefined}
+                  style={{ color: text.trim() ? GREEN_T : T5, fontSize: 12, cursor: text.trim() ? 'pointer' : 'default' }}>
+            送る
+          </button>
+        ) : (
+          <button onClick={skip} className="lnk" style={{ color: T5, fontSize: 12 }}>スキップ</button>
+        )}
       </div>
     </div>
   );
@@ -548,9 +613,9 @@ export function Chips({ items }: { items: [string, string][] }) {
         {items.map(([k, v]) => (
           <span key={k} style={{
             display: 'inline-flex', alignItems: 'center', gap: 7, height: 26, padding: '0 10px',
-            borderRadius: 999, background: '#121212', border: '1px solid #232323',
+            borderRadius: 999, background: '#121212', border: `1px solid ${LINE}`,
           }}>
-            <Icon name="check" color="#5BB974" size={11} width={2.4} />
+            <Icon name="check" color={GREEN_T} size={11} width={2.4} />
             <span style={{ color: T5, fontSize: 11 }}>{k}</span>
             <span style={{ color: T2, fontSize: 12 }}>{v}</span>
           </span>
@@ -568,14 +633,14 @@ export function Pills({ items, active, onPick }: {
   return (
     <div style={{
       display: 'inline-flex', alignItems: 'center', gap: 3, padding: 4, borderRadius: 999,
-      background: '#141414', border: '1px solid #232323',
+      background: RAIL, border: `1px solid ${LINE}`,
     }}>
       {items.map((it) => {
         const on = it.key === active;
         return (
           <button key={it.key} onClick={() => onPick(it.key)} className={on ? undefined : 'btn'} style={{
             display: 'inline-flex', alignItems: 'center', gap: 8, height: 32, padding: '0 15px',
-            borderRadius: 999, background: on ? '#2A2A2A' : undefined, color: on ? T1 : T4,
+            borderRadius: 999, background: on ? `${EDGE}` : undefined, color: on ? T1 : T4,
             whiteSpace: 'nowrap', transition: 'background-color .12s ease, color .12s ease',
           }}>
             {it.icon}{it.label}
@@ -586,78 +651,17 @@ export function Pills({ items, active, onPick }: {
   );
 }
 
-/** 思考の深さ = スライダー（自動のときは沈める） */
-export function EffortSlider({ pct = 58, dim = false, width, onChange }:
-  { pct?: number; dim?: boolean; width?: number; onChange?: (v: number) => void }) {
-  const cols = 46, rows = 5;
-  const [val, setVal] = useState(pct);
-  const box = useRef<HTMLDivElement>(null);
-  const live = onChange ? val : pct;
-
-  // つまめる。自動のときは沈めたまま動かさない
-  const move = (clientX: number) => {
-    const el = box.current;
-    if (!el || !onChange) return;
-    const r = el.getBoundingClientRect();
-    const v = Math.round(Math.min(100, Math.max(0, ((clientX - r.left - 11) / (r.width - 22)) * 100)));
-    setVal(v); onChange(v);
-  };
-  const drag = (e: React.PointerEvent) => {
-    if (!onChange) return;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    move(e.clientX);
-  };
-
-  const cells: React.ReactNode[] = [];
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const t = c / (cols - 1);
-      const a = 0.2 + 0.66 * Math.pow(t, 1.35);
-      cells.push(<span key={`${r}-${c}`} style={{
-        width: 3, height: 3, borderRadius: 999, background: `rgba(255,255,255,${(a * (dim ? 0.5 : 1)).toFixed(3)})`,
-      }} />);
-    }
-  }
-  return (
-    <div ref={box}
-      onPointerDown={drag}
-      onPointerMove={(e) => { if (e.buttons === 1) move(e.clientX); }}
-      style={{
-        position: 'relative', width: width ?? '100%', height: 30, boxSizing: 'border-box',
-        borderRadius: 10, background: '#121212', border: '1px solid #202020',
-        cursor: onChange ? 'ew-resize' : 'default', touchAction: 'none',
-      }}>
-      <span style={{
-        position: 'absolute', inset: '5px 7px', display: 'grid',
-        gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)`,
-        alignItems: 'center', justifyItems: 'center', pointerEvents: 'none',
-      }}>{cells}</span>
-      <span style={{
-        position: 'absolute', top: 3, bottom: 3, left: `calc(${live}% - 13px)`, width: 22,
-        borderRadius: 8, background: dim ? '#7A7A7A' : '#EDEDED', boxShadow: '0 1px 3px rgba(0,0,0,0.5)',
-        transition: onChange ? undefined : 'left .14s ease', pointerEvents: 'none',
-      }} />
-    </div>
-  );
-}
-
-// ══════════════ B群の宿題: 器の振る舞い ══════════════
-
-/**
- * 統括AIの3状態。**演出ではないので、止まっているときは止まっていると出す。**
- *   待機 = 何もしていない / 考え中 = 動いている / 判断待ち = あなたで止まっている
- */
 export function ExecStatus({ state }: { state: 'idle' | 'thinking' | 'blocked' }) {
   const map = {
     idle:     { c: T5,        t: '待機',   pulse: false },
-    thinking: { c: '#B8B8B8', t: '考えています', pulse: true },
-    blocked:  { c: '#FDD663', t: '判断を待っています', pulse: false },
+    thinking: { c: T2, t: '考えています', pulse: true },
+    blocked:  { c: AMBER_T, t: '判断を待っています', pulse: false },
   }[state];
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: map.c, fontSize: 12 }}>
       <span style={{
         width: 7, height: 7, borderRadius: 999,
-        background: state === 'blocked' ? '#E37400' : state === 'thinking' ? '#6E6E6E' : '#2E2E2E',
+        background: state === 'blocked' ? `${AMBER}` : state === 'thinking' ? `${T4}` : FAINT,
         animation: map.pulse ? 'pulse 1.4s ease-in-out infinite' : undefined,
       }} />
       {map.t}
@@ -677,7 +681,7 @@ export function PaneEmpty({ title, lead, action }: { title: string; lead: string
       {action && (
         <span className="btn" style={{
           marginTop: 6, display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 14px',
-          borderRadius: 8, background: '#1A1A1A', border: '1px solid #2A2A2A', color: T2, fontSize: 12.5,
+          borderRadius: 8, background: SUNK, border: `1px solid ${EDGE}`, color: T2, fontSize: 12.5,
         }}>{action}</span>
       )}
     </div>
@@ -689,7 +693,7 @@ export function PaneLoading({ lines = 4 }: { lines?: number }) {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 14, padding: 18 }}>
       {Array.from({ length: lines }, (_, i) => (
         <div key={i} style={{
-          height: 10, borderRadius: 3, background: '#141414',
+          height: 10, borderRadius: 3, background: RAIL,
           width: `${[92, 78, 88, 64, 84][i % 5]}%`,
           animation: 'pulse 1.6s ease-in-out infinite', animationDelay: `${i * 0.12}s`,
         }} />
@@ -704,11 +708,11 @@ export function PaneLoading({ lines = 4 }: { lines?: number }) {
 export function PaneError({ what, next, retry = 'もう一度' }: { what: string; next: string; retry?: string }) {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, padding: 18 }}>
-      <span style={{ color: '#F28B82', fontSize: 13 }}>{what}</span>
+      <span style={{ color: RED_T, fontSize: 13 }}>{what}</span>
       <span style={{ color: T3, fontSize: 12.5, lineHeight: '20px' }}>{next}</span>
       <span style={{
         alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 14px',
-        borderRadius: 8, background: '#1A1A1A', border: '1px solid #2A2A2A', color: T2, fontSize: 12.5,
+        borderRadius: 8, background: SUNK, border: `1px solid ${EDGE}`, color: T2, fontSize: 12.5,
       }}>{retry}</span>
     </div>
   );
@@ -720,7 +724,7 @@ export function PaneFooter({ primary, secondary, reverse = false }:
   const sec = secondary && (
     <span className="btn" style={{
       display: 'inline-flex', alignItems: 'center', height: 38, padding: '0 16px', borderRadius: 8,
-      background: '#1A1A1A', border: '1px solid #2A2A2A', color: T2, whiteSpace: 'nowrap',
+      background: SUNK, border: `1px solid ${EDGE}`, color: T2, whiteSpace: 'nowrap',
     }}>{secondary}</span>
   );
   const pri = (
@@ -731,7 +735,7 @@ export function PaneFooter({ primary, secondary, reverse = false }:
     }}>{primary}</span>
   );
   return (
-    <div style={{ flexShrink: 0, display: 'flex', gap: 10, padding: 16, borderTop: '1px solid #161616' }}>
+    <div style={{ flexShrink: 0, display: 'flex', gap: 10, padding: 16, borderTop: `1px solid ${HAIR}` }}>
       {/* reverse＝「小さい2つ、青が右」（採用・診断） */}
       {reverse ? <>{sec}<div style={{ flex: 1 }} />{pri}</> : <>{pri}{sec}</>}
     </div>
@@ -743,14 +747,6 @@ export function PaneHead({ children, top = false }: { children: React.ReactNode;
   return <div style={{ padding: top ? '0 0 4px' : '22px 0 4px' }}><span style={{ color: T3 }}>{children}</span></div>;
 }
 
-/** ペインのタブ右端に出す小さな注記（「3時間 待機」など） */
-export function PaneNote({ children, color = '#FDD663' }: { children: React.ReactNode; color?: string }) {
-  return (
-    <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', padding: '10px 18px 0' }}>
-      <span style={{ color, fontSize: 12 }}>{children}</span>
-    </div>
-  );
-}
 
 /**
  * 入力欄の深さ。**thinking の量**を決める（モデルは変わらない）。
@@ -780,17 +776,17 @@ function EffortMenu({ init }: { init: string }) {
       {open && (
         <span role="listbox" className="pop" style={{
           position: 'absolute', bottom: 36, right: 0, zIndex: 20, width: 168, padding: 5, borderRadius: 11,
-          background: '#1A1A1A', border: '1px solid #2E2E2E', boxShadow: '0 18px 44px rgba(0,0,0,.74)',
+          background: SUNK, border: `1px solid ${FAINT}`, boxShadow: '0 18px 44px rgba(0,0,0,.74)',
         }}>
           {['自動', ...EFFORT_WORDS].map((w) => (
             <button key={w} role="option" aria-selected={w === v} className={w === v ? undefined : 'btn'}
               onClick={() => { setV(w); setOpen(false); }} style={{
                 display: 'flex', alignItems: 'center', width: '100%', height: 30, padding: '0 10px',
-                borderRadius: 7, background: w === v ? '#1F1F1F' : undefined,
+                borderRadius: 7, background: w === v ? `${WELL}` : undefined,
                 color: w === v ? T1 : T2, fontSize: 12,
               }}>
               {w}<span style={{ flex: 1 }} />
-              {w === v && <span style={{ color: '#5BB974', fontSize: 11 }}>✓</span>}
+              {w === v && <span style={{ color: GREEN_T, fontSize: 11 }}>✓</span>}
             </button>
           ))}
         </span>

@@ -33,8 +33,8 @@ stateDiagram-v2
 
 ```mermaid
 stateDiagram-v2
-  [*] --> pending
-  pending --> active: 前フェーズが完了
+  [*] --> planned
+  planned --> active: 前フェーズが完了
   active --> review: このフェーズのタスクが全部 done
   review --> active: 差し戻し
   review --> done: 承認
@@ -42,6 +42,18 @@ stateDiagram-v2
   done --> [*]
   skipped --> [*]
 ```
+
+| 状態 | 画面での言い方（→ CLAUDE.md の6語） |
+|---|---|
+| `planned` | 待機 |
+| `active` | 実行中 |
+| `review` | **要確認**（全タスクが終わって、社長が見るのを待っている） |
+| `done` | 完了 |
+| `skipped` | — （一覧から畳む） |
+
+**`review` は 0011 で足しました。** それまで制約は
+`planned / active / done / skipped` の4つで、設計にある `review` がデータベースに無く、
+「終わったが承認前」を表せませんでした（Phase 9 の差し戻しが乗る場所）。
 
 ## タスク
 

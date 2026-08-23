@@ -18,11 +18,13 @@ export class AnthropicProvider implements ModelProvider {
     const toolInputs = new Map<number, { id: string; name: string; json: string }>()
 
     const s = this.client.messages.stream({
-      model: spec.model,
+      model: spec.direct,
       max_tokens: input.maxTokens ?? 4096,
       // 変わらない前置きに印を置く。ここまでが使い回される
       system: [{ type: 'text', text: input.system, cache_control: { type: 'ephemeral' } }],
       messages: input.messages.map((m) => ({ role: m.role, content: m.content })),
+      // **深さは thinking の量。モデルは変えない**（→ CLAUDE.md）
+      ...(input.effort ? { output_config: { effort: input.effort } } : {}),
       ...(input.tools?.length ? { tools: input.tools } : {}),
     }, { signal: input.signal })
 

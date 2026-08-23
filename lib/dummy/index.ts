@@ -8,11 +8,12 @@
  *   ・AI社員の色は**オフィスと進捗の可視化だけ**。表・リスト・ピルには出さない
  */
 
+import { agentColor, EXEC as EXEC_COLOR } from '@/lib/design/tokens';
+
 export type EmployeeColor = 'cyan' | 'purple' | 'indigo' | 'green';
 
-export const AGENT_COLOR: Record<EmployeeColor, string> = {
-  cyan: '#2AA9BF', purple: '#9A5CD0', indigo: '#5C6BC0', green: '#34A853',
-};
+/** 色の出どころは `lib/design/tokens.ts`。ここでは名前を付け直すだけ */
+export const AGENT_COLOR: Record<EmployeeColor, string> = agentColor;
 
 /** 状態は6語だけ。この外に新しい言い方を作らない */
 export type State = '判断待ち' | '要確認' | '実行中' | '待機' | '完了' | '承認済';
@@ -107,7 +108,7 @@ export const employee = (id: string) => EMPLOYEES.find((e) => e.id === id)!;
  * メンバー画面ではいちばん上に固定で出し、モデル・深さ・設定は社員と同じに持つ。
  */
 export const EXEC = {
-  id: 'exec', name: '統括AI', en: 'Executive', color: '#D2D2D2', state: '実行中' as State,
+  id: 'exec', name: '統括AI', en: 'Executive', color: EXEC_COLOR, state: '実行中' as State,
   lead: 'あなたの言葉は全部ここに届きます。',
   can: ['Workを立てる', '計画を作る', '社員を選ぶ'], canMore: 1,
   model: 'Opus 5', effort: 4,
@@ -556,19 +557,6 @@ export const INBOX_HANDLED: InboxItem[] = [
     lead: ['承認したので、フェーズ1は完了しました。'],
     look: [['市場調査レポート v2', '調査担当']],
     primary: '成果物で見る', secondary: '取り消す' },
-];
-
-export const NOTICE_GROUPS: { label: string; items: Notice[] }[] = [
-  { label: '今日', items: [
-    { id: 'n1', kind: '判断待ち', title: '価格モデルの決定', sub: '判断を待っています', when: '3時間', unread: true },
-    { id: 'n2', kind: '要確認', title: '成果物が2件できました。見てください', sub: '', when: '2時間', unread: true,
-      children: [['収益モデル比較レポート — 戦略担当', '2時間前'], ['競合ポジショニング図 — 調査担当', '2時間前']] },
-    { id: 'n3', kind: '実行中', title: '競合ポジショニング分析', sub: '調査担当が開始しました', when: '12分', unread: false },
-  ] },
-  { label: '昨日', items: [
-    { id: 'n4', kind: '承認済', title: '市場調査レポート v2', sub: 'あなたが承認しました', when: '昨日 18:40', unread: false },
-    { id: 'n5', kind: '完了', title: 'フェーズ1 調査', sub: '完了しました', when: '昨日 18:41', unread: false },
-  ] },
 ];
 
 // ════════════════════════ チャット ════════════════════════

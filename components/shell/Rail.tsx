@@ -7,13 +7,9 @@ import { useState } from 'react';
 import { Icon, Dot, type IconName } from '@/components/ui/Icon';
 import { ME, THREADS, WORKS } from '@/lib/dummy';
 import { isBlank, useShell } from '@/components/shell/Shell';
-import { EASE, EASE_FAST, RAIL_W } from '@/lib/design/tokens';
-
+import { AMBER, BLUE, DIM, EASE, EASE_FAST, FAINT, GREEN, LINE, RAIL, RAIL_W, RULE, SUNK, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
 /** レールに出すチャットの数。これを超えたら「すべて見る」を出す */
 const SHOWN = 6;
-
-const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
-const AMBER = '#E37400', GREEN = '#1E8E3E', BLUE = '#1A73E8';
 
 /** 行き先だけを並べる。絞り込みや操作は置かない */
 const NAV: { href: Route; label: string; icon: IconName }[] = [
@@ -33,10 +29,10 @@ function NavRow({ href, label, icon, on, badge, badgeColor, live, dim }: {
   return (
     <Link href={href} className={on ? 'hit' : 'row'} style={{
       display: 'flex', alignItems: 'center', gap: 11, height: 34, padding: '0 10px',
-      borderRadius: 8, background: on ? '#232323' : undefined,
+      borderRadius: 8, background: on ? `${LINE}` : undefined,
       color: on ? T1 : dim ? T4 : T2, transition: `color ${EASE_FAST}`,
     }}>
-      <Icon name={icon} color={on ? T1 : dim ? '#3A3A3A' : T4} size={16} />
+      <Icon name={icon} color={on ? T1 : dim ? `${DIM}` : T4} size={16} />
       <span>{label}</span>
       <div style={{ flex: 1 }} />
       {live && <Dot color={GREEN} size={6} />}
@@ -49,7 +45,7 @@ function Pop({ children, pos }: { children: React.ReactNode; pos: React.CSSPrope
   return (
     <div className="pop" style={{
       position: 'absolute', width: 224, zIndex: 40, boxSizing: 'border-box', padding: 5,
-      borderRadius: 11, background: '#1A1A1A', border: '1px solid #2E2E2E',
+      borderRadius: 11, background: SUNK, border: `1px solid ${FAINT}`,
       boxShadow: '0 18px 44px rgba(0,0,0,0.72)', ...pos,
     }}>{children}</div>
   );
@@ -61,7 +57,7 @@ function PopRow({ label, right, on, color, onClick }: {
   return (
     <button onClick={onClick} className={on ? 'hit' : 'row'} style={{
       width: '100%', display: 'flex', alignItems: 'center', gap: 10, height: 32, padding: '0 10px',
-      borderRadius: 7, background: on ? '#262626' : undefined, textAlign: 'left',
+      borderRadius: 7, background: on ? `${RULE}` : undefined, textAlign: 'left',
     }}>
       <span style={{ color: color ?? (on ? T1 : T2) }}>{label}</span>
       <div style={{ flex: 1 }} />
@@ -70,7 +66,7 @@ function PopRow({ label, right, on, color, onClick }: {
   );
 }
 
-const Hair = () => <div style={{ height: 1, margin: '5px 8px', background: '#262626' }} />;
+const Hair = () => <div style={{ height: 1, margin: '5px 8px', background: RULE }} />;
 
 export function Rail({ empty }: { empty?: boolean } = {}) {
   const path = usePathname();
@@ -94,7 +90,7 @@ export function Rail({ empty }: { empty?: boolean } = {}) {
     <nav aria-label="行き先" style={{
       position: 'relative', width: RAIL_W, height: '100%', flexShrink: 0, boxSizing: 'border-box',
       display: 'flex', flexDirection: 'column', gap: 14, padding: '14px 12px',
-      background: '#141414', borderRight: '1px solid #232323',
+      background: RAIL, borderRight: `1px solid ${LINE}`,
       opacity: rail ? 1 : 0, transition: `opacity ${rail ? '.2s ease .06s' : '.14s ease'}`,
     }}>
       {/* 上はプロダクトの名前と、このレールを閉じる印だけ。会社名はパンくずの根に置いた。
@@ -113,7 +109,7 @@ export function Rail({ empty }: { empty?: boolean } = {}) {
       <button onClick={() => setFind(true)} className="field hit" style={{
         width: '100%', boxSizing: 'border-box',
         height: 32, display: 'flex', alignItems: 'center', gap: 9, padding: '0 10px',
-        borderRadius: 8, background: '#1A1A1A', border: '1px solid #262626',
+        borderRadius: 8, background: SUNK, border: `1px solid ${RULE}`,
       }}>
         <Icon name="search" color={T4} size={14} />
         <span style={{ color: T4 }}>検索</span>
@@ -158,7 +154,7 @@ export function Rail({ empty }: { empty?: boolean } = {}) {
         </div>
         {blank ? (
           <div style={{ padding: '2px 10px 0' }}>
-            <span style={{ color: '#3A3A3A', fontSize: 12 }}>まだありません</span>
+            <span style={{ color: DIM, fontSize: 12 }}>まだありません</span>
           </div>
         ) : (
           <>
@@ -168,7 +164,7 @@ export function Rail({ empty }: { empty?: boolean } = {}) {
                 <Link key={t.id} href={`/chat/${t.id}`} className={on ? 'hit' : 'row'} style={{
                   display: 'flex', alignItems: 'center', gap: 8, height: 30,
                   padding: '0 10px 0 12px', borderRadius: 8,
-                  background: on ? '#232323' : undefined, color: on ? T1 : T3,
+                  background: on ? `${LINE}` : undefined, color: on ? T1 : T3,
                 }}>
                   <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {t.title}
@@ -197,7 +193,7 @@ export function Rail({ empty }: { empty?: boolean } = {}) {
         borderRadius: 8, background: account ? '#1E1E1E' : undefined, width: '100%',
       }}>
         <span style={{
-          width: 22, height: 22, borderRadius: 999, background: '#2E2E2E',
+          width: 22, height: 22, borderRadius: 999, background: FAINT,
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11,
         }}>{ME.initial}</span>
         <span style={{ color: account ? T1 : T2 }}>{ME.name}</span>

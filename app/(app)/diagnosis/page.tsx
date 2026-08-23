@@ -4,17 +4,13 @@ import { Go as Link } from '@/components/ui/Go';
 
 import { useOpen } from '@/lib/use-open';
 import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
-import { Icon } from '@/components/ui/Icon';
-import { pressable } from '@/lib/a11y';
-import { COMPOSER_H } from '@/lib/design/tokens';
 
+import { pressable } from '@/lib/a11y';
+import { AMBER_T, BLUE, COMPOSER_H, HAIR, MUTE, RED_T, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
 /**
  * ⓪-d 診断結果。**診断は必ず「次に何をするか（Work）」まで持つ。**
  * 見つけたことを並べて終わりにしない。数はラベル（小）→数字（大）→補足。
  */
-
-const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
-const BLUE = '#1A73E8', AMBER_T = '#FDD663', RED_T = '#F28B82', GREEN_T = '#5BB974';
 
 const FACTS: [string, string, string, string?][] = [
   ['月の売上', '¥412,000', '12ヶ月で +8%'],
@@ -30,7 +26,7 @@ const FINDINGS: [string, string, string, string][] = [
   ['軽い', 'SNSが更新されていない',  '最終投稿 3ヶ月前',                          'Work「SNS運用の立ち上げ」'],
 ];
 
-const WEIGHT: Record<string, string> = { '重い': RED_T, '中くらい': AMBER_T, '軽い': '#4A4A4A' };
+const WEIGHT: Record<string, string> = { '重い': RED_T, '中くらい': AMBER_T, '軽い': MUTE };
 
 export default function DiagnosisPage() {
   // 右は閉じた状態から始まる。見つかったことの1行を押すと開く
@@ -49,7 +45,7 @@ export default function DiagnosisPage() {
             {FACTS.map(([k, v, sub, c], i) => (
               <div key={k} style={{
                 flex: 1, display: 'flex', flexDirection: 'column', gap: 4,
-                borderRight: i === FACTS.length - 1 ? undefined : '1px solid #161616',
+                borderRight: i === FACTS.length - 1 ? undefined : `1px solid ${HAIR}`,
               }}>
                 <span style={{ color: T4, fontSize: 12 }}>{k}</span>
                 <span style={{ fontSize: 24, lineHeight: '30px', color: c ?? T1 }} className="tnum">{v}</span>
@@ -68,7 +64,7 @@ export default function DiagnosisPage() {
             {FINDINGS.map(([w, title, why, next], i) => (
               <div key={title} className="row" {...pressable(() => setOpen(title))} style={{
                 display: 'flex', alignItems: 'center', gap: 14, padding: '13px 0',
-                borderBottom: i === FINDINGS.length - 1 ? undefined : '1px solid #161616',
+                borderBottom: i === FINDINGS.length - 1 ? undefined : `1px solid ${HAIR}`,
               }}>
                 <span style={{ width: 3, height: 30, borderRadius: 2, background: WEIGHT[w], flexShrink: 0 }} />
                 <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>

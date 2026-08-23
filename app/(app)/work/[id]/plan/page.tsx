@@ -5,14 +5,14 @@ import { Go as Link } from '@/components/ui/Go';
 
 import { useOpen } from '@/lib/use-open';
 import { notFound, useParams } from 'next/navigation';
-import { Centre, Composer, ExecStatus, Pane, TopBar } from '@/components/shell/Chrome';
-import { COMPOSER_H } from '@/lib/design/tokens';
+import { Ask, Centre, Composer, ExecStatus, Pane, TopBar } from '@/components/shell/Chrome';
+import { AMBER, AMBER_T, BLUE, COMPOSER_H, DIM, EDGE, GREEN_T, HAIR, RED_T, SEAM, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
 import { useShell } from '@/components/shell/Shell';
 import { Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
 import { AGENT_COLOR, WORKS } from '@/lib/dummy';
 import { DUMMY_VIEW, fromDraft, type PlanView } from '@/lib/exec/view';
-import { approveWork, getDraft, reviseWork } from '@/app/actions/work';
+import { answerQuestion, approveWork, getDraft, reviseWork } from '@/app/actions/work';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -23,10 +23,8 @@ import { useEffect, useState } from 'react';
  * 右ペインは「この計画の根拠」。中央のロードマップを二度言わない。
  */
 
-const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
-const BLUE = '#1A73E8', AMBER = '#E37400', AMBER_T = '#FDD663', GREEN_T = '#5BB974';
 /** 時間の使い方の帯。**色は意味にだけ使う**ので、ここは明るさだけで分ける */
-const GREYS = ['#3A3A3A', '#333333', '#2C2C2C', '#242424'];
+const GREYS = [`${DIM}`, '#333333', '#2C2C2C', '#242424'];
 
 /**
  * 中身は1つの形（`PlanView`）から描く。
@@ -45,8 +43,14 @@ export default function PlanPage() {
   const [v, setV] = useState<PlanView | null>(dummy ? DUMMY_VIEW : null);
   const [gone, setGone] = useState(false);
   /** 押しているあいだ。**二度押しさせない**（承認は1回きり） */
-  const [busy, setBusy] = useState<'' | 'approve' | 'revise'>('');
+  const [busy, setBusy] = useState<'' | 'approve' | 'revise' | 'answer'>('');
   const [err, setErr] = useState('');
+  /**
+   * いま見ている質問。`-1` は「まだ選んでいない」＝ **答え終わっていない最初のもの**を出す。
+   * ✕ を押したら `asks` を丸ごと引っ込める（また出すのは読み込み直したとき）。
+   */
+  const [at, setAt] = useState(-1);
+  const [hideAsk, setHideAsk] = useState(false);
 
   // ダミーに無い id は、統括AIが立てたばかりの計画
   useEffect(() => {
@@ -79,6 +83,24 @@ export default function PlanPage() {
     setBusy('');
   };
 
+  /**
+   * **答えを保存する。** 前は選んでも板が緑になるだけで、ブラウザから出ていなかった。
+   * 空文字は「選び直す」。
+   */
+  const reply = async (i: number, text: string) => {
+    if (dummy) { say5('ダミーの計画には答えられません。入力欄からゴールを書いてみてください'); return; }
+    setBusy('answer'); setErr('');
+    await answerQuestion(id, i, text);
+    const d = await getDraft(id);
+    if (d) setV(fromDraft(d));
+    setBusy('');
+    // 答えたら次の未回答へ。最後まで答えたら既定（＝出さない）に戻す
+    if (!text) { setAt(i); return; }
+    const rest = d ? fromDraft(d).asks : [];
+    const next = rest.findIndex((a, k) => k > i && !a.answer);
+    setAt(next >= 0 ? next : -1);
+  };
+
   if (gone) notFound();
   if (!v) return <Centre><TopBar title="計画案" /><Waiting /></Centre>;
 
@@ -86,6 +108,13 @@ export default function PlanPage() {
   const ROWS = v.rows;
   // 根拠のペインが読む値は先に取る（JSX の中では narrowing が効かない）
   const FACTS = v.facts;
+  /**
+   * いま出す質問。既定は**答え終わっていない最初のもの**
+   * （‹ › で行き来できるので、答えたものにも戻れる）。全部答えたら出さない。
+   */
+  const firstOpen = v.asks.findIndex((a) => !a.answer);
+  const askAt = at >= 0 ? Math.min(at, v.asks.length - 1) : firstOpen;
+  const ASK = !hideAsk && askAt >= 0 ? v.asks[askAt] : null;
   // 作るものは2列に割る
   const half = Math.ceil(v.makes.length / 2);
   const MAKES = [v.makes.slice(0, half), v.makes.slice(half)];
@@ -144,7 +173,7 @@ export default function PlanPage() {
             {ROWS.map((r, i) => (
               <div key={r.name} style={{
                 display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0',
-                borderBottom: i === ROWS.length - 1 ? undefined : '1px solid #161616',
+                borderBottom: i === ROWS.length - 1 ? undefined : `1px solid ${HAIR}`,
               }}>
                 <div style={{ width: 208, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
                   <span style={{ color: r.soft ? T5 : T1 }}>{r.name}</span>
@@ -154,8 +183,8 @@ export default function PlanPage() {
                   <div style={{
                     position: 'absolute', left: `${(r.w0 / PW) * 100}%`, width: `${((r.w1 - r.w0) / PW) * 100}%`,
                     top: 0, height: 26, borderRadius: 5,
-                    background: r.soft ? undefined : '#2A2A2A',
-                    border: r.soft ? '1px dashed #2A2A2A' : undefined, boxSizing: 'border-box',
+                    background: r.soft ? undefined : EDGE,
+                    border: r.soft ? `1px dashed ${EDGE}` : undefined, boxSizing: 'border-box',
                   }} />
                   {r.dec && (
                     <>
@@ -180,7 +209,7 @@ export default function PlanPage() {
           {/* 承認すると起きること */}
           <div style={{ display: 'flex', flexDirection: 'column', paddingTop: 10 }}>
             <span style={{ color: T3, paddingBottom: 4 }}>承認すると起きること</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '8px 0', borderBottom: '1px solid #161616' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '8px 0', borderBottom: `1px solid ${HAIR}` }}>
               <span style={{ width: 176, flexShrink: 0, color: T4, fontSize: 13 }}>
                 {v.hires.length ? `採用する AI社員 ${v.hires.length}体` : '採用はありません'}
               </span>
@@ -214,7 +243,7 @@ export default function PlanPage() {
                   {col.map(([nm, ph], i) => (
                     <div key={nm} style={{
                       display: 'flex', alignItems: 'center', gap: 12, height: 29,
-                      borderBottom: i === col.length - 1 ? undefined : '1px solid #161616',
+                      borderBottom: i === col.length - 1 ? undefined : `1px solid ${HAIR}`,
                     }}>
                       <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 13 }}>{nm}</span>
                       <div style={{ flex: 1 }} />
@@ -236,7 +265,7 @@ export default function PlanPage() {
           */}
         <div style={{
           flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10, height: 56,
-          padding: '0 26px', marginBottom: COMPOSER_H, borderTop: '1px solid #1C1C1C',
+          padding: '0 26px', marginBottom: COMPOSER_H, borderTop: `1px solid ${SEAM}`,
         }}>
           {v.approved ? (
             /* もう承認されている。**押せる顔をさせない** */
@@ -244,7 +273,7 @@ export default function PlanPage() {
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: GREEN_T, fontSize: 13 }}>
                 <Icon name="check" color={GREEN_T} size={14} width={2} />承認済
               </span>
-              <Link href={`/work/${id}` as Route} className="btn" style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 14px', borderRadius: 8, border: '1px solid #2A2A2A', color: T3 }}>
+              <Link href={`/work/${id}` as Route} className="btn" style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 14px', borderRadius: 8, border: `1px solid ${EDGE}`, color: T3 }}>
                 Work を見る
               </Link>
             </>
@@ -252,23 +281,40 @@ export default function PlanPage() {
             <>
               <button onClick={approve} disabled={!!busy} className={busy ? undefined : 'solid'} style={{
                 display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px', borderRadius: 8,
-                background: busy ? '#1C1C1C' : BLUE, color: busy ? T5 : '#fff',
+                background: busy ? `${SEAM}` : BLUE, color: busy ? T5 : '#fff',
                 cursor: busy ? 'default' : 'pointer',
               }}>
                 {busy === 'approve' ? '始めています…' : '承認して始める'}
               </button>
               <button onClick={() => say5('直したいところは、下の入力欄に書いてください')}
-                      className="btn" style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 14px', borderRadius: 8, border: '1px solid #2A2A2A', color: T3 }}>
+                      className="btn" style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 14px', borderRadius: 8, border: `1px solid ${EDGE}`, color: T3 }}>
                 直したい
               </button>
             </>
           )}
           {busy === 'revise' && <span style={{ color: T5, fontSize: 12 }}>統括AIが引き直しています…</span>}
-          {err && <span style={{ color: '#F28B82', fontSize: 12 }}>{err}</span>}
+          {err && <span style={{ color: RED_T, fontSize: 12 }}>{err}</span>}
         </div>
-        {/* 書いたものは**この画面が引き取る**（会話ではなく、計画の引き直しになる） */}
+        {/**
+          * 書いたものは**この画面が引き取る**（会話ではなく、計画の引き直しになる）。
+          * **質問の板は入力欄と一体で浮く。** 答え終わっていないものがあるあいだだけ出す。
+          */}
         <Composer placeholder="直したいところを書く、@ で資料を参照"
-                  onSend={revise} busy={!!busy} />
+                  onSend={revise} busy={!!busy}
+                  above={ASK && (
+                    <Ask
+                      q={ASK.body} idx={askAt + 1} total={v.asks.length}
+                      options={ASK.options} free="自分の言葉で書く" answer={ASK.answer}
+                      busy={busy === 'answer'}
+                      onPick={(label) => reply(askAt, label)}
+                      onFree={(text) => reply(askAt, text)}
+                      onSkip={() => {
+                        const next = v.asks.findIndex((a, k) => k > askAt && !a.answer);
+                        if (next >= 0) setAt(next); else setHideAsk(true);
+                      }}
+                      onMove={(d) => setAt(Math.min(Math.max(askAt + d, 0), v.asks.length - 1))}
+                    />
+                  )} />
       </Centre>
 
       {pane && (
@@ -292,7 +338,7 @@ export default function PlanPage() {
 
           <span style={{ color: T3, display: 'block', padding: '22px 0 3px' }}>なぜこの順番か</span>
           {v.why.map((t, i) => (
-            <div key={i} style={{ padding: '11px 0', borderBottom: i === v.why.length - 1 ? undefined : '1px solid #161616' }}>
+            <div key={i} style={{ padding: '11px 0', borderBottom: i === v.why.length - 1 ? undefined : `1px solid ${HAIR}` }}>
               <span style={{ color: T2, fontSize: 13, lineHeight: '21px' }}>{t}</span>
             </div>
           ))}
@@ -301,7 +347,7 @@ export default function PlanPage() {
             <>
               <span style={{ color: T3, display: 'block', padding: '22px 0 3px' }}>前提にしていること</span>
               {FACTS.map(([k, val], i) => (
-                <div key={k} style={{ display: 'flex', alignItems: 'baseline', gap: 12, padding: '9px 0', borderBottom: i === FACTS.length - 1 ? undefined : '1px solid #161616' }}>
+                <div key={k} style={{ display: 'flex', alignItems: 'baseline', gap: 12, padding: '9px 0', borderBottom: i === FACTS.length - 1 ? undefined : `1px solid ${HAIR}` }}>
                   <span style={{ color: T4, fontSize: 12 }}>{k}</span>
                   <div style={{ flex: 1 }} />
                   <span style={{ color: T2, fontSize: 13 }}>{val}</span>

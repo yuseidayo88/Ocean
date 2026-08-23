@@ -2,7 +2,7 @@
 
 import type { Route } from 'next';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useShell } from '@/components/shell/Shell';
 
 /**
@@ -34,9 +34,15 @@ function useLate(key: string, fallback: string | null) {
   const { chat, closeChat } = useShell();
   const url = sp.get(key) ?? fallback;
   const [now, setNow] = useState(url);
+  const [seen, setSeen] = useState(url);
 
-  // 外から URL が変わったとき（別画面から来た・戻るを押した）は合わせる
-  useEffect(() => { setNow(url); }, [url]);
+  /**
+   * 外から URL が変わったとき（別画面から来た・戻るを押した）は合わせる。
+   * **effect ではなく、描いている途中で直す。** effect にすると
+   * 「古い値で1回描く → 直す → もう1回描く」になり、一瞬だけ前の1件が見える。
+   * 描画中に setState すると React はその場でやり直すので、画面には出ない。
+   */
+  if (seen !== url) { setSeen(url); setNow(url); }
 
   // 開け閉めしたあと、**描き終わってから** URL を書く
   useEffect(() => {
@@ -50,7 +56,15 @@ function useLate(key: string, fallback: string | null) {
    * 右は1枚だけ。**会話を開いたまま行を選んだら、選んだほうに入れ替わる。**
    * 押しても何も出ない、をつくらない。
    */
-  const set = (v: string | null) => { if (chat.on) closeChat(); setNow(v); };
+  /**
+   * **識別をむやみに変えない。** これを `useCallback` の依存に入れる側
+   * （ワークフローの `pick`）が毎描画で作り直しになるため。
+   * 変わるのは会話の開け閉めのときだけ。
+   */
+  const set = useCallback((v: string | null) => {
+    if (chat.on) closeChat();
+    setNow(v);
+  }, [chat.on, closeChat]);
   return [now, set] as const;
 }
 
@@ -75,8 +89,14 @@ export function useTabs(all: string[]) {
   const urlIds = sp.get('open') ?? '';
   const urlAt = sp.get('at') ?? '0';
   const [raw, setRaw] = useState<[string, string]>([urlIds, urlAt]);
+  const [seen, setSeen] = useState<[string, string]>([urlIds, urlAt]);
 
-  useEffect(() => { setRaw([urlIds, urlAt]); }, [urlIds, urlAt]);
+  // 上と同じ。**描いている途中で直す**（タブが一瞬ちらつかない）
+  if (seen[0] !== urlIds || seen[1] !== urlAt) {
+    setSeen([urlIds, urlAt]);
+    setRaw([urlIds, urlAt]);
+  }
+
   useEffect(() => {
     if (raw[0] === urlIds && raw[1] === urlAt) return;
     const q = new URLSearchParams(window.location.search);

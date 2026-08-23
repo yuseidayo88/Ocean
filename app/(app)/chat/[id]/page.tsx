@@ -6,14 +6,12 @@ import { Dot, Icon } from '@/components/ui/Icon';
 import { CHATS, THREADS, work } from '@/lib/dummy';
 import type { Turn } from '@/lib/dummy';
 
+import { AMBER, AMBER_T, DIM, EXEC, GREEN, HAIR, SUNK, T1, T2, T4, T5 } from '@/lib/design/tokens';
 /**
  * チャット＝2ペインの会話（ChatGPT と同じ。右ペインなし）。
  * **会話はここに一本化する。** Work は会話を持たない。
  * 質問は会話に流さず、入力欄の上にくっついた板として出す。
  */
-
-const T1 = '#EDEDED', T2 = '#B8B8B8', T4 = '#6E6E6E', T5 = '#5F5F5F';
-const AMBER = '#E37400', AMBER_T = '#FDD663';
 
 export function generateStaticParams() {
   return [...THREADS.map((t) => ({ id: t.id })), { id: 'new' }];
@@ -40,7 +38,6 @@ const Exec = ({ thought, children }: { thought?: string; children: React.ReactNo
   </div>
 );
 
-
 /** 本文。改行と **強調** だけ通す（マークダウンは持ち込まない） */
 function Body({ text }: { text: string }) {
   return (
@@ -63,8 +60,8 @@ function Bars({ bars }: { bars: NonNullable<Extract<Turn, { who: 'exec' }>['bars
         <div key={b.k} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <span style={{ width: 62, flexShrink: 0, color: b.hi ? T1 : T4 }}>{b.k}</span>
           <span style={{ width: 66, flexShrink: 0, color: b.hi ? T1 : T4 }} className="tnum">{b.v}</span>
-          <span style={{ flex: 1, minWidth: 0, height: 6, borderRadius: 3, background: '#1A1A1A', overflow: 'hidden' }}>
-            <span style={{ display: 'block', width: `${b.pct}%`, height: '100%', background: b.hi ? '#1E8E3E' : '#3A3A3A' }} />
+          <span style={{ flex: 1, minWidth: 0, height: 6, borderRadius: 3, background: SUNK, overflow: 'hidden' }}>
+            <span style={{ display: 'block', width: `${b.pct}%`, height: '100%', background: b.hi ? `${GREEN}` : DIM }} />
           </span>
           <span style={{ width: 190, flexShrink: 0, textAlign: 'right', color: b.hi ? T2 : T5, fontSize: 12.5 }}>{b.note}</span>
         </div>
@@ -80,7 +77,7 @@ function Steps({ steps }: { steps: [string, string][] }) {
       {steps.map(([k, v], i) => (
         <div key={k} style={{
           display: 'flex', alignItems: 'center', gap: 16, height: 38,
-          borderTop: i ? '1px solid #161616' : undefined,
+          borderTop: i ? `1px solid ${HAIR}` : undefined,
         }}>
           <span style={{ width: 108, flexShrink: 0, color: T2, fontSize: 13 }}>{k}</span>
           <span style={{ flex: 1, minWidth: 0, color: T4, fontSize: 13 }}>{v}</span>
@@ -99,7 +96,7 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
         <TopBar title="新しいチャット" />
         <div style={{ flex: 1, display: 'grid', placeItems: 'center' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
-            <Orb color="#D2D2D2" size={72} seed={7} />
+            <Orb color={EXEC} size={72} seed={7} />
             <span style={{ fontSize: 20 }}>何を相談しますか？</span>
             <span style={{ color: T5, fontSize: 12.5 }}>待っています</span>
           </div>

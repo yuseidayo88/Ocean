@@ -4,13 +4,10 @@ import { useOpen, openHref } from '@/lib/use-open';
 import { Go as Link } from '@/components/ui/Go';
 import { Centre, Composer, Pane, Section, TopBar } from '@/components/shell/Chrome';
 import { EffortInline, ModelInline, Toggle } from '@/components/shell/Controls';
-import { COMPOSER_H } from '@/lib/design/tokens';
+import { AMBER, AMBER_T, BLUE, COMPOSER_H, DIM, EDGE, GREEN, GREEN_T, HAIR, MUTE, RAIL, RULE, SEAM, T2, T3, T4, T5 } from '@/lib/design/tokens';
 import { Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
-import {
-  AGENT_COLOR, EFFORT_WORDS, EMPLOYEES, EXEC, HIRE_SUGGESTION, MODELS, RULES, SKILLS,
-  type Employee,
-} from '@/lib/dummy';
+import { AGENT_COLOR, EFFORT_WORDS, EMPLOYEES, EXEC, HIRE_SUGGESTION, MODELS, RULES, SKILLS, type Employee } from '@/lib/dummy';
 import { pressable } from '@/lib/a11y';
 import { useShell } from '@/components/shell/Shell';
 
@@ -29,9 +26,6 @@ import { useShell } from '@/components/shell/Shell';
  * ・歯車 ＝ その社員の設定（スキル・ルール・一時停止）。名前の行に上揃え
  * ・要確認 は文字の右の書類アイコンから、その成果物へ飛ぶ
  */
-
-const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
-const BLUE = '#1A73E8', AMBER = '#E37400', AMBER_T = '#FDD663', GREEN = '#1E8E3E', GREEN_T = '#5BB974';
 
 /** 統括AIも社員も同じ形で描くための、行1本ぶんの持ちもの */
 type Line = {
@@ -78,7 +72,7 @@ export default function TeamPage() {
             <div style={{ flex: 1 }} />
             <Link href="/hire" className="btn" style={{
               display: 'inline-flex', alignItems: 'center', gap: 7, height: 30, padding: '0 12px',
-              borderRadius: 8, background: '#141414', border: '1px solid #262626', color: T2, fontSize: 12.5,
+              borderRadius: 8, background: RAIL, border: `1px solid ${RULE}`, color: T2, fontSize: 12.5,
             }}>
               <Icon name="plus" color={T4} size={13} />採用する
             </Link>
@@ -86,14 +80,14 @@ export default function TeamPage() {
 
           {/* 統括AI は社員より上。設定はできるが、止めることも外すこともできない */}
           <Row l={EXEC_LINE} top on={openId === EXEC.id} onOpen={() => setOpenId(EXEC.id)} />
-          <div style={{ height: 1, background: '#262626' }} />
+          <div style={{ height: 1, background: RULE }} />
 
           {EMPLOYEES.map((e, i) => (
             <Row key={e.id} l={line(e)} on={e.id === openId} onOpen={() => setOpenId(e.id)} top={i === 0} />
           ))}
 
           {/* 全員に効くもの。社員の行と同じ列（79px）から始める */}
-          <div style={{ height: 1, background: '#1C1C1C' }} />
+          <div style={{ height: 1, background: SEAM }} />
           <div style={{ display: 'flex', alignItems: 'center', padding: '16px 0 0' }}>
             <span style={{ width: 49, flexShrink: 0, color: T5, fontSize: 11 }}>全員</span>
             <span style={{ color: T3, fontSize: 12.5 }}>
@@ -110,7 +104,7 @@ export default function TeamPage() {
 
           {/* 統括AIからの提案。無ければこの行ごと出さない。「あとで」は置かない */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 22, padding: '15px 16px',
-            borderRadius: 12, border: '1px dashed #262626' }}>
+            borderRadius: 12, border: `1px dashed ${RULE}` }}>
             <Orb color={AGENT_COLOR.cyan} size={32} seed={11} />
             <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
@@ -121,7 +115,7 @@ export default function TeamPage() {
             </div>
             <div style={{ flex: 1 }} />
             <Link href="/hire" className="lnk" style={{ color: T5, fontSize: 12, flexShrink: 0 }}>ほかの候補を見る ›</Link>
-            <button onClick={() => say5('採用が本当に効くのは Phase 5 から')} className="solid" style={{
+            <button onClick={() => say5('この画面からの採用は Phase 10 から。いまは計画を承認すると、統括AIが薦めた社員が採用されます')} className="solid" style={{
               display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 14px',
               borderRadius: 8, background: BLUE, color: '#fff', fontSize: 12.5, flexShrink: 0,
             }}>採用する</button>
@@ -152,7 +146,7 @@ function Row({ l, on, onOpen, top }: { l: Line; on?: boolean; onOpen?: () => voi
   return (
     <div className={onOpen ? 'row' : undefined} {...press} style={{
       display: 'flex', gap: 13, padding: warn ? '17px 10px' : '17px 0',
-      borderTop: top ? undefined : '1px solid #1C1C1C',
+      borderTop: top ? undefined : `1px solid ${SEAM}`,
       borderRadius: warn ? 10 : undefined, margin: warn ? '0 -10px' : undefined,
       background: warn ? 'rgba(227,116,0,0.055)' : on ? '#0C0C0C' : undefined,
       boxShadow: on && !warn ? `inset 3px 0 0 ${l.color}` : undefined,
@@ -174,7 +168,7 @@ function Row({ l, on, onOpen, top }: { l: Line; on?: boolean; onOpen?: () => voi
                   background: '#131313', border: '1px solid #212121', color: T2, fontSize: 11.5,
                 }}>{c}</span>
               ))}
-              {l.canMore > 0 && <span style={{ color: '#4A4A4A', fontSize: 11.5, padding: '0 2px' }}>+{l.canMore}</span>}
+              {l.canMore > 0 && <span style={{ color: MUTE, fontSize: 11.5, padding: '0 2px' }}>+{l.canMore}</span>}
             </div>
           </div>
 
@@ -205,7 +199,7 @@ function Row({ l, on, onOpen, top }: { l: Line; on?: boolean; onOpen?: () => voi
  */
 function StateMark({ state }: { state: string }) {
   const warn = state === '要確認';
-  const dot = warn ? AMBER : state === '実行中' ? GREEN : '#4A4A4A';
+  const dot = warn ? AMBER : state === '実行中' ? GREEN : MUTE;
   const text = warn ? AMBER_T : state === '実行中' ? GREEN_T : T4;
   const inner = <>
     <span style={{ width: 6, height: 6, borderRadius: 999, background: dot }} />
@@ -275,7 +269,7 @@ function SettingsPane({ who, e, onClose }:
           {skills.map((s, i) => (
             <Link key={s.id} href={openHref('/skills', s.file)} className="row" style={{
               display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0',
-              borderBottom: i === skills.length - 1 ? undefined : '1px solid #161616',
+              borderBottom: i === skills.length - 1 ? undefined : `1px solid ${HAIR}`,
             }}>
               <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</span>
@@ -295,12 +289,12 @@ function SettingsPane({ who, e, onClose }:
           {RULES.map((r, i) => (
             <div key={r} style={{
               display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0 10px 11px',
-              borderLeft: '2px solid #262626',
-              borderBottom: i === RULES.length - 1 ? undefined : '1px solid #161616',
+              borderLeft: `2px solid ${RULE}`,
+              borderBottom: i === RULES.length - 1 ? undefined : `1px solid ${HAIR}`,
             }}>
               <span style={{ color: T2, fontSize: 12.5, lineHeight: '19px' }}>{r}</span>
               <div style={{ flex: 1 }} />
-              <Icon name="close" color="#3A3A3A" size={12} />
+              <Icon name="close" color={DIM} size={12} />
             </div>
           ))}
         </Section>
@@ -332,7 +326,7 @@ function SettingsPane({ who, e, onClose }:
             <div style={{ flex: 1 }} />
             <span className="btn" style={{
               display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px',
-              borderRadius: 8, border: '1px solid #2A2A2A', color: T3, fontSize: 12,
+              borderRadius: 8, border: `1px solid ${EDGE}`, color: T3, fontSize: 12,
             }}>一時停止</span>
           </div>
         )}

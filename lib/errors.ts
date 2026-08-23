@@ -25,6 +25,27 @@ export const HTTP_STATUS: Record<FailureKind, number> = {
   unauthorized: 401, not_found: 404, rate_limited: 429, upstream: 502, unknown: 500,
 }
 
+/** 社長に見せる1行。**中身は出さない**（Postgres のエラー文をそのまま出さない） */
+const SAY: Record<FailureKind, string> = {
+  unauthorized: 'ログインが要ります',
+  not_found: '見つかりませんでした',
+  rate_limited: '枠に当たって止まりました',
+  upstream: '統括AIが応えませんでした',
+  unknown: 'うまくいきませんでした',
+}
+
+/**
+ * 画面に出す1行を作る。**例外の中身は画面に出さない。**
+ * 前は server action が `e.message` をそのまま返していたので、
+ * Postgres のエラー文（表の名前・制約の名前）が社長の画面に出ていた。
+ * 中身はサーバーのログに残す。
+ */
+export function sayError(e: unknown, fallback?: string): string {
+  const err = toAppError(e)
+  console.error('[onefound]', err.kind, err.message)
+  return err.userMessage ?? fallback ?? SAY[err.kind]
+}
+
 export function toAppError(e: unknown): AppError {
   if (e instanceof AppError) return e
   const status = (e as { status?: number } | undefined)?.status

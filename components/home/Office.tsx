@@ -1,7 +1,8 @@
 'use client';
 
+import { useRef } from 'react';
 import { Orb } from '@/components/ui/Orb';
-import { EASE } from '@/lib/design/tokens';
+import { AMBER, AMBER_T, EASE, EXEC, FAINT, RED, T1, T2, T3, T5, WELL } from '@/lib/design/tokens';
 import { useSize } from '@/lib/use-size';
 import { AGENT_COLOR, WORKS, employee } from '@/lib/dummy';
 
@@ -18,9 +19,6 @@ import { AGENT_COLOR, WORKS, employee } from '@/lib/dummy';
  *   赤い点線＝予定との差。橙の菱形＝あなたが決めるところ（先端の少し先）。
  *   「あなた」は描かない。社長は統括AIより上にいる存在で、社員の一部ではない。
  */
-
-const T2 = '#B8B8B8', T3 = '#8B8B8B', T5 = '#5F5F5F';
-const AMBER = '#E37400', AMBER_T = '#FDD663', RED = '#D93025';
 
 /**
  * 輪の大きさ（内側から）。判断待ちの Work をいちばん内側に置く。
@@ -48,10 +46,6 @@ const CORE: [number, number, number][] = [
 /** 瞬きの組。[長さ秒, 遅れ秒] — **粒ごとではなく、この数だけ動かす** */
 const BLINKS: [number, number][] = [[3.2, 0], [4.1, 1.1], [2.7, 2.2], [3.6, 0.6]];
 const CORES: [number, number][] = [[2.6, 0], [3.3, 1.2]];
-
-/** 先端をやっている人の色（弧の上を走る光の色） */
-const tipHint = (R: { segs: { owner: string }[] }) =>
-  AGENT_COLOR[employee(R.segs[R.segs.length - 1].owner).color];
 
 /** Math.cos/sin は実装で最後の桁が変わる。server と client でずれるので必ず丸める */
 const r2 = (n: number) => Number(n.toFixed(2));
@@ -91,7 +85,8 @@ function Star({ color, on }: { color: string; on: boolean }) {
 }
 
 export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) => void }) {
-  const [box, { w: OW, h: OH }] = useSize<HTMLDivElement>();
+  const box = useRef<HTMLDivElement>(null);
+  const { w: OW, h: OH } = useSize(box);
   const CX = OW / 2, CY = OH / 2;
   /** 縁は、球の下にぶら下がる名前ぶんだけ空ける（切れさせない） */
   const MX = CX - 46, MY = CY - BOX / 2 - 9;
@@ -129,7 +124,7 @@ export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) 
     const parts: React.ReactNode[] = [
       <ellipse key="e" cx={CX} cy={CY} rx={rx} ry={ry} fill="none" stroke="#1B1B1B" strokeWidth={1} />,
       /* 真上がはじまり */
-      <line key="s" x1={CX} y1={CY - ry - 5} x2={CX} y2={CY - ry + 5} stroke="#2E2E2E" strokeWidth={1} />,
+      <line key="s" x1={CX} y1={CY - ry - 5} x2={CX} y2={CY - ry + 5} stroke={FAINT} strokeWidth={1} />,
     ];
     let from = 0;
     R.segs.forEach((sg, k) => {
@@ -212,7 +207,7 @@ export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) 
       }}>
         <span style={{ width: 5, height: 5, borderRadius: 9, flexShrink: 0, background: tipCol }} />
         {w.title}
-        <span style={{ width: 12, height: 1, background: '#2E2E2E' }} />
+        <span style={{ width: 12, height: 1, background: FAINT }} />
       </span>,
     );
 
@@ -268,7 +263,7 @@ export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) 
           <div key={`l-${id}-${x}`} style={{
             position: 'absolute',
             left: r2(CX + (30 * dx) / len), top: r2(CY + (30 * dy) / len),
-            width: w, height: 1, background: '#1F1F1F',
+            width: w, height: 1, background: WELL,
             transformOrigin: '0 50%', transform: `rotate(${((Math.atan2(dy, dx) * 180) / Math.PI).toFixed(2)}deg)`,
           }}>
             {run && SEND.map(([dur, delay], k) => (
@@ -294,7 +289,7 @@ export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) 
             background: 'radial-gradient(circle, rgba(255,255,255,0.07), rgba(255,255,255,0) 66%)',
             filter: 'blur(12px)', animation: 'breathe 4.2s ease-in-out infinite',
           }} />
-          <span style={{ position: 'absolute', inset: 0 }}><Orb color="#D2D2D2" size={88} seed={7} /></span>
+          <span style={{ position: 'absolute', inset: 0 }}><Orb color={EXEC} size={88} seed={7} /></span>
           {CORES.map(([dur, delay], g) => (
             <div key={g} style={{
               position: 'absolute', inset: 0, pointerEvents: 'none',
@@ -333,7 +328,7 @@ export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) 
                 <Star color={AGENT_COLOR[e.color]} on={lit === id} />
                 <Orb color={AGENT_COLOR[e.color]} size={ORB} seed={e.name.length * 7 + 3} />
               </span>
-                <span style={{ color: lit === id ? '#EDEDED' : gate ? AMBER_T : T2, fontSize: 11.5 }}>{e.name}</span>
+                <span style={{ color: lit === id ? `${T1}` : gate ? AMBER_T : T2, fontSize: 11.5 }}>{e.name}</span>
               {phase && <span style={{ color: T5, fontSize: 10 }}>{phase}</span>}
             </span>
           </div>

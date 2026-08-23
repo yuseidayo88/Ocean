@@ -3,15 +3,11 @@
 import { Go as Link } from '@/components/ui/Go';
 
 import { useOpen } from '@/lib/use-open';
-import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
+import { Centre, Composer, Pane, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { pressable } from '@/lib/a11y';
-import { COMPOSER_H } from '@/lib/design/tokens';
-
+import { BLUE, COMPOSER_H, DIM, GREEN, HAIR, MUTE, RULE, SEAM, SUNK, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
 /** ⓪-c 事業の取り込み。あるものだけ渡せばいい。読み終わってから診断する */
-
-const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
-const BLUE = '#1A73E8', GREEN = '#1E8E3E', GREEN_T = '#5BB974';
 
 const SOURCES: { icon: IconName; name: string; note: string; state: '完了' | '読込中' | '待機' }[] = [
   { icon: 'globe', name: 'nihongo-lesson.jp',        note: 'サイト · 12ページ',   state: '完了' },
@@ -41,11 +37,11 @@ export default function ImportPage() {
 
           <div style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            gap: 9, height: 128, borderRadius: 12, border: '1px dashed #262626',
+            gap: 9, height: 128, borderRadius: 12, border: `1px dashed ${RULE}`,
           }} className="card">
             <Icon name="upload" color={T4} size={19} />
             <span style={{ color: T4, fontSize: 12.5 }}>サイトのURL、資料、売上の表をここへ</span>
-            <span style={{ color: '#3A3A3A', fontSize: 11 }}>PDF · 表 · 画像 · URL</span>
+            <span style={{ color: DIM, fontSize: 11 }}>PDF · 表 · 画像 · URL</span>
           </div>
 
           <div>
@@ -61,9 +57,9 @@ export default function ImportPage() {
               return (
                 <div key={s.name} className="row" {...pressable(() => setOpen(s.name))} style={{
                   display: 'flex', alignItems: 'center', gap: 14, height: 43,
-                  borderBottom: i === SOURCES.length - 1 ? undefined : '1px solid #161616',
+                  borderBottom: i === SOURCES.length - 1 ? undefined : `1px solid ${HAIR}`,
                 }}>
-                  <Icon name={s.icon} color={s.state === '待機' ? '#3A3A3A' : T4} size={15} />
+                  <Icon name={s.icon} color={s.state === '待機' ? `${DIM}` : T4} size={15} />
                   <span style={{
                     flex: 1, minWidth: 0, color: s.state === '待機' ? T4 : T1,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -72,8 +68,8 @@ export default function ImportPage() {
                     width: 140, flexShrink: 0, color: T5, fontSize: 11,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>{s.note}</span>
-                  <span style={{ width: 66, flexShrink: 0, height: 4, borderRadius: 2, background: '#1A1A1A', overflow: 'hidden' }}>
-                    <span style={{ display: 'block', width: `${pct}%`, height: '100%', background: s.state === '完了' ? GREEN : '#4A4A4A' }} />
+                  <span style={{ width: 66, flexShrink: 0, height: 4, borderRadius: 2, background: SUNK, overflow: 'hidden' }}>
+                    <span style={{ display: 'block', width: `${pct}%`, height: '100%', background: s.state === '完了' ? GREEN : MUTE }} />
                   </span>
                   <span style={{
                     width: 44, flexShrink: 0, textAlign: 'right', fontSize: 12,
@@ -105,10 +101,10 @@ export default function ImportPage() {
           {/* 取り込んだページの見た目。サムネイルは面と枠を持てる */}
           <div style={{
             display: 'flex', flexDirection: 'column', gap: 9, height: 92, padding: '14px 16px',
-            borderRadius: 10, background: '#0C0C0C', border: '1px solid #1C1C1C',
+            borderRadius: 10, background: '#0C0C0C', border: `1px solid ${SEAM}`,
           }}>
             <span style={{ height: 5, width: '62%', borderRadius: 2, background: '#242424' }} />
-            <span style={{ height: 4, width: '86%', borderRadius: 2, background: '#1A1A1A' }} />
+            <span style={{ height: 4, width: '86%', borderRadius: 2, background: SUNK }} />
             <div style={{ display: 'flex', gap: 9, paddingTop: 2 }}>
               {[0, 1, 2].map((k) => (
                 <span key={k} style={{ flex: 1, height: 22, borderRadius: 5, background: '#151515' }} />
@@ -121,7 +117,7 @@ export default function ImportPage() {
           {READ.map(([k, v], i) => (
             <div key={k} style={{
               display: 'flex', alignItems: 'baseline', gap: 10, padding: '11px 0',
-              borderBottom: i === READ.length - 1 ? undefined : '1px solid #161616',
+              borderBottom: i === READ.length - 1 ? undefined : `1px solid ${HAIR}`,
             }}>
               <span style={{ width: 80, flexShrink: 0, color: T5, fontSize: 12 }}>{k}</span>
               <span style={{ flex: 1, textAlign: 'right', color: T2, fontSize: 13 }}>{v}</span>

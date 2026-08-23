@@ -3,6 +3,7 @@
 import { draftWork } from '@/lib/exec/run';
 import { store, type DraftWork, type LiveWork } from '@/lib/store';
 import type { Draft } from '@/lib/exec/types';
+import { sayError } from '@/lib/errors';
 
 /**
  * ゴールを1つ受け取って、**承認を待つ計画まで**作る（Phase 5）。
@@ -25,7 +26,7 @@ export async function startWork(goal: string): Promise<StartResult> {
   try {
     out = await draftWork(text);
   } catch (e) {
-    return { ok: false, need: 'error', message: e instanceof Error ? e.message : '統括AIが応えませんでした' };
+    return { ok: false, need: 'error', message: sayError(e, '統括AIが応えませんでした') };
   }
 
   if (out.draft.kind === 'need_end') {
@@ -69,7 +70,7 @@ export async function approveWork(id: string): Promise<ApproveResult> {
     await store().approve(id);
     return { ok: true };
   } catch (e) {
-    return { ok: false, message: e instanceof Error ? e.message : '承認できませんでした' };
+    return { ok: false, message: sayError(e, '承認できませんでした') };
   }
 }
 
@@ -98,7 +99,7 @@ export async function reviseWork(id: string, ask: string): Promise<ReviseResult>
       text,
     ].join('\n'));
   } catch (e) {
-    return { ok: false, message: e instanceof Error ? e.message : '統括AIが応えませんでした' };
+    return { ok: false, message: sayError(e, '統括AIが応えませんでした') };
   }
   if (out.draft.kind === 'need_end') return { ok: false, message: out.draft.body };
 

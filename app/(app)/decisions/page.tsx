@@ -5,10 +5,9 @@ import { Go as Link } from '@/components/ui/Go';
 import { openHref, useOpen } from '@/lib/use-open';
 import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Dot, Icon, type IconName } from '@/components/ui/Icon';
-import { DECISIONS, DECISION_BODY, type Decision } from '@/lib/dummy';
+import { DECISIONS, DECISION_BODY } from '@/lib/dummy';
 import { pressable } from '@/lib/a11y';
-import { COMPOSER_H } from '@/lib/design/tokens';
-
+import { AMBER, AMBER_T, BLUE, COMPOSER_H, DIM, GREEN, GREEN_T, HAIR, SEAM, SUNK, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
 /**
  * 決定事項＝台帳タイムライン。**追記のみ**（決め直しは新しい行＋supersedes）。
  * 左に相対時刻、丸い印でつながる。判断待ちは選択肢を棒で並べて、その場で読めるようにする。
@@ -25,9 +24,6 @@ const AFTER_HREF: Record<string, Route> = {
   'フェーズ3の計画が作られる': '/work/w-japanese' as Route,
 };
 
-const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
-const AMBER = '#E37400', AMBER_T = '#FDD663', GREEN = '#1E8E3E', GREEN_T = '#5BB974', BLUE = '#1A73E8';
-
 export default function DecisionsPage() {
   const gates = DECISIONS.filter((d) => d.state === '判断待ち');
   const b = DECISION_BODY;
@@ -43,7 +39,7 @@ export default function DecisionsPage() {
 
         <div style={{
           height: 44, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 9,
-          padding: '0 18px', borderBottom: '1px solid #161616',
+          padding: '0 18px', borderBottom: `1px solid ${HAIR}`,
         }}>
           <Icon name="dec" color={T3} size={15} />
           <span>決定事項</span>
@@ -77,10 +73,10 @@ export default function DecisionsPage() {
                         width: 13, height: 13, borderRadius: 999, background: GREEN, flexShrink: 0,
                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                       }}><Icon name="check" color="#000" size={9} width={3} /></span>}
-                  {i < DECISIONS.length - 1 && <div style={{ flex: 1, width: 1, background: '#1C1C1C' }} />}
+                  {i < DECISIONS.length - 1 && <div style={{ flex: 1, width: 1, background: SEAM }} />}
                 </div>
 
-                <div style={{ flex: 1, minWidth: 0, paddingBottom: 22, borderBottom: i === DECISIONS.length - 1 ? undefined : '1px solid #161616', marginBottom: 6 }}>
+                <div style={{ flex: 1, minWidth: 0, paddingBottom: 22, borderBottom: i === DECISIONS.length - 1 ? undefined : `1px solid ${HAIR}`, marginBottom: 6 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 40 }}>
                     <span style={{ color: T1 }}>{d.question}</span>
                     <div style={{ flex: 1 }} />
@@ -97,10 +93,10 @@ export default function DecisionsPage() {
                   {d.options && d.options.map((o) => (
                     <div key={o.label} className={d.state === '判断待ち' ? 'row' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 14, height: 41, borderRadius: 7, padding: '0 8px', margin: '0 -8px' }}>
                       <span style={{ width: 40, flexShrink: 0, color: o.recommended ? T1 : T4 }}>{o.label}</span>
-                      <span style={{ width: 116, flexShrink: 0, height: 5, borderRadius: 3, background: '#1A1A1A', overflow: 'hidden' }}>
+                      <span style={{ width: 116, flexShrink: 0, height: 5, borderRadius: 3, background: SUNK, overflow: 'hidden' }}>
                         <span style={{
                           display: 'block', width: `${o.pct}%`, height: '100%',
-                          background: o.recommended ? GREEN : '#3A3A3A',
+                          background: o.recommended ? GREEN : DIM,
                         }} />
                       </span>
                       {/* ラベルと同じ値は書かない（同じことを2回言わない） */}
@@ -150,12 +146,12 @@ export default function DecisionsPage() {
             <Link key={x.label} href={BASIS_HREF[x.label] ?? '/deliverables'} onClick={(e) => e.stopPropagation()} className="row" style={{
               display: 'flex', alignItems: 'center', gap: 11, height: 40, borderRadius: 7,
               padding: '0 8px', margin: '0 -8px',
-              borderBottom: i === b.basis.length - 1 ? undefined : '1px solid #161616',
+              borderBottom: i === b.basis.length - 1 ? undefined : `1px solid ${HAIR}`,
             }}>
               <Icon name={x.icon as IconName} color={T4} size={14} />
               <span style={{ color: T2, fontSize: 13 }}>{x.label}</span>
               <div style={{ flex: 1 }} />
-              <Icon name="chev" color="#3A3A3A" size={12} />
+              <Icon name="chev" color={DIM} size={12} />
             </Link>
           ))}
 
@@ -164,7 +160,7 @@ export default function DecisionsPage() {
             <Link key={x.label} href={AFTER_HREF[x.label] ?? '/tasks'} onClick={(e) => e.stopPropagation()} className="row" style={{
               display: 'flex', alignItems: 'center', gap: 11, height: 40, borderRadius: 7,
               padding: '0 8px', margin: '0 -8px',
-              borderBottom: i === b.after.length - 1 ? undefined : '1px solid #161616',
+              borderBottom: i === b.after.length - 1 ? undefined : `1px solid ${HAIR}`,
             }}>
               <Icon name={x.icon as IconName} color={T4} size={14} />
               <span style={{ color: T2, fontSize: 13 }}>{x.label}</span>

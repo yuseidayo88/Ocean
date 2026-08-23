@@ -7,16 +7,12 @@ import { Composer, Pane, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Centre } from '@/components/shell/Chrome';
 import { Icon } from '@/components/ui/Icon';
 import { pressable } from '@/lib/a11y';
-import { COMPOSER_H } from '@/lib/design/tokens';
-
+import { BLUE, COMPOSER_H, DIM, EDGE, GREEN, GREEN_T, HAIR, SUNK, T2, T3, T4, T5 } from '@/lib/design/tokens';
 /**
  * ⓪-b 候補をくらべる。**採用しなかった候補も残す**
  * （なぜその道を選んだかは、選ばなかった道と並べて意味になる）。
  * 「この案ではじめる」を2か所に置かない。
  */
-
-const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
-const BLUE = '#1A73E8', GREEN = '#1E8E3E', GREEN_T = '#5BB974';
 
 const COND: [string, string][] = [
   ['使える時間', '週10時間'], ['元手', '〜50万円'], ['強み', '日本語教育'], ['形', '在庫を持たない'],
@@ -46,7 +42,7 @@ export default function DiscoveryResultPage() {
         {/* 集めた条件は上に貼る。答え終わったものだけ */}
         <div style={{
           flexShrink: 0, display: 'flex', alignItems: 'center', gap: 18,
-          padding: '0 26px', height: 44, borderBottom: '1px solid #161616',
+          padding: '0 26px', height: 44, borderBottom: `1px solid ${HAIR}`,
         }}>
           {COND.map(([k, v]) => (
             <span key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
@@ -55,7 +51,7 @@ export default function DiscoveryResultPage() {
               <span style={{ color: T2, fontSize: 12 }}>{v}</span>
             </span>
           ))}
-          <span style={{ color: '#3A3A3A', fontSize: 11 }}>期限 未定</span>
+          <span style={{ color: DIM, fontSize: 11 }}>期限 未定</span>
           <div style={{ flex: 1 }} />
           <Link href="/discovery" className="lnk" style={{ color: T4, fontSize: 12 }}>条件を変える</Link>
         </div>
@@ -74,7 +70,7 @@ export default function DiscoveryResultPage() {
                 padding: c.rec ? '20px 20px 20px 22px' : '20px 20px 20px 22px',
                 background: c.rec ? 'rgba(30,142,62,0.05)' : undefined,
                 borderRadius: c.rec ? 10 : undefined,
-                borderBottom: n === CANDS.length - 1 ? undefined : '1px solid #161616',
+                borderBottom: n === CANDS.length - 1 ? undefined : `1px solid ${HAIR}`,
               }}>
                 {c.rec && <span style={{
                   position: 'absolute', left: 0, top: 14, bottom: 14, width: 3,
@@ -91,7 +87,7 @@ export default function DiscoveryResultPage() {
                   {AXES.map((a, i) => (
                     <div key={a} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <span style={{ width: 88, flexShrink: 0, color: T5, fontSize: 11, textAlign: 'right' }}>{a}</span>
-                      <span style={{ flex: 1, height: 4, borderRadius: 2, background: '#1A1A1A', overflow: 'hidden' }}>
+                      <span style={{ flex: 1, height: 4, borderRadius: 2, background: SUNK, overflow: 'hidden' }}>
                         <span style={{ display: 'block', width: `${c.scores[i]}%`, height: '100%', background: c.rec ? GREEN : '#333' }} />
                       </span>
                     </div>
@@ -101,7 +97,7 @@ export default function DiscoveryResultPage() {
                   flexShrink: 0, display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px',
                   borderRadius: 8, whiteSpace: 'nowrap',
                   background: c.rec ? BLUE : undefined,
-                  border: c.rec ? undefined : '1px solid #2A2A2A',
+                  border: c.rec ? undefined : `1px solid ${EDGE}`,
                   color: c.rec ? '#fff' : T3,
                 }}>{c.rec ? 'この案ではじめる' : 'この案にする'}</Link>
               </div>
@@ -129,7 +125,7 @@ export default function DiscoveryResultPage() {
             ['ビジネス日本語研修', '「人前に出る」を外したいという条件に反する']].map(([k, v], i) => (
             <div key={k} style={{
               display: 'flex', flexDirection: 'column', gap: 4, padding: '11px 0',
-              borderBottom: i === 0 ? '1px solid #161616' : undefined,
+              borderBottom: i === 0 ? `1px solid ${HAIR}` : undefined,
             }}>
               <span style={{ color: T3, fontSize: 12.5 }}>{k}</span>
               <span style={{ color: T5, fontSize: 12, lineHeight: '19px' }}>{v}</span>

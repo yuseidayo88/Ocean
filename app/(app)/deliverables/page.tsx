@@ -8,21 +8,17 @@ import { Centre, Composer, Pane, PaneFooter, PaneHead, PaneLoading, TopBar } fro
 import { Dot, Icon } from '@/components/ui/Icon';
 import { DELIVERABLES, DELIVERABLE_BODY, employee, type Deliverable, type Preview } from '@/lib/dummy';
 import { pressable } from '@/lib/a11y';
-import { COMPOSER_H } from '@/lib/design/tokens';
-
+import { AMBER, AMBER_T, COMPOSER_H, DIM, GREEN, HAIR, LINE, MUTE, RAIL, SUNK, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
 /**
  * 成果物＝グリッド（参考: Craft / Frame）。
  * **プレビューは中身を出す。** 灰色の棒ではなく、実際の書き出し・表・棒を小さく出して見分けられるようにする。
  * 社員の色はここには出さない（色はオフィスと進捗の可視化だけ）。
  */
 
-const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
-const AMBER = '#E37400', AMBER_T = '#FDD663', GREEN = '#1E8E3E', GREEN_T = '#5BB974';
-
 function Thumb({ p }: { p: Preview }) {
   return (
     <div style={{
-      height: 108, boxSizing: 'border-box', borderRadius: 8, background: '#141414',
+      height: 108, boxSizing: 'border-box', borderRadius: 8, background: RAIL,
       padding: '12px 13px', display: 'flex', flexDirection: 'column', gap: 6, overflow: 'hidden',
     }}>
       <div style={{ color: T4, fontSize: 10, lineHeight: '14px' }}>{p.cap}</div>
@@ -38,7 +34,7 @@ function Thumb({ p }: { p: Preview }) {
           <div style={{ height: 2 }} />
           {p.rows.map(([a, b, c], i) => {
             const hi = i === p.hi;
-            const col = hi ? T4 : '#3A3A3A';
+            const col = hi ? T4 : DIM;
             return (
               <div key={a} style={{
                 display: 'flex', alignItems: 'center', gap: 8, height: 15, padding: '0 4px',
@@ -55,7 +51,7 @@ function Thumb({ p }: { p: Preview }) {
       {p.kind === 'bars' && (
         <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 5, paddingBottom: 4 }}>
           {p.values.map((v, i) => (
-            <div key={i} style={{ width: 18, height: `${v}%`, borderRadius: 2, background: i === 3 ? '#3A3A3A' : '#242424' }} />
+            <div key={i} style={{ width: 18, height: `${v}%`, borderRadius: 2, background: i === 3 ? `${DIM}` : '#242424' }} />
           ))}
         </div>
       )}
@@ -64,7 +60,7 @@ function Thumb({ p }: { p: Preview }) {
 }
 
 /** タブの色は状態から。要確認だけ橙、承認済は緑、それ以外は灰 */
-const tabDot = (s: Deliverable['state']) => (s === '要確認' ? AMBER : s === '承認済' ? GREEN : '#4A4A4A');
+const tabDot = (s: Deliverable['state']) => (s === '要確認' ? AMBER : s === '承認済' ? GREEN : MUTE);
 
 export default function DeliverablesPage() {
   const need = DELIVERABLES.filter((d) => d.state === '要確認').length;
@@ -85,7 +81,7 @@ export default function DeliverablesPage() {
 
         <div style={{
           height: 44, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 9,
-          padding: '0 18px', borderBottom: '1px solid #161616',
+          padding: '0 18px', borderBottom: `1px solid ${HAIR}`,
         }}>
           <Icon name="deliv" color={T3} size={15} />
           <span>すべての成果物</span>
@@ -147,7 +143,7 @@ export default function DeliverablesPage() {
 
           {/* 並ぶものはヘアラインだけで区切る。**外枠は付けない** */}
           <div style={{ marginTop: 18 }}>
-            <div style={{ display: 'flex', alignItems: 'center', height: 30, borderBottom: '1px solid #232323' }}>
+            <div style={{ display: 'flex', alignItems: 'center', height: 30, borderBottom: `1px solid ${LINE}` }}>
               {b.table.head.map((h, i) => (
                 <span key={h} style={{
                   width: i === 0 ? 40 : i === 1 ? 74 : i === 2 ? undefined : 92,
@@ -161,16 +157,16 @@ export default function DeliverablesPage() {
               return (
                 <div key={r[0]} className="row" style={{
                   display: 'flex', alignItems: 'center', height: 45, padding: '0 10px', margin: '0 -10px',
-                  borderRadius: 8, borderBottom: i === b.table.rows.length - 1 ? undefined : '1px solid #161616',
+                  borderRadius: 8, borderBottom: i === b.table.rows.length - 1 ? undefined : `1px solid ${HAIR}`,
                   background: hi ? 'rgba(30,142,62,0.10)' : undefined,
                 }}>
                   <span style={{ width: 40, color: hi ? T1 : T3 }}>{r[0]}</span>
                   <span style={{ width: 74, color: hi ? T1 : T3 }} className="tnum">{r[1]}</span>
                   <span style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ width: 72, height: 5, borderRadius: 3, background: '#1A1A1A', overflow: 'hidden' }}>
+                    <span style={{ width: 72, height: 5, borderRadius: 3, background: SUNK, overflow: 'hidden' }}>
                       <span style={{
                         display: 'block', width: `${b.table.bars[i]}%`, height: '100%',
-                        background: hi ? '#1E8E3E' : '#3A3A3A',
+                        background: hi ? `${GREEN}` : DIM,
                       }} />
                     </span>
                     <span style={{ color: hi ? T1 : T4, fontSize: 12.5 }} className="tnum">{r[2]}</span>

@@ -8,6 +8,7 @@ import { CHAT_W, useShell } from '@/components/shell/Shell';
 import { Orb } from '@/components/ui/Orb';
 import { CHATS, THREADS, WORKS } from '@/lib/dummy';
 
+import { EXEC, T2, T4, T5 } from '@/lib/design/tokens';
 /**
  * **どの画面からでも統括AIと話せる。**
  * 中央の入力欄に書いて送ると、右ペインがその会話になって開き、入力欄はその中へ移る。
@@ -19,10 +20,8 @@ import { CHATS, THREADS, WORKS } from '@/lib/dummy';
  * **右ペインの3つめの形は作らない。** これはパネル（画面そのものの付き添い）の一種で、
  * 見出し ＋ ✕ という作法は変えない。持ち出して読み比べるものではないのでタブにもしない。
  *
- * **返事は作らない。** 書いたものは出るが、統括AIは「考えています」で止まる（Phase 5 まで）。
+ * **返事は作らない。** 書いたものは出るが、統括AIは「考えています」で止まる（会話で答えるのは Phase 7 から）。
  */
-
-const T2 = '#B8B8B8', T4 = '#6E6E6E', T5 = '#5F5F5F';
 
 /** その画面に紐づいたスレッド。Work の画面ならその Work のスレッド */
 function threadFor(path: string) {
@@ -73,7 +72,7 @@ export function ChatPane() {
             flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
             justifyContent: 'center', gap: 12,
           }}>
-            <Orb color="#D2D2D2" size={44} seed={7} />
+            <Orb color={EXEC} size={44} seed={7} />
             <span style={{ color: T5, fontSize: 12.5 }}>何を相談しますか？</span>
           </div>
         )}
@@ -84,7 +83,7 @@ export function ChatPane() {
         {/* **嘘の返事を出さない。** まだ繋がっていないので、そう見せる */}
         {chat.said.length > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, paddingTop: 2 }}>
-            <Orb color="#D2D2D2" size={22} seed={7} />
+            <Orb color={EXEC} size={22} seed={7} />
             <ExecStatus state="thinking" />
           </div>
         )}

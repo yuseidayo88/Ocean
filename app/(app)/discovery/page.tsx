@@ -1,10 +1,8 @@
 import { Ask, Chips, Composer, TopBar } from '@/components/shell/Chrome';
 import { Dot, Icon } from '@/components/ui/Icon';
 
+import { AMBER, AMBER_T, T5 } from '@/lib/design/tokens';
 /** ⓪-a 条件を集める。構造で集めて、候補3つの比較へつなぐ */
-
-const T1 = '#EDEDED', T5 = '#5F5F5F';
-const AMBER = '#E37400', AMBER_T = '#FDD663';
 
 export default function DiscoveryPage() {
   return (

@@ -1,8 +1,9 @@
-import { providerFor, type Msg, type ModelProvider } from '@/lib/ai';
+import { hasKey, providerFor, type Msg, type ModelProvider } from '@/lib/ai';
 import { FakeProvider } from '@/lib/ai/fake';
 import { CONSTITUTION } from './constitution';
 import { PHASE5_TOOLS } from './tools';
 import type { Container, Draft, Hire, Plan, Question } from './types';
+import { AppError } from '@/lib/errors';
 
 /**
  * Work を立てるまでを1回まわす。
@@ -17,8 +18,7 @@ import type { Container, Draft, Hire, Plan, Question } from './types';
 
 /** キーが無ければ決め打ちのプロバイダ。**考えていないので、画面に必ずそう出す** */
 export function pickProvider(): { p: ModelProvider; real: boolean } {
-  const hasKey = !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY);
-  if (!hasKey) return { p: new FakeProvider(), real: false };
+  if (!hasKey()) return { p: new FakeProvider(), real: false };
   return { p: providerFor('deep'), real: true };
 }
 
@@ -31,15 +31,41 @@ export type RunResult = { draft: Draft; real: boolean };
 export async function draftWork(goal: string, ctx = ''): Promise<RunResult> {
   const { p, real } = pickProvider();
   const got = new Map<string, Record<string, unknown>>();
+  let stop: string | null = null;
 
   for await (const c of p.stream({
     tier: 'deep',
     system: CONSTITUTION,
     messages: shape(CONSTITUTION, goal, ctx),
     tools: PHASE5_TOOLS,
-    maxTokens: 4000,
+    /**
+     * 道具を5つ、1往復で全部書かせる。**4,000 では足りない。**
+     * 計画・質問・採用・タスクを1回で出すので、フェーズが増えると途中で切れる。
+     * 切れても `tool_use` は途中まで届くので、**黙って中途半端な計画ができる**。
+     */
+    maxTokens: 16000,
+    /**
+     * 統括AIの計画は**いちばん深く考えさせる**。ここで外すと、
+     * 全フェーズの組み立てと採用がまとめてずれる（→ CLAUDE.md「統括AI は常に deep」）。
+     */
+    effort: 'high',
   })) {
     if (c.type === 'tool_use') got.set(c.name, (c.input ?? {}) as Record<string, unknown>);
+    if (c.type === 'done') stop = c.stopReason;
+  }
+
+  /**
+   * **止まった理由を見る。** 前は見ていなかったので、
+   * 枠に当たって切れたのか、断られたのかが分からないまま
+   * 「統括AIが入れ物を決めませんでした」だけが出ていた。
+   */
+  if (stop === 'max_tokens' || stop === 'length') {
+    throw new AppError('upstream', `stopped at max_tokens (tools: ${[...got.keys()].join(',')})`,
+      undefined, '計画が長すぎて途中で切れました。ゴールを短く書き直してみてください');
+  }
+  if (stop === 'refusal') {
+    throw new AppError('upstream', 'model refused',
+      undefined, '統括AIがこの依頼には応えられませんでした');
   }
 
   // 終わりが言えないときは、入れ物に入れずにここで止まる
@@ -53,7 +79,10 @@ export async function draftWork(goal: string, ctx = ''): Promise<RunResult> {
   }
 
   const c = got.get('decide_container');
-  if (!c) throw new Error('統括AIが入れ物を決めませんでした');
+  if (!c) {
+    throw new AppError('upstream', `no decide_container (stop=${stop}, tools: ${[...got.keys()].join(',')})`,
+      undefined, '統括AIが入れ物を決めませんでした');
+  }
 
   return { real, draft: {
     kind: 'draft',

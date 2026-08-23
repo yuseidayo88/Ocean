@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { getDict } from '@/lib/i18n'
+import { getLocale } from '@/lib/i18n'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { themeColor: '#000000' }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const { locale } = await getDict()
+  const locale = await getLocale()
   return (
     <html lang={locale}>
       <body>{children}</body>

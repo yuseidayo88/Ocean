@@ -7,8 +7,7 @@ import { pressable } from '@/lib/a11y';
 import { Orb } from '@/components/ui/Orb';
 import { Dot, Icon } from '@/components/ui/Icon';
 import { AGENT_COLOR, EMPLOYEES, LANES, employee, type DeskBody } from '@/lib/dummy';
-import { COMPOSER_H } from '@/lib/design/tokens';
-
+import { AMBER, AMBER_T, COMPOSER_H, DIM, FAINT, GREEN, GREEN_T, HAIR, MUTE, RAIL, RULE, SEAM, SUNK, T2, T3, T4, T5 } from '@/lib/design/tokens';
 /**
  * デスク＝縦長レーンを横に並べる（参考: Emergent / Google AI Studio）。
  * 稼働中の社員の手もとを一気に見る。1人1レーン、人が増えたら横スクロール。
@@ -21,8 +20,6 @@ import { COMPOSER_H } from '@/lib/design/tokens';
  * 本当に動く前提なので、止まっているときは止まっていると出す。
  */
 
-const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
-const AMBER = '#E37400', AMBER_T = '#FDD663', GREEN = '#1E8E3E', GREEN_T = '#5BB974';
 const LANE_W = 268, LANE_MIN = 240;
 
 /** 出てくる順に少しずつ遅らせる */
@@ -38,7 +35,7 @@ function Body({ b }: { b: DeskBody }) {
         <div style={{ padding: '3px 0 0' }}>
           {b.items.map((t, i) => (
             <div key={i} className="rv" style={{ display: 'flex', gap: 7, padding: '4px 0', ...rv(1.4 + i * 0.6) }}>
-              <span style={{ color: '#3A3A3A', flexShrink: 0 }}>·</span>
+              <span style={{ color: DIM, flexShrink: 0 }}>·</span>
               <span style={{ color: T3, fontSize: 12, lineHeight: '18px' }}>{t}</span>
             </div>
           ))}
@@ -90,13 +87,13 @@ function Body({ b }: { b: DeskBody }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
       {/* 成果物のサムネイルだけは面を持てる */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', borderRadius: 9, background: '#141414' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', borderRadius: 9, background: RAIL }}>
         <span style={{
-          width: 32, height: 26, flexShrink: 0, boxSizing: 'border-box', borderRadius: 5, background: '#1A1A1A',
+          width: 32, height: 26, flexShrink: 0, boxSizing: 'border-box', borderRadius: 5, background: SUNK,
           display: 'flex', flexDirection: 'column', gap: 2, padding: '5px 4px',
         }}>
           {['100%', '100%', '66%'].map((w, i) => (
-            <span key={i} style={{ height: 2, width: w, borderRadius: 1, background: i === 0 ? '#2E2E2E' : '#262626' }} />
+            <span key={i} style={{ height: 2, width: w, borderRadius: 1, background: i === 0 ? `${FAINT}` : RULE }} />
           ))}
         </span>
         <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -155,7 +152,7 @@ export function Desk() {
                 minWidth: only ? 0 : LANE_MIN, maxWidth: only ? undefined : 320,
                 boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
                 padding: '2px 15px 10px 0', marginRight: last ? 0 : 15,
-                borderRight: last ? undefined : '1px solid #161616',
+                borderRight: last ? undefined : `1px solid ${HAIR}`,
               }}>
                 <Link href={openHref('/team', e.id)} onClick={(ev) => ev.stopPropagation()} className="row" style={{
                   flexShrink: 0, display: 'flex', alignItems: 'center', gap: 9, borderRadius: 8,
@@ -183,7 +180,7 @@ export function Desk() {
                 {/* 工程。いま動いている1行だけ光る */}
                 <div style={{
                   flexShrink: 0, display: 'flex', flexDirection: 'column',
-                  padding: '9px 0', borderBottom: '1px solid #161616',
+                  padding: '9px 0', borderBottom: `1px solid ${HAIR}`,
                 }}>
                   {l.steps.map(([s, t], i) => {
                     const now = i === l.steps.length - 1 && !wait;
@@ -196,7 +193,7 @@ export function Desk() {
                                  style={{ flexShrink: 0, animation: 'spin 1.5s linear infinite' }}>
                               <circle cx="12" cy="12" r="8.5" strokeDasharray="30 20" />
                             </svg>
-                          : <Icon name="check" color="#4A4A4A" size={12} width={2.4} />}
+                          : <Icon name="check" color={MUTE} size={12} width={2.4} />}
                         <span className={now ? 'sh' : undefined} style={{
                           minWidth: 0, color: now ? undefined : T4, fontSize: 12,
                           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -214,14 +211,14 @@ export function Desk() {
 
                 <div style={{
                   flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8,
-                  paddingTop: 9, borderTop: '1px solid #161616',
+                  paddingTop: 9, borderTop: `1px solid ${HAIR}`,
                 }}>
                   <Link href={l.taskId ? openHref('/tasks', l.taskId) : '/tasks'} className="lnk"
                     style={{ minWidth: 0, color: T5, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {l.task}
                   </Link>
                   <div style={{ flex: 1 }} />
-                  <span style={{ width: 48, flexShrink: 0, height: 5, borderRadius: 3, background: '#1C1C1C', overflow: 'hidden' }}>
+                  <span style={{ width: 48, flexShrink: 0, height: 5, borderRadius: 3, background: SEAM, overflow: 'hidden' }}>
                     <span style={{ display: 'block', width: `${l.pct}%`, height: '100%', background: wait ? AMBER : T4 }} />
                   </span>
                   <span style={{ color: T5, fontSize: 11 }} className="tnum">{l.elapsed}</span>
@@ -235,7 +232,7 @@ export function Desk() {
             <div key={e.id} style={{
               width: LANE_W, flexShrink: 0, boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
               padding: '2px 15px 10px 0', marginRight: n === idle.length - 1 ? 0 : 15,
-              borderRight: n === idle.length - 1 ? undefined : '1px solid #161616',
+              borderRight: n === idle.length - 1 ? undefined : `1px solid ${HAIR}`,
               opacity: 0.5,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>

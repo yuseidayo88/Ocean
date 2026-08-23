@@ -1,4 +1,7 @@
 'use client'
+
+import { Orb } from '@/components/ui/Orb'
+import { BLUE, EDGE, EXEC, RAIL, RED_T, T2, T4, radius } from '@/lib/design/tokens'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -30,7 +33,8 @@ export default function Login() {
   return (
     <main style={S.wrap}>
       <div style={S.col}>
-        <div style={S.orb} />
+        {/* **社長が最初に見る球。** ここだけ別物にしない（他は全部 Orb） */}
+        <div style={S.orb}><Orb color={EXEC} size={96} seed={7} /></div>
         <h1 style={S.title}>OneFound</h1>
         <p style={S.lead}>一人社長のための AI カンパニー。</p>
 
@@ -57,19 +61,15 @@ export default function Login() {
 const S: Record<string, React.CSSProperties> = {
   wrap: { minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 24 },
   col: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, width: '100%', maxWidth: 360 },
-  orb: {
-    width: 96, height: 96, borderRadius: 999, marginBottom: 8,
-    background: 'radial-gradient(circle at 46% 38%, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%)',
-    border: '1px solid #2A2A2A',
-  },
+  orb: { marginBottom: 8 },
   title: { fontSize: 22 },
-  lead: { color: 'var(--t4)', margin: 0, marginBottom: 14 },
+  lead: { color: T4, margin: 0, marginBottom: 14 },
   form: { display: 'flex', flexDirection: 'column', gap: 8, width: '100%' },
   input: {
-    height: 42, padding: '0 14px', borderRadius: 'var(--r-input)',
-    background: 'var(--rail)', border: '1px solid #2A2A2A', outline: 'none',
+    height: 42, padding: '0 14px', borderRadius: radius.input,
+    background: RAIL, border: `1px solid ${EDGE}`, outline: 'none',
   },
-  submit: { height: 42, borderRadius: 'var(--r-input)', background: 'var(--blue)', color: '#FFFFFF' },
-  sent: { color: 'var(--t2)', textAlign: 'center', lineHeight: '22px' },
-  failed: { color: 'var(--red-t)', fontSize: 12 },
+  submit: { height: 42, borderRadius: radius.input, background: BLUE, color: '#FFFFFF' },
+  sent: { color: T2, textAlign: 'center', lineHeight: '22px' },
+  failed: { color: RED_T, fontSize: 12 },
 }

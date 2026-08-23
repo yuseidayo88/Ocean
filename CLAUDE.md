@@ -366,8 +366,9 @@
   - 間違えても**昇格・降格**で移せる（タスク→Work、フェーズ⇄Work）
 - **Phase 3（実装の土台）完了** — Next.js 16 + OpenNext で Cloudflare Workers（workerd）の上で動く。
   Supabase プロジェクト `onefound`（ap-northeast-1）に 27表 ＋ RLS。**セキュリティ警告 0件**。
-  `fast / standard / deep` の provider adapter 入り（OpenRouter は入れない →
-  `docs/design/05-tech-and-cost.md` 判断ログ）
+  `fast / standard / deep` の provider adapter 入り。
+  **通り道は OpenRouter**（2026-08 に方針を変えた → `docs/design/05-tech-and-cost.md` 判断ログ）。
+  直つなぎも残してあるので、`TIER_TABLE` の `vendor` を書き換えれば戻る
   - 不変条件はデータベース側で守る（→ `docs/RUNNING.md` の表）。
     RLS の裏方は `private` スキーマ。PostgREST に出さない
   - **会社は最初から分離済み**。全ポリシーが `account_id = private.current_account_id()` の一形なので、
@@ -436,7 +437,38 @@
     - **同じ定義の社員を Work ごとに採用していた** → 定義 id で引き当てて使い回す
   - **まだ繋がっていない**: 承認した Work は URL で開けるが、
     ホームの4ビューと左レールの一覧は**まだダミー**（Phase 7 で実行と一緒に繋ぐ）
-- 次: Phase 7（モデル実行基盤）— AI社員が実際にモデルを呼んで動く。**APIキーが要る**
+- **Phase 0〜6 の棚卸し（2026-08-23）** — 通しで見直して17件直した
+  - **`npm run lint` が壊れていた**（Next 16 で `next lint` が消えていた）。
+    6,000行が一度も検査されていなかった → `eslint.config.mjs` を置いた。
+    見るのは3つだけ（未使用 / hooks の依存 / a11y）。**通らない規則を並べない**
+  - **質問の板は飾りだった。** 選択肢も ‹ › も自由入力もスキップも、押しても何も起きず、
+    `answerQuestion` は誰も呼んでいなかった。統括AIの `ask` は DB に書かれ、読み戻され、
+    `fromDraft` で落ちていた → **口を4つ**（`onPick` / `onFree` / `onSkip` / `onMove`）
+    付けて計画画面に載せた。**答えは板が覚えない**（親が持つ）ので、読み直しても残る
+  - **深さでモデルを切り替えていた**（`tierFromEffort`）。決めごとと逆のものが、
+    使われないまま残っていた → 消して、`RunInput` に `effort` を通した
+  - **並びが不定だった。** `questions` と `tasks` は1本の insert 文で入るので
+    `created_at` が全行同着になり、`answer(work, index)` が別の質問に書き込みうる
+    → `seq`（0009）
+  - **`ownerHint` を集めて捨てていた** → `tasks.owner_hint`（0010）に残し、承認のとき名前で引き当てる
+  - **生の DB エラー文が画面に出ていた** → `sayError`。中身はログへ
+  - **`stopReason` を誰も見ていなかった** → 枠に当たったのか断られたのかを出す。
+    `maxTokens` も 4,000 → 16,000（道具5つを1往復で書かせるので足りない）
+  - **色が3か所にあった。** 22ファイルが同じ値をベタ書きしていた
+    → `lib/design/tokens.ts` 一本化（生の色 470→65、CSS変数 22→5）。
+    設計書に無かった灰色にも名前を付けた（`SUNK` `WELL` `SEAM` `RULE` `EDGE` `FAINT` `MUTE`）。
+    **値は寄せていない** — 近い2つを1つにするかは、いつでも決められる
+  - **フェーズの `review` がDBに無かった**（設計にはあった）→ 0011。Phase 9 の差し戻しが乗る場所
+  - 死んだコード（`ModelPick` `EffortPick` `EffortSlider` `NOTICE_GROUPS` `PaneNote`）を消し、
+    `say5` の「Phase 5 から」を実際のフェーズに直し、ログイン画面の球を本物の `Orb` にした
+- **通り道は OpenRouter**（2026-08 に方針を変えた → `docs/design/05-tech-and-cost.md` 判断ログ）
+  - `lib/ai/openrouter.ts`。OpenAI 互換なので `openai` の SDK に行き先だけ差し替える
+  - **直つなぎは残す。** `TIER_TABLE` の `vendor` を書き換えれば戻る
+  - **引き受けた宿題**: 委託先の開示（`provider` の指定でルーティングを固定する。
+    Phase 11 までに決める）／ ガードレールの不揃い（いまは3階層とも Anthropic なので当面ずれない）
+  - **この環境から `openrouter.ai` に出られない**ので、モデルの slug・キャッシュの透過・
+    `usage` の中身は**実キーで確かめていない**。鍵が入ったら最初にそこを見る
+- 次: Phase 7（モデル実行基盤）— AI社員が実際にモデルを呼んで動く。**`OPENROUTER_API_KEY` が要る**
 - **早いほど得**: 画面を作らずに1タスクだけ API で走らせて成果物を見る（半日）。
   **APIキーが要る**（この環境には未設定）
 - タスクなどの「追加」ボタンは置かない。**タスクは統括AIとの会話から作られる**

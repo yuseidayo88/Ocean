@@ -94,6 +94,9 @@ psql "$DATABASE_URL" -f supabase/migrations/0005_drop_errands.sql
 psql "$DATABASE_URL" -f supabase/migrations/0006_plan_draft.sql
 psql "$DATABASE_URL" -f supabase/migrations/0007_account_default.sql
 psql "$DATABASE_URL" -f supabase/migrations/0008_works_audit.sql
+psql "$DATABASE_URL" -f supabase/migrations/0009_seq.sql
+psql "$DATABASE_URL" -f supabase/migrations/0010_task_owner_hint.sql
+psql "$DATABASE_URL" -f supabase/migrations/0011_phase_review.sql
 ```
 
 `0003` は RLS と、不変条件をデータベース側で守るためのトリガを入れます。
@@ -128,6 +131,20 @@ RLS の with check は `account_id = private.current_account_id()` のままな�
 リンターの警告が1件増えるので採りませんでした。**引き金なら、アプリが呼び忘れることも
 嘘の数を書くこともできません。**
 
+`0009` は **`questions` と `tasks` に `seq`** を足します。どちらも1本の insert 文で
+まとめて入るので `created_at` が**全行同着**になり、`order by created_at` では
+並びが決まりませんでした（実測: 同じ文で入れた質問3件の created_at の種類数 = 1）。
+`answer(work, index)` が**別の質問に答えを書き込みうる**状態でした。
+
+`0010` は **`tasks.owner_hint`**。統括AIはタスクごとに担当を提案しますが、
+どこにも保存していませんでした。計画画面は最初のタスクの提案を「フェーズの担当」として出し、
+承認は全タスクを先頭の社員に割り当てる — 画面とデータベースが別々の推測をしていました。
+
+`0011` は **フェーズに `review`** を足します。設計には
+`pending → active → review → done` と書いてあるのに、制約は
+`planned / active / done / skipped` の4つで、`review`（全タスクが終わって社長待ち）が
+表せませんでした。**Phase 9 の差し戻しが乗る場所**です。
+
 ### データベース側で守っていること
 
 | 不変条件 | 守り方 |
@@ -139,10 +156,11 @@ RLS の with check は `account_id = private.current_account_id()` のままな�
 | 残高は台帳の合計 | 関数 `account_balance_cents` |
 | 候補は消さない | `revoke delete`（rule だと cascade が壊れて退会できなくなる） |
 | 退会したらデータも消える | トリガ `users_drop_empty_account` |
-| 会社をまたいで見えない | 全28表の RLS |
+| 会社をまたいで見えない | 全27表の RLS（実測） |
 | `account_id` を書き忘れられない | 22表の既定値 `private.current_account_id()`（0007） |
 | 質問はスレッドに属する | `questions.thread_id` NOT NULL（Work のスレッドを先に作る） |
 | 承認と引き直しは必ず台帳に残る | トリガ `works_audit`（0008）。アプリは `audit_events` に書けない |
+| 質問とタスクの並びが決まる | `seq`（0009）。`created_at` は同じ insert 文で同着になる |
 
 ## 環境変数
 

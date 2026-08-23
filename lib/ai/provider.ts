@@ -17,6 +17,17 @@ export interface ToolDef {
   input_schema: { type: 'object'; properties?: Record<string, unknown>; required?: string[]; [k: string]: unknown }
 }
 
+/**
+ * **思考の深さ。** どれだけ考えてから答えるかで、**モデルは変わらない**
+ * （→ CLAUDE.md「モデルは変わらない。`tierFor(effort)` にモデルを選ばせない」）。
+ * 画面のつまみ（`EffortInline`）はこの5段に対応する。
+ *
+ * 前はここに口が無く、代わりに `tierFromEffort` が**深さでモデルを切り替えて**いた。
+ * 決めごとと逆のものが、使われないまま残っていた。
+ */
+export const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const
+export type Effort = (typeof EFFORTS)[number]
+
 export interface RunInput {
   tier: Tier
   /** 変わらない前置き。ここをキャッシュの境目にする */
@@ -24,6 +35,8 @@ export interface RunInput {
   messages: Msg[]
   tools?: ToolDef[]
   maxTokens?: number
+  /** 思考の深さ。省略すると各社の既定 */
+  effort?: Effort
   signal?: AbortSignal
 }
 

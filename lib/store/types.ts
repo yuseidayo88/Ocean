@@ -20,7 +20,7 @@ export type LiveWork = {
   id: string;
   title: string; goal: string;
   status: 'plan_review' | 'active' | 'paused' | 'done' | 'archived';
-  phases: { id: string; seq: number; name: string; goal: string; state: 'planned' | 'active' | 'done' | 'skipped' }[];
+  phases: { id: string; seq: number; name: string; goal: string; state: 'planned' | 'active' | 'review' | 'done' | 'skipped' }[];
   tasks: { id: string; phaseId: string; title: string; intent: string; state: string; owner?: string }[];
   crew: { id: string; name: string; color: string }[];
   startedAt?: string;

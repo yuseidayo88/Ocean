@@ -2,21 +2,17 @@
 
 import { useOpen } from '@/lib/use-open';
 import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
-import { Icon } from '@/components/ui/Icon';
+
 import { Orb } from '@/components/ui/Orb';
 import { AGENT_COLOR, HIRE_CANDIDATES } from '@/lib/dummy';
 import { pressable } from '@/lib/a11y';
 import { useShell } from '@/components/shell/Shell';
-import { COMPOSER_H } from '@/lib/design/tokens';
-
+import { BLUE, COMPOSER_H, FAINT, GREEN_T, HAIR, RULE, SUNK, T2, T3, T4, T5 } from '@/lib/design/tokens';
 /**
  * 採用は日本語で「どんなAIか」が分かる形。
  * 大きい日本語名＋1行の説明＋できることタグ＋この Work での担当。英語名は副次的に小さく。
  * 想定トークンは出さない。「あとで」は置かない（その段階なら提案しない）。
  */
-
-const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
-const BLUE = '#1A73E8', GREEN_T = '#5BB974';
 
 const FOR: Record<string, string> = {
   'c-writer': 'フェーズ3 プロダクト · 4タスク',
@@ -52,7 +48,7 @@ export default function HirePage() {
               <div key={c.id} className="row" {...pressable(() => setOpen(c.id))} style={{
                 display: 'flex', gap: 16, padding: '17px 18px', boxSizing: 'border-box',
                 background: c.recommended ? '#0B0B0B' : undefined,
-                borderBottom: n === HIRE_CANDIDATES.length - 1 ? undefined : '1px solid #161616',
+                borderBottom: n === HIRE_CANDIDATES.length - 1 ? undefined : `1px solid ${HAIR}`,
               }}>
                 <Orb color={AGENT_COLOR[c.color]} size={48} seed={c.name.length * 9 + 5} />
                 <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -61,9 +57,9 @@ export default function HirePage() {
                     {c.recommended && <span style={{ color: GREEN_T, fontSize: 11 }}>おすすめ</span>}
                     <div style={{ flex: 1 }} />
                     {/* **青は1ペインに1つ。** ここは全部おとなしく、下の「執筆担当を採用」だけ青 */}
-                    <button onClick={(ev) => { ev.stopPropagation(); say5(`${c.name}を採用できるのは Phase 5 から`); }} className="btn" style={{
+                    <button onClick={(ev) => { ev.stopPropagation(); say5(`${c.name}をここから採用できるのは Phase 10 から。いまは計画の承認と一緒に採用されます`); }} className="btn" style={{
                       display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 15px', borderRadius: 8,
-                      background: 'transparent', border: '1px solid #262626', color: T3, whiteSpace: 'nowrap',
+                      background: 'transparent', border: `1px solid ${RULE}`, color: T3, whiteSpace: 'nowrap',
                     }}>採用する</button>
                   </div>
                   <span style={{ color: T5, fontSize: 11 }}>{c.en} · agency-agents 由来</span>
@@ -72,13 +68,13 @@ export default function HirePage() {
                     {c.can.map((t, i) => (
                       <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                         <span style={{ color: T4, fontSize: 12 }}>{t}</span>
-                        {i < c.can.length - 1 && <span style={{ color: '#2E2E2E' }}>·</span>}
+                        {i < c.can.length - 1 && <span style={{ color: FAINT }}>·</span>}
                       </span>
                     ))}
                   </div>
                   <div style={{
                     display: 'flex', alignItems: 'baseline', gap: 12,
-                    padding: '11px 0 0', borderTop: '1px solid #1A1A1A',
+                    padding: '11px 0 0', borderTop: `1px solid ${SUNK}`,
                   }}>
                     <span style={{ color: T4, fontSize: 12 }}>担当</span>
                     <span style={{ color: T2, fontSize: 12.5 }}>{FOR[c.id]}</span>
@@ -94,7 +90,7 @@ export default function HirePage() {
               {top.name}を入れれば、フェーズ3はこの4人で回ります
             </span>
             <div style={{ flex: 1 }} />
-            <button onClick={() => say5(`${top.name}を採用できるのは Phase 5 から`)} className="solid" style={{
+            <button onClick={() => say5(`${top.name}をここから採用できるのは Phase 10 から。いまは計画の承認と一緒に採用されます`)} className="solid" style={{
               display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px',
               borderRadius: 8, background: BLUE, color: '#fff', whiteSpace: 'nowrap',
             }}>{top.name}を採用</button>
@@ -123,7 +119,7 @@ export default function HirePage() {
           {DETAIL.skills.map(([n, f], i) => (
             <div key={f} style={{
               display: 'flex', alignItems: 'center', gap: 12, height: 42,
-              borderBottom: i === DETAIL.skills.length - 1 ? undefined : '1px solid #161616',
+              borderBottom: i === DETAIL.skills.length - 1 ? undefined : `1px solid ${HAIR}`,
             }}>
               <span style={{ color: T2, fontSize: 13 }}>{n}</span>
               <div style={{ flex: 1 }} />
@@ -143,7 +139,7 @@ export default function HirePage() {
           {DETAIL.role.map(([k, v], i) => (
             <div key={k} style={{
               display: 'flex', alignItems: 'baseline', gap: 12, padding: '10px 0',
-              borderBottom: i === DETAIL.role.length - 1 ? undefined : '1px solid #161616',
+              borderBottom: i === DETAIL.role.length - 1 ? undefined : `1px solid ${HAIR}`,
             }}>
               <span style={{ color: T4, fontSize: 12 }}>{k}</span>
               <div style={{ flex: 1 }} />

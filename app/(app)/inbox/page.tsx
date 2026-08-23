@@ -7,8 +7,7 @@ import { Dot, Icon } from '@/components/ui/Icon';
 import { INBOX, INBOX_DONE, INBOX_HANDLED, type InboxItem, type InboxKind } from '@/lib/dummy';
 import { pressable } from '@/lib/a11y';
 import { useShell } from '@/components/shell/Shell';
-import { COMPOSER_H } from '@/lib/design/tokens';
-
+import { AMBER, AMBER_T, BLUE, COMPOSER_H, DIM, EDGE, FAINT, GREEN, GREEN_T, HAIR, RED, RED_T, SEAM, SUNK, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
 /**
  * 通知＝**読むものではなく片づけるもの**
  * （参考: Linear Inbox / Plane Inbox / Lemni — 履歴を流すのをやめて、左に積み・右で片づける）。
@@ -20,10 +19,6 @@ import { COMPOSER_H } from '@/lib/design/tokens';
  * ・左はいつも1件選ばれている。閉じた状態から始まらない（片づける画面なので）
  * ・行動の行は入力欄に隠さない（`COMPOSER_H` ぶん上に置く）
  */
-
-const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
-const BLUE = '#1A73E8', AMBER = '#E37400', AMBER_T = '#FDD663';
-const RED = '#D93025', RED_T = '#F28B82', GREEN = '#1E8E3E', GREEN_T = '#5BB974';
 
 /** 左の列の幅。ここだけ固定して、右は残り全部 */
 const LEFT = 300;
@@ -56,12 +51,12 @@ export default function InboxPage() {
         {/* ── 左: 積み ─────────────────────────────── */}
         <div style={{
           width: LEFT, flexShrink: 0, display: 'flex', flexDirection: 'column',
-          borderRight: '1px solid #1C1C1C',
+          borderRight: `1px solid ${SEAM}`,
         }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, height: 42, padding: '0 16px', flexShrink: 0 }}>
             {/* 未処理 ⇄ 済んだもの。**同じ場所で切り替える**（別の画面に飛ばさない） */}
             <button onClick={() => flip(false)} className="lnk" style={{ color: done ? T5 : T3, fontSize: 12 }}>未処理</button>
-            <span style={{ color: done ? '#3A3A3A' : T5, fontSize: 12 }} className="tnum">{INBOX.length}</span>
+            <span style={{ color: done ? `${DIM}` : T5, fontSize: 12 }} className="tnum">{INBOX.length}</span>
             <div style={{ flex: 1 }} />
             <button onClick={() => flip(true)} className="lnk" style={{ color: done ? T3 : T5, fontSize: 12 }}>済んだもの</button>
           </div>
@@ -73,7 +68,7 @@ export default function InboxPage() {
               return (
                 <div key={n.id} className="row" {...pressable(() => setOpen(n.id))} style={{
                   display: 'flex', flexDirection: 'column', gap: 6, padding: '13px 16px',
-                  borderBottom: '1px solid #161616',
+                  borderBottom: `1px solid ${HAIR}`,
                   boxShadow: on ? `inset 3px 0 0 ${tone.line}` : undefined,
                   background: on ? '#0C0C0C' : undefined,
                 }}>
@@ -100,13 +95,13 @@ export default function InboxPage() {
           {/* 片づけ終わったものは日ごとに畳んで、いちばん下に1行だけ */}
           <button onClick={() => flip(!done)} className="row" style={{
             display: 'flex', alignItems: 'center', gap: 10, height: 56, padding: '0 16px',
-            borderTop: '1px solid #1C1C1C', flexShrink: 0, marginBottom: COMPOSER_H, textAlign: 'left',
+            borderTop: `1px solid ${SEAM}`, flexShrink: 0, marginBottom: COMPOSER_H, textAlign: 'left',
           }}>
-            <Icon name={done ? 'inbox' : 'check'} color="#3A3A3A" size={13} width={2} />
+            <Icon name={done ? 'inbox' : 'check'} color={DIM} size={13} width={2} />
             <span style={{ color: T5, fontSize: 12 }}>{done ? '未処理にもどる' : INBOX_DONE.label}</span>
-            {!done && <span style={{ color: '#3A3A3A', fontSize: 12 }} className="tnum">{INBOX_DONE.count}件</span>}
+            {!done && <span style={{ color: DIM, fontSize: 12 }} className="tnum">{INBOX_DONE.count}件</span>}
             <div style={{ flex: 1 }} />
-            <Icon name="chev" color="#2E2E2E" size={12} />
+            <Icon name="chev" color={FAINT} size={12} />
           </button>
         </div>
 
@@ -130,22 +125,22 @@ export default function InboxPage() {
           {/* 行動の行。入力欄に隠さない */}
           <div style={{
             flexShrink: 0, display: 'flex', alignItems: 'center', gap: 11, height: 56,
-            padding: '0 28px', marginBottom: COMPOSER_H, borderTop: '1px solid #1C1C1C',
+            padding: '0 28px', marginBottom: COMPOSER_H, borderTop: `1px solid ${SEAM}`,
           }}>
-            <button onClick={() => say5('決めた内容を残すのは Phase 5 から')} className="solid" style={{
+            <button onClick={() => say5('決めたことを台帳に残すのは Phase 9 から')} className="solid" style={{
               display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px',
-              borderRadius: 8, background: item.kind === 'エラー' ? '#1A1A1A' : BLUE,
-              border: item.kind === 'エラー' ? '1px solid #2A2A2A' : undefined,
+              borderRadius: 8, background: item.kind === 'エラー' ? `${SUNK}` : BLUE,
+              border: item.kind === 'エラー' ? `1px solid ${EDGE}` : undefined,
               color: item.kind === 'エラー' ? T1 : '#fff',
             }}>{item.primary}</button>
-            <button onClick={() => say5('統括AIが答えるのは Phase 5 から')} className="btn" style={{
+            <button onClick={() => say5('統括AIが会話で答えるのは Phase 7 から。計画を立てるところは、いま動いています')} className="btn" style={{
               display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 14px',
-              borderRadius: 8, border: '1px solid #2A2A2A', color: T2, fontSize: 12.5,
+              borderRadius: 8, border: `1px solid ${EDGE}`, color: T2, fontSize: 12.5,
             }}>{item.secondary}</button>
             <div style={{ flex: 1 }} />
             <span className="lnk" {...pressable(() => setOpen(next.id))} style={{
               display: 'inline-flex', alignItems: 'center', gap: 8, color: T5, fontSize: 12,
-            }}>あとで · 次の未処理へ <Icon name="down" color="#3A3A3A" size={13} /></span>
+            }}>あとで · 次の未処理へ <Icon name="down" color={DIM} size={13} /></span>
           </div>
         </div>
       </div>
@@ -168,14 +163,14 @@ function Table({ t }: { t: NonNullable<InboxItem['table']> }) {
       {t.rows.map((r) => (
         <div key={r.k} style={{
           display: 'flex', alignItems: 'center', gap: 16, height: 44, padding: '0 12px', margin: '0 -12px',
-          borderRadius: 9, borderTop: '1px solid #161616',
+          borderRadius: 9, borderTop: `1px solid ${HAIR}`,
           background: r.hi ? 'rgba(30,142,62,0.10)' : undefined,
         }}>
           <span style={{ width: 40, color: r.hi ? T1 : T3, fontSize: 14 }}>{r.k}</span>
           <span style={{ width: 78, color: r.hi ? T1 : T2, fontSize: 14 }} className="tnum">{r.v}</span>
           <span style={{ width: 148, display: 'inline-flex', alignItems: 'center', gap: 11 }}>
-            <span style={{ width: 84, height: 4, borderRadius: 2, background: '#1A1A1A', overflow: 'hidden' }}>
-              <span style={{ display: 'block', width: `${r.pct}%`, height: '100%', background: r.hi ? GREEN : '#3A3A3A' }} />
+            <span style={{ width: 84, height: 4, borderRadius: 2, background: SUNK, overflow: 'hidden' }}>
+              <span style={{ display: 'block', width: `${r.pct}%`, height: '100%', background: r.hi ? GREEN : DIM }} />
             </span>
             <span style={{ color: r.hi ? T1 : T4, fontSize: 12 }} className="tnum">{r.pct ? `${r.pct}%` : '—'}</span>
           </span>
@@ -194,13 +189,13 @@ function Look({ rows }: { rows: [string, string][] }) {
         <Link key={name} href={openHref('/deliverables', name.includes('収益') ? 'd-rev' : 'd-target')}
           className="row" style={{
             display: 'flex', alignItems: 'center', gap: 12, height: 44, padding: '0 12px', margin: '0 -12px',
-            borderRadius: 9, borderTop: '1px solid #161616',
+            borderRadius: 9, borderTop: `1px solid ${HAIR}`,
           }}>
-          <Icon name="deliv" color="#3A3A3A" size={14} />
+          <Icon name="deliv" color={DIM} size={14} />
           <span style={{ color: T1, fontSize: 13.5 }}>{name}</span>
           <div style={{ flex: 1 }} />
           <span style={{ color: T5, fontSize: 12 }}>{who}</span>
-          <Icon name="chev" color="#2E2E2E" size={12} />
+          <Icon name="chev" color={FAINT} size={12} />
         </Link>
       ))}
     </div>
@@ -216,9 +211,9 @@ function After({ rows, kind }: { rows: [string, string][]; kind: InboxKind }) {
       </span>
       {rows.map(([what, who]) => (
         <div key={what} style={{ display: 'flex', alignItems: 'center', gap: 12, height: 34 }}>
-          <Dot color="#2E2E2E" size={5} />
+          <Dot color={FAINT} size={5} />
           <span style={{ color: T2, fontSize: 13 }}>{what}</span>
-          <span style={{ color: '#3A3A3A', fontSize: 11.5 }}>{who}</span>
+          <span style={{ color: DIM, fontSize: 11.5 }}>{who}</span>
         </div>
       ))}
     </div>

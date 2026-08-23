@@ -1,4 +1,4 @@
-/** 線のアイコン。行の先頭では**裸で置く**（四角で囲わない） */
+import { AMBER, T4 } from '@/lib/design/tokens';/** 線のアイコン。行の先頭では**裸で置く**（四角で囲わない） */
 
 export const ICONS = {
   bolt: <path d="M13 3.5 6.5 13.2H11l-1 7.3 6.5-9.7H12l1-7.3z" />,
@@ -43,7 +43,7 @@ export const ICONS = {
 
 export type IconName = keyof typeof ICONS;
 
-export function Icon({ name, color = '#6E6E6E', size = 15, width = 1.5 }:
+export function Icon({ name, color = `${T4}`, size = 15, width = 1.5 }:
   { name: IconName; color?: string; size?: number; width?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
@@ -60,7 +60,7 @@ export function Dot({ color, size = 7 }: { color: string; size?: number }) {
 }
 
 /** 判断の菱形。判断待ちのときだけ使う */
-export function Diamond({ color = '#E37400', size = 10, glow = true }:
+export function Diamond({ color = `${AMBER}`, size = 10, glow = true }:
   { color?: string; size?: number; glow?: boolean }) {
   return (
     <span style={{

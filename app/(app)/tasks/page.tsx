@@ -6,8 +6,7 @@ import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/componen
 import { Diamond, Icon, type IconName } from '@/components/ui/Icon';
 import { TASKS, TASK_BODY, employee, work, type State, type Task } from '@/lib/dummy';
 import { pressable } from '@/lib/a11y';
-import { COMPOSER_H } from '@/lib/design/tokens';
-
+import { AMBER, AMBER_T, COMPOSER_H, DIM, GREEN, GREEN_T, HAIR, RULE, SUNK, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
 /**
  * タスク＝**いつやるかで束ねる**（参考: Todoist Upcoming / Attio Tasks / Evernote Tasks —
  * どれも一覧ではなく期限の束で並べている）。
@@ -20,9 +19,6 @@ import { COMPOSER_H } from '@/lib/design/tokens';
  * ・**完了は下の1行に畳む**（下に溜めない）
  * ・「追加」ボタンは置かない。タスクは統括AIとの会話から作られる
  */
-
-const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
-const AMBER = '#E37400', AMBER_T = '#FDD663';
 
 /** ダミーの「きょう」。実データでは new Date() に置き換わる */
 const TODAY = '8月21日', TOMORROW = '8月22日';
@@ -42,8 +38,8 @@ function bunches(): Bunch[] {
 
 function Mark({ s }: { s: State }) {
   if (s === '要確認') return <Icon name="deliv" color={AMBER_T} size={13} />;
-  if (s === '実行中') return <span style={{ width: 7, height: 7, borderRadius: 999, background: '#6E6E6E', display: 'inline-block' }} />;
-  if (s === '完了') return <Icon name="check" color="#3A3A3A" size={12} width={2} />;
+  if (s === '実行中') return <span style={{ width: 7, height: 7, borderRadius: 999, background: T4, display: 'inline-block' }} />;
+  if (s === '完了') return <Icon name="check" color={DIM} size={12} width={2} />;
   return <span style={{ width: 7, height: 7, borderRadius: 999, border: '1px solid #333', display: 'inline-block' }} />;
 }
 
@@ -85,7 +81,7 @@ export default function TasksPage() {
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, height: 40, paddingTop: 10 }}>
               <span style={{ color: b.key === 'today' ? AMBER_T : T3, fontSize: 12 }}>{b.label}</span>
               {b.date && <span style={{ color: b.key === 'today' ? AMBER_T : T5, fontSize: 12 }}>{b.date}</span>}
-              <span style={{ color: '#3A3A3A', fontSize: 11 }} className="tnum">{b.items.length}</span>
+              <span style={{ color: DIM, fontSize: 11 }} className="tnum">{b.items.length}</span>
             </div>
             {b.items.map((t) => <Row key={t.id} t={t} on={t.id === openId} onOpen={() => setOpen(t.id)} />)}
           </div>
@@ -98,7 +94,7 @@ export default function TasksPage() {
               display: 'flex', alignItems: 'center', gap: 11, height: 40, padding: '0 12px',
               borderRadius: 8, background: '#0B0B0B',
             }}>
-              <Icon name="check" color="#3A3A3A" size={13} width={2} />
+              <Icon name="check" color={DIM} size={13} width={2} />
               <span style={{ color: T4, fontSize: 12.5 }}>終わったもの</span>
               <span style={{ color: T5, fontSize: 12 }} className="tnum">{done.length}件</span>
               <div style={{ flex: 1 }} />
@@ -127,7 +123,7 @@ function Row({ t, on, onOpen }: { t: Task; on: boolean; onOpen: () => void }) {
   return (
     <div className="row" {...pressable(onOpen)} style={{
       display: 'flex', alignItems: 'center', gap: 14, height: 43,
-      borderTop: '1px solid #161616', background: on ? '#0C0C0C' : undefined,
+      borderTop: `1px solid ${HAIR}`, background: on ? '#0C0C0C' : undefined,
     }}>
       <span style={{ width: 16, flexShrink: 0, display: 'inline-flex', justifyContent: 'center' }}>
         <Mark s={t.state} />
@@ -136,10 +132,10 @@ function Row({ t, on, onOpen }: { t: Task; on: boolean; onOpen: () => void }) {
         flex: 1, minWidth: 0, color: fin ? T5 : T1,
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
       }}>{t.title}</span>
-      <span style={{ width: 74, height: 3, borderRadius: 2, background: '#1A1A1A', overflow: 'hidden', flexShrink: 0 }}>
+      <span style={{ width: 74, height: 3, borderRadius: 2, background: SUNK, overflow: 'hidden', flexShrink: 0 }}>
         <span style={{
           display: 'block', width: `${t.progress}%`, height: '100%', borderRadius: 2,
-          background: t.state === '要確認' ? AMBER : fin ? '#262626' : '#5F5F5F',
+          background: t.state === '要確認' ? AMBER : fin ? `${RULE}` : T5,
         }} />
       </span>
       {/* 行は開く、中のリンクは別の画面へ。食い合わないように止める */}
@@ -148,7 +144,7 @@ function Row({ t, on, onOpen }: { t: Task; on: boolean; onOpen: () => void }) {
         : <Link href={openHref('/team', t.owner)} onClick={(e) => e.stopPropagation()} className="lnk"
             style={{ width: 76, flexShrink: 0, color: T4, fontSize: 12 }}>{who}</Link>}
       <Link href={`/work/${t.workId}`} onClick={(e) => e.stopPropagation()} className="lnk" style={{
-        width: 140, flexShrink: 0, textAlign: 'right', color: fin ? '#3A3A3A' : T5, fontSize: 12,
+        width: 140, flexShrink: 0, textAlign: 'right', color: fin ? `${DIM}` : T5, fontSize: 12,
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
       }}>{work(t.workId).title}</Link>
     </div>
@@ -190,7 +186,7 @@ function TaskPane({ t, onClose }: { t: Task; onClose: () => void }) {
   const b = TASK_BODY;
   const gate = t.state === '判断待ち';
   const who = t.owner === 'me' ? 'あなた' : employee(t.owner).name;
-  const barColor = gate || t.state === '要確認' ? AMBER : t.state === '完了' ? '#1E8E3E' : '#6E6E6E';
+  const barColor = gate || t.state === '要確認' ? AMBER : t.state === '完了' ? `${GREEN}` : T4;
   const fields = [
     { icon: 'task' as const, label: '期限', value: t.due },
     { icon: 'check' as const, label: '状態', pill: t.state },
@@ -205,7 +201,7 @@ function TaskPane({ t, onClose }: { t: Task; onClose: () => void }) {
   ];
   return (
     <Pane width={420} onClose={onClose}
-      dot={gate || t.state === '要確認' ? AMBER : t.state === '完了' ? '#1E8E3E' : '#5F5F5F'}
+      dot={gate || t.state === '要確認' ? AMBER : t.state === '完了' ? `${GREEN}` : T5}
       title={t.title}
       right={gate ? <span style={{ color: T5, fontSize: 11, whiteSpace: 'nowrap' }}>{b.created}に作成</span> : undefined}>
       {/* 1つのタスクの中の行き先。**開いた文書ではない**ので、タブではなく選ぶ列 */}
@@ -213,9 +209,9 @@ function TaskPane({ t, onClose }: { t: Task; onClose: () => void }) {
         {(['概要', '履歴', '資料'] as const).map((label, i) => (
           <span key={label} className={i === 0 ? 'hit' : 'btn'} style={{
             display: 'inline-flex', alignItems: 'center', gap: 7, height: 28, padding: '0 11px',
-            borderRadius: 8, background: i === 0 ? '#1A1A1A' : undefined, color: i === 0 ? T1 : T4, fontSize: 12.5,
+            borderRadius: 8, background: i === 0 ? `${SUNK}` : undefined, color: i === 0 ? T1 : T4, fontSize: 12.5,
           }}>
-            <Icon name={i === 0 ? 'home' : i === 1 ? 'history' : 'deliv'} color={i === 0 ? T2 : '#3A3A3A'} size={12} />{label}
+            <Icon name={i === 0 ? 'home' : i === 1 ? 'history' : 'deliv'} color={i === 0 ? T2 : DIM} size={12} />{label}
           </span>
         ))}
       </div>
@@ -234,7 +230,7 @@ function TaskPane({ t, onClose }: { t: Task; onClose: () => void }) {
             )}
             {'bar' in f && f.bar !== undefined && (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
-                <span style={{ display: 'block', width: 74, height: 4, borderRadius: 2, background: '#1A1A1A' }}>
+                <span style={{ display: 'block', width: 74, height: 4, borderRadius: 2, background: SUNK }}>
                   <span style={{ display: 'block', width: `${f.bar}%`, height: '100%', borderRadius: 2, background: barColor }} />
                 </span>
                 <span style={{ color: T1, fontSize: 12.5 }} className="tnum">{f.bar}%</span>
@@ -265,12 +261,12 @@ function TaskPane({ t, onClose }: { t: Task; onClose: () => void }) {
         {b.rows.map((r) => (
           <div key={r.k} className="row" style={{
             display: 'flex', alignItems: 'center', gap: 12, height: 35, padding: '0 9px', margin: '0 -9px',
-            borderRadius: 7, borderTop: '1px solid #161616',
+            borderRadius: 7, borderTop: `1px solid ${HAIR}`,
             background: r.on ? 'rgba(30,142,62,0.10)' : undefined,
           }}>
             <span style={{ width: 28, color: r.on ? T1 : T4, fontSize: 12.5 }}>{r.k}</span>
             <span style={{ flex: 1, color: r.on ? T1 : T4, fontSize: 12.5 }} className="tnum">{r.v}</span>
-            <span style={{ color: r.on ? '#5BB974' : T5, fontSize: 12.5 }} className="tnum">{r.pct}</span>
+            <span style={{ color: r.on ? `${GREEN_T}` : T5, fontSize: 12.5 }} className="tnum">{r.pct}</span>
           </div>
         ))}
         </>}
@@ -284,7 +280,7 @@ function TaskPane({ t, onClose }: { t: Task; onClose: () => void }) {
 function PaneRow({ icon, label, children }: { icon: IconName; label: string; children: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 34 }}>
-      <Icon name={icon} color="#3A3A3A" size={13} />
+      <Icon name={icon} color={DIM} size={13} />
       <span style={{ width: 62, color: T5, fontSize: 12.5 }}>{label}</span>
       {children}
     </div>

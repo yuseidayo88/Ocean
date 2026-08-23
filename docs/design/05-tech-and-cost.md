@@ -10,7 +10,7 @@
 | ホスティング・実行 | **Cloudflare**（Workers / Durable Objects / Queues / Cron / R2） | Vercel |
 | DB・認証 | **Supabase**（Postgres ＋ RLS ＋ Auth） | Neon など |
 | 成果物の保管 | **R2**（下り転送が無料） | Supabase Storage |
-| モデル | **Anthropic 直 ＋ OpenAI 直**（2社を直接） | OpenRouter などの仲介 |
+| モデル | **OpenRouter**（2026-08 に変更 → 下の判断ログ）| Anthropic 直 ＋ OpenAI 直（残してある） |
 | エージェント実行 | **Messages API ＋ Tool Runner**（自前の1ループ） | Managed Agents |
 | 道具 | **サーバー側ツール**（Web検索・Webフェッチ・コード実行） | 自前サンドボックス |
 
@@ -113,7 +113,12 @@ Durable Object は稼働時間（GB秒）でも課金されますが、含まれ
 
 固定費は **Workers $5 ＋ Supabase Pro $25 = $30/月**。
 
-## モデルは2社に直接つなぐ
+## モデルは OpenRouter を通す
+
+> **2026-08 に変えました。** もとは「2社に直接つなぐ」でした。
+> 下の節はそのときの理由で、**消さずに残しています** — そこに書いた懸念（委託先の開示・
+> ガードレールの不揃い）は、通り道を変えても消えないからです。
+> 覆した記録と、引き受けた宿題は **「判断ログ — OpenRouter を入れる」** に。
 
 **Anthropic と OpenAI の両方に、直接つなぎます。OpenRouter などの仲介は挟みません。**
 
@@ -261,6 +266,49 @@ Anthropic 直に戻したので、Managed Agents はまた選べます。それ�
   4. プロバイダ障害で実際に止まった
 
 追加は実質1日で済む形にしておくので、**この決定はいつでも覆せる。**
+
+## 判断ログ — OpenRouter を入れる（2026年8月・**上の決定を覆した**）
+
+社長の判断で **OpenRouter を通り道にする**。上の節は消さずに残す —
+「なぜ最初は入れなかったか」は、いま抱えている宿題そのものだから。
+
+### 何が変わったか
+
+| | 前 | いま |
+|---|---|---|
+| 通り道 | Anthropic 直 ＋ OpenAI 直 | **OpenRouter**（`lib/ai/openrouter.ts`） |
+| モデルの名前 | `claude-opus-5` | `anthropic/claude-opus-5`（`TIER_TABLE.model`） |
+| 直つなぎ | 既定 | **残してある**（`TIER_TABLE.direct` と `vendor` の書き換えだけで戻る） |
+| 鍵 | `ANTHROPIC_API_KEY` | `OPENROUTER_API_KEY` |
+
+3階層とも OpenRouter に通す。上の節の「入れるときは `fast` だけ」からも外れているが、
+**通り道を2本持つほうが、切り分けも説明も難しくなる**ので揃えた。
+
+### 引き受けた宿題（上の②③は消えていない）
+
+1. **委託先の開示。** OpenRouter は裏で複数のプロバイダにルーティングする。
+   プライバシーポリシーに書く委託先が「今日どこへ流れたか」で変わる。
+   → **`provider` の指定でルーティングを固定する**（`only` / `order`）。
+   固定しないまま公開しない。**Phase 11（課金と公開）までに決める。**
+2. **ガードレールの不揃い。** モデルごとに断る基準が違うと挙動が揃わない。
+   → いまは3階層とも Anthropic のモデルなので当面ずれない。
+   安いモデルに替えるときに、あらためて考える。
+3. **キャッシュとエラー形式。** 上の表の「間に1枚入る」はそのまま残る。
+   Anthropic 直のときに書いていた `cache_control` は、いまの実装では渡していない。
+
+### この環境から確かめられていないこと
+
+**`openrouter.ai` に出られない**（egress で塞がれている）ので、
+ドキュメントに当たれていない。鍵が入ったら**最初にこの3つ**を確かめる。
+
+1. **モデルの slug。** `anthropic/claude-opus-5` / `anthropic/claude-sonnet-5` /
+   `anthropic/claude-haiku-4.5` の綴り → `GET /api/v1/models` で一覧が取れる
+2. **プロンプトキャッシュが透過するか。** 透過するなら `cache_control` の渡し方
+3. **`usage` に何が入るか。** キャッシュの読み書き量が取れないと、原価が読めない
+
+**単価（`TIER_TABLE`）は Anthropic 直の定価のまま**にしてある。
+OpenRouter は推論に上乗せしないが、クレジット購入時に 5.5%、BYOK は
+月100万リクエストまで無料・超過分5%。**原価を出すときは手数料を別に足す。**
 
 ## 1 Work あたりの原価
 
@@ -413,7 +461,7 @@ Anthropic 直に戻したので、Managed Agents はまた選べます。それ�
 
 ### いまの形
 
-**会社（`accounts`）はもう分離されている。** 全28表の RLS が
+**会社（`accounts`）はもう分離されている。** 全27表の RLS が
 `account_id = private.current_account_id()` の一形だけでできていて、
 **列を直接読んでいるポリシーが1つもない。**
 
@@ -494,7 +542,7 @@ Phase 11 まで待たず、**認証まわりを作るときに一緒に**入れ�
 **会社（`accounts`）にぶら下がっています。**
 
 ```
-auth.users ──1:1── users ──N:1── accounts ──1:N── 27表
+auth.users ──1:1── users ──N:1── accounts ──1:N── 25表
                      └ account_id            全部 account_id ＋ RLS
                        ここだけが「1人1社」
 ```

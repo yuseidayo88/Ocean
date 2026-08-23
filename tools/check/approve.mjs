@@ -41,6 +41,49 @@ const plan = await ev('location.pathname');
 ok('ゴールを書くと計画の画面へ行く', /^\/work\/[^/]+\/plan$/.test(plan), plan);
 ok('承認して始める が押せる', await ev(`[...document.querySelectorAll('button')].some(b => b.textContent.includes('承認して始める'))`));
 
+// ②-a 質問の板 — **押せる口は4つとも本物か**
+const askText = () => ev(`[...document.querySelectorAll('.rise')].map(e => e.innerText).join('\\n')`);
+let ask = await askText();
+ok('質問の板が出る', ask.includes('誰に向けたものにしますか'), ask.slice(0, 40));
+ok('N / M が出る', /1 \/ 2/.test(ask), ask.match(/\d \/ \d/)?.[0]);
+ok('‹ は先頭では押せない', await ev(`[...document.querySelectorAll('button[aria-label=前の質問]')].every(b => b.disabled)`));
+ok('› は押せる', await ev(`[...document.querySelectorAll('button[aria-label=次の質問]')].some(b => !b.disabled)`));
+
+// 選択肢を押す → 2問目へ進む
+await ev(`[...document.querySelectorAll('.rise button')].find(b => b.innerText.includes('個人'))?.click()`);
+await wait(2500);
+ask = await askText();
+ok('選ぶと2問目に進む', ask.includes('いつまでに形にしたいですか'), ask.slice(0, 40));
+
+/**
+ * **答えがブラウザの外に出ているか。** 1問だけ答えた状態で読み込み直す。
+ * 出ていれば、板は「答え終わっていない最初のもの」＝2問目から始まる。
+ * 出ていなければ1問目に戻る。
+ */
+await send('Page.navigate', { url: BASE + plan }); await wait(3000);
+ask = await askText();
+ok('答えが残っている（読み直しても2問目）', ask.includes('いつまでに形にしたいですか'), ask.slice(0, 40));
+ok('1問目には戻らない', !ask.includes('誰に向けたものにしますか'));
+
+// ‹ で1問目に戻ると、答えが緑のチップで出ている
+await ev(`[...document.querySelectorAll('button[aria-label=前の質問]')].find(b => !b.disabled)?.click()`);
+await wait(600);
+ask = await askText();
+ok('‹ で戻ると答えが見える', ask.includes('個人') && ask.includes('選び直す'), ask.slice(0, 60));
+
+// 2問目へ戻って自由入力 → 送る
+await ev(`[...document.querySelectorAll('.rise button')].find(b => b.innerText.includes('次の質問'))?.click()`);
+await wait(600);
+await ev(`[...document.querySelectorAll('.rise button')].find(b => b.innerText === '自分の言葉で書く')?.click()`);
+await wait(400);
+await ev(`(() => { const i = document.querySelector('.rise input');
+  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(i, '半年くらい');
+  i.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+await wait(200);
+await ev(`[...document.querySelectorAll('.rise button')].find(b => b.innerText === '送る')?.click()`);
+await wait(2500);
+ok('自由入力が通る（全部答えたら板は消える）', (await askText()).trim() === '', (await askText()).slice(0, 40));
+
 // ② 根拠のペインに、その計画と関係のない前提が残っていないか
 await ev(`[...document.querySelectorAll('button')].find(b => b.title === '右を開く')?.click()`); await wait(700);
 const why = await ev(`document.querySelector('aside')?.innerText ?? ''`);

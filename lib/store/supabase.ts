@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { AGENT_COLOR, type EmployeeColor } from '@/lib/dummy';
 import { colorFor } from './memory';
+import { AppError } from '@/lib/errors';
 import type { DraftWork, LiveWork, Store } from './types';
 
 /**
@@ -34,7 +35,7 @@ async function threadFor(c: C, workId: string, title: string): Promise<string> {
   if (data) return data.id as string;
   const { data: t, error } = await c
     .from('chat_threads').insert({ work_id: workId, title }).select('id').single();
-  if (error || !t) throw new Error(error?.message ?? 'スレッドを作れませんでした');
+  if (error || !t) throw new AppError('unknown', error?.message ?? 'chat_threads insert failed');
   return t.id as string;
 }
 
@@ -45,25 +46,28 @@ async function writePlan(c: C, workId: string, d: DraftBody) {
   }));
   if (!phases.length) return;
   const { data: rows, error } = await c.from('phases').insert(phases).select('id, seq');
-  if (error) throw new Error(error.message);
+  if (error) throw new AppError('unknown', error.message);
 
   // タスクは**最初のフェーズぶんだけ**。先は前の結果を見てから引き直す
   const first = rows?.find((r) => r.seq === 1);
   if (!first || !d.plan.firstPhaseTasks.length) return;
-  const { error: e2 } = await c.from('tasks').insert(d.plan.firstPhaseTasks.map((t) => ({
-    work_id: workId, phase_id: first.id, title: t.title, intent: t.intent,
+  const { error: e2 } = await c.from('tasks').insert(d.plan.firstPhaseTasks.map((t, i) => ({
+    work_id: workId, phase_id: first.id, seq: i + 1, title: t.title, intent: t.intent,
     status: 'queued', assignee_type: 'user', created_by: 'executive',
+    // **統括AIが言った担当を捨てない。** 承認のとき、これを見て割り当てる
+    owner_hint: t.ownerHint || null,
   })));
-  if (e2) throw new Error(e2.message);
+  if (e2) throw new AppError('unknown', e2.message);
 }
 
 /** 質問を台帳に残す。**答えはここに書く**（控えの jsonb ではなく、こちらが真実） */
 async function writeQuestions(c: C, workId: string, threadId: string, d: DraftBody) {
   if (!d.questions.length) return;
-  const { error } = await c.from('questions').insert(d.questions.map((q) => ({
-    work_id: workId, thread_id: threadId, body: q.body, why: q.why, options: q.options,
+  // **`seq` を書く。** 同じ insert 文で入るので created_at は全行同着になり、並びが決まらない
+  const { error } = await c.from('questions').insert(d.questions.map((q, i) => ({
+    work_id: workId, thread_id: threadId, seq: i + 1, body: q.body, why: q.why, options: q.options,
   })));
-  if (error) throw new Error(error.message);
+  if (error) throw new AppError('unknown', error.message);
 }
 
 type Crew = { id: string; definition_id: string; display_name: string; color_token: string };
@@ -78,7 +82,7 @@ export const supabaseStore: Store = {
       .insert({ title: d.title, goal: d.goal, status: 'plan_review', plan_draft: body(d) as never })
       .select('id')
       .single();
-    if (error || !work) throw new Error(error?.message ?? 'works の作成に失敗しました');
+    if (error || !work) throw new AppError('unknown', error?.message ?? 'works insert failed');
 
     const id = work.id as string;
     await writePlan(c, id, d);
@@ -95,7 +99,7 @@ export const supabaseStore: Store = {
     const d = w.plan_draft as unknown as DraftBody;
     // 答えは台帳のほうが真実。控えの質問に重ねる（並びは作った順＝聞いた順）
     const { data: qs } = await c
-      .from('questions').select('body, answer').eq('work_id', id).order('created_at');
+      .from('questions').select('seq, body, answer').eq('work_id', id).order('seq');
     const byBody = new Map((qs ?? []).map((q) => [q.body, q.answer ?? undefined]));
 
     return {
@@ -119,15 +123,14 @@ export const supabaseStore: Store = {
     return out;
   },
 
+  /** `index` は 0 始まり。**`seq` で引く**（created_at は同着なので順番が決まらない） */
   async answer(id, index, answer) {
     const c = await db();
-    const { data: qs } = await c
-      .from('questions').select('id').eq('work_id', id).order('created_at');
-    const row = qs?.[index];
-    if (!row) return;
-    await c.from('questions')
-      .update({ answer, answered_at: new Date().toISOString() })
-      .eq('id', row.id);
+    const now = answer ? new Date().toISOString() : null;
+    const { error } = await c.from('questions')
+      .update({ answer: answer || null, answered_at: now })
+      .eq('work_id', id).eq('seq', index + 1);
+    if (error) throw new AppError('unknown', error.message);
   },
 
   /**
@@ -139,7 +142,7 @@ export const supabaseStore: Store = {
     const c = await db();
     const { data: w } = await c
       .from('works').select('id, status, plan_draft').eq('id', id).maybeSingle();
-    if (!w) throw new Error('その計画は見つかりませんでした');
+    if (!w) throw new AppError('not_found', `work ${id} not found`, undefined, 'その計画は見つかりませんでした');
     if (w.status !== 'plan_review') return;      // 二度押しは何もしない
 
     const d = w.plan_draft as unknown as DraftBody | null;
@@ -162,7 +165,7 @@ export const supabaseStore: Store = {
           definition_id: h.definitionId, definition_version: 1, display_name: h.displayName,
           color_token: colorFor(h.definitionId, i) satisfies EmployeeColor, status: 'idle',
         }))).select('id, definition_id, display_name, color_token');
-        if (error) throw new Error(error.message);
+        if (error) throw new AppError('unknown', error.message);
         for (const e of rows ?? []) byDef.set(e.definition_id as string, e as Crew);
       }
       crew = hires.map((h) => byDef.get(h.definitionId)).filter(Boolean) as Crew[];
@@ -175,14 +178,27 @@ export const supabaseStore: Store = {
       const { error } = await c.from('phases')
         .update({ status: 'active', started_at: new Date().toISOString() })
         .eq('id', first.id);
-      if (error) throw new Error(error.message);
+      if (error) throw new AppError('unknown', error.message);
 
-      // ③ そのフェーズのタスクに担当を割り当てる。**状態は queued のまま**
+      /**
+       * ③ そのフェーズのタスクに担当を割り当てる。**状態は queued のまま。**
+       *
+       * **統括AIが言った担当（`owner_hint`）で引き当てる。**
+       * 前は全部 `crew[0]` に寄せていたので、計画画面が「調査担当」と言ったタスクが
+       * 実際には別の社員に付いていた（画面とデータベースが食い違う）。
+       * 名前が合わないものだけ、先頭の社員に落とす。
+       */
       if (crew.length) {
-        const { error: e2 } = await c.from('tasks')
-          .update({ assignee_type: 'employee', assignee_employee_id: crew[0].id })
-          .eq('phase_id', first.id).eq('status', 'queued');
-        if (e2) throw new Error(e2.message);
+        const byName = new Map(crew.map((e) => [e.display_name, e.id]));
+        const { data: rows } = await c.from('tasks')
+          .select('id, owner_hint').eq('phase_id', first.id).eq('status', 'queued');
+        for (const t of rows ?? []) {
+          const who = byName.get((t.owner_hint ?? '') as string) ?? crew[0].id;
+          const { error: e2 } = await c.from('tasks')
+            .update({ assignee_type: 'employee', assignee_employee_id: who })
+            .eq('id', t.id);
+          if (e2) throw new AppError('unknown', e2.message);
+        }
       }
     }
 
@@ -190,7 +206,7 @@ export const supabaseStore: Store = {
     const { error } = await c.from('works').update({
       status: 'active', started_at: new Date().toISOString(), current_phase_id: first?.id ?? null,
     }).eq('id', id);
-    if (error) throw new Error(error.message);
+    if (error) throw new AppError('unknown', error.message);
 
     // 台帳（`audit_events`）はここでは書かない。**引き金が書く**
     // （`authenticated` に insert が無い。0008_works_audit.sql）
@@ -200,8 +216,8 @@ export const supabaseStore: Store = {
   async revise(id, next) {
     const c = await db();
     const { data: w } = await c.from('works').select('status').eq('id', id).maybeSingle();
-    if (!w) throw new Error('その計画は見つかりませんでした');
-    if (w.status !== 'plan_review') throw new Error('もう承認された計画は直せません');
+    if (!w) throw new AppError('not_found', `work ${id} not found`, undefined, 'その計画は見つかりませんでした');
+    if (w.status !== 'plan_review') throw new AppError('unknown', `work ${id} is ${w.status}`, undefined, 'もう承認された計画は直せません');
 
     await c.from('tasks').delete().eq('work_id', id);
     await c.from('phases').delete().eq('work_id', id);
@@ -210,7 +226,7 @@ export const supabaseStore: Store = {
     const { error } = await c.from('works')
       .update({ title: next.title, goal: next.goal, plan_draft: body(next) as never })
       .eq('id', id);
-    if (error) throw new Error(error.message);
+    if (error) throw new AppError('unknown', error.message);
 
     await writePlan(c, id, next);
     // スレッドは残す（相談の行き先は計画を引き直しても変わらない）
@@ -225,7 +241,7 @@ export const supabaseStore: Store = {
 
     const [{ data: ph }, { data: tk }] = await Promise.all([
       c.from('phases').select('id, seq, name, goal, status').eq('work_id', id).order('seq'),
-      c.from('tasks').select('id, phase_id, title, intent, status, assignee_employee_id').eq('work_id', id).order('created_at'),
+      c.from('tasks').select('id, phase_id, seq, title, intent, status, assignee_employee_id, owner_hint').eq('work_id', id).order('seq'),
     ]);
 
     /**
@@ -257,7 +273,9 @@ export const supabaseStore: Store = {
       tasks: (tk ?? []).map((t) => ({
         id: t.id as string, phaseId: t.phase_id as string, title: t.title as string,
         intent: (t.intent ?? '') as string, state: t.status as string,
-        owner: t.assignee_employee_id ? em.get(t.assignee_employee_id)?.display_name : undefined,
+        owner: t.assignee_employee_id
+          ? em.get(t.assignee_employee_id)?.display_name
+          : ((t.owner_hint ?? undefined) as string | undefined),
       })),
       crew: [...em.values()].map((e) => ({
         id: e.id, name: e.display_name,

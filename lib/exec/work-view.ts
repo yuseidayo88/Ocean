@@ -103,7 +103,8 @@ export function fromLive(w: LiveWork): WorkView {
     phaseIndex: w.phases[nowIdx]?.seq ?? 1,
     phases: w.phases.map((p) => ({
       name: p.name,
-      state: p.state === 'done' ? 'done' : p.state === 'active' ? 'now' : 'next',
+      // `review`（全タスクが終わって社長待ち）も「いま」の側に置く。まだ済んでいない
+      state: p.state === 'done' ? 'done' : (p.state === 'active' || p.state === 'review') ? 'now' : 'next',
       done: done(p.id), all: all(p.id),
     })),
     tasks: w.tasks.filter((t) => t.state !== 'done' && t.state !== 'cancelled').map((t) => ({

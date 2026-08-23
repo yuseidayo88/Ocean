@@ -43,6 +43,19 @@ export type PlanView = {
   firstTasks: number;
   /** もう承認されたか。**押せる顔をさせない**ために画面が読む */
   approved?: boolean;
+  /**
+   * 統括AIが聞いていること。**答えられる形で画面に出す。**
+   * 前はここまで来ていなかった（DB には書かれ、読み戻され、ここで落ちていた）ので、
+   * 「質問は説明つきの選択肢リストで出す」が本番の道に載っていなかった。
+   */
+  asks: PlanAsk[];
+};
+
+export type PlanAsk = {
+  body: string; why: string;
+  options: { label: string; note: string; recommended?: boolean }[];
+  /** 答えたもの。まだなら undefined */
+  answer?: string;
 };
 
 const COLORS: EmployeeColor[] = ['cyan', 'purple', 'indigo', 'green'];
@@ -78,6 +91,12 @@ export function fromDraft(d: DraftWork): PlanView {
     real: d.real,
     firstTasks: d.plan.firstPhaseTasks.length,
     approved: d.approved,
+    asks: d.questions.map((q) => ({
+      body: q.body, why: q.why, answer: q.answer,
+      options: (q.options ?? []).map((o) => ({
+        label: o.label, note: o.description ?? '', recommended: o.recommended,
+      })),
+    })),
     why: [
       d.container.reason,
       `直近の「${rows[0]?.name ?? ''}」だけタスクまで引いています。先のフェーズは名前とねらいだけです。`,
@@ -105,6 +124,8 @@ export const DUMMY_VIEW: PlanView = {
   ],
   real: true,
   firstTasks: 3,
+  // ダミーの計画は、もう答え終わっている（承認済みの見た目）
+  asks: [],
   timeNote: '作る前に確かめることに半分を使います。ここで外すと、あとの5週がまるごと無駄になります。',
   facts: [['韓国の日本語学習者', '約 12万人'], ['あなたが使える時間', '週 10時間'], ['初期の資金', '〜50万円'], ['出典', '3件 ›']],
   dropped: 'いきなりLPを作る — 誰に何を売るかが決まる前に作ると、ほぼ作り直しになります。フェーズ3に入れました。',

@@ -1,4 +1,5 @@
 import { AGENT_COLOR, type EmployeeColor } from '@/lib/dummy';
+import { AppError } from '@/lib/errors';
 import type { DraftWork, LiveWork, Store } from './types';
 
 /**
@@ -30,9 +31,13 @@ function live(d: DraftWork): LiveWork {
       id: `${d.id}-p${i + 1}`, seq: i + 1, name: p.name, goal: p.goal,
       state: i === 0 ? 'active' : 'planned',
     })),
+    // 担当は**統括AIが言った名前で引き当てる**（Supabase 版と同じ規則）。
+    // 合わなければ先頭の社員に落とす
     tasks: d.plan.firstPhaseTasks.map((t, i) => ({
       id: `${d.id}-t${i + 1}`, phaseId: `${d.id}-p1`, title: t.title, intent: t.intent,
-      state: 'queued', owner: d.hires[0]?.displayName,
+      state: 'queued',
+      owner: d.hires.find((h) => h.displayName === t.ownerHint)?.displayName
+        ?? d.hires[0]?.displayName ?? t.ownerHint,
     })),
     crew: d.hires.map((h, i) => ({
       id: `${d.id}-e${i + 1}`, name: h.displayName, color: AGENT_COLOR[colorFor(h.definitionId, i)],
@@ -54,20 +59,20 @@ export const memoryStore: Store = {
   async answer(id, index, answer) {
     const d = bag.get(id);
     if (!d?.questions[index]) return;
-    d.questions[index] = { ...d.questions[index], answer };
+    d.questions[index] = { ...d.questions[index], answer: answer || undefined };
   },
 
   async approve(id) {
     const d = bag.get(id);
-    if (!d) throw new Error('その計画は見つかりませんでした');
+    if (!d) throw new AppError('not_found', `work ${id} not found`, undefined, 'その計画は見つかりませんでした');
     if (d.approved) return;                      // 二度押しは何もしない
     bag.set(id, { ...d, approved: true, live: live(d) });
   },
 
   async revise(id, next) {
     const d = bag.get(id);
-    if (!d) throw new Error('その計画は見つかりませんでした');
-    if (d.approved) throw new Error('もう承認された計画は直せません');
+    if (!d) throw new AppError('not_found', `work ${id} not found`, undefined, 'その計画は見つかりませんでした');
+    if (d.approved) throw new AppError('unknown', `work ${id} already approved`, undefined, 'もう承認された計画は直せません');
     bag.set(id, { ...next, id, createdAt: d.createdAt });
   },
 

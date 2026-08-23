@@ -16,7 +16,7 @@ export class OpenAIProvider implements ModelProvider {
     const usage = { ...EMPTY_USAGE }
 
     const s = await this.client.responses.create({
-      model: spec.model,
+      model: spec.direct,
       instructions: input.system,
       input: input.messages.map((m) => ({ role: m.role, content: m.content })),
       max_output_tokens: input.maxTokens ?? 4096,

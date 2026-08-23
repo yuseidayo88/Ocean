@@ -4,7 +4,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Orb } from '@/components/ui/Orb';
 import { useParam } from '@/lib/use-open';
 import { useSize } from '@/lib/use-size';
-import { COMPOSER_H, EASE } from '@/lib/design/tokens';
+import { AMBER, AMBER_T, CANVAS, COMPOSER_H, EASE, EDGE, FAINT, HAIR, LINE, RAIL, RED_T, SEAM, SUNK, T1, T2, T4, T5, WELL } from '@/lib/design/tokens';
 import { AGENT_COLOR, FLOWMAP, type MapPhase, type MapWork } from '@/lib/dummy';
 
 /**
@@ -43,15 +43,11 @@ const rise = (col: number) => `flowin ${IN} ${(0.04 + col * STEP).toFixed(3)}s b
 const TRUNK = 180;
 const cc = (col: number) => COL[col] + NW / 2;
 
-const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
-const AMBER = '#E37400', RED_T = '#F28B82', AMBER_T = '#FDD663';
-const CANVAS = '#060606';
-
 type Kind = 'done' | 'now' | 'wait' | 'gate';
 const SKIN: Record<Kind, { bg: string; border: string; bar: string; title: string; sub: string }> = {
-  done: { bg: '#0B0B0B', border: '1px solid #1D1D1D', bar: '#2A2A2A', title: T2, sub: T5 },
+  done: { bg: '#0B0B0B', border: '1px solid #1D1D1D', bar: EDGE, title: T2, sub: T5 },
   now:  { bg: '#101010', border: '1px solid #333333', bar: T2, title: T1, sub: T4 },
-  wait: { bg: '#080808', border: '1px dashed #1F1F1F', bar: '#141414', title: T4, sub: T5 },
+  wait: { bg: '#080808', border: `1px dashed ${WELL}`, bar: RAIL, title: T4, sub: T5 },
   gate: { bg: 'rgba(227,116,0,0.05)', border: '1px solid rgba(227,116,0,0.28)', bar: AMBER, title: T1, sub: AMBER_T },
 };
 
@@ -80,7 +76,7 @@ function Node({ x, y, w, h, title, sub, kind, pct, crew = 0, col = 0, lit, pick 
       {pct !== undefined && (
         <span style={{
           position: 'absolute', left: 12, bottom: 5, width: w - 24, height: 3,
-          borderRadius: 2, background: '#1A1A1A', overflow: 'hidden',
+          borderRadius: 2, background: SUNK, overflow: 'hidden',
         }}>
           {/* **0 から今の割合まで、左から右へ満ちる**（ノードが出たすぐあと） */}
           <span style={{
@@ -224,7 +220,7 @@ function build() {
 }
 
 const MINI: Record<Kind, string> = {
-  done: '#2E2E2E', now: '#7A7A7A', wait: '#1C1C1C', gate: 'rgba(227,116,0,0.6)',
+  done: FAINT, now: '#7A7A7A', wait: SEAM, gate: 'rgba(227,116,0,0.6)',
 };
 
 /** 中身のいちばん外側（線のラベルも入れる）。**器に合わせるのはこの箱** */
@@ -264,7 +260,7 @@ const MiniMap = memo(function MiniMap({ nodes, links, lit, sc, X0, Y0, H, frame,
       style={{
       /* 盤面の道具なので **`COMPOSER_H` ぶん逃がす**（入力欄に隠れたままにしない） */
       position: 'absolute', right: 24, bottom: COMPOSER_H, width: MAP_W, height: H,
-      borderRadius: 10, background: '#0A0A0A', border: '1px solid #232323', overflow: 'hidden',
+      borderRadius: 10, background: '#0A0A0A', border: `1px solid ${LINE}`, overflow: 'hidden',
       cursor: 'pointer', touchAction: 'none',
       /* 盤面が描き終わるころに出る（先に地図だけあると、そこだけ浮いて見える） */
       animation: `flowfade ${IN} .34s backwards`,
@@ -281,7 +277,7 @@ const MiniMap = memo(function MiniMap({ nodes, links, lit, sc, X0, Y0, H, frame,
                        fill={n.tone === 'late' ? 'rgba(217,48,37,0.6)' : MINI[n.kind]} />;
         })}
         {/* いま見えている範囲。**盤面の側から毎コマ書き換える** */}
-        <rect ref={frame} rx={4} fill="rgba(255,255,255,0.05)" stroke="#6E6E6E" strokeWidth={1.2} />
+        <rect ref={frame} rx={4} fill="rgba(255,255,255,0.05)" stroke={T4} strokeWidth={1.2} />
       </svg>
     </div>
   );
@@ -293,7 +289,6 @@ function Mark({ status }: { status?: string }) {
   if (status === '要確認') return <span style={{ width: 9, height: 11, border: `1px solid ${AMBER}`, borderRadius: 2, display: 'inline-block', flexShrink: 0 }} />;
   return null;
 }
-
 
 /**
  * 盤面の中身。**拡大縮小のあいだ組み直さない。**
@@ -317,7 +312,7 @@ const Scene = memo(function Scene({ nodes, links, labels, names, endX, endY, lit
            style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
         {links.map((l, i) => (
           <path key={i} d={elbow(l.pts)} fill="none" strokeWidth={1.3}
-                stroke={l.faint ? '#2E2E2E' : '#333333'} opacity={lit(l.of) ? 1 : 0.26}
+                stroke={l.faint ? `${FAINT}` : '#333333'} opacity={lit(l.of) ? 1 : 0.26}
                 style={{ transition: `opacity ${EASE}`,
                          animation: `flowfade ${IN} ${(0.02 + l.col * STEP).toFixed(3)}s backwards` }} />
         ))}
@@ -372,7 +367,7 @@ type Eye = { x: number; y: number; z: number };
 const MIN_Z = 0.16, MAX_Z = 4;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 /** 中身と器のあいだに空ける縁 */
-const EDGE = 26;
+const PAD_EDGE = 26;
 /**
  * 端から端まで送ったあと、**さらに動かせるぶん**（器の 45%）。
  * ぴったりで止めると盤面が窮屈で、地図を隅に寄せて見る、ができない。
@@ -387,7 +382,8 @@ export function Flow() {
   const B = useMemo(() => bounds(made), [made]);
   const bw = B.x1 - B.x0, bh = B.y1 - B.y0;
 
-  const [board, { w, h }] = useSize<HTMLDivElement>();
+  const board = useRef<HTMLDivElement>(null);
+  const { w, h } = useSize(board);
   const content = useRef<HTMLDivElement>(null);
   const frame = useRef<SVGRectElement>(null);
 
@@ -399,8 +395,9 @@ export function Flow() {
   const [of, setOf] = useParam('of', '');
   const lit = useCallback(
     (o: string | string[]) => !of || (Array.isArray(o) ? o.includes(of) : o === of), [of]);
-  const setRef = useRef(setOf); setRef.current = setOf;
-  const pick = useCallback((o: string) => setRef.current(of === o ? '' : o), [of]);
+  // `setOf` は `useParam` 側で固めてあるので、素直に依存に入れられる
+  // （前はここで ref に逃がしていた。逃がす必要が無くなった）
+  const pick = useCallback((o: string) => setOf(of === o ? '' : o), [of, setOf]);
 
   const vw = w < 2 ? BOARD_W : w;
   /** 見えているのは入力欄より上まで。**隠れているぶんを「見えている」と言わない** */
@@ -420,7 +417,7 @@ export function Flow() {
    */
   const hold = useCallback((e: Eye): Eye => {
     const ax = (v: number, p0: number, p1: number, box: number) => {
-      const a = -p0 * e.z + EDGE, b = box - p1 * e.z - EDGE, s = box * SLACK;
+      const a = -p0 * e.z + PAD_EDGE, b = box - p1 * e.z - PAD_EDGE, s = box * SLACK;
       return clamp(v, Math.min(a, b) - s, Math.max(a, b) + s);
     };
     return { z: e.z, x: ax(e.x, B.x0, B.x1, vw), y: ax(e.y, B.y0, B.y1, vh) };
@@ -428,7 +425,7 @@ export function Flow() {
 
   /** 全体に合わせる。**器いっぱいまで大きくする**（小さく置いて余白を残さない） */
   const fit = useCallback((): Eye => {
-    const z = clamp(Math.min((vw - EDGE * 2) / bw, (vh - EDGE * 2) / bh), MIN_Z, MAX_Z);
+    const z = clamp(Math.min((vw - PAD_EDGE * 2) / bw, (vh - PAD_EDGE * 2) / bh), MIN_Z, MAX_Z);
     return { z, x: (vw - bw * z) / 2 - B.x0 * z, y: (vh - bh * z) / 2 - B.y0 * z };
   }, [vw, vh, bw, bh, B]);
 
@@ -464,11 +461,13 @@ export function Flow() {
       f.setAttribute('width', Math.max(2, clamp(px(vx1), 1, MAP_W - 1) - x).toFixed(1));
       f.setAttribute('height', Math.max(2, clamp(py(vy1), 1, map.H - 1) - y).toFixed(1));
     }
-  }, [board, vw, vh, B, map]);
+  }, [vw, vh, B, map]);   // board / content / frame は ref。識別は変わらないので依存に入れない
 
   /** 行き先を追いかける。時間で詰めるので、画面の速さが変わっても手ざわりが同じ */
   const chase = useCallback(() => {
-    raf.current = requestAnimationFrame((t) => {
+    // **`function` で立てる。** `const step = (t) => … step …` だと
+    // 自分の初期化の途中で自分を指すことになる（動くが、読む側も機械も引っかかる）
+    function step(t: number) {
       const dt = Math.min(64, last.current ? t - last.current : 16);
       last.current = t;
       const a = now.current, b = goal.current;
@@ -476,8 +475,10 @@ export function Flow() {
       const next = { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, z: a.z * (b.z / a.z) ** k };
       const done = Math.abs(b.x - next.x) < 0.3 && Math.abs(b.y - next.y) < 0.3 && Math.abs(b.z - next.z) < 0.0008;
       draw(done ? b : next);
-      if (done) { raf.current = 0; last.current = 0; setEye(b); } else chase();
-    });
+      if (done) { raf.current = 0; last.current = 0; setEye(b); }
+      else raf.current = requestAnimationFrame(step);
+    }
+    raf.current = requestAnimationFrame(step);
   }, [draw]);
   /** `snap` は指と1対1のとき（つまんで動かす・二本指で送る・地図をつまむ） */
   const aim = useCallback((next: Eye, snap = false) => {
@@ -519,7 +520,7 @@ export function Flow() {
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
-  }, [board, hold, aim]);
+  }, [hold, aim]);
 
   /** Esc で選択を外す（右ペインと同じ作法）。⇧1 で全体、⇧0 で等倍 */
   useEffect(() => {
@@ -576,7 +577,7 @@ export function Flow() {
       cursor: held ? 'grabbing' : 'grab', touchAction: 'none',
       backgroundColor: CANVAS,
       /* ドットも一緒に動いて、拡大縮小に付いてくる（どれだけ動いたかが目で分かる） */
-      backgroundImage: 'radial-gradient(#161616 1px, transparent 1px)',
+      backgroundImage: `radial-gradient(${HAIR} 1px, transparent 1px)`,
       backgroundSize: `${22 * eye.z}px ${22 * eye.z}px`,
       backgroundPosition: `${eye.x}px ${eye.y}px`,
     }}>

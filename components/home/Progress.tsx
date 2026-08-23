@@ -6,14 +6,13 @@ import { openHref, useParam } from '@/lib/use-open';
 import { Icon } from '@/components/ui/Icon';
 import { AGENT_COLOR, DONE_WORKS, DONE_WORKS_LIST, TICKS, TODAY_X, WORKS, employee, type Phase, type Work } from '@/lib/dummy';
 
+import { AMBER, AMBER_T, DIM, FAINT, GREEN_T, HAIR, RED_T, RULE, T1, T3, T4, T5 } from '@/lib/design/tokens';
 /**
  * 進捗＝図で読む。中身は「答えの1行」と「タイムライン」だけ。
  *   Work が増えたとき: 並びは放っておけない順、レーンは flex で伸び縮み、
  *   完了した Work は下の1行に畳む。
  */
 
-const T1 = '#EDEDED', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
-const AMBER = '#E37400', AMBER_T = '#FDD663', GREEN_T = '#5BB974', RED_T = '#F28B82';
 /**
  * 帯に余裕を持たせる。**軸に使える幅を増やす**（左の名前と右の2列を削り、
  * 最大幅を窓いっぱいまで上げる）＋ **帯そのものを高くする**。
@@ -35,13 +34,13 @@ function Seg({ p }: { p: Phase }) {
   }
   if (p.state === 'now') {
     return (
-      <div style={{ ...base, background: '#2E2E2E' }}>
-        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, borderRadius: '7px 0 0 7px', background: '#6E6E6E' }} />
+      <div style={{ ...base, background: FAINT }}>
+        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, borderRadius: '7px 0 0 7px', background: T4 }} />
         <Label c={T1}>{p.name}</Label>
       </div>
     );
   }
-  return <div style={{ ...base, border: '1px dashed #262626' }}><Label c={T5}>{p.name}</Label></div>;
+  return <div style={{ ...base, border: `1px dashed ${RULE}` }}><Label c={T5}>{p.name}</Label></div>;
 }
 
 const Label = ({ c, pad = 13, children }: { c: string; pad?: number; children: React.ReactNode }) => (
@@ -61,7 +60,7 @@ function Lane({ w, last }: { w: Work; last: boolean }) {
   return (
     <div style={{
       flex: 1, minHeight: 118, display: 'flex', alignItems: 'center', gap: 16,
-      borderBottom: last ? undefined : '1px solid #161616',
+      borderBottom: last ? undefined : `1px solid ${HAIR}`,
     }}>
       <Link href={`/work/${w.id}`} className="row" style={{
         width: LABEL, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0,
@@ -158,7 +157,7 @@ export function Progress() {
           {TICKS.slice(1, -1).map((t) => (
             <div key={t.x} style={{ position: 'absolute', left: `${t.x}%`, top: 0, bottom: 0, width: 1, background: '#131313' }} />
           ))}
-          <div style={{ position: 'absolute', left: `${TODAY_X}%`, top: 0, bottom: 0, width: 1, background: '#3A3A3A' }} />
+          <div style={{ position: 'absolute', left: `${TODAY_X}%`, top: 0, bottom: 0, width: 1, background: DIM }} />
           <div style={{
             position: 'absolute', left: `${TODAY_X}%`, top: -18, transform: 'translateX(-50%)',
             color: T3, fontSize: 11, whiteSpace: 'nowrap',
@@ -196,13 +195,13 @@ export function Progress() {
             {DONE_WORKS_LIST.map((w) => (
               <div key={w.id} style={{
                 display: 'flex', alignItems: 'center', gap: 12, height: 36, padding: '0 8px',
-                borderTop: '1px solid #161616',
+                borderTop: `1px solid ${HAIR}`,
               }}>
-                <Icon name="check" color="#2E2E2E" size={13} width={2} />
+                <Icon name="check" color={FAINT} size={13} width={2} />
                 <span style={{ color: T5, fontSize: 13 }}>{w.title}</span>
                 <div style={{ flex: 1 }} />
-                <span style={{ color: '#3A3A3A', fontSize: 11.5 }} className="tnum">フェーズ{w.phases}</span>
-                <span style={{ color: '#3A3A3A', fontSize: 11.5, width: 62, textAlign: 'right' }}>{w.ended}</span>
+                <span style={{ color: DIM, fontSize: 11.5 }} className="tnum">フェーズ{w.phases}</span>
+                <span style={{ color: DIM, fontSize: 11.5, width: 62, textAlign: 'right' }}>{w.ended}</span>
               </div>
             ))}
           </div>

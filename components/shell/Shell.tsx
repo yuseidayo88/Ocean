@@ -1,24 +1,21 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { usePathname } from 'next/navigation';
 import { COMPANIES } from '@/lib/dummy';
-import { SHELL_MIN } from '@/lib/design/tokens';
-
+import { FAINT, RULE, SHELL_MIN, SUNK, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
 /**
  * 器の開け閉め。左レールはレールの中の印で閉じ、閉じたら**端に何も残さない**。
  * 戻り道はトップバーの左端（右ペインと同じ作法）。
  */
-
-const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
 
 /**
  * 統括AIとの会話は**どの画面からでも始められる**。
  * 入力欄に書いて送ると、右ペインがその会話になって開く
  * （参考: ClickUp Brain / Fabric / HoneyBook — 右にAIを出すアプリは
  *  例外なく**入力欄もそのパネルの中**に入れている）。
- * `said` は自分が書いたぶん。**返事は作らない**（Phase 5 まで、統括AIは「考えています」で止まる）。
+ * `said` は自分が書いたぶん。**返事は作らない**（統括AIは「考えています」で止まる。会話で答えるのは Phase 7 から）。
  */
 export type Chat = { on: boolean; thread: string | null; said: string[] };
 
@@ -63,25 +60,32 @@ export function Shell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('keydown', h);
   }, []);
 
-  const say5 = (what: string) => {
+  /**
+   * **器の口は識別を変えない。** ここは全画面が読む context なので、
+   * 毎描画で関数を作り直すと、これを依存に入れている側
+   * （ワークフローの `pick` など）が丸ごと作り直しになる。
+   * 前はそれを避けるために呼ぶ側が ref に逃がしていた。逃がす必要が無いように、出どころで固める。
+   */
+  const say5 = useCallback((what: string) => {
     setNote(what);
     window.setTimeout(() => setNote((n) => (n === what ? null : n)), 3200);
-  };
+  }, []);
 
-  const say = (text: string, thread?: string | null) =>
+  const say = useCallback((text: string, thread?: string | null) =>
     setChat((c) => ({
       on: true,
       thread: c.on ? c.thread : thread ?? null,
       said: [...(c.on ? c.said : []), text],
-    }));
-  const fresh = () => setChat({ on: true, thread: null, said: [] });
-  const closeChat = () => setChat((c) => ({ ...c, on: false }));
+    })), []);
+  const fresh = useCallback(() => setChat({ on: true, thread: null, said: [] }), []);
+  const closeChat = useCallback(() => setChat((c) => ({ ...c, on: false })), []);
 
-  return (
-    <Ctx.Provider value={{ rail, setRail, chat, say, fresh, closeChat, find, setFind, note, say5 }}>
-      {children}
-    </Ctx.Provider>
-  );
+  // 中身が変わったときだけ作り直す（毎描画で新しい object を配らない）
+  const value = useMemo(
+    () => ({ rail, setRail, chat, say, fresh, closeChat, find, setFind, note, say5 }),
+    [rail, chat, say, fresh, closeChat, find, note, say5]);
+
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
 /**
@@ -138,20 +142,20 @@ export function CompanyPicker() {
           <span onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 39 }} />
           <div className="pop" style={{
             position: 'absolute', top: 32, left: 0, width: 224, zIndex: 40, boxSizing: 'border-box', padding: 5,
-            borderRadius: 11, background: '#1A1A1A', border: '1px solid #2E2E2E',
+            borderRadius: 11, background: SUNK, border: `1px solid ${FAINT}`,
             boxShadow: '0 18px 44px rgba(0,0,0,0.72)',
           }}>
             {COMPANIES.map((c) => (
               <button key={c.id} className={c.current ? 'hit' : 'row'} style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 10, height: 32, padding: '0 10px',
-                borderRadius: 7, background: c.current ? '#262626' : undefined, textAlign: 'left',
+                borderRadius: 7, background: c.current ? `${RULE}` : undefined, textAlign: 'left',
               }}>
                 <span style={{ color: c.current ? T1 : T2 }}>{c.name}</span>
                 <div style={{ flex: 1 }} />
                 <span style={{ fontSize: 12, color: T5 }}>Work {c.works}</span>
               </button>
             ))}
-            <div style={{ height: 1, margin: '5px 8px', background: '#262626' }} />
+            <div style={{ height: 1, margin: '5px 8px', background: RULE }} />
             <button className="row" style={{
               width: '100%', display: 'flex', alignItems: 'center', height: 32, padding: '0 10px',
               borderRadius: 7, textAlign: 'left',
