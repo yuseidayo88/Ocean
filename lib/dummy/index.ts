@@ -19,9 +19,10 @@ export type State = '判断待ち' | '要確認' | '実行中' | '待機' | '完
 /** 遅れているかどうかは2語だけ */
 export type Health = '順調' | { late: number };
 
+/** **テスト中はただの名札**（本物の会社名は入れない） */
 export const COMPANIES = [
-  { id: 'kotonoha', name: 'ことのは', works: 3, current: true },
-  { id: 'minamo', name: 'みなも', works: 1, current: false },
+  { id: 'co-1', name: '会社名1', works: 3, current: true },
+  { id: 'co-2', name: '会社名2', works: 1, current: false },
 ];
 export const ME = { initial: 'Y', name: 'あなた' };
 
