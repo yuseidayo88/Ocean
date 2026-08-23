@@ -1,15 +1,19 @@
 'use client';
 
+import type { Route } from 'next';
 import { Go as Link } from '@/components/ui/Go';
 
 import { useOpen } from '@/lib/use-open';
 import { notFound, useParams } from 'next/navigation';
-import { Centre, Composer, Pane, TopBar } from '@/components/shell/Chrome';
+import { Centre, Composer, ExecStatus, Pane, TopBar } from '@/components/shell/Chrome';
 import { COMPOSER_H } from '@/lib/design/tokens';
 import { useShell } from '@/components/shell/Shell';
 import { Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
 import { AGENT_COLOR, WORKS } from '@/lib/dummy';
+import { DUMMY_VIEW, fromDraft, type PlanView } from '@/lib/exec/view';
+import { getDraft } from '@/app/actions/work';
+import { useEffect, useState } from 'react';
 
 /**
  * 計画の承認（参考: AWS Amplify / Workable の Review）。
@@ -20,22 +24,12 @@ import { AGENT_COLOR, WORKS } from '@/lib/dummy';
 
 const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
 const BLUE = '#1A73E8', AMBER = '#E37400', AMBER_T = '#FDD663';
-const PW = 10; // 全体の週数
 
-type Row = { n: number; name: string; goal: string; w0: number; w1: number; who: string; weeks: string; soft?: boolean; dec?: string };
-const ROWS: Row[] = [
-  { n: 1, name: '調査',       goal: '市場・競合・ターゲットを確かめる', w0: 0, w1: 3,  who: '調査担当', weeks: '3週' },
-  { n: 2, name: '戦略',       goal: '収益モデルと価格を決める',       w0: 3, w1: 5,  who: '戦略担当', weeks: '2週', dec: '価格の方向性' },
-  { n: 3, name: 'プロダクト', goal: 'MVPの要件を固めて作る',         w0: 5, w1: 8,  who: '企画担当', weeks: '3週', dec: 'MVPの線引き' },
-  { n: 4, name: 'ローンチ',   goal: '初期ユーザーを集める',           w0: 8, w1: 10, who: '担当は未定', weeks: '2週', soft: true },
-];
-
-const MAKES: [string, string][][] = [
-  [['市場規模レポート', 'フェーズ1'], ['競合分析レポート', 'フェーズ1'], ['ペルソナ仮説', 'フェーズ1']],
-  [['収益モデル比較', 'フェーズ2'], ['MVP要件定義', 'フェーズ3'], ['LPと申込フォーム', 'フェーズ3']],
-];
-
-
+/**
+ * 中身は1つの形（`PlanView`）から描く。
+ * ダミーの Work でも、統括AIが立てたばかりの計画でも、**同じ画面**が出る。
+ * 似た画面を2つ作らないため。
+ */
 export default function PlanPage() {
   const { say5 } = useShell();
   const { id } = useParams<{ id: string }>();
@@ -43,45 +37,72 @@ export default function PlanPage() {
   const [openId, setOpen] = useOpen();
   const pane = openId === 'why';
   const setPane = (v: boolean) => setOpen(v ? 'why' : null);
-  const w = WORKS.find((x) => x.id === id);
-  if (!w) notFound();
+  const dummy = WORKS.find((x) => x.id === id);
+  const [v, setV] = useState<PlanView | null>(dummy ? DUMMY_VIEW : null);
+  const [gone, setGone] = useState(false);
+
+  // ダミーに無い id は、統括AIが立てたばかりの計画
+  useEffect(() => {
+    if (dummy) return;
+    let live = true;
+    getDraft(id).then((d) => { if (!live) return; if (d) setV(fromDraft(d)); else setGone(true); });
+    return () => { live = false; };
+  }, [id, dummy]);
+
+  if (gone) notFound();
+  if (!v) return <Centre><TopBar title="計画案" /><Waiting /></Centre>;
+
+  const PW = v.weeks || 1;
+  const ROWS = v.rows;
+  // 作るものは2列に割る
+  const half = Math.ceil(v.makes.length / 2);
+  const MAKES = [v.makes.slice(0, half), v.makes.slice(half)];
 
   return (
     <>
       <Centre>
-        <TopBar crumb={w.title} title="計画案" onPanel={() => setPane(true)} panelOn={pane} />
+        <TopBar crumb={v.title} title="計画案" onPanel={() => setPane(true)} panelOn={pane} />
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '14px 26px 18px' }}>
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <span style={{ maxWidth: '78%', padding: '9px 16px', borderRadius: 18, background: '#24354A', color: '#DCE7F5' }}>
-              韓国人向けの日本語学習サービスを立ち上げたい
+              {v.goal}
             </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: T4 }}>
-            <span>42秒 考えました</span><Icon name="chev" color={T4} size={12} />
-          </div>
-          <span style={{ fontSize: 15, lineHeight: '25px' }}>
-            4フェーズで進めます。まず市場を確かめ、勝てる形が見えてから作りはじめます。
-          </span>
+          {/* **考えていないなら、そう出す。** 決め打ちの計画を本物のように見せない */}
+          {!v.real && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 9, padding: '9px 13px', borderRadius: 9,
+              background: 'rgba(227,116,0,0.07)', border: '1px solid rgba(227,116,0,0.3)',
+            }}>
+              <Icon name="bolt" color={AMBER_T} size={14} />
+              <span style={{ color: AMBER_T, fontSize: 12.5 }}>
+                これは仮の計画です。モデルの鍵がまだ入っていないので、統括AIは考えていません
+              </span>
+            </div>
+          )}
+          <span style={{ fontSize: 15, lineHeight: '25px' }}>{v.lead}</span>
 
           {/* 計画 = 図 */}
           <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', paddingTop: 8 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', paddingBottom: 4 }}>
               <span style={{ color: T3 }}>計画</span>
               <div style={{ flex: 1 }} />
-              <span style={{ color: T5, fontSize: 12 }}>およそ 10週 · あなたに聞くのは ◆ の2回</span>
+              <span style={{ color: T5, fontSize: 12 }}>
+                およそ {v.weeks}週{v.rows.filter((r) => r.dec).length > 0 && ` · あなたに聞くのは ◆ の${v.rows.filter((r) => r.dec).length}回`}
+              </span>
             </div>
             <div style={{ position: 'absolute', left: 220, right: 120, top: 22, bottom: 0, pointerEvents: 'none' }}>
-              {[2, 4, 6, 8].map((wk) => (
+              {ticks(PW).slice(0, -1).map((wk) => (
                 <div key={wk} style={{ position: 'absolute', left: `${(wk / PW) * 100}%`, top: 0, bottom: 0, width: 1, background: '#131313' }} />
               ))}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '2px 0 6px' }}>
               <div style={{ width: 208, flexShrink: 0 }} />
               <div style={{ flex: 1, position: 'relative', height: 14 }}>
-                {[2, 4, 6, 8, 10].map((wk) => (
+                {ticks(PW).map((wk) => (
                   <span key={wk} style={{
                     position: 'absolute', left: `${(wk / PW) * 100}%`,
-                    transform: wk === 10 ? 'translateX(-100%)' : 'translateX(-50%)',
+                    transform: wk === PW ? 'translateX(-100%)' : 'translateX(-50%)',
                     color: T5, fontSize: 11, whiteSpace: 'nowrap',
                   }}>{wk}週</span>
                 ))}
@@ -128,19 +149,23 @@ export default function PlanPage() {
           <div style={{ display: 'flex', flexDirection: 'column', paddingTop: 10 }}>
             <span style={{ color: T3, paddingBottom: 4 }}>承認すると起きること</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '8px 0', borderBottom: '1px solid #161616' }}>
-              <span style={{ width: 176, flexShrink: 0, color: T4, fontSize: 13 }}>採用する AI社員 3体</span>
+              <span style={{ width: 176, flexShrink: 0, color: T4, fontSize: 13 }}>
+                {v.hires.length ? `採用する AI社員 ${v.hires.length}体` : '採用はありません'}
+              </span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-                {(['cyan', 'purple', 'indigo'] as const).map((c, i) => (
-                  <span key={c} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                    <Orb color={AGENT_COLOR[c]} size={26} seed={13 + i * 5} />
-                    <span style={{ color: T2, fontSize: 13 }}>{['調査担当', '戦略担当', '企画担当'][i]}</span>
+                {v.hires.map((h, i) => (
+                  <span key={h.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    <Orb color={AGENT_COLOR[h.color]} size={26} seed={13 + i * 5} />
+                    <span style={{ color: T2, fontSize: 13 }}>{h.name}</span>
                   </span>
                 ))}
+                {!v.hires.length && <span style={{ color: T5, fontSize: 13 }}>いまの社員で足ります</span>}
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '8px 0' }}>
-              <span style={{ width: 176, flexShrink: 0, color: T4, fontSize: 13 }}>最初の成果物が出るまで</span>
-              <span style={{ color: T2, fontSize: 13 }}>3日</span>
+              {/* **誰も言っていない数字を出さない。** 直近のフェーズに引いたタスクの数を出す */}
+              <span style={{ width: 176, flexShrink: 0, color: T4, fontSize: 13 }}>すぐ動きだすタスク</span>
+              <span style={{ color: T2, fontSize: 13 }} className="tnum">{v.firstTasks}件</span>
             </div>
           </div>
 
@@ -149,7 +174,7 @@ export default function PlanPage() {
             <div style={{ display: 'flex', alignItems: 'baseline', paddingBottom: 4 }}>
               <span style={{ color: T3 }}>作るもの</span>
               <div style={{ flex: 1 }} />
-              <span style={{ color: T5, fontSize: 12 }}>6件</span>
+              <span style={{ color: T5, fontSize: 12 }}>{v.makes.length}件</span>
             </div>
             <div style={{ display: 'flex', gap: 40 }}>
               {MAKES.map((col, ci) => (
@@ -181,7 +206,7 @@ export default function PlanPage() {
           flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10, height: 56,
           padding: '0 26px', marginBottom: COMPOSER_H, borderTop: '1px solid #1C1C1C',
         }}>
-          <Link href={`/work/${w.id}`} className="solid" style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px', borderRadius: 8, background: BLUE, color: '#fff' }}>
+          <Link href={`/work/${id}` as Route} className="solid" style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px', borderRadius: 8, background: BLUE, color: '#fff' }}>
             承認して始める
           </Link>
           <button onClick={() => say5('直したいところは、下の入力欄に書いてください')} className="btn" style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 14px', borderRadius: 8, border: '1px solid #2A2A2A', color: T3 }}>
@@ -238,5 +263,22 @@ export default function PlanPage() {
       </Pane>
       )}
     </>
+  );
+}
+
+/** 週の目盛り。全体の長さで刻みを変える（10週なら2週ごと、1週なら0.25週ごと） */
+function ticks(pw: number): number[] {
+  const step = pw <= 2 ? pw / 4 : pw <= 6 ? 1 : 2;
+  const out: number[] = [];
+  for (let x = step; x <= pw + 1e-9; x += step) out.push(Math.round(x * 100) / 100);
+  return out;
+}
+
+/** 統括AIが計画を立てているあいだ。**返事を作らない** — 考えている、とだけ出す */
+function Waiting() {
+  return (
+    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <ExecStatus state="thinking" />
+    </div>
   );
 }

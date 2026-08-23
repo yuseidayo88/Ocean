@@ -121,12 +121,16 @@ function grow(t: HTMLTextAreaElement, onH?: (h: number) => void) {
 }
 
 export function Composer({ placeholder, mode = '統括AI', effort = '自動', above, floating = true,
-                           inPane = false, local = false }:
+                           inPane = false, local = false, onSend, busy = false }:
   { placeholder: string; mode?: string; effort?: string; above?: React.ReactNode; floating?: boolean;
     /** 右ペインの中に置くほう。器の余白と幅を、ペインに合わせる */
     inPane?: boolean;
     /** チャット画面のように、その場で会話が続く画面。右ペインを開かない */
-    local?: boolean }) {
+    local?: boolean;
+    /** **この画面が書いたものを引き取る**（新しい Work のように、会話ではなく仕事になる画面） */
+    onSend?: (text: string) => void;
+    /** 引き取ったあと処理中。もう一度送れないようにする */
+    busy?: boolean }) {
   /**
    * **打つたびに描き直さない。**
    * 見た目が変わるのは「書いたかどうか」の1点だけ（送信ボタンが青くなる）。
@@ -147,7 +151,8 @@ export function Composer({ placeholder, mode = '統括AI', effort = '自動', ab
 
   const send = () => {
     const t = box.current;
-    if (!t || !t.value.trim()) return;
+    if (!t || !t.value.trim() || busy) return;
+    if (onSend) { onSend(t.value.trim()); t.value = ''; t.style.height = ''; setCan(false); setTall(false); return; }
     say(t.value.trim());
     t.value = '';
     t.style.height = '';
@@ -227,14 +232,14 @@ export function Composer({ placeholder, mode = '統括AI', effort = '自動', ab
         {/* 深さは本物の選択。統括AI がどこまで考えるかを、その場で変える */}
         <EffortMenu init={effort} />
         {/* **書いていないときは送れない。** 押せないものを押せる顔にしない */}
-        <button disabled={!can} onClick={send} className={can ? 'solid' : undefined} style={{
+        <button disabled={!can || busy} onClick={send} className={can && !busy ? 'solid' : undefined} style={{
           width: 32, height: 32, borderRadius: 999, flexShrink: 0,
-          background: can ? BLUE : '#242424',
+          background: can && !busy ? BLUE : '#242424',
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          cursor: can ? 'pointer' : 'default',
+          cursor: can && !busy ? 'pointer' : 'default',
           transition: 'background-color .14s ease',
         }}>
-          <Icon name="up" color={can ? '#fff' : '#5F5F5F'} size={16} width={1.8} />
+          <Icon name="up" color={can && !busy ? '#fff' : '#5F5F5F'} size={16} width={1.8} />
         </button>
       </div>
     </div>

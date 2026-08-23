@@ -1,0 +1,188 @@
+import type { ToolDef } from '@/lib/ai';
+
+/**
+ * 統括AIに渡す道具（Phase 5 のぶん）。
+ *
+ * **文章で返させない。** 画面に出すものは全部この形で受け取る。
+ * 自由文で返させると、パースに失敗したときに「なんとなく動いていない」になる。
+ */
+
+/** 入れ物の判定（→ docs/design/06-work-and-scope.md） */
+export const decideContainer: ToolDef = {
+  name: 'decide_container',
+  description:
+    '依頼をどの入れ物に入れるかを決める。3つ全部そろえば Work（終わりが言える / 単独で価値がある / 3ヶ月以内）。'
+    + '単独で価値が出ないなら、進行中の Work のフェーズかタスクにする。'
+    + '終わりが言えないなら ask_end を使う。',
+  input_schema: {
+    type: 'object',
+    properties: {
+      verdict: { type: 'string', enum: ['work', 'phase', 'task'], description: 'どの入れ物か' },
+      title: { type: 'string', description: '4〜20文字。社長の言葉をそのまま使う' },
+      goal: { type: 'string', description: '何ができたら終わりか。1文' },
+      weeks: { type: 'number', description: '見込みの週数' },
+      into_work_id: { type: 'string', description: 'phase / task のとき、入れる先の Work' },
+      /** 3条件の内訳。**なぜそう決めたかを画面に出す**ので、丸めさせない */
+      ends: { type: 'boolean', description: '終わりが言えるか' },
+      alone: { type: 'boolean', description: '単独で価値があるか' },
+      short: { type: 'boolean', description: '3ヶ月以内か' },
+      reason: { type: 'string', description: '1文。社長に見せる' },
+    },
+    required: ['verdict', 'title', 'goal', 'weeks', 'ends', 'alone', 'short', 'reason'],
+  },
+};
+
+/** 終わりが言えないとき。入れ物に入れる前に聞く */
+export const askEnd: ToolDef = {
+  name: 'ask_end',
+  description: '終わりが言えないので、何ができたら終わりかを先に聞く。入れ物にはまだ入れない。',
+  input_schema: {
+    type: 'object',
+    properties: {
+      body: { type: 'string', description: '聞くこと。1文' },
+      options: {
+        type: 'array',
+        description: '3つまで。選べる形にする',
+        items: {
+          type: 'object',
+          properties: {
+            label: { type: 'string' },
+            description: { type: 'string', description: '1行。これが無いと選べない' },
+          },
+          required: ['label', 'description'],
+        },
+      },
+    },
+    required: ['body', 'options'],
+  },
+};
+
+/**
+ * 確認の質問。**入力欄の上の板に出る**（会話には流さない）。
+ * 1度に 2〜4問まで。理由のない質問は出さない。
+ */
+export const ask: ToolDef = {
+  name: 'ask',
+  description:
+    '計画を立てる前に、これが決まらないと進めないことを聞く。2〜4問まで。'
+    + '選択肢には必ず1行の説明を付ける（「¥1,980」だけでは選べない）。'
+    + '推奨があれば1つだけ recommended を立てる。最後は自由入力になるので用意しなくてよい。',
+  input_schema: {
+    type: 'object',
+    properties: {
+      questions: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            body: { type: 'string', description: '聞くこと。1文' },
+            why: { type: 'string', description: 'なぜ聞くか。1文。理由のない質問は出さない' },
+            options: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  label: { type: 'string', description: '見出し。短く' },
+                  description: { type: 'string', description: '1行の説明' },
+                  recommended: { type: 'boolean' },
+                },
+                required: ['label', 'description'],
+              },
+            },
+          },
+          required: ['body', 'why', 'options'],
+        },
+      },
+    },
+    required: ['questions'],
+  },
+};
+
+/** 社員の推薦。**採るかどうかは社長が決める** */
+export const proposeHires: ToolDef = {
+  name: 'propose_hires',
+  description:
+    'この Work に要るAI社員を挙げる。いる社員で足りるなら空で返す。'
+    + '「念のため」で増やさない。フェーズのどこで要るかを必ず書く。',
+  input_schema: {
+    type: 'object',
+    properties: {
+      hires: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            definition_id: { type: 'string', description: 'agency-agents のカタログ ID' },
+            display_name: { type: 'string', description: '「◯◯担当」の4文字' },
+            why: { type: 'string', description: 'なぜ要るか。1文' },
+            for_phase: { type: 'string', description: 'どのフェーズで要るか' },
+          },
+          required: ['definition_id', 'display_name', 'why', 'for_phase'],
+        },
+      },
+    },
+    required: ['hires'],
+  },
+};
+
+/**
+ * 計画。**最後まで引くが、詳細タスクは直近のフェーズだけ。**
+ * 先のフェーズを最初から固定すると、前のフェーズの結果で引き直せなくなる。
+ */
+export const draftPlan: ToolDef = {
+  name: 'draft_plan',
+  description:
+    'ロードマップを引く。フェーズは最後まで並べるが、**タスクは最初のフェーズぶんだけ**書く。'
+    + '判断の関門（gates）は、それが決まらないと先へ進めない場所に置く。多くても2つ。',
+  input_schema: {
+    type: 'object',
+    properties: {
+      weeks: { type: 'number', description: '全体の見込み週数' },
+      phases: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            name: { type: 'string', description: '2〜6文字' },
+            goal: { type: 'string', description: 'このフェーズで何ができたら次へ行けるか。1文' },
+            weeks: { type: 'number' },
+          },
+          required: ['name', 'goal', 'weeks'],
+        },
+      },
+      gates: {
+        type: 'array',
+        description: '社長に判断してもらうところ。多くても2つ',
+        items: {
+          type: 'object',
+          properties: {
+            after_phase: { type: 'string', description: 'どのフェーズの中／あとか' },
+            question: { type: 'string', description: '何を決めてもらうか。短く' },
+          },
+          required: ['after_phase', 'question'],
+        },
+      },
+      first_phase_tasks: {
+        type: 'array',
+        description: '**最初のフェーズのタスクだけ。** 先のフェーズは書かない',
+        items: {
+          type: 'object',
+          properties: {
+            title: { type: 'string' },
+            intent: { type: 'string', description: '社員に渡す依頼文。画面には出さない' },
+            owner_hint: { type: 'string', description: '誰にやらせるか（表示名）' },
+          },
+          required: ['title', 'intent', 'owner_hint'],
+        },
+      },
+      deliverables: {
+        type: 'array',
+        description: '承認すると作られるもの',
+        items: { type: 'string' },
+      },
+    },
+    required: ['weeks', 'phases', 'gates', 'first_phase_tasks', 'deliverables'],
+  },
+};
+
+export const PHASE5_TOOLS: ToolDef[] = [decideContainer, askEnd, ask, proposeHires, draftPlan];
