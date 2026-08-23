@@ -1295,7 +1295,22 @@ def strip2(name, key, state, spec, now, el, done, running, total, log, last=Fals
               + '<div style="flex:1"></div>' + fig + (mono(cap) if cap else '')
             + '</div></div>')
 
-COMPOSER_NOTE = 108   # 下に置いたものは入力欄のぶん逃がす
+COMPOSER_NOTE = 108   # 下に置いたものは入力欄のぶん逃がす（52 ＋ 窓の下との間 24 ＋ 中身との間 32）
+
+def composer():
+    """入力欄。**全画面で同じものを1つ**・中央下部・幅748・高さ52・角丸26。
+       中身の上に浮くので、下に貼り付く行は COMPOSER_NOTE ぶん逃がす"""
+    return ('<div style="position:absolute;left:50%%;bottom:24px;transform:translateX(-50%%);'
+            'width:748px;height:52px;border-radius:26px;background:#0E0E0E;border:1px solid %s;'
+            'display:flex;align-items:center;gap:12px;padding:0 8px 0 14px">' % LINE
+            + '<span style="width:26px;height:26px;border-radius:999px;display:inline-flex;'
+              'align-items:center;justify-content:center;color:%s;font-size:15px;flex-shrink:0">＋</span>' % T4
+            + '<span style="flex:1;min-width:0;color:%s;font-size:14px">統括AIに話しかける</span>' % T4
+            + '<span style="color:%s;font-size:12px;white-space:nowrap">統括AI</span>' % T3
+            + '<span style="color:%s;font-size:12px;white-space:nowrap">自動 ⌄</span>' % T3
+            + '<span style="width:34px;height:34px;border-radius:999px;background:#1C1C1C;flex-shrink:0;'
+              'display:inline-flex;align-items:center;justify-content:center;color:%s;font-size:14px">↑</span>' % T5
+            + '</div>')
 
 # ── ① 左右 ────────────────────────────────────────────────
 b1 = ('<div style="padding:16px 30px 22px;display:flex;flex-direction:column;gap:10px">'
@@ -1382,7 +1397,7 @@ def deskcard(name, key, state, spec, now, el, done, running, total, log, first=F
               + (mono('待ち %d' % w, T5) if w else '')
             + '</div></div>')
 
-b3 = ('<div style="padding:16px 30px 0;display:flex;flex-direction:column;gap:20px">'
+b3 = ('<div style="position:relative;padding:16px 30px 0;display:flex;flex-direction:column;gap:20px">'
   # 上: 絵とログ。**答えの一文も上の帯も置かない**（数は絵と社員の行が言っている）
   + '<div style="display:flex;gap:22px;align-items:stretch">'
     + '<div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center">%s</div>'
@@ -1398,10 +1413,12 @@ b3 = ('<div style="padding:16px 30px 0;display:flex;flex-direction:column;gap:20
     + '<div style="display:flex;gap:24px;align-items:flex-start">'
       + ''.join(deskcard(*m, first=(i == 0)) for i, m in enumerate(REAL))
     + '</div>'
-  + '</div></div>')
+  + '</div>'
+  + composer()
+  + '</div>')
 io.open(OUT + '/LayoutTeamBottom.dc.html', 'w', encoding='utf-8').write(
     board('絵とログが上、社員は下に5列', '③ 下に社員', b3, GREEN_T,
-          '統括AI は左に分けて置く · 6人目から横スクロール'))
+          '下の空きは入力欄が浮く場所 · 統括AI は左に分けて置く'))
 print('L3 ok')
 
 # ── ④ 右に1本 ─────────────────────────────────────────────
@@ -1442,7 +1459,7 @@ canvas = {
     # 4段目 = 答えの一文をやめたあとの置き場所（社員とログをどこに置くか）
     {"file": "LayoutSides.dc.html",     "x": 0,    "y": 3750, "w": 1180, "h": 800, "title": "① 左右"},
     {"file": "LayoutLogBottom.dc.html", "x": 1300, "y": 3750, "w": 1180, "h": 900, "title": "② 下にログ"},
-    {"file": "LayoutTeamBottom.dc.html","x": 2600, "y": 3750, "w": 1180, "h": 880, "title": "③ 下に社員（採用）"},
+    {"file": "LayoutTeamBottom.dc.html","x": 2600, "y": 3750, "w": 1180, "h": 860, "title": "③ 下に社員（採用）"},
     {"file": "LayoutOneColumn.dc.html", "x": 3900, "y": 3750, "w": 1180, "h": 860, "title": "④ 右に1本"},
   ],
   "launch": {"view": "canvas"},
