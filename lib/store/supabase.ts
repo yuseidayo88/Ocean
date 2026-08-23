@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { AGENT_COLOR, type EmployeeColor } from '@/lib/dummy';
 import { colorFor } from './memory';
 import { AppError } from '@/lib/errors';
-import type { DraftWork, LiveWork, RunStep, Store } from './types';
+import type { DraftWork, LiveDecision, LiveWork, RunStep, Store } from './types';
 
 /**
  * 本番の保存先。行は全部 RLS（`account_id = private.current_account_id()`）で絞られる。
@@ -463,6 +463,88 @@ export const supabaseStore: Store = {
     }
   },
 
+  async getDecision(taskId) {
+    const c = await db();
+    const { data } = await c.from('decisions')
+      .select('id, work_id, task_id, question, rationale, options, chosen_option_key, status')
+      .eq('task_id', taskId).eq('status', 'open')
+      .order('created_at', { ascending: false }).limit(1).maybeSingle();
+    return data ? toDecision(data) : null;
+  },
+
+  async answerDecision(decisionId, chosen) {
+    const c = await db();
+    const { data: d } = await c.from('decisions')
+      .select('id, task_id, status').eq('id', decisionId).maybeSingle();
+    if (!d || d.status !== 'open') return;
+    const { error } = await c.from('decisions')
+      .update({ status: 'decided', chosen_option_key: chosen, decided_at: new Date().toISOString() })
+      .eq('id', decisionId);
+    if (error) throw new AppError('unknown', error.message);
+    if (d.task_id) {
+      await c.from('tasks').update({ status: 'queued' }).eq('id', d.task_id).eq('status', 'needs_decision');
+    }
+  },
+
+  async listDecisions(workId) {
+    const c = await db();
+    let q = c.from('decisions')
+      .select('id, work_id, task_id, question, rationale, options, chosen_option_key, status, decided_at')
+      .order('created_at', { ascending: false }).limit(50);
+    if (workId) q = q.eq('work_id', workId);
+    const { data } = await q;
+    return (data ?? []).map(toDecision);
+  },
+
+  async addDecisionRefs(runId, decisionIds) {
+    if (!decisionIds.length) return;
+    const c = await db();
+    // 同じ組は入れ直さない（主キー衝突は握りつぶす — 読んだ事実は変わらない）
+    await c.from('decision_refs').upsert(
+      decisionIds.map((decision_id) => ({ decision_id, run_id: runId })),
+      { onConflict: 'decision_id,run_id', ignoreDuplicates: true },
+    );
+  },
+
+  async advancePhase(workId, nextTasks) {
+    const c = await db();
+    const { data: ph } = await c.from('phases')
+      .select('id, seq, name, status').eq('work_id', workId).order('seq');
+    const at = ph?.find((p) => p.status === 'review');
+    if (!at) return null;
+    await c.from('phases').update({ status: 'done', done_at: new Date().toISOString() }).eq('id', at.id);
+
+    const next = ph?.find((p) => p.status === 'planned');
+    if (!next) {
+      await c.from('works').update({ status: 'done', done_at: new Date().toISOString() }).eq('id', workId);
+      await c.from('notifications').insert({ kind: '要確認', subject_type: 'work', subject_id: workId, body: 'Work が終わりました' });
+      return null;
+    }
+    await c.from('phases').update({ status: 'active', started_at: new Date().toISOString() }).eq('id', next.id);
+    await c.from('works').update({ current_phase_id: next.id }).eq('id', workId);
+
+    if (nextTasks.length) {
+      // 担当は名前で引き当てる（承認のときと同じ規則）
+      const { data: em } = await c.from('employees')
+        .select('id, display_name').neq('status', 'retired');
+      const byName = new Map((em ?? []).map((e) => [e.display_name as string, e.id as string]));
+      const { data: seqRow } = await c.from('tasks').select('seq').eq('work_id', workId)
+        .order('seq', { ascending: false }).limit(1).maybeSingle();
+      let seq = (seqRow?.seq ?? 0);
+      const { error } = await c.from('tasks').insert(nextTasks.map((t) => {
+        const who = t.ownerHint ? byName.get(t.ownerHint) : undefined;
+        return {
+          work_id: workId, phase_id: next.id, seq: ++seq, title: t.title, intent: t.intent,
+          status: 'queued', created_by: 'executive',
+          assignee_type: who ? 'employee' : 'user', assignee_employee_id: who ?? null,
+          owner_hint: t.ownerHint ?? null,
+        };
+      }));
+      if (error) throw new AppError('unknown', error.message);
+    }
+    return next.name as string;
+  },
+
   async closePhaseIfDone(workId) {
     const c = await db();
     const { data: ph } = await c.from('phases')
@@ -482,3 +564,17 @@ export const supabaseStore: Store = {
     return closed;
   },
 };
+
+
+/** DB の行 → 画面の形（決定） */
+function toDecision(d: Record<string, unknown>): LiveDecision {
+  return {
+    id: d.id as string, workId: d.work_id as string,
+    taskId: (d.task_id ?? undefined) as string | undefined,
+    question: d.question as string,
+    why: (d.rationale ?? undefined) as string | undefined,
+    options: (d.options ?? []) as LiveDecision['options'],
+    chosen: (d.chosen_option_key ?? undefined) as string | undefined,
+    status: d.status as LiveDecision['status'],
+  };
+}

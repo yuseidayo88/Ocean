@@ -57,6 +57,10 @@ export type WorkView = {
   live?: boolean;
   /** まだ走るものがあるか（ポンプを回すかの判定） */
   active?: boolean;
+  /** 承認待ちのフェーズ名（review）。あれば画面の上に行動の帯を出す */
+  phaseGate?: string;
+  /** Work が終わったか */
+  finished?: boolean;
   crew: WorkCrew[];
   /** 右ペインの「最新の状況」。**まだ何も起きていないなら、そう書く** */
   lead: string;
@@ -133,6 +137,8 @@ export function fromLive(w: LiveWork): WorkView {
     decs: [],
     live: true,
     active: w.status === 'active' && w.tasks.some((t) => t.state === 'queued' || t.state === 'running'),
+    phaseGate: w.phases.find((p) => p.state === 'review')?.name,
+    finished: w.status === 'done',
     crew: w.crew.map((c) => ({
       id: c.id, name: c.name, color: c.color,
       tasks: w.tasks.filter((t) => t.owner === c.name && t.state !== 'done').length,

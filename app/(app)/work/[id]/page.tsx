@@ -9,10 +9,11 @@ import { Centre, Composer, Pane, PaneHead, TopBar } from '@/components/shell/Chr
 import { Diamond, Dot, Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
 import { WORKS } from '@/lib/dummy';
-import { AMBER_T, COMPOSER_H, DIM, FAINT, GREEN, GREEN_T, HAIR, MUTE, RAIL, RED, RED_T, SUNK, T1, T2, T3, T4, T5, WELL } from '@/lib/design/tokens';
+import { AMBER_T, BLUE, COMPOSER_H, DIM, FAINT, GREEN, GREEN_T, HAIR, MUTE, RAIL, RED, RED_T, SEAM, SUNK, T1, T2, T3, T4, T5, WELL } from '@/lib/design/tokens';
 import { fromDummy, fromLive, type WorkView } from '@/lib/exec/work-view';
 import { getWork } from '@/app/actions/work';
-import { pumpWork, taskSteps } from '@/app/actions/run';
+import { approvePhase, decide, pumpWork, taskDecision, taskSteps } from '@/app/actions/run';
+import type { LiveDecision } from '@/lib/store';
 import { DelActions } from '@/components/live/DelActions';
 import type { RunStep } from '@/lib/store';
 import { useEffect, useRef, useState } from 'react';
@@ -65,6 +66,81 @@ function Row({ live, onOpen, href, style, children }: {
     <button onClick={onOpen} className="row" style={{ ...style, width: '100%', textAlign: 'left' }}>
       {children}
     </button>
+  );
+}
+
+/**
+ * フェーズの承認（Phase 9）。統括AIが前の結果と決定を見て
+ * 次のフェーズのタスクを引いてから進む。**押すと本当に進む。**
+ */
+function PhaseGate({ name, workId, onDone }: { name: string; workId: string; onDone: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const go = async () => {
+    setBusy(true); setErr('');
+    const r = await approvePhase(workId);
+    setBusy(false);
+    if (!r.ok) { setErr(r.message ?? ''); return; }
+    onDone();
+  };
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <Diamond size={10} />
+      <span style={{ color: AMBER_T }}>フェーズ「{name}」が終わりました。成果物を見て、次に進めてください</span>
+      <div style={{ flex: 1 }} />
+      {err && <span style={{ color: RED_T, fontSize: 12 }}>{err}</span>}
+      <button onClick={go} disabled={busy} className={busy ? undefined : 'solid'} style={{
+        display: 'inline-flex', alignItems: 'center', height: 32, padding: '0 14px', borderRadius: 8,
+        background: busy ? SEAM : BLUE, color: busy ? T5 : '#fff', fontSize: 12.5, flexShrink: 0,
+        cursor: busy ? 'default' : 'pointer',
+      }}>{busy ? '次のタスクを引いています…' : '次のフェーズへ進める'}</button>
+    </div>
+  );
+}
+
+/**
+ * 判断（右ペイン・Phase 9）。統括AIが止まって聞いていることに、その場で答える。
+ * 選ぶと decisions が decided になり、タスクが走り直す。
+ */
+function DecisionPane({ taskId, onDone }: { taskId: string; onDone: () => void }) {
+  const [dec, setDec] = useState<LiveDecision | null | 'loading'>('loading');
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { taskDecision(taskId).then(setDec); }, [taskId]);
+
+  if (dec === 'loading') return <span style={{ color: T5, fontSize: 12.5 }}>読み込んでいます…</span>;
+  if (!dec) return <span style={{ color: T5, fontSize: 12.5 }}>聞かれていることが見つかりませんでした。</span>;
+
+  const pick = async (label: string) => {
+    setBusy(true);
+    await decide(dec.id, label);
+    setBusy(false); onDone();
+  };
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', opacity: busy ? 0.6 : 1, pointerEvents: busy ? 'none' : undefined }}>
+      <span style={{ fontSize: 14, color: T1 }}>{dec.question}</span>
+      {dec.why && <span style={{ color: T4, fontSize: 12.5, lineHeight: '19px', paddingTop: 6 }}>{dec.why}</span>}
+      <div style={{ paddingTop: 12 }}>
+        {dec.options.map((o, i) => (
+          <button key={o.label} onClick={() => pick(o.label)} className="row" style={{
+            display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 10px', margin: '0 -10px',
+            borderRadius: 8, textAlign: 'left',
+            borderBottom: i === dec.options.length - 1 ? undefined : `1px solid ${HAIR}`,
+          }}>
+            <span style={{
+              width: 20, height: 20, borderRadius: 5, background: SEAM, color: T4,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, flexShrink: 0,
+            }}>{i + 1}</span>
+            <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {o.label}
+                {o.recommended && <span style={{ color: GREEN_T, fontSize: 11 }}>推奨</span>}
+              </span>
+              {o.description && <span style={{ color: T5, fontSize: 12 }}>{o.description}</span>}
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -203,6 +279,16 @@ export default function WorkPage() {
             <span style={{ fontSize: 20, lineHeight: '30px', display: 'block' }}>{w.title}</span>
             <span style={{ color: T4, fontSize: 13, display: 'block', paddingTop: 6 }}>{w.goal}</span>
           </div>
+
+          {/* フェーズの承認 — review のあいだだけ出る行動の帯（Phase 9） */}
+          {w.phaseGate && <PhaseGate name={w.phaseGate} workId={w0id}
+            onDone={() => getWork(id).then((r) => r && setW(fromLive(r)))} />}
+          {w.finished && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Icon name="check" color={GREEN_T} size={15} width={2} />
+              <span style={{ color: GREEN_T }}>この Work は終わりました。成果物がすべて揃っています</span>
+            </div>
+          )}
 
           {/* 事実の帯 — ラベル（小）→ 数字（大）→ **図形**。数で言えるものは文章にしない */}
           <div style={{ display: 'flex', gap: 24 }}>
@@ -386,7 +472,12 @@ export default function WorkPage() {
               <span style={{ color: T5, fontSize: 12 }} className="tnum">{openTask.progress}%</span>
             )}
           </div>
-          <StepsPane taskId={openTask.id} running={openTask.state === '実行中'} />
+          {openTask.state === '判断待ち' ? (
+            <DecisionPane taskId={openTask.id}
+              onDone={() => { setOpen(null); getWork(id).then((r) => r && setW(fromLive(r))); }} />
+          ) : (
+            <StepsPane taskId={openTask.id} running={openTask.state === '実行中'} />
+          )}
         </div>
       </Pane>
       )}

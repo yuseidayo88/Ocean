@@ -1,6 +1,6 @@
 import { AGENT_COLOR, type EmployeeColor } from '@/lib/dummy';
 import { AppError } from '@/lib/errors';
-import type { DraftWork, LiveWork, RunStep, Store } from './types';
+import type { DraftWork, LiveDecision, LiveWork, RunStep, Store } from './types';
 
 /**
  * メモリの保存先。**Supabase に出られない環境（デモ・この開発環境）用。**
@@ -137,10 +137,55 @@ export const memoryStore: Store = {
   },
 
   async markDecision(taskId, d) {
-    const { task } = findTask(taskId);
+    const { live, task } = findTask(taskId);
     task.state = 'needs_decision';
-    decisions.push({ taskId, ...d });
+    decisions.push({
+      id: `dec-${decisions.length + 1}`, workId: live.id, taskId,
+      question: d.question, why: d.why,
+      options: (d.options as LiveDecision['options']) ?? [], status: 'open',
+    });
     notes.push({ kind: '判断待ち', body: d.question });
+  },
+
+  async getDecision(taskId) {
+    return decisions.find((d) => d.taskId === taskId && d.status === 'open') ?? null;
+  },
+
+  async answerDecision(decisionId, chosen) {
+    const d = decisions.find((x) => x.id === decisionId);
+    if (!d || d.status !== 'open') return;
+    d.status = 'decided'; d.chosen = chosen; d.when = 'たった今';
+    if (d.taskId) {
+      const { task } = findTask(d.taskId);
+      if (task.state === 'needs_decision') task.state = 'queued';
+    }
+  },
+
+  async listDecisions(workId) {
+    return decisions.filter((d) => !workId || d.workId === workId).slice().reverse();
+  },
+
+  async addDecisionRefs() { /* メモリ版は台帳を持たない（本物は decision_refs） */ },
+
+  async advancePhase(workId, nextTasks) {
+    const live = [...bag.values()].find((d) => d.live?.id === workId)?.live;
+    if (!live) return null;
+    const at = live.phases.find((p) => p.state === 'review');
+    if (!at) return null;
+    at.state = 'done';
+    const next = live.phases.find((p) => p.state === 'planned');
+    if (!next) { live.status = 'done'; notes.push({ kind: '要確認', body: `${live.title} が終わりました` }); return null; }
+    next.state = 'active';
+    const crew0 = live.crew[0];
+    for (const t of nextTasks) {
+      const hire = live.crew.find((c) => c.name === t.ownerHint) ?? crew0;
+      live.tasks.push({
+        id: `${workId}-t${live.tasks.length + 1}`, phaseId: next.id,
+        title: t.title, intent: t.intent, state: 'queued', progress: 0,
+        owner: hire?.name ?? t.ownerHint, ownerId: hire?.id,
+      });
+    }
+    return next.name;
   },
 
   async listDels() {
@@ -195,7 +240,7 @@ const g2 = globalThis as unknown as {
 };
 const runs = (g2.__runs ??= new Map());
 const notes = (g2.__notes ??= []);
-const g3 = globalThis as unknown as { __decs?: { taskId: string; question: string; why: string; options: unknown[] }[] };
+const g3 = globalThis as unknown as { __decs?: LiveDecision[] };
 const decisions = (g3.__decs ??= []);
 
 function findTask(taskId: string) {

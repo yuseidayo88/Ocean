@@ -107,4 +107,31 @@ export interface Store {
    * 何か閉じたら true（ポンプが呼ぶ）
    */
   closePhaseIfDone(workId: string): Promise<boolean>;
+
+  /* ══════════════ 判断と受け渡し（Phase 9）══════════════ */
+
+  /** そのタスクで開いている判断。無ければ null */
+  getDecision(taskId: string): Promise<LiveDecision | null>;
+  /**
+   * 社長が決める。decisions → decided、タスク → queued に戻す
+   * （ポンプが走らせ直す。次の実行は決めたことを文脈に持つ）
+   */
+  answerDecision(decisionId: string, chosen: string): Promise<void>;
+  /** その Work の決めたこと（新しい順）。実行の文脈と決定事項画面が読む */
+  listDecisions(workId?: string): Promise<LiveDecision[]>;
+  /** 実行が決定を読んだ記録（decision_refs）。**読んだのに記録が無い、を作らない** */
+  addDecisionRefs(runId: string, decisionIds: string[]): Promise<void>;
+  /**
+   * review のフェーズを閉じて次へ。次のフェーズを active にし、渡されたタスクを積む。
+   * 次が無ければ Work を done にする。返り値は次のフェーズ名（無ければ null）
+   */
+  advancePhase(workId: string, nextTasks: { title: string; intent: string; ownerHint?: string }[]): Promise<string | null>;
 }
+
+export type LiveDecision = {
+  id: string; workId: string; taskId?: string;
+  question: string; why?: string;
+  options: { label: string; description?: string; recommended?: boolean }[];
+  chosen?: string; status: 'open' | 'decided' | 'superseded';
+  when?: string;
+};

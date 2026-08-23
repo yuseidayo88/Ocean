@@ -2,10 +2,13 @@
 
 import type { Route } from 'next';
 import { Go as Link } from '@/components/ui/Go';
+import { useEffect, useState } from 'react';
 import { openHref, useOpen } from '@/lib/use-open';
 import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Dot, Icon, type IconName } from '@/components/ui/Icon';
 import { DECISIONS, DECISION_BODY } from '@/lib/dummy';
+import { decide, listDecisions } from '@/app/actions/run';
+import type { LiveDecision } from '@/lib/store';
 import { pressable } from '@/lib/a11y';
 import { AMBER, AMBER_T, BLUE, COMPOSER_H, DIM, GREEN, GREEN_T, HAIR, SEAM, SUNK, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
 /**
@@ -24,7 +27,55 @@ const AFTER_HREF: Record<string, Route> = {
   'フェーズ3の計画が作られる': '/work/w-japanese' as Route,
 };
 
+/** 本物の決定の1件。開いている判断はその場で決められる */
+function LiveRow({ d, last, onDecide }: { d: LiveDecision; last: boolean; onDecide: (id: string, label: string) => void }) {
+  const wait = d.status === 'open';
+  return (
+    <div style={{ display: 'flex', gap: 16 }}>
+      <span style={{ width: 58, flexShrink: 0, textAlign: 'right', color: T5, fontSize: 11, paddingTop: 14 }}>
+        {d.when ?? ''}
+      </span>
+      <div style={{ width: 14, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <span style={{ height: 14 }} />
+        {wait
+          ? <span style={{ width: 13, height: 13, borderRadius: 999, border: `2px solid ${AMBER}`, flexShrink: 0 }} />
+          : <span style={{
+              width: 13, height: 13, borderRadius: 999, background: GREEN, flexShrink: 0,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            }}><Icon name="check" color="#000" size={9} width={3} /></span>}
+        {!last && <div style={{ flex: 1, width: 1, background: SEAM }} />}
+      </div>
+      <div style={{ flex: 1, minWidth: 0, paddingBottom: 22, borderBottom: last ? undefined : `1px solid ${HAIR}`, marginBottom: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 40 }}>
+          <span style={{ color: T1 }}>{d.question}</span>
+          <div style={{ flex: 1 }} />
+          {wait ? <span style={{ color: AMBER_T }}>判断待ち</span> : <span style={{ color: GREEN_T }}>決定</span>}
+        </div>
+        {wait ? d.options.map((o) => (
+          <button key={o.label} onClick={() => onDecide(d.id, o.label)} className="row" style={{
+            display: 'flex', alignItems: 'center', gap: 14, height: 41, width: '100%', borderRadius: 7,
+            padding: '0 8px', margin: '0 -8px', textAlign: 'left',
+          }}>
+            <span style={{ color: o.recommended ? T1 : T4 }}>{o.label}</span>
+            {o.recommended && <span style={{ color: GREEN_T, fontSize: 11 }}>推奨</span>}
+            <span style={{ color: T5, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.description}</span>
+          </button>
+        )) : (
+          <span style={{ color: T2, fontSize: 13 }}>{d.chosen}</span>
+        )}
+        {d.why && wait && <span style={{ color: T5, fontSize: 12, display: 'block', paddingTop: 6 }}>{d.why}</span>}
+      </div>
+    </div>
+  );
+}
+
 export default function DecisionsPage() {
+  /** 本物の決定（AI社員が聞いた・社長が決めたもの）。台帳の先頭に混ぜる */
+  const [live, setLive] = useState<LiveDecision[]>([]);
+  const reload = () => { listDecisions().then(setLive); };
+  useEffect(reload, []);
+  const onDecide = async (id: string, label: string) => { await decide(id, label); reload(); };
+
   const gates = DECISIONS.filter((d) => d.state === '判断待ち');
   const b = DECISION_BODY;
   // 右は閉じた状態から始まる。台帳の1件を押すと、その1件が開く
@@ -43,16 +94,19 @@ export default function DecisionsPage() {
         }}>
           <Icon name="dec" color={T3} size={15} />
           <span>決定事項</span>
-          <span style={{ color: T5 }} className="tnum">· {DECISIONS.length}</span>
+          <span style={{ color: T5 }} className="tnum">· {DECISIONS.length + live.length}</span>
           <div style={{ flex: 1 }} />
-          {gates.length > 0 && (
+          {(gates.length + live.filter((d) => d.status === 'open').length) > 0 && (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, color: AMBER_T }}>
-              <Dot color={AMBER} size={7} />判断待ち {gates.length}
+              <Dot color={AMBER} size={7} />判断待ち {gates.length + live.filter((d) => d.status === 'open').length}
             </span>
           )}
         </div>
 
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: `16px 24px ${COMPOSER_H}px` }}>
+          {live.map((d, i) => (
+            <LiveRow key={d.id} d={d} last={i === live.length - 1 && DECISIONS.length === 0} onDecide={onDecide} />
+          ))}
           {DECISIONS.map((d, i) => {
             const wait = d.state === '判断待ち';
             const first = i === 0;

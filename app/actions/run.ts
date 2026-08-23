@@ -1,7 +1,8 @@
 'use server';
 
 import { runTask, type RunOutcome } from '@/lib/run/worker';
-import { store, type LiveDeliverable, type RunStep } from '@/lib/store';
+import { store, type LiveDecision, type LiveDeliverable, type RunStep } from '@/lib/store';
+import { draftNextTasks } from '@/lib/exec/next';
 import { sayError } from '@/lib/errors';
 
 /**
@@ -65,5 +66,54 @@ export async function sendBackDel(
     return { ok: true };
   } catch (e) {
     return { ok: false, message: sayError(e, '差し戻せませんでした') };
+  }
+}
+
+/* ══════════════ 判断と受け渡し（Phase 9）══════════════ */
+
+/** そのタスクで開いている判断（右ペインが読む） */
+export async function taskDecision(taskId: string): Promise<LiveDecision | null> {
+  try { return await store().getDecision(taskId); } catch { return null; }
+}
+
+/**
+ * 社長が決める。decisions → decided、タスクは queued に戻り、
+ * **次の実行は決めたことを文脈に持って**走り直す（ポンプが拾う）。
+ */
+export async function decide(decisionId: string, chosen: string): Promise<{ ok: boolean; message?: string }> {
+  try {
+    await store().answerDecision(decisionId, chosen);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, message: sayError(e, '決められませんでした') };
+  }
+}
+
+/** 会社の決めたこと（決定事項画面が読む） */
+export async function listDecisions(): Promise<LiveDecision[]> {
+  try { return await store().listDecisions(); } catch { return []; }
+}
+
+/**
+ * **review のフェーズを承認して、次のフェーズへ。**
+ * 統括AIが前のフェーズの成果物と決定を見て、次のタスクを引いてから進める。
+ */
+export async function approvePhase(workId: string): Promise<{ ok: boolean; next?: string | null; message?: string }> {
+  try {
+    const s = store();
+    const work = await s.getWork(workId);
+    if (!work) return { ok: false, message: 'Work が見つかりません' };
+    const review = work.phases.find((p) => p.state === 'review');
+    if (!review) return { ok: false, message: '承認を待っているフェーズがありません' };
+
+    const after = work.phases.find((p) => p.seq === review.seq + 1);
+    const tasks = after
+      ? await draftNextTasks(work, { name: after.name, goal: after.goal },
+          (await s.listDecisions(workId)).filter((d) => d.status === 'decided'))
+      : [];
+    const next = await s.advancePhase(workId, tasks);
+    return { ok: true, next };
+  } catch (e) {
+    return { ok: false, message: sayError(e, '進められませんでした') };
   }
 }

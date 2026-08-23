@@ -35,7 +35,15 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
   if (!task) return { ok: false, error: 'タスクが見つかりません' };
   const phase = work.phases.find((p) => p.id === task.phaseId);
 
+  /**
+   * **決めたことは必ず依頼文に入る**（Phase 9 の完了条件）。
+   * 読んだ記録は decision_refs に残す — 「渡したはず」を作らない。
+   */
+  const decided = (await s.listDecisions(work.id).catch(() => []))
+    .filter((d) => d.status === 'decided' && d.chosen);
+
   const runId = await s.startRun(taskId);
+  await s.addDecisionRefs(runId, decided.map((d) => d.id)).catch(() => {});
   let seq = 0;
   const usage = { in: 0, out: 0 };
   let wrote: string | undefined;
@@ -67,6 +75,10 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
       content: [
         `会社のゴール: ${work.goal}`,
         `いまのフェーズ: ${phase?.name ?? ''} — ${phase?.goal ?? ''}`,
+        ...(decided.length
+          ? ['', '決めたこと（社長の決定。**これに沿う**）:',
+             ...decided.map((d) => `- ${d.question} → ${d.chosen}`)]
+          : []),
         ...(prior.length
           ? ['', 'ここまでの成果物（参考にする）:',
              ...prior.map((d) => `--- ${d.title} ---\n${(d.body ?? d.preview ?? '').slice(0, 3000)}`)]

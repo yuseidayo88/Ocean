@@ -24,6 +24,14 @@ export class FakeProvider implements ModelProvider {
       return;
     }
 
+    // ══ 次のフェーズのタスク（Phase 9）══
+    if (want.has('draft_phase_tasks')) {
+      const phase = lastText(input).match(/次のフェーズ: (.+?) —/)?.[1] ?? '';
+      yield tool('draft_phase_tasks', { tasks: nextTasks(phase) });
+      yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
+      return;
+    }
+
     if (want.has('decide_container')) {
       yield tool('decide_container', container(goal));
     }
@@ -50,9 +58,30 @@ const tool = (name: string, inputValue: unknown): Chunk =>
  * 歩みのあいだに少し待つ — 画面のポーリングが「流れて見える」ことまで確かめられる。
  */
 async function* fakeRun(input: RunInput): AsyncIterable<Chunk> {
-  const text = [...input.messages].reverse().find((m) => m.role === 'user')?.content ?? '';
+  const text = lastText(input);
   const task = text.match(/あなたのタスク: (.+)/)?.[1]?.trim() ?? '作業';
   const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  /**
+   * **判断で止まる道**（Phase 9 の確かめ用）。「絞る」仕事は、
+   * 社長の決定がまだ文脈に無ければ ask_decision で止まる。
+   * 決定が入っていれば（= 答えたあとの再実行）そのまま最後まで走る。
+   */
+  if (/絞る/.test(task) && !text.includes('決めたこと（社長の決定')) {
+    yield tool('log_step', { title: '候補を3つに絞り込んだ', progress: 60 });
+    await wait(700);
+    yield tool('ask_decision', {
+      question: '対象の絞り込み',
+      why: '誰に売るかで、次のフェーズの調べ方と作るものが変わります。',
+      options: [
+        { label: 'K-POPファン層', description: '数が多く、SNSで届きやすい。単価は低め', recommended: true },
+        { label: '就職・ビジネス層', description: '単価が高いが、決め手の実績が要る' },
+        { label: '両方', description: '確かめる時間が2倍かかる' },
+      ],
+    });
+    yield { type: 'done', usage: { ...EMPTY_USAGE }, stopReason: 'tool_use' };
+    return;
+  }
 
   const steps: [string, number][] = [
     [`${task} の段取りを決めた`, 15],
@@ -87,6 +116,9 @@ async function* fakeRun(input: RunInput): AsyncIterable<Chunk> {
  * ゴールだけ取り出す。**プロンプト全文を読まない** —
  * 全文から題名を作ると「道具を順に呼んでください」まで題名に入る（実際そうなった）。
  */
+const lastText = (i: RunInput) =>
+  [...i.messages].reverse().find((m) => m.role === 'user')?.content ?? '';
+
 const lastUser = (i: RunInput) => {
   const all = [...i.messages].reverse().find((m) => m.role === 'user')?.content ?? '';
   return all.match(/社長のゴール:\n([\s\S]*?)(?:\n\n|$)/)?.[1]?.trim() ?? all;
@@ -185,4 +217,24 @@ function plan(goal: string) {
     ],
     deliverables: ['競合表', '市場規模の推計', '対象の定義', '収益モデル比較', '価格表', 'MVPの要件'],
   };
+}
+
+
+/** 次のフェーズのタスク（決め打ち）。フェーズ名で中身を変える */
+function nextTasks(phase: string) {
+  if (/戦略/.test(phase)) {
+    return [
+      { title: '収益モデルを比べる', intent: '売切り / 月額 / 回数券の3案。継続率の前提つきで損益を並べる', owner_hint: '戦略担当' },
+      { title: '価格の帯を決める', intent: '競合表の価格帯に、決めた対象の支払い意欲を重ねて2案に絞る', owner_hint: '戦略担当' },
+    ];
+  }
+  if (/プロダクト|MVP/.test(phase)) {
+    return [
+      { title: 'MVPの要件を書く', intent: '作らないものを先に決めてから、受け入れ条件つきで要件に落とす', owner_hint: '企画担当' },
+      { title: 'LPの構成を書く', intent: '見出し・価格表・申込みの3節。決めた価格と対象に沿う', owner_hint: '企画担当' },
+    ];
+  }
+  return [
+    { title: `${phase || '次'}の段取りを引く`, intent: 'このフェーズでやることを3件に分けて、順番を決める' },
+  ];
 }
