@@ -1,11 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-
-import type { Route } from 'next';
-import { Go as Link } from '@/components/ui/Go';
+import { useEffect, useState } from 'react';
+import { useParam } from '@/lib/use-open';
 import { useSize } from '@/lib/use-size';
-import { COMPOSER_H } from '@/lib/design/tokens';
+import { COMPOSER_H, EASE } from '@/lib/design/tokens';
 import { AGENT_COLOR, FLOWMAP, type MapPhase, type MapWork } from '@/lib/dummy';
 
 /**
@@ -45,16 +43,19 @@ const SKIN: Record<Kind, { bg: string; border: string; bar: string; title: strin
   gate: { bg: 'rgba(227,116,0,0.05)', border: '1px solid rgba(227,116,0,0.28)', bar: AMBER, title: T1, sub: AMBER_T },
 };
 
-function Node({ x, y, w, h, title, sub, kind, pct, href }: {
+function Node({ x, y, w, h, title, sub, kind, pct, lit, pick }: {
   x: number; y: number; w: number; h: number; title: string; sub: string;
-  kind: Kind; pct?: number; href: string;
+  kind: Kind; pct?: number; lit: boolean; pick: () => void;
 }) {
   const s = SKIN[kind];
   return (
-    <Link href={href as Route} className="card" style={{
+    /* **押しても盤面から出ない。** 押すとその鎖だけが残り、ほかが沈む */
+    <button type="button" onClick={pick} className="card" style={{
       position: 'absolute', left: x, top: y, width: w, height: h, boxSizing: 'border-box',
       display: 'flex', alignItems: 'center', padding: '0 13px 0 14px', borderRadius: 14,
       background: s.bg, border: s.border, overflow: 'hidden',
+      textAlign: 'left', font: 'inherit', color: 'inherit', cursor: 'pointer',
+      opacity: lit ? 1 : 0.26, transition: `opacity ${EASE}`,
     }}>
       <span style={{ position: 'absolute', left: 0, top: 11, bottom: 11, width: 3, borderRadius: '0 2px 2px 0', background: s.bar }} />
       <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -70,7 +71,7 @@ function Node({ x, y, w, h, title, sub, kind, pct, href }: {
           <span style={{ display: 'block', width: `${pct}%`, height: '100%', borderRadius: 2, background: T2 }} />
         </span>
       )}
-    </Link>
+    </button>
   );
 }
 
@@ -115,11 +116,12 @@ function elbow(pts: [number, number][], r = 12) {
 
 /** 盤面のすべて（ノード・線・ラベル）を一度に組む。ミニマップも同じものから描く */
 function build() {
+  /** どの要素も **どの鎖のものか**（`of`）を持つ。押したときに残すものが決まる */
   const nodes: { x: number; y: number; w: number; h: number; kind: Kind; tone?: string;
-                 title: string; sub: string; pct?: number; href: string }[] = [];
-  const links: { pts: [number, number][]; faint?: boolean }[] = [];
-  const labels: { x: number; y: number }[] = [];
-  const names: { x: number; y: number; title: string; status?: string; tone?: string; href: string }[] = [];
+                 title: string; sub: string; pct?: number; of: string }[] = [];
+  const links: { pts: [number, number][]; faint?: boolean; of: string[] }[] = [];
+  const labels: { x: number; y: number; of: string[] }[] = [];
+  const names: { x: number; y: number; title: string; status?: string; tone?: string; of: string }[] = [];
 
   const byId = new Map<string, MapWork>();
   const folded = new Map<string, Folded[]>();
@@ -130,15 +132,16 @@ function build() {
 
   for (const w of FLOWMAP.works) {
     const fs = folded.get(w.id)!;
-    names.push({ x: COL[w.col], y: ROW[w.row] - 26, title: w.title, status: w.status, tone: w.tone, href: w.href });
+    names.push({ x: COL[w.col], y: ROW[w.row] - 26, title: w.title, status: w.status, tone: w.tone, of: w.id });
     fs.forEach((f, i) => {
       nodes.push({
-        x: COL[w.col + i], y: ROW[w.row], w: NW, h: NH, kind: f.kind, href: w.href,
+        x: COL[w.col + i], y: ROW[w.row], w: NW, h: NH, kind: f.kind, of: w.id,
         title: f.name, pct: f.pct,
         sub: `フェーズ ${f.from === f.to ? f.from : `${f.from}〜${f.to}`} · ${WORD[f.kind]}`,
         tone: w.tone === 'late' && f.kind === 'now' ? 'late' : undefined,
       });
-      if (i) links.push({ pts: [[COL[w.col + i] - 20, ROW[w.row] + NH / 2], [COL[w.col + i], ROW[w.row] + NH / 2]] });
+      if (i) links.push({ of: [w.id],
+        pts: [[COL[w.col + i] - 20, ROW[w.row] + NH / 2], [COL[w.col + i], ROW[w.row] + NH / 2]] });
     });
   }
 
@@ -155,17 +158,19 @@ function build() {
     const pb = ROW[p.row] + NH;
     if (ks.length > 1) {
       const lane = ROW[p.row + 1] + 66;
-      links.push({ pts: [[cc(pcol) - 40, pb], [cc(pcol) - 40, pb + 14], [TRUNK, pb + 14],
-                         [TRUNK, lane], [cc(ks[0].col), lane], [cc(ks[0].col), ROW[ks[0].row]]] });
+      links.push({ of: [p.id, ks[0].id],
+        pts: [[cc(pcol) - 40, pb], [cc(pcol) - 40, pb + 14], [TRUNK, pb + 14],
+              [TRUNK, lane], [cc(ks[0].col), lane], [cc(ks[0].col), ROW[ks[0].row]]] });
       for (const k of ks.slice(1)) {
-        links.push({ pts: [[TRUNK, lane], [cc(k.col), lane], [cc(k.col), ROW[k.row]]] });
+        links.push({ of: [p.id, k.id], pts: [[TRUNK, lane], [cc(k.col), lane], [cc(k.col), ROW[k.row]]] });
       }
-      labels.push({ x: TRUNK, y: ROW[p.row + 1] + 20 });
+      labels.push({ x: TRUNK, y: ROW[p.row + 1] + 20, of: [p.id, ...ks.map((k) => k.id)] });
     } else {
       const k = ks[0];
       const lane = pb + 26;
-      links.push({ pts: [[cc(pcol), pb], [cc(pcol), lane], [cc(k.col), lane], [cc(k.col), ROW[k.row]]] });
-      labels.push({ x: cc(pcol), y: lane });
+      links.push({ of: [p.id, k.id],
+        pts: [[cc(pcol), pb], [cc(pcol), lane], [cc(k.col), lane], [cc(k.col), ROW[k.row]]] });
+      labels.push({ x: cc(pcol), y: lane, of: [p.id, k.id] });
     }
   }
 
@@ -183,7 +188,7 @@ function build() {
     const stem = cs.length > 1 ? cc(pcol) + 40 : cc(pcol);
     cs.forEach((c, i) => {
       links.push({
-        faint: true,
+        faint: true, of: [p.id],
         pts: i === 0 && cs.length > 1
           ? [[stem, pb], [stem, pb + 28], [cc(c.col), pb + 28], [cc(c.col), ROW[c.row]]]
           : cs.length > 1
@@ -191,7 +196,7 @@ function build() {
             : [[stem, pb], [cc(c.col), ROW[c.row]]],
       });
       nodes.push({ x: COL[c.col], y: ROW[c.row], w: NW, h: CHIP_H, kind: 'gate',
-                   title: c.title, sub: c.sub, href: c.href });
+                   title: c.title, sub: c.sub, of: p.id });
     });
   }
   return { nodes, links, labels, names };
@@ -207,12 +212,13 @@ const MINI: Record<Kind, string> = {
  * 範囲も**中身から測る**ので、Work が増えて盤面がはみ出しても地図はそのまま合う。
  * 窓の枠は、いま実際に見えている範囲（入力欄に隠れているぶんは入れない）。
  */
-function MiniMap({ nodes, links, view, at, off }: {
+function MiniMap({ nodes, links, view, at, off, lit }: {
   nodes: ReturnType<typeof build>['nodes'];
   links: ReturnType<typeof build>['links'];
   view: [number, number, number, number];
   at: { x: number; y: number };
   off: { x: number; y: number };
+  lit: (of: string | string[]) => boolean;
 }) {
   const PAD = 8, W = 184, M = 26;
   /** 盤面の中身と、いま見えている範囲。**両方が入る**ようにする */
@@ -235,12 +241,12 @@ function MiniMap({ nodes, links, view, at, off }: {
       <svg width={W} height={Math.round(H)} viewBox={`0 0 ${W} ${Math.round(H)}`}>
         {links.map((l, i) => (
           <path key={i} d={`M ${l.pts.map((q) => m(q[0], q[1]).map((n) => n.toFixed(1)).join(' ')).join(' L ')}`}
-                fill="none" stroke="#242424" strokeWidth={0.8} />
+                fill="none" stroke="#242424" strokeWidth={0.8} opacity={lit(l.of) ? 1 : 0.26} />
         ))}
         {nodes.map((n, i) => {
           const [x, y] = m(n.x, n.y);
           return <rect key={i} x={x.toFixed(1)} y={y.toFixed(1)} width={(n.w * sc).toFixed(1)}
-                       height={Math.max(2.4, n.h * sc).toFixed(1)} rx={1.5}
+                       height={Math.max(2.4, n.h * sc).toFixed(1)} rx={1.5} opacity={lit(n.of) ? 1 : 0.26}
                        fill={n.tone === 'late' ? 'rgba(217,48,37,0.6)' : MINI[n.kind]} />;
         })}
         {/* いま見えている範囲 */}
@@ -263,6 +269,21 @@ function Mark({ status }: { status?: string }) {
 export function Flow() {
   const { nodes, links, labels, names } = build();
   const [board, { w, h }] = useSize<HTMLDivElement>();
+  /**
+   * **押しても盤面から出ない。** 選んだ鎖だけが残り、ほかは沈む。
+   * 8本の鎖が1枚に載っているので「これはどの Work か」は本当に分からなくなる。
+   * 選んでいる1件は URL に持つ（`?view=flow&of=w-lp`）。
+   */
+  const [of, setOf] = useParam('of', '');
+  const lit = (o: string | string[]) => !of || (Array.isArray(o) ? o.includes(of) : o === of);
+  const pick = (o: string) => setOf(of === o ? '' : o);
+  /** Esc で選択を外す（右ペインと同じ作法） */
+  useEffect(() => {
+    if (!of) return;
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOf(''); };
+    window.addEventListener('keydown', esc);
+    return () => window.removeEventListener('keydown', esc);
+  });
   /** どこまで送ったか。**Work が増えて盤面からはみ出したときだけ動く** */
   const [at, setAt] = useState({ x: 0, y: 0 });
   /** 見えているのは、入力欄より上まで。**隠れているぶんを「見えている」と言わない** */
@@ -279,32 +300,40 @@ export function Flow() {
     /* 盤面は中身の領域いっぱい。**外の計算から切り離す** */
     <div ref={board}
       onScroll={(e) => setAt({ x: e.currentTarget.scrollLeft, y: e.currentTarget.scrollTop })}
+      onClick={(e) => { if (e.target === e.currentTarget) setOf(''); }}
       style={{
       position: 'absolute', inset: 0, overflow: 'auto', contain: 'strict',
       backgroundColor: CANVAS,
       backgroundImage: 'radial-gradient(#161616 1px, transparent 1px)', backgroundSize: '22px 22px',
     }}>
       {/* 中身はひとかたまりで動かす。**線とノードが同じだけずれる** */}
-      <div style={{ position: 'absolute', left: offX, top: offY, width: endX, height: endY }}>
-      <svg width={BOARD_W} height={BOARD_H} viewBox={`0 0 ${BOARD_W} ${BOARD_H}`}
-           style={{ position: 'absolute', inset: 0 }}>
+      <div onClick={(e) => { if (e.target === e.currentTarget) setOf(''); }}
+           style={{ position: 'absolute', left: offX, top: offY, width: endX, height: endY }}>
+      {/* 線は見るだけ。**押せる面をふさがない**（空きを押したら選択が外れる）。
+          **中身と同じ寸法**にする（盤面の幅で描くと、真ん中に寄せたぶん右へはみ出す） */}
+      <svg width={endX} height={endY} viewBox={`0 0 ${endX} ${endY}`}
+           style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
         {links.map((l, i) => (
-          <path key={i} d={elbow(l.pts)} fill="none" stroke={l.faint ? '#2E2E2E' : '#333333'} strokeWidth={1.3} />
+          <path key={i} d={elbow(l.pts)} fill="none" strokeWidth={1.3}
+                stroke={l.faint ? '#2E2E2E' : '#333333'}
+                opacity={lit(l.of) ? 1 : 0.26} style={{ transition: `opacity ${EASE}` }} />
         ))}
       </svg>
 
       {names.map((n) => (
-        <Link key={n.title} href={n.href as Route} className="lnk" style={{
+        <button key={n.title} type="button" onClick={() => pick(n.of)} className="lnk" style={{
           position: 'absolute', left: n.x, top: n.y, display: 'flex', alignItems: 'center', gap: 9,
           whiteSpace: 'nowrap', color: T2, fontSize: 13,
+          background: 'none', border: 0, padding: 0, font: 'inherit', cursor: 'pointer',
+          opacity: lit(n.of) ? 1 : 0.26, transition: `opacity ${EASE}`,
         }}>
           {n.title}
           <Mark status={n.status} />
           {n.status && <span style={{ color: n.tone === 'late' ? RED_T : AMBER_T, fontSize: 11.5 }}>{n.status}</span>}
-        </Link>
+        </button>
       ))}
 
-      {nodes.map((n, i) => <Node key={i} {...n} />)}
+      {nodes.map((n, i) => <Node key={i} {...n} lit={lit(n.of)} pick={() => pick(n.of)} />)}
 
       {/* 社員はいまのフェーズのノードの右に粒で置く（⊕ で足すものではない） */}
       {FLOWMAP.works.map((w) => {
@@ -317,6 +346,7 @@ export function Flow() {
             position: 'absolute', left: x - (w.crew.length - 1 - k) * 11 - 8, top: y - 8,
             width: 16, height: 16, borderRadius: 999,
             background: `radial-gradient(circle at 40% 35%, ${AGENT_COLOR[c]}, ${AGENT_COLOR[c]}22 60%, transparent 72%)`,
+            opacity: lit(w.id) ? 1 : 0.26, transition: `opacity ${EASE}`,
           }} />
         ));
       })}
@@ -325,6 +355,7 @@ export function Flow() {
         <span key={i} style={{
           position: 'absolute', left: l.x, top: l.y, transform: 'translate(-50%, -50%)',
           padding: '0 6px', color: T5, fontSize: 10.5, whiteSpace: 'nowrap', background: CANVAS,
+          opacity: lit(l.of) ? 1 : 0.26, transition: `opacity ${EASE}`,
         }}>新しい Work</span>
       ))}
 
@@ -336,7 +367,7 @@ export function Flow() {
         width: offX + endX, height: offY + endY + COMPOSER_H,
       }} />
 
-      <MiniMap nodes={nodes} links={links} view={view} at={at} off={{ x: offX, y: offY }} />
+      <MiniMap nodes={nodes} links={links} view={view} at={at} off={{ x: offX, y: offY }} lit={lit} />
     </div>
   );
 }

@@ -2601,7 +2601,7 @@ def workflow_map():
 
 io.open(OUT + '/WorkflowMap.dc.html', 'w', encoding='utf-8').write(
     board('横に区切らない。鎖を地図に置く', 'ワークフロー（地図）', workflow_map(), GREEN_T,
-          '道具は置かない · 右下の地図が盤面そのもの'))
+          '道具は置かない · 右下の地図が盤面そのもの · 押しても盤面から出ない'))
 print('WorkflowMap ok')
 
 # ══════════════════════ canvas.json ══════════════════════

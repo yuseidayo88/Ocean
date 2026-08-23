@@ -57,9 +57,7 @@
 | 進捗 | Work のレーン | `/work/<id>` |
 | | ◆ とラベル | `/decisions?open=dec-price` |
 | | 担当の粒 | `/team?open=<社員>` |
-| ワークフロー | フェーズ / Work のノード | `/work/w-japanese` |
-| | 成果物のノード | `/deliverables?open=d-rev` |
-| | 判断のノード | `/decisions?open=dec-price` |
+| ワークフロー | フェーズ / Work 名 / 成果物 / 判断 | **盤面から出ない**（`?of=<work>` でその鎖だけ残す） |
 
 ### 一覧
 

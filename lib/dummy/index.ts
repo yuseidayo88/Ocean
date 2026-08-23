@@ -803,14 +803,6 @@ export const LANES: Lane[] = [
 
 // ════════════════════════ ワークフロー ════════════════════════
 
-export type FlowKind = 'done' | 'sel' | 'gate' | 'wait' | 'work';
-export type FlowNode = { id: string; title: string; sub: string; kind: FlowKind; href?: string };
-
-/**
- * ワークフローの盤面。**色がつくのは判断待ちのノードだけ**（gate）。
- * 成果物の「要確認」は行の左の色帯で言っているので、ここでは面を塗らない。
- * 右の列は「次のフェーズ」（同じ Work）と「新しい Work」（枝分かれ）が横に並ぶ。
- */
 /**
  * ワークフロー＝地図。**横に区切らない。** 鎖（Work）を格子の上に置いて、
  * 関係は直角に曲がる線で言う（地下鉄の路線図と同じ引き方）。
@@ -820,7 +812,7 @@ export type FlowNode = { id: string; title: string; sub: string; kind: FlowKind;
  */
 export type MapPhase = { name: string; kind: 'done' | 'now' | 'wait'; pct?: number };
 export type MapWork = {
-  id: string; title: string; href: string;
+  id: string; title: string;
   /** 格子の位置 */
   col: number; row: number;
   status?: string; tone?: 'gate' | 'late';
@@ -831,7 +823,7 @@ export type MapWork = {
   from?: [string, number];
 };
 export type MapChip = {
-  title: string; sub: string; href: string;
+  title: string; sub: string;
   col: number; row: number;
   /** ぶら下がる先 [Work の id, フェーズ番号] */
   owner: [string, number];
@@ -839,44 +831,44 @@ export type MapChip = {
 
 export const FLOWMAP: { works: MapWork[]; chips: MapChip[] } = {
   works: [
-    { id: 'w-japanese', title: '日本語学習サービス', href: '/work/w-japanese', col: 0, row: 0,
+    { id: 'w-japanese', title: '日本語学習サービス', col: 0, row: 0,
       status: '判断待ち', tone: 'gate', crew: ['cyan', 'purple'],
       phases: [{ name: '調査', kind: 'done' }, { name: '戦略', kind: 'now', pct: 32 },
                { name: 'プロダクト', kind: 'wait' }, { name: 'ローンチ', kind: 'wait' }] },
-    { id: 'w-price', title: '価格表の作り直し', href: '/work/w-japanese', col: 0, row: 2,
+    { id: 'w-price', title: '価格表の作り直し', col: 0, row: 2,
       crew: ['indigo'], from: ['w-japanese', 1],
       phases: [{ name: '設計', kind: 'done' }, { name: '実装', kind: 'now', pct: 24 },
                { name: '公開', kind: 'wait' }] },
-    { id: 'w-lp', title: 'LPと申込フォーム', href: '/work/w-lp', col: 3, row: 2,
+    { id: 'w-lp', title: 'LPと申込フォーム', col: 3, row: 2,
       crew: ['green'], from: ['w-japanese', 1],
       phases: [{ name: '設計', kind: 'done' }, { name: '制作', kind: 'now', pct: 61 },
                { name: '公開', kind: 'wait' }] },
-    { id: 'w-sns', title: 'SNS運用の立ち上げ', href: '/work/w-sns', col: 0, row: 3,
+    { id: 'w-sns', title: 'SNS運用の立ち上げ', col: 0, row: 3,
       status: '遅れ 2日', tone: 'late', crew: ['indigo'],
       phases: [{ name: '準備', kind: 'done' }, { name: '運用設計', kind: 'now', pct: 46 },
                { name: '運用', kind: 'wait' }] },
-    { id: 'w-contact', title: '問い合わせ導線', href: '/work/w-lp', col: 3, row: 3,
+    { id: 'w-contact', title: '問い合わせ導線', col: 3, row: 3,
       crew: ['cyan'], from: ['w-lp', 1],
       phases: [{ name: '調査', kind: 'done' }, { name: '設計', kind: 'now', pct: 8 },
                { name: '実装', kind: 'wait' }] },
-    { id: 'w-blog', title: 'ブログの立ち上げ', href: '/work/w-sns', col: 0, row: 4,
+    { id: 'w-blog', title: 'ブログの立ち上げ', col: 0, row: 4,
       crew: ['purple'],
       phases: [{ name: '企画', kind: 'done' }, { name: '執筆', kind: 'now', pct: 12 },
                { name: '公開', kind: 'wait' }] },
-    { id: 'w-hire', title: '採用ページの改修', href: '/work/w-lp', col: 3, row: 4,
+    { id: 'w-hire', title: '採用ページの改修', col: 3, row: 4,
       status: '要確認', tone: 'gate', crew: ['green'],
       phases: [{ name: '調査', kind: 'done' }, { name: '設計', kind: 'done' }, { name: '試作', kind: 'done' },
                { name: '実装', kind: 'now', pct: 71 }, { name: '公開', kind: 'wait' }] },
-    { id: 'w-mail', title: 'メール配信の準備', href: '/work/w-sns', col: 0, row: 6,
+    { id: 'w-mail', title: 'メール配信の準備', col: 0, row: 6,
       crew: [],
       phases: [{ name: '準備', kind: 'wait' }, { name: '設計', kind: 'wait' }, { name: '配信', kind: 'wait' }] },
   ],
   chips: [
-    { title: '収益モデル比較', sub: '成果物 · 要確認', href: '/deliverables?open=d-rev',
+    { title: '収益モデル比較', sub: '成果物 · 要確認',
       col: 1, row: 1, owner: ['w-japanese', 1] },
-    { title: '価格モデル', sub: '判断 · あなたの番', href: '/decisions?open=dec-price',
+    { title: '価格モデル', sub: '判断 · あなたの番',
       col: 2, row: 1, owner: ['w-japanese', 1] },
-    { title: '求人票の下書き', sub: '成果物 · 要確認', href: '/deliverables?open=d-rev',
+    { title: '求人票の下書き', sub: '成果物 · 要確認',
       col: 4, row: 5, owner: ['w-hire', 3] },
   ],
 };
