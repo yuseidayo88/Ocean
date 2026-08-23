@@ -7,13 +7,13 @@ import { Orb } from '@/components/ui/Orb';
 import { useRail } from '@/lib/use-rail';
 import { EASE } from '@/lib/design/tokens';
 import {
-  AGENT_COLOR, DECIDED_TODAY, EMPLOYEES, EVENTS, EXEC,
+  AGENT_COLOR, EMPLOYEES, EVENTS, EXEC,
   type Desk, type Employee, type Produce, type State,
 } from '@/lib/dummy';
 
 /**
  * ホームのオフィスの、絵の外にあるもの。
- *   右＝**今日の出来事**（縦にスクロール。下端はグラデーションに溶かして「まだある」と分かる）
+ *   右＝**ログ**（縦にスクロール。下端はグラデーションに溶かして「まだある」と分かる）
  *   下＝**AI社員**（横にスクロール。1人ぶんの幅は固定して、増えても縮めない）
  *
  * 社員の計器は**担当ではなく produces で決める**（業種を埋め込まない）。
@@ -44,10 +44,10 @@ export function OfficeLog({ w = 288 }: { w?: number }) {
       borderLeft: `1px solid ${HAIR}`, paddingLeft: 20,
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', paddingBottom: 2 }}>
-        <span style={{ color: T5, fontSize: 11 }}>今日の出来事</span>
+        <span style={{ color: T5, fontSize: 11 }}>ログ</span>
         <div style={{ flex: 1 }} />
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: T5, fontSize: 10.5 }}>
-          <span style={{ width: 5, height: 5, borderRadius: 9, background: GREEN }} />動いています
+          <span style={{ width: 5, height: 5, borderRadius: 9, background: GREEN }} />稼働中
         </span>
       </div>
       <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
@@ -125,14 +125,21 @@ function Steps({ done, all, color, w = 70 }: { done: number; all: number; color:
   );
 }
 
-function Card({ who, first }: { who: { id: string; name: string; state: State; now: string; model: string; effort: number; desk: Desk; color: string }; first?: boolean }) {
+function Card({ who, first, lit, onHover }: {
+  who: { id: string; name: string; state: State; now: string; model: string; effort: number; desk: Desk; color: string };
+  first?: boolean; lit?: boolean; onHover?: (id: string) => void;
+}) {
   const [dot, word] = STATE_C[who.state] ?? STATE_C['実行中'];
   const d = who.desk;
   return (
-    <div style={{
+    /* **絵の中の球と対。** 上で指が乗ったら、ここが明るくなる（その逆も） */
+    <div onPointerEnter={() => onHover?.(who.id)} onPointerLeave={() => onHover?.('')}
+      style={{
       width: 186, flex: '0 0 186px', boxSizing: 'content-box',
       borderLeft: first ? undefined : `1px solid ${HAIR}`, paddingLeft: first ? 0 : 20,
       display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0,
+      background: lit ? 'rgba(255,255,255,0.03)' : undefined,
+      borderRadius: lit ? 10 : undefined, transition: `background ${EASE}`,
     }}>
       <Link href={openHref('/team', who.id) as Route} className="lnk"
             style={{ display: 'flex', alignItems: 'center', gap: 8, height: 26 }}>
@@ -168,7 +175,7 @@ function Card({ who, first }: { who: { id: string; name: string; state: State; n
   );
 }
 
-export function OfficeTeam() {
+export function OfficeTeam({ lit, onHover }: { lit?: string; onHover?: (id: string) => void }) {
   const running = EMPLOYEES.filter((e) => e.state === '実行中').length;
   const [rail, edge] = useRail<HTMLDivElement>();
   return (
@@ -185,9 +192,11 @@ export function OfficeTeam() {
       <div style={{ position: 'relative' }}>
         <div ref={rail} className="sx"
              style={{ display: 'flex', gap: 20, alignItems: 'flex-start', paddingBottom: 6 }}>
-          <Card first who={{ ...EXEC, now: EXEC.now, color: EXEC.color }} />
+          <Card first who={{ ...EXEC, now: EXEC.now, color: EXEC.color }}
+                lit={lit === EXEC.id} onHover={onHover} />
           {EMPLOYEES.map((e: Employee) => (
-            <Card key={e.id} who={{ ...e, color: AGENT_COLOR[e.color] }} />
+            <Card key={e.id} who={{ ...e, color: AGENT_COLOR[e.color] }}
+                  lit={lit === e.id} onHover={onHover} />
           ))}
         </div>
         {/* 端は黒に溶かす。**本当にまだあるときだけ** */}
@@ -200,22 +209,6 @@ export function OfficeTeam() {
           }} />
         ))}
       </div>
-    </div>
-  );
-}
-
-/** 上の帯。**答えの一文は置かない**（遅れも判断待ちも、絵と社員の行が言っている） */
-export function OfficeTop() {
-  const running = EMPLOYEES.filter((e) => e.state === '実行中').length;
-  return (
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, height: 18, flexShrink: 0 }}>
-      <div style={{ flex: 1 }} />
-      <span style={{ color: T5, fontSize: 11.5 }}>
-        きょうの決定 <span className="tnum" style={{ color: T2 }}>{DECIDED_TODAY.ai + DECIDED_TODAY.you}</span>
-        {'  ·  '}うちあなたが <span className="tnum" style={{ color: T2 }}>{DECIDED_TODAY.you}</span>
-      </span>
-      <span style={{ width: 1, height: 12, background: '#232323' }} />
-      <span style={{ color: T5, fontSize: 11.5 }} className="tnum">稼働 {running} / {EMPLOYEES.length}</span>
     </div>
   );
 }

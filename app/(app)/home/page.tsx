@@ -1,12 +1,12 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import { useParam } from '@/lib/use-open';
 import { Composer, Pills, TopBar } from '@/components/shell/Chrome';
 import { Icon } from '@/components/ui/Icon';
 import { COMPOSER_H } from '@/lib/design/tokens';
 import { Office } from '@/components/home/Office';
-import { OfficeLog, OfficeTeam, OfficeTop } from '@/components/home/OfficeSides';
+import { OfficeLog, OfficeTeam } from '@/components/home/OfficeSides';
 import { Desk } from '@/components/home/Desk';
 import { Progress } from '@/components/home/Progress';
 import { Flow } from '@/components/home/Flow';
@@ -23,16 +23,23 @@ const VIEWS = [
  * オフィス。上＝絵とログ / 下＝AI社員。
  * **絵とログの段が余りを全部取る**（下に空白を残さない。絵は与えられた面いっぱいに描く）。
  * **下に貼り付く社員の行は `COMPOSER_H` ぶん逃がす**（入力欄はその上に浮く）。
+ *
+ * **絵と一覧は対。** 絵の中の球に指が乗ったら下の一覧の同じ人が明るくなる（その逆も）。
+ * 絵そのものは行き先を持たない — 見ている目を別の画面へ飛ばさない。
  */
 function OfficeView() {
+  const [lit, setLit] = useState('');
   return (
-    <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '0 30px' }}>
-      <OfficeTop />
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: 22, alignItems: 'stretch', padding: '12px 0 0' }}>
-        <div style={{ flex: 1, minWidth: 0, position: 'relative' }}><Office /></div>
+    <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '8px 30px 0' }}>
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: 22, alignItems: 'stretch' }}>
+        <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
+          <Office lit={lit} onHover={setLit} />
+        </div>
         <OfficeLog />
       </div>
-      <div style={{ flexShrink: 0, marginBottom: COMPOSER_H }}><OfficeTeam /></div>
+      <div style={{ flexShrink: 0, marginBottom: COMPOSER_H }}>
+        <OfficeTeam lit={lit} onHover={setLit} />
+      </div>
     </div>
   );
 }

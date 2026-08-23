@@ -251,8 +251,6 @@ export const EVENTS: Event[] = [
   { at: '05:22', who: '調査担当', what: '競合5件の機能を並べました' },
 ];
 
-/** きょうの決定。**AIが決めたぶんと、あなたが決めたぶんを分ける**（憲法を画面で証明する） */
-export const DECIDED_TODAY = { ai: 12, you: 2 };
 /** 終わった Work。進捗の下の1行を開くと出る */
 export const DONE_WORKS_LIST = [
   { id: 'w-name', title: 'サービス名を決める', ended: '8月13日', phases: 2 },

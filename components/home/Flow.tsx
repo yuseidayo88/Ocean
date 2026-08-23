@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Orb } from '@/components/ui/Orb';
 import { useParam } from '@/lib/use-open';
 import { useSize } from '@/lib/use-size';
@@ -19,21 +19,20 @@ import { AGENT_COLOR, FLOWMAP, type MapPhase, type MapWork } from '@/lib/dummy';
  */
 
 /**
- * 格子。列は 180px おき、段は 96px おき。**全部この上に載せる**。
- * 段の高さは、いちばん下の段まで **入力欄の上（`COMPOSER_H`）に収まる**ように取ってある。
+ * 格子。列は 198px おき、段は 104px おき。**全部この上に載せる**。
  * 盤面は入力欄の下まで伸びるが、**中身が隠れたままになってはいけない**。
  */
-const COL = [56, 236, 416, 596, 776, 956];
-const ROW = [84, 180, 276, 372, 468, 564, 660];
+const COL = [56, 254, 452, 650, 848, 1046];
+const ROW = [88, 192, 296, 400, 504, 608, 712];
 /** 盤面の座標系。線（SVG）とノード（HTML）は**同じ寸法で描く**（拡げると噛み合わなくなる） */
 const BOARD_W = 1180, BOARD_H = 748;
-const NW = 160, NH = 52, CHIP_H = 46;
 /**
- * いまのフェーズに立つ社員。**オフィスと同じ粒子の球**にするので 40px は要る
- * （それ未満は同心リングと芯だけになって、球に見えない → `components/ui/Orb.tsx`）。
- * ノードは 52px しかないので、**右端に半分かけて置く**（列のあいだの 20px にちょうど収まる）。
+ * ノード。**社員の球がそのまま入る大きさ**にしてある。
+ * 球は 40px 要る（それ未満は同心リングと芯だけになって球に見えない →
+ * `components/ui/Orb.tsx`）ので、高さ 60・幅 176。**枠からはみ出させない。**
  */
-const CREW = 40;
+const NW = 176, NH = 60, CHIP_H = 52;
+const CREW = 40, CREW_PAD = 10;
 /** 新しい Work の枝が一度落ちる、列のあいだの通り道 */
 const TRUNK = 180;
 const cc = (col: number) => COL[col] + NW / 2;
@@ -50,16 +49,18 @@ const SKIN: Record<Kind, { bg: string; border: string; bar: string; title: strin
   gate: { bg: 'rgba(227,116,0,0.05)', border: '1px solid rgba(227,116,0,0.28)', bar: AMBER, title: T1, sub: AMBER_T },
 };
 
-function Node({ x, y, w, h, title, sub, kind, pct, lit, pick }: {
+function Node({ x, y, w, h, title, sub, kind, pct, crew = 0, lit, pick }: {
   x: number; y: number; w: number; h: number; title: string; sub: string;
-  kind: Kind; pct?: number; lit: boolean; pick: () => void;
+  kind: Kind; pct?: number; crew?: number; lit: boolean; pick: () => void;
 }) {
   const s = SKIN[kind];
+  /** 社員の球のぶんだけ右を空ける。**文字が球の下に潜らない** */
+  const right = crew ? CREW_PAD * 2 + CREW + (crew - 1) * 17 - 4 : 13;
   return (
     /* **押しても盤面から出ない。** 押すとその鎖だけが残り、ほかが沈む */
     <button type="button" onClick={pick} className="card" style={{
       position: 'absolute', left: x, top: y, width: w, height: h, boxSizing: 'border-box',
-      display: 'flex', alignItems: 'center', padding: '0 13px 0 14px', borderRadius: 14,
+      display: 'flex', alignItems: 'center', padding: `0 ${right}px 0 14px`, borderRadius: 14,
       background: s.bg, border: s.border, overflow: 'hidden',
       textAlign: 'left', font: 'inherit', color: 'inherit', cursor: 'pointer',
       opacity: lit ? 1 : 0.26, transition: `opacity ${EASE}`,
@@ -125,7 +126,7 @@ function elbow(pts: [number, number][], r = 12) {
 function build() {
   /** どの要素も **どの鎖のものか**（`of`）を持つ。押したときに残すものが決まる */
   const nodes: { x: number; y: number; w: number; h: number; kind: Kind; tone?: string;
-                 title: string; sub: string; pct?: number; of: string }[] = [];
+                 title: string; sub: string; pct?: number; crew?: number; of: string }[] = [];
   const links: { pts: [number, number][]; faint?: boolean; of: string[] }[] = [];
   const labels: { x: number; y: number; of: string[] }[] = [];
   const names: { x: number; y: number; title: string; status?: string; tone?: string; of: string }[] = [];
@@ -143,7 +144,7 @@ function build() {
     fs.forEach((f, i) => {
       nodes.push({
         x: COL[w.col + i], y: ROW[w.row], w: NW, h: NH, kind: f.kind, of: w.id,
-        title: f.name, pct: f.pct,
+        title: f.name, pct: f.pct, crew: f.kind === 'now' ? w.crew.length : 0,
         sub: `フェーズ ${f.from === f.to ? f.from : `${f.from}〜${f.to}`} · ${WORD[f.kind]}`,
         tone: w.tone === 'late' && f.kind === 'now' ? 'late' : undefined,
       });
@@ -229,15 +230,33 @@ function MiniMap({ nodes, links, view, lit, go }: {
   go: (cx: number, cy: number) => void;
 }) {
   const PAD = 8, W = 184, M = 26;
-  /** 盤面の中身と、いま見えている範囲。**両方が入る**ようにする */
-  const X0 = Math.min(view[0], ...nodes.map((n) => n.x)) - M;
-  const Y0 = Math.min(view[1], ...nodes.map((n) => n.y)) - M;
-  const X1 = Math.max(view[2], ...nodes.map((n) => n.x + n.w)) + M;
-  const Y1 = Math.max(view[3], ...nodes.map((n) => n.y + n.h)) + M;
+  /**
+   * 範囲は**中身だけ**から測る。見えている範囲まで入れて測ると、
+   * 端まで送るたびに地図そのものの縮尺が変わって「勝手に拡大された」ように見える。
+   * 枠が地図からはみ出すぶんは切る（そのほうが「行き過ぎた」と分かる）。
+   */
+  const X0 = Math.min(...nodes.map((n) => n.x)) - M;
+  const Y0 = Math.min(...nodes.map((n) => n.y)) - M;
+  const X1 = Math.max(...nodes.map((n) => n.x + n.w)) + M;
+  const Y1 = Math.max(...nodes.map((n) => n.y + n.h)) + M;
   const sc = Math.min((W - PAD * 2) / (X1 - X0), 116 / (Y1 - Y0));
   const H = (Y1 - Y0) * sc + PAD * 2;
   const m = (x: number, y: number): [number, number] => [PAD + (x - X0) * sc, PAD + (y - Y0) * sc];
   const [vx, vy] = m(view[0], view[1]);
+  /** 中身は動かないので、送っているあいだ組み直さない（枠だけが動く） */
+  const shape = useMemo(() => (<>
+    {links.map((l, i) => (
+      <path key={i} d={`M ${l.pts.map((q) => m(q[0], q[1]).map((n) => n.toFixed(1)).join(' ')).join(' L ')}`}
+            fill="none" stroke="#242424" strokeWidth={0.8} opacity={lit(l.of) ? 1 : 0.26} />
+    ))}
+    {nodes.map((n, i) => {
+      const [x, y] = m(n.x, n.y);
+      return <rect key={i} x={x.toFixed(1)} y={y.toFixed(1)} width={(n.w * sc).toFixed(1)}
+                   height={Math.max(2.4, n.h * sc).toFixed(1)} rx={1.5} opacity={lit(n.of) ? 1 : 0.26}
+                   fill={n.tone === 'late' ? 'rgba(217,48,37,0.6)' : MINI[n.kind]} />;
+    })}
+  </>), [nodes, links, lit, sc, X0, Y0]); // eslint-disable-line react-hooks/exhaustive-deps
+
   /** 地図の中を押した／なぞったら、そこを真ん中にして盤面が付いてくる */
   const at = (e: React.PointerEvent<HTMLDivElement>) => {
     const r = e.currentTarget.getBoundingClientRect();
@@ -255,20 +274,11 @@ function MiniMap({ nodes, links, view, lit, go }: {
     }}>
       <svg width={W} height={Math.round(H)} viewBox={`0 0 ${W} ${Math.round(H)}`}
            style={{ pointerEvents: 'none' }}>
-        {links.map((l, i) => (
-          <path key={i} d={`M ${l.pts.map((q) => m(q[0], q[1]).map((n) => n.toFixed(1)).join(' ')).join(' L ')}`}
-                fill="none" stroke="#242424" strokeWidth={0.8} opacity={lit(l.of) ? 1 : 0.26} />
-        ))}
-        {nodes.map((n, i) => {
-          const [x, y] = m(n.x, n.y);
-          return <rect key={i} x={x.toFixed(1)} y={y.toFixed(1)} width={(n.w * sc).toFixed(1)}
-                       height={Math.max(2.4, n.h * sc).toFixed(1)} rx={1.5} opacity={lit(n.of) ? 1 : 0.26}
-                       fill={n.tone === 'late' ? 'rgba(217,48,37,0.6)' : MINI[n.kind]} />;
-        })}
-        {/* いま見えている範囲 */}
-        <rect x={vx.toFixed(1)} y={vy.toFixed(1)}
-              width={((view[2] - view[0]) * sc).toFixed(1)}
-              height={((view[3] - view[1]) * sc).toFixed(1)}
+        {shape}
+        {/* いま見えている範囲。地図の外にはみ出したぶんは切る */}
+        <rect x={Math.max(1, vx).toFixed(1)} y={Math.max(1, vy).toFixed(1)}
+              width={(Math.min(vx + (view[2] - view[0]) * sc, W - 1) - Math.max(1, vx)).toFixed(1)}
+              height={(Math.min(vy + (view[3] - view[1]) * sc, H - 1) - Math.max(1, vy)).toFixed(1)}
               rx={4} fill="rgba(255,255,255,0.05)" stroke="#6E6E6E" strokeWidth={1.2} />
       </svg>
     </div>
@@ -282,13 +292,84 @@ function Mark({ status }: { status?: string }) {
   return null;
 }
 
+
+/**
+ * 盤面の中身。**拡大縮小のあいだ組み直さない。**
+ * 動かしているのは外側の1枚だけなのに、中の何千という節点を毎コマ作り直すと
+ * そのぶん遅れて「ぎこちない」になる（社員の球を入れてから 3,900 節点ある）。
+ * 選んでいる鎖（`of`）が変わったときだけ作り直す。
+ */
+const Scene = memo(function Scene({ nodes, links, labels, names, endX, endY, lit, pick }: {
+  nodes: ReturnType<typeof build>['nodes'];
+  links: ReturnType<typeof build>['links'];
+  labels: ReturnType<typeof build>['labels'];
+  names: ReturnType<typeof build>['names'];
+  endX: number; endY: number;
+  lit: (of: string | string[]) => boolean;
+  pick: (of: string) => void;
+}) {
+  return (<>
+      {/* 線は見るだけ。**押せる面をふさがない**（空きを押したら選択が外れる）。
+          **中身と同じ寸法**にする（盤面の幅で描くと、真ん中に寄せたぶん右へはみ出す） */}
+      <svg width={endX} height={endY} viewBox={`0 0 ${endX} ${endY}`}
+           style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+        {links.map((l, i) => (
+          <path key={i} d={elbow(l.pts)} fill="none" strokeWidth={1.3}
+                stroke={l.faint ? '#2E2E2E' : '#333333'}
+                opacity={lit(l.of) ? 1 : 0.26} style={{ transition: `opacity ${EASE}` }} />
+        ))}
+      </svg>
+
+      {names.map((n) => (
+        <button key={n.title} type="button" onClick={() => pick(n.of)} className="lnk" style={{
+          position: 'absolute', left: n.x, top: n.y, display: 'flex', alignItems: 'center', gap: 9,
+          whiteSpace: 'nowrap', color: T2, fontSize: 13,
+          background: 'none', border: 0, padding: 0, font: 'inherit', cursor: 'pointer',
+          opacity: lit(n.of) ? 1 : 0.26, transition: `opacity ${EASE}`,
+        }}>
+          {n.title}
+          <Mark status={n.status} />
+          {n.status && <span style={{ color: n.tone === 'late' ? RED_T : AMBER_T, fontSize: 11.5 }}>{n.status}</span>}
+        </button>
+      ))}
+
+      {nodes.map((n, i) => <Node key={i} {...n} lit={lit(n.of)} pick={() => pick(n.of)} />)}
+
+      {/* 社員はいまのフェーズのノードの右に置く（⊕ で足すものではない）。
+          **オフィスと同じ粒子のアバター**。ここだけ別の丸を描かない */}
+      {FLOWMAP.works.map((w) => {
+        const fs = fold(w.phases);
+        const i = fs.findIndex((f) => f.kind === 'now');
+        if (i < 0 || !w.crew.length) return null;
+        const x = COL[w.col + i] + NW - CREW_PAD - CREW / 2, y = ROW[w.row] + NH / 2;
+        return w.crew.map((c, k) => (
+          <span key={`${w.id}-${c}`} style={{
+            position: 'absolute', left: x - (w.crew.length - 1 - k) * 17 - CREW / 2, top: y - CREW / 2,
+            opacity: lit(w.id) ? 1 : 0.26, transition: `opacity ${EASE}`, pointerEvents: 'none',
+          }}>
+            <Orb color={AGENT_COLOR[c]} size={CREW} seed={c.length * 7 + 3} />
+          </span>
+        ));
+      })}
+
+      {labels.map((l, i) => (
+        <span key={i} style={{
+          position: 'absolute', left: l.x, top: l.y, transform: 'translate(-50%, -50%)',
+          padding: '0 6px', color: T5, fontSize: 10.5, whiteSpace: 'nowrap', background: CANVAS,
+          opacity: lit(l.of) ? 1 : 0.26, transition: `opacity ${EASE}`, pointerEvents: 'none',
+        }}>新しい Work</span>
+      ))}
+  </>);
+});
+
 /** 見る目の位置。中身 → 画面は `translate(x, y) scale(z)` */
 type Eye = { x: number; y: number; z: number };
 const MIN_Z = 0.3, MAX_Z = 2.4;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 export function Flow() {
-  const { nodes, links, labels, names } = build();
+  /** 盤面の形はデータで決まる。**描き直すたびに組み直さない**（`Scene` の memo が効かなくなる） */
+  const { nodes, links, labels, names } = useMemo(() => build(), []);
   const [board, { w, h }] = useSize<HTMLDivElement>();
   /**
    * **押しても盤面から出ない。** 選んだ鎖だけが残り、ほかは沈む。
@@ -296,8 +377,11 @@ export function Flow() {
    * 選んでいる1件は URL に持つ（`?view=flow&of=w-lp`）。
    */
   const [of, setOf] = useParam('of', '');
-  const lit = (o: string | string[]) => !of || (Array.isArray(o) ? o.includes(of) : o === of);
-  const pick = (o: string) => setOf(of === o ? '' : o);
+  /** 選んでいる鎖が変わったときだけ作り直す（拡大縮小のあいだは同じものを使い回す） */
+  const lit = useCallback(
+    (o: string | string[]) => !of || (Array.isArray(o) ? o.includes(of) : o === of), [of]);
+  const setRef = useRef(setOf); setRef.current = setOf;
+  const pick = useCallback((o: string) => setRef.current(of === o ? '' : o), [of]);
 
   /**
    * **動かし方は Figma と同じ。** 道具は置かない（見出しも説明文も要らない）。
@@ -349,19 +433,21 @@ export function Flow() {
   const endX = Math.max(...nodes.map((n) => n.x + n.w)) + 24;
   const endY = Math.max(...nodes.map((n) => n.y + n.h)) + 24;
 
-  /** 中身が画面から消えないところまでで止める（迷子にしない） */
+  /**
+   * **入るなら動かさない。** 中身が器に収まっている軸は真ん中に留める
+   * （全部見えているのに指を動かすと盤面が逃げていく、が起きない）。
+   * はみ出している軸だけ、端の外まで送れないように止める。
+   */
   const hold = useCallback((e: Eye): Eye => {
-    const M = 160, cw = endX * e.z, ch = endY * e.z;
-    return {
-      z: e.z,
-      x: clamp(e.x, Math.min(M - cw, 0), Math.max(vw - M, 0)),
-      y: clamp(e.y, Math.min(M - ch, 0), Math.max(vh - M, 0)),
-    };
+    const M = 40, cw = endX * e.z, ch = endY * e.z;
+    const axis = (v: number, c: number, box: number) =>
+      c <= box ? (box - c) / 2 : clamp(v, box - c - M, M);
+    return { z: e.z, x: axis(e.x, cw, vw), y: axis(e.y, ch, vh) };
   }, [endX, endY, vw, vh]);
 
   /** 全体に合わせる。**入るときは拡大しない**（等倍より大きくして粗くしない） */
   const fit = useCallback((): Eye => {
-    const z = clamp(Math.min(1, (vw - 64) / endX, (vh - 64) / endY), MIN_Z, MAX_Z);
+    const z = clamp(Math.min(1, (vw - 40) / endX, (vh - 40) / endY), MIN_Z, MAX_Z);
     return { z, x: (vw - endX * z) / 2, y: (vh - endY * z) / 2 };
   }, [vw, vh, endX, endY]);
 
@@ -462,57 +548,8 @@ export function Flow() {
              transform: `translate(${eye.x}px, ${eye.y}px) scale(${eye.z})`,
              transformOrigin: '0 0',
            }}>
-      {/* 線は見るだけ。**押せる面をふさがない**（空きを押したら選択が外れる）。
-          **中身と同じ寸法**にする（盤面の幅で描くと、真ん中に寄せたぶん右へはみ出す） */}
-      <svg width={endX} height={endY} viewBox={`0 0 ${endX} ${endY}`}
-           style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-        {links.map((l, i) => (
-          <path key={i} d={elbow(l.pts)} fill="none" strokeWidth={1.3}
-                stroke={l.faint ? '#2E2E2E' : '#333333'}
-                opacity={lit(l.of) ? 1 : 0.26} style={{ transition: `opacity ${EASE}` }} />
-        ))}
-      </svg>
-
-      {names.map((n) => (
-        <button key={n.title} type="button" onClick={() => pick(n.of)} className="lnk" style={{
-          position: 'absolute', left: n.x, top: n.y, display: 'flex', alignItems: 'center', gap: 9,
-          whiteSpace: 'nowrap', color: T2, fontSize: 13,
-          background: 'none', border: 0, padding: 0, font: 'inherit', cursor: 'pointer',
-          opacity: lit(n.of) ? 1 : 0.26, transition: `opacity ${EASE}`,
-        }}>
-          {n.title}
-          <Mark status={n.status} />
-          {n.status && <span style={{ color: n.tone === 'late' ? RED_T : AMBER_T, fontSize: 11.5 }}>{n.status}</span>}
-        </button>
-      ))}
-
-      {nodes.map((n, i) => <Node key={i} {...n} lit={lit(n.of)} pick={() => pick(n.of)} />)}
-
-      {/* 社員はいまのフェーズのノードの右に置く（⊕ で足すものではない）。
-          **オフィスと同じ粒子のアバター**。ここだけ別の丸を描かない */}
-      {FLOWMAP.works.map((w) => {
-        const fs = fold(w.phases);
-        const i = fs.findIndex((f) => f.kind === 'now');
-        if (i < 0 || !w.crew.length) return null;
-        const x = COL[w.col + i] + NW, y = ROW[w.row] + NH / 2;
-        return w.crew.map((c, k) => (
-          <span key={`${w.id}-${c}`} style={{
-            position: 'absolute', left: x - (w.crew.length - 1 - k) * 18 - CREW / 2, top: y - CREW / 2,
-            opacity: lit(w.id) ? 1 : 0.26, transition: `opacity ${EASE}`, pointerEvents: 'none',
-          }}>
-            <Orb color={AGENT_COLOR[c]} size={CREW} seed={c.length * 7 + 3} />
-          </span>
-        ));
-      })}
-
-      {labels.map((l, i) => (
-        <span key={i} style={{
-          position: 'absolute', left: l.x, top: l.y, transform: 'translate(-50%, -50%)',
-          padding: '0 6px', color: T5, fontSize: 10.5, whiteSpace: 'nowrap', background: CANVAS,
-          opacity: lit(l.of) ? 1 : 0.26, transition: `opacity ${EASE}`, pointerEvents: 'none',
-        }}>新しい Work</span>
-      ))}
-
+        <Scene nodes={nodes} links={links} labels={labels} names={names}
+               endX={endX} endY={endY} lit={lit} pick={pick} />
       </div>
 
       <MiniMap nodes={nodes} links={links} view={view} lit={lit} go={go} />

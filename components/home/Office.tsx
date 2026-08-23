@@ -1,8 +1,7 @@
 'use client';
 
-import { Go as Link } from '@/components/ui/Go';
-import { openHref } from '@/lib/use-open';
 import { Orb } from '@/components/ui/Orb';
+import { EASE } from '@/lib/design/tokens';
 import { useSize } from '@/lib/use-size';
 import { AGENT_COLOR, WORKS, employee } from '@/lib/dummy';
 
@@ -42,11 +41,14 @@ const SPECKS: [number, number, number][] = [
 const CORE: [number, number, number][] = [
   [38, 30, 0], [58, 46, 0.8], [44, 60, 1.5], [62, 32, 2.2], [50, 42, 1.1], [34, 52, 1.8],
 ];
+/** 瞬きの組。[長さ秒, 遅れ秒] — **粒ごとではなく、この数だけ動かす** */
+const BLINKS: [number, number][] = [[3.2, 0], [4.1, 1.1], [2.7, 2.2], [3.6, 0.6]];
+const CORES: [number, number][] = [[2.6, 0], [3.3, 1.2]];
 
 /** Math.cos/sin は実装で最後の桁が変わる。server と client でずれるので必ず丸める */
 const r2 = (n: number) => Number(n.toFixed(2));
 
-export function Office() {
+export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) => void }) {
   const [box, { w: OW, h: OH }] = useSize<HTMLDivElement>();
   const CX = OW / 2, CY = OH / 2;
   /** 縁は、球の下にぶら下がる名前ぶんだけ空ける（切れさせない） */
@@ -128,8 +130,9 @@ export function Office() {
 
     const a = (R.labelDeg * Math.PI) / 180;
     const lx = r2(CX + rx * Math.cos(a)), ly = r2(CY + ry * Math.sin(a));
+    /* **絵は行き先を持たない。** 押して別の画面へ飛ばすと、絵を見ている目が毎回外れる */
     labels.push(
-      <Link key={w.id} href={`/work/${w.id}`} className="lnk" style={{
+      <span key={w.id} style={{
         position: 'absolute', left: lx + 1, top: ly, transform: 'translate(-100%, -50%)',
         display: 'flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap',
         color: T3, fontSize: 11,
@@ -137,7 +140,7 @@ export function Office() {
         <span style={{ width: 5, height: 5, borderRadius: 9, flexShrink: 0, background: tipCol }} />
         {w.title}
         <span style={{ width: 12, height: 1, background: '#2E2E2E' }} />
-      </Link>,
+      </span>,
     );
 
     R.crew.forEach((c) => {
@@ -154,11 +157,21 @@ export function Office() {
 
       {labels}
 
-      {SPECKS.map(([l, t, d]) => (
-        <div key={`${l}-${t}`} style={{
-          position: 'absolute', left: `${l}%`, top: `${t}%`, width: 2, height: 2, borderRadius: 999,
-          background: 'rgba(255,255,255,0.35)', animation: `blink 3.2s ease-in-out ${d}s infinite`,
-        }} />
+      {/* **瞬きは組にして掛ける。** 1粒ずつ動かすと、何もしていないのに
+          22個ぶんのスタイル再計算が毎フレーム走る（/home の CPU 6.5% のうち 5.6% がこれだった）。
+          組ごとに速さと遅れを変えれば、目にはばらばらに瞬いて見える */}
+      {BLINKS.map(([dur, delay], g) => (
+        <div key={g} style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          animation: `blink ${dur}s ease-in-out ${delay}s infinite`,
+        }}>
+          {SPECKS.filter((_, i) => i % BLINKS.length === g).map(([l, t]) => (
+            <span key={`${l}-${t}`} style={{
+              position: 'absolute', left: `${l}%`, top: `${t}%`, width: 2, height: 2, borderRadius: 999,
+              background: 'rgba(255,255,255,0.35)',
+            }} />
+          ))}
+        </div>
       ))}
 
       {/* 統括AI から、その区間を持っている人へ（割り当て。**引き継ぎより弱く**） */}
@@ -175,7 +188,7 @@ export function Office() {
       })}
 
       {/* 統括AI（白）。社長は描かない */}
-      <Link href="/chat/new" className="hit" style={{
+      <div onPointerEnter={() => onHover?.('exec')} onPointerLeave={() => onHover?.('')} style={{
         position: 'absolute', left: CX, top: CY, transform: 'translate(-50%, -50%)', color: '#E8E8E8',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
       }}>
@@ -186,22 +199,32 @@ export function Office() {
             filter: 'blur(12px)', animation: 'breathe 4.2s ease-in-out infinite',
           }} />
           <span style={{ position: 'absolute', inset: 0 }}><Orb color="#D2D2D2" size={88} seed={7} /></span>
-          {CORE.map(([l, t, d]) => (
-            <div key={`${l}-${t}`} style={{
-              position: 'absolute', left: `${l}%`, top: `${t}%`, width: 3, height: 3, borderRadius: 999,
-              background: 'rgba(255,255,255,0.95)', animation: `blink 2.6s ease-in-out ${d}s infinite`,
-            }} />
+          {CORES.map(([dur, delay], g) => (
+            <div key={g} style={{
+              position: 'absolute', inset: 0, pointerEvents: 'none',
+              animation: `blink ${dur}s ease-in-out ${delay}s infinite`,
+            }}>
+              {CORE.filter((_, i) => i % CORES.length === g).map(([l, t]) => (
+                <span key={`${l}-${t}`} style={{
+                  position: 'absolute', left: `${l}%`, top: `${t}%`, width: 3, height: 3, borderRadius: 999,
+                  background: 'rgba(255,255,255,0.95)',
+                }} />
+              ))}
+            </div>
           ))}
         </div>
         <span style={{ whiteSpace: 'nowrap', fontSize: 13 }}>統括AI</span>
-      </Link>
+      </div>
 
       {people.map(({ x, y, id, gate, phase }, i) => {
         const e = employee(id);
         return (
           /* **ゆらぎは中の層に掛ける。** 外側に掛けると transform が上書きされて
-             真ん中合わせ（translate -50%）が消え、球が輪から半個ぶんずれる */
-          <Link key={`${id}-${x}`} href={openHref('/team', id)} className="hit" style={{
+             真ん中合わせ（translate -50%）が消え、球が輪から半個ぶんずれる。
+             **押しても飛ばない。** 指が乗ったら、下のAI社員の一覧の同じ人が明るくなる */
+          <div key={`${id}-${x}`}
+            onPointerEnter={() => onHover?.(id)} onPointerLeave={() => onHover?.('')}
+            style={{
             position: 'absolute', left: x, top: y, transform: 'translate(-50%, -50%)',
             display: 'flex', whiteSpace: 'nowrap',
           }}>
@@ -209,11 +232,18 @@ export function Office() {
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
               animation: `drift 6.5s ease-in-out ${(i * 1.4).toFixed(1)}s infinite`,
             }}>
-              <Orb color={AGENT_COLOR[e.color]} size={ORB} seed={e.name.length * 7 + 3} />
-              <span style={{ color: gate ? AMBER_T : T2, fontSize: 11.5 }}>{e.name}</span>
+              <span style={{ position: 'relative', display: 'flex' }}>
+                <span style={{
+                  position: 'absolute', inset: -14, borderRadius: 999, pointerEvents: 'none',
+                  background: `radial-gradient(circle, ${AGENT_COLOR[e.color]}2E, transparent 68%)`,
+                  opacity: lit === id ? 1 : 0, transition: `opacity ${EASE}`,
+                }} />
+                <Orb color={AGENT_COLOR[e.color]} size={ORB} seed={e.name.length * 7 + 3} />
+              </span>
+                <span style={{ color: lit === id ? '#EDEDED' : gate ? AMBER_T : T2, fontSize: 11.5 }}>{e.name}</span>
               {phase && <span style={{ color: T5, fontSize: 10 }}>{phase}</span>}
             </span>
-          </Link>
+          </div>
         );
       })}
       </>}
