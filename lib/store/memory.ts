@@ -182,6 +182,15 @@ export const memoryStore: Store = {
 
   async listEmployees() { return [...staff]; },
 
+  /** メモリ版は台帳を持たない。**残高があるふりをしない**（null = 上限なし） */
+  async balanceCents() { return null; },
+  async ledger() { return []; },
+  async pauseWork(workId, why) {
+    const live = [...bag.values()].find((d) => d.live?.id === workId)?.live;
+    if (live) live.status = 'paused';
+    notes.push({ kind: 'エラー', body: why });
+  },
+
   async advancePhase(workId, nextTasks) {
     const live = [...bag.values()].find((d) => d.live?.id === workId)?.live;
     if (!live) return null;

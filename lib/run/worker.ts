@@ -1,4 +1,4 @@
-import { hasKey, providerFor, costUsd, type ModelProvider, type Msg } from '@/lib/ai';
+import { hasKey, providerFor, billedCostUsd, type ModelProvider, type Msg } from '@/lib/ai';
 import { FakeProvider } from '@/lib/ai/fake';
 import { personaOf } from '@/lib/roster';
 import { store, type LiveWork } from '@/lib/store';
@@ -129,7 +129,7 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
       }
     }
 
-    const costCents = Math.round(costUsd('standard', usage.in, usage.out) * 100);
+    const costCents = Math.round(billedCostUsd('standard', usage.in, usage.out) * 100);
 
     if (decision) {
       // 判断で止まる。失敗ではないので run は done、タスクは needs_decision

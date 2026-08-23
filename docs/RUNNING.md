@@ -99,6 +99,7 @@ psql "$DATABASE_URL" -f supabase/migrations/0010_task_owner_hint.sql
 psql "$DATABASE_URL" -f supabase/migrations/0011_phase_review.sql
 psql "$DATABASE_URL" -f supabase/migrations/0012_run_path.sql
 psql "$DATABASE_URL" -f supabase/migrations/0013_decisions_no_delete.sql
+psql "$DATABASE_URL" -f supabase/migrations/0014_run_ledger.sql
 ```
 
 `0003` は RLS と、不変条件をデータベース側で守るためのトリガを入れます。
@@ -156,6 +157,7 @@ RLS の with check は `account_id = private.current_account_id()` のままな�
 | 決定事項は追記のみ | トリガ `decisions_append_only` |
 | 進捗は導出値。直接書けない | トリガ `tasks_progress_is_derived`<br>（列単位の revoke は表単位の権限があると効かない） |
 | 残高は台帳の合計 | 関数 `account_balance_cents` |
+| 実行の原価は必ず記帳される | トリガ `run_ledger`（0014）。アプリは `token_ledger` に書けない（残高の偽造を防ぐ）。実測 500 − 48 = 452 |
 | 候補は消さない | `revoke delete`（rule だと cascade が壊れて退会できなくなる） |
 | **決定も消さない** | `revoke delete`（0013）。追記のみの引き金は UPDATE しか見ておらず、DELETE が素通りだった |
 | 退会したらデータも消える | トリガ `users_drop_empty_account` |

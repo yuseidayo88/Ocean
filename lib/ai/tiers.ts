@@ -84,3 +84,14 @@ export function costUsd(tier: Tier, inTok: number, outTok: number): number {
   const s = TIER_TABLE[tier]
   return (inTok / 1e6) * s.inPerMTok + (outTok / 1e6) * s.outPerMTok
 }
+
+/**
+ * 台帳に落とす原価。**表のモデルで走ったときだけ**表の単価で数える。
+ * 無料のテストモデル（Ox Alpha）や env で差し替えたモデルの単価は知らないので、
+ * **知らない値は 0 で記帳する** — 定価で数えると、タダの実行がトライアル残高を減らす。
+ * 本当の実測（OpenRouter の usage の cost）は鍵が入って確かめてから。
+ */
+export function billedCostUsd(tier: Tier, inTok: number, outTok: number): number {
+  if (modelFor(tier) !== TIER_TABLE[tier].model) return 0
+  return costUsd(tier, inTok, outTok)
+}

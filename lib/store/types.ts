@@ -136,6 +136,15 @@ export interface Store {
   hireEmployee(definitionId: string, displayName: string): Promise<string>;
   /** 在籍の一覧（メンバー画面が読む） */
   listEmployees(): Promise<LiveEmployee[]>;
+
+  /* ══════════════ 課金の骨格（Phase 11）══════════════ */
+
+  /** 残高（セント）。**null = 上限なし**（メモリ版のデモ。数字を偽装しない） */
+  balanceCents(): Promise<number | null>;
+  /** 台帳（新しい順）。請求・プラン画面だけが読む */
+  ledger(): Promise<{ deltaCents: number; reason: string; when?: string }[]>;
+  /** 枠に当たって止める。works → paused ＋ エラー通知 */
+  pauseWork(workId: string, why: string): Promise<void>;
 }
 
 export type LiveEmployee = {

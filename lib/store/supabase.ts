@@ -572,6 +572,30 @@ export const supabaseStore: Store = {
     }));
   },
 
+  async balanceCents() {
+    const c = await db();
+    const { data: me } = await c.from('users').select('account_id').limit(1).maybeSingle();
+    if (!me) return 0;
+    const { data, error } = await c.rpc('account_balance_cents', { a: me.account_id });
+    if (error) throw new AppError('unknown', error.message);
+    return (data ?? 0) as number;
+  },
+
+  async ledger() {
+    const c = await db();
+    const { data } = await c.from('token_ledger')
+      .select('delta_cents, reason, created_at').order('created_at', { ascending: false }).limit(60);
+    return (data ?? []).map((r) => ({
+      deltaCents: r.delta_cents as number, reason: r.reason as string, when: r.created_at as string,
+    }));
+  },
+
+  async pauseWork(workId, why) {
+    const c = await db();
+    await c.from('works').update({ status: 'paused' }).eq('id', workId);
+    await c.from('notifications').insert({ kind: 'エラー', subject_type: 'work', subject_id: workId, body: why });
+  },
+
   async closePhaseIfDone(workId) {
     const c = await db();
     const { data: ph } = await c.from('phases')

@@ -24,6 +24,19 @@ export async function pumpWork(workId: string): Promise<PumpResult> {
     if (!next) return { ran: false };
     const work = await s.getWork(workId);
     if (!work || work.status !== 'active') return { ran: false };
+
+    /**
+     * **残高が尽きたら走らせない**（Phase 11）。Work ごと paused に落とす —
+     * ポーリングのたびに同じ通知が積もらないし、設計の言葉どおり
+     * 「paused = 止める / 予算上限」。トークンの数字はふだんの画面に出さない。
+     * 再開は残高が入ってから（プラン画面）。
+     */
+    const balance = await s.balanceCents().catch(() => null);
+    if (balance !== null && balance <= 0) {
+      await s.pauseWork(workId, '枠に当たって止まりました。プランを見てください');
+      return { ran: false };
+    }
+
     const outcome = await runTask(work, next.taskId);
     // フェーズのタスクが出そろったら review に畳む（判断待ちの通知つき）
     await s.closePhaseIfDone(workId).catch(() => {});
@@ -136,4 +149,24 @@ export async function hire(definitionId: string, displayName: string): Promise<{
 /** 在籍の一覧（メンバー画面が読む） */
 export async function listEmployees(): Promise<LiveEmployee[]> {
   try { return await store().listEmployees(); } catch { return []; }
+}
+
+/* ══════════════ 課金の骨格（Phase 11）══════════════ */
+
+/** 請求・プラン画面が読む。**トークンの数字を出していいのはこの画面だけ** */
+export async function billing(): Promise<{
+  balanceTokens: number | null;
+  rows: { deltaTokens: number; reason: string; when?: string }[];
+}> {
+  try {
+    const s = store();
+    const [cents, rows] = await Promise.all([s.balanceCents(), s.ledger()]);
+    // 1トークン = $0.00001 → 1セント = 1,000トークン（→ docs/design/05）
+    return {
+      balanceTokens: cents === null ? null : cents * 1000,
+      rows: rows.map((r) => ({ deltaTokens: r.deltaCents * 1000, reason: r.reason, when: r.when })),
+    };
+  } catch {
+    return { balanceTokens: null, rows: [] };
+  }
 }

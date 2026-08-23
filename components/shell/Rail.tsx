@@ -2,7 +2,7 @@
 
 import { Go as Link } from '@/components/ui/Go';
 import type { Route } from 'next';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Icon, Dot, type IconName } from '@/components/ui/Icon';
 import { ME, THREADS, WORKS } from '@/lib/dummy';
@@ -72,6 +72,7 @@ export function Rail({ empty }: { empty?: boolean } = {}) {
   const path = usePathname();
   const { rail, setRail, setFind } = useShell();
   const [account, setAccount] = useState(false);
+  const router = useRouter();
   const blank = empty ?? isBlank(path);
 
   const active = (href: string) => path === href || path.startsWith(href + '/');
@@ -204,7 +205,8 @@ export function Rail({ empty }: { empty?: boolean } = {}) {
       {account && (
         <Pop pos={{ bottom: 56, left: 12, right: 24, width: 'auto' }}>
           <PopRow label="設定" />
-          <PopRow label="請求" />
+          {/* 請求は本物の画面がある（Phase 11）。トークンの数字はあの画面だけに出す */}
+          <PopRow label="請求" onClick={() => { setAccount(false); router.push('/billing' as Route); }} />
           <Hair />
           <PopRow label="ログアウト" color={T3} />
         </Pop>
