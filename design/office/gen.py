@@ -752,6 +752,233 @@ io.open(OUT + '/Numbers.dc.html', 'w', encoding='utf-8').write(
     board('その数字はどこから来るか', '検討', num_body, T3))
 print('Numbers ok')
 
+# ══════════════════════ 参考の計器を1つずつ ══════════════════════
+SRC = {1: '①', 2: '②', 3: '③', 4: '④'}
+
+def p_row(param, src, real, where, verdict, vcol, last=False):
+    return ('<div style="display:flex;align-items:flex-start;gap:14px;padding:11px 0;%s">'
+            % ('' if last else 'border-bottom:1px solid %s' % HAIR)
+            + '<span style="width:158px;flex-shrink:0;font-size:12.5px;line-height:19px">%s</span>' % param
+            + '<span style="width:34px;flex-shrink:0;color:%s;font-size:11px">%s</span>'
+              % (DIM, ''.join(SRC[x] for x in src))
+            + '<span style="width:300px;flex-shrink:0;color:%s;font-size:12.5px;line-height:19px">%s</span>' % (T2, real)
+            + '<span style="flex:1;min-width:0;color:%s;font-size:12px;line-height:19px">%s</span>' % (T5, where)
+            + '<span style="width:96px;flex-shrink:0;text-align:right;color:%s;font-size:11.5px">%s</span>' % (vcol, verdict)
+            + '</div>')
+
+def p_head(t, n, c):
+    return ('<div style="display:flex;align-items:baseline;gap:9px;padding-bottom:6px">'
+            '%s<span style="color:%s;font-size:12.5px">%s</span>'
+            '<span style="color:%s;font-size:11px" class="tnum">%d</span></div>' % (dot(c, 5), T2, t, T5, n))
+
+TAKE = [
+  ('承認の台帳<br><span style="color:#5F5F5F;font-size:11px">APPROVALS-GATE</span>', [1, 2],
+   'きょうの決定を「AIが決めた / あなたに聞いた」で分ける。decisions に出どころが入っている',
+   '答えの1行の右。憲法の「社長を飛ばさない」を、画面で証明する数字になる'),
+  ('社員ごとに違う計器<br><span style="color:#5F5F5F;font-size:11px">TRACKER / FIT / FUEL のカード</span>', [3],
+   'すでに決めてある「中身の器は担当ではなく produces で決める」と同じ。'
+   '調査＝積まれた事実 / 執筆＝伸びる文章 / 実装＝テストの目盛り',
+   '社員のレール。全員同じバーをやめると、レールを見るだけで職種が分かる'),
+  ('待ち<br><span style="color:#5F5F5F;font-size:11px">QUEUE DEPTH</span>', [1],
+   'そのAI社員のあとに積まれているタスク数。tasks の queued を数えるだけ',
+   '社員の行の右。「多いな、もう1人採用するか」に直結する'),
+  ('工程と経過<br><span style="color:#5F5F5F;font-size:11px">INTAKE / SPLIT / TOOL CALL</span>', [2, 4],
+   'run_steps。いまどの工程にいるか＋このタスクを何分やっているか',
+   'A2 で入れた工程の帯。参考の「生きている感じ」はここが動いて出す'),
+  ('実際に動いた線だけ描く<br><span style="color:#5F5F5F;font-size:11px">EVERY LINE IS A MESSAGE THAT ACTUALLY MOVED</span>', [2],
+   '受け渡しが起きたときだけ、絵の粒を流す。演出で常時流さない',
+   '絵の原則。いまも粒は流れているが、この規則を明文化する'),
+  ('モデルと経路<br><span style="color:#5F5F5F;font-size:11px">ROUTE grok-4 / grok-4-fast</span>', [1, 2],
+   'そのAI社員のモデルと思考の深さ。すでに設定として持っている',
+   '社員の行の右。A2 で入れた `Sonnet 5 · 深さ 4`'),
+  ('出来事の列<br><span style="color:#5F5F5F;font-size:11px">LIVE FEED</span>', [1, 3, 4],
+   '時刻 · 誰 · 何をした。runs と run_steps から出る',
+   'A にもう入っている。ok / retry の右端ラベルは足さない（状態の6語の外）'),
+]
+
+MOVE = [
+  ('引き継ぎのスイムレーン<br><span style="color:#5F5F5F;font-size:11px">THE TRACE</span>', [2],
+   '誰がこのタスクを持っていて、誰に渡したか。run_steps に担当が入っている',
+   'Work の画面へ。オフィスは会社ぜんぶを見る場所なので、1つの Work の内訳は入らない'),
+  ('やり直しの内訳<br><span style="color:#5F5F5F;font-size:11px">RETRY LEDGER</span>', [2],
+   'タイムアウト / 形が合わない / 上限に当たった / 空が返った。全部いま記録している',
+   '通知（エラー）の中へ。ふだんは出さない。止まったときだけ理由を1行'),
+  ('手戻りの回数<br><span style="color:#5F5F5F;font-size:11px">HOPS PER JOB · 2.4</span>', [2],
+   '同じ成果物を何回書き直したか',
+   'Work の画面へ。「深さを上げますか」の判断材料になるが、ホームでは細かすぎる'),
+  ('毎回読む手順書<br><span style="color:#5F5F5F;font-size:11px">AGENTS.md · READ ON EVERY ASSIGN</span>', [2],
+   'SKILL.md とルール。employee_skills に有効・無効がある',
+   '社員の設定ペインへ。「このタスクで読んだスキル」を実行のたびに出せる'),
+  ('人を雇った場合との差<br><span style="color:#5F5F5F;font-size:11px">SAVED VS THE OLD SEAT</span>', [2],
+   '使った額と、人を雇ったらいくらだったか。一人社長にはいちばん効く数字',
+   '請求とプランの画面へ。ふだんの画面には出さないと決めてある'),
+]
+
+DROP = [
+  ('CPU · メモリ · I/O · ネットワーク', [4],
+   'ない。LLM の呼び出しと道具の実行で、CPU という単位が存在しない',
+   '出すなら値を発明することになる。作り話は隣の本当の数まで疑わせる'),
+  ('P95 · レイテンシ · スループット', [1, 2],
+   '秒数はあるが、1人が同時に1タスクしか持たない設計',
+   '社長が見ても何もできない。遅ければ待つし、止まればエラーで分かる'),
+  ('トークン / 分 · 使った額', [1, 2],
+   'ある',
+   '請求とプランの画面だけ。枠に当たって止まったときは別途出す'),
+  ('稼働率 ％', [1, 4],
+   '「今日動いていた時間」なら出せる',
+   '％にすると「上げるべき数字」に見える。時間そのもので言う'),
+  ('人ごとのスコア環<br><span style="color:#5F5F5F;font-size:11px">DAD 82 recovery</span>', [3],
+   'ない。AI社員に「調子」という指標が無い',
+   '作れば必ず作り話になる'),
+  ('ドーナツ＋凡例', [4],
+   'フェーズ別のタスク数ならある',
+   '凡例が要るなら形のほうが間違っている。Work の帯でもう言えている'),
+]
+
+par_body = ('<div style="padding:22px 30px 30px;display:flex;flex-direction:column;gap:26px">'
+  '<span style="color:%s;font-size:13.5px;line-height:22px;max-width:960px">'
+  '4枚に出ていた計器を1つずつ見ました。'
+  '<b style="color:%s">7つはそのまま採れます</b>。'
+  '5つは本物だけど<b style="color:%s">置き場所がホームではない</b>。'
+  '6つは値を発明することになるので採りません。</span>' % (T2, T1, T1) +
+
+  '<div>' + p_head('そのまま採る', len(TAKE), GREEN)
+    + '<div style="display:flex;gap:14px;padding-bottom:6px">'
+      '<span style="width:158px;flex-shrink:0;color:%s;font-size:10.5px">参考の計器</span>'
+      '<span style="width:34px;flex-shrink:0;color:%s;font-size:10.5px">出典</span>'
+      '<span style="width:300px;flex-shrink:0;color:%s;font-size:10.5px">OneFound での正体</span>'
+      '<span style="flex:1;color:%s;font-size:10.5px">どこに置くか</span>'
+      '<span style="width:96px;flex-shrink:0;"></span></div>' % (T5, T5, T5, T5)
+    + ''.join(p_row(a, b, c, d, 'A3 に入れた', GREEN_T, last=(i == len(TAKE) - 1))
+              for i, (a, b, c, d) in enumerate(TAKE))
+  + '</div>'
+
+  '<div>' + p_head('本物だが、ホームではない', len(MOVE), AMBER)
+    + ''.join(p_row(a, b, c, d, e, AMBER_T, last=(i == len(MOVE) - 1))
+              for i, ((a, b, c, d), e) in enumerate(zip(MOVE,
+                ['Work の画面', '通知（エラー）', 'Work の画面', '社員の設定', '請求とプラン'])))
+  + '</div>'
+
+  '<div>' + p_head('採らない', len(DROP), '#4A4A4A')
+    + ''.join(p_row(a, b, c, d, '採らない', T4, last=(i == len(DROP) - 1))
+              for i, (a, b, c, d) in enumerate(DROP))
+  + '</div>'
+
+  '<div style="height:1px;background:%s"></div>' % HAIR +
+  '<span style="color:%s;font-size:12px;line-height:20px;max-width:960px">'
+  '出典 ① GROK BOT SYSTEM　② GROK AGENT SYSTEM　③ ScottyBeamIO　④ LIVE AGENT WORKSPACE'
+  '</span>' % T5 +
+  '</div>')
+
+io.open(OUT + '/Params.dc.html', 'w', encoding='utf-8').write(
+    board('4枚の計器を1つずつ', '採用の可否', par_body, T3))
+print('Params ok')
+
+# ══════════════════════ A3 = A2 ＋ 採ったもの ══════════════════════
+def sq_run(n, filled, color, size=5, gap=2):
+    out = ''
+    for i in range(n):
+        o = '.85' if i < filled else '.16'
+        out += '<span style="width:%dpx;height:%dpx;border-radius:1px;background:%s;opacity:%s"></span>' % (size, size, color, o)
+    return '<span style="display:inline-flex;gap:%dpx;flex-shrink:0">%s</span>' % (gap, out)
+
+def dot_run(n, ok, color, bad=0):
+    out = ''
+    for i in range(n):
+        c = RED if i >= n - bad else color
+        out += '<span style="width:3px;height:3px;border-radius:3px;background:%s;opacity:%s"></span>' % (
+            c, '.9' if i < ok or i >= n - bad else '.16')
+    return '<span style="display:inline-flex;gap:2px;flex-shrink:0">%s</span>' % out
+
+def text_lines(color, ws=(46, 38, 26)):
+    out = ''.join('<span style="width:%dpx;height:2px;border-radius:1px;background:%s;opacity:%s"></span>'
+                  % (w, color, ['.75', '.55', '.35'][i]) for i, w in enumerate(ws))
+    return ('<span style="display:inline-flex;flex-direction:column;gap:3px;flex-shrink:0">%s</span>' % out)
+
+def week_cells(n, done, color):
+    out = ''.join('<span style="width:15px;height:7px;border-radius:2px;background:%s;opacity:%s"></span>'
+                  % (color, '.85' if i < done else '.14') for i in range(n))
+    return '<span style="display:inline-flex;gap:3px;flex-shrink:0">%s</span>' % out
+
+# **中身の器は担当ではなく produces で決める**（③ ScottyBeamIO から採った形）
+PRODUCE = {
+    '統括AI':  lambda: (mono('決めた 12  ·  聞いた 2', T5), ''),
+    '調査担当': lambda: (sq_run(16, 11, CYAN),   '事実 34'),
+    '戦略担当': lambda: (text_lines(PURPLE),      '1,240字'),
+    '開発担当': lambda: (dot_run(24, 24, AGREEN), 'テスト 24 / 24'),
+    '企画担当': lambda: (week_cells(4, 1, INDIGO), '1 / 4週'),
+}
+WAIT = {'統括AI': 0, '調査担当': 2, '戦略担当': 0, '開発担当': 1, '企画担当': 3}
+
+def a3_strip(name, key, state, spec, now, el, done, running, total, log, last=False):
+    sc = STATE_C[state]
+    fig, cap = PRODUCE[name]()
+    w = WAIT[name]
+    return ('<div style="display:flex;flex-direction:column;gap:7px;padding:12px 0;%s">'
+            % ('' if last else 'border-bottom:1px solid %s' % HAIR)
+            + '<div style="display:flex;align-items:center;gap:9px">'
+              + orb(RGB[key], 24, state == '待機')
+              + '<span style="font-size:13px">%s</span>' % name + dot(sc[0], 5)
+              + '<span style="color:%s;font-size:11px">%s</span>' % (sc[1], state)
+              + '<div style="flex:1"></div>'
+              + '<span style="color:%s;font-size:10.5px;white-space:nowrap">%s</span>' % (T5, spec)
+            + '</div>'
+            + '<div style="padding-left:33px;display:flex;flex-direction:column;gap:7px">'
+              + '<div style="display:flex;align-items:baseline;gap:8px">'
+                + '<span style="color:%s;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;'
+                  'white-space:nowrap">%s</span><div style="flex:1"></div>%s' % (T2, now, mono(el, T5) if el else '')
+              + '</div>'
+              + '<div style="display:flex;align-items:center;gap:9px">'
+                + steps(done, running, total, HEX[key], 96)
+                + '<span style="color:%s;font-size:11px">%d / %d · %s</span>' % (T5, done, total, STEPNAME[name])
+              + '</div>'
+              # ★ 採ったもの: produces ごとに形の違う計器 ＋ 待ち
+              + '<div style="display:flex;align-items:center;gap:9px;min-height:11px">'
+                + fig + (mono(cap) if cap else '')
+                + '<div style="flex:1"></div>'
+                + (mono('待ち %d' % w, T5) if w else '')
+              + '</div>'
+            + '</div></div>')
+
+rail_a3 = ('<div style="width:300px;flex-shrink:0;display:flex;flex-direction:column">'
+  '<div style="display:flex;align-items:baseline;padding-bottom:2px">'
+  '<span style="color:%s;font-size:11px">いま誰が何を</span><div style="flex:1"></div>'
+  '<span style="color:%s;font-size:10.5px">5人</span></div>' % (T5, T5)
+  + ''.join(a3_strip(*m, last=(i == len(REAL) - 1)) for i, m in enumerate(REAL))
+  + '</div>')
+
+def a3_frame(rail, orbit_html):
+    """A2 の骨格に、① の承認の台帳を1つだけ足す"""
+    return ('<div style="padding:16px 30px 22px;display:flex;flex-direction:column;gap:12px">'
+      '<div style="display:flex;align-items:baseline;gap:14px">'
+        '<span style="font-size:16px;line-height:26px">3つの Work のうち<b style="color:%s">1つが遅れています</b>。'
+        '<b style="color:%s">判断待ちが 1件</b>、要確認が 1件。</span>'
+        '<div style="flex:1"></div>'
+        '<span style="color:%s;font-size:11.5px">きょうの決定 <span class="tnum" style="color:%s">14</span>'
+        '  ·  うちあなたが <span class="tnum" style="color:%s">2</span></span>'
+        '<span style="width:1px;height:12px;background:%s"></span>'
+        '<span style="color:%s;font-size:11.5px" class="tnum">稼働 4 / 4</span>'
+      '</div>' % (RED_T, AMBER_T, T5, T2, T2, LINE, T5)
+      + '<div style="display:flex;gap:22px;align-items:stretch">'
+      + rail
+      + '<div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center">%s</div>' % orbit_html
+      + '<div style="width:260px;flex-shrink:0;display:flex;flex-direction:column;'
+        'border-left:1px solid %s;padding-left:20px">' % HAIR
+        + '<div style="display:flex;align-items:baseline;padding-bottom:2px">'
+          '<span style="color:%s;font-size:11px">今日の出来事</span><div style="flex:1"></div>'
+          '<span style="display:inline-flex;align-items:center;gap:6px;color:%s;font-size:10.5px">%s動いています</span></div>'
+          % (T5, T5, dot(GREEN, 5))
+        + ''.join(feed_row(t, w, x, c, i == len(FEED) - 1) for i, (t, w, x, c) in enumerate(FEED))
+      + '</div></div>'
+      + '<div style="padding-top:6px">'
+        '<span style="display:block;color:%s;font-size:11px;padding-bottom:2px">Work</span>' % T5
+        + ''.join(work_row(*w, last=(i == len(WORKS) - 1)) for i, w in enumerate(WORKS))
+      + '</div></div>')
+
+io.open(OUT + '/OptionA3.dc.html', 'w', encoding='utf-8').write(
+    board('A2 ＋ 4枚から採った7つ', 'A3 採用ぶんを入れた', a3_frame(rail_a3, ORBIT2), BLUE_T))
+print('A3 ok')
+
 # ══════════════════════ canvas.json ══════════════════════
 import json
 canvas = {
@@ -765,6 +992,9 @@ canvas = {
     {"file": "OptionA.dc.html",  "x": 0,    "y": 1120, "w": 1180, "h": 730, "title": "A 計器盤（採用）"},
     {"file": "OptionB.dc.html",  "x": 1300, "y": 1120, "w": 1180, "h": 780, "title": "B 濃い盤面"},
     {"file": "OptionC.dc.html",  "x": 2600, "y": 1120, "w": 1180, "h": 800, "title": "C 一気見の表"},
+    # 3段目 = 参考4枚の計器を1つずつ見た結果
+    {"file": "Params.dc.html",   "x": 0,    "y": 2050, "w": 1180, "h": 1560, "title": "③ 4枚の計器を1つずつ"},
+    {"file": "OptionA3.dc.html", "x": 1300, "y": 2050, "w": 1180, "h": 890,  "title": "A3 採用ぶんを入れた"},
   ],
   "launch": {"view": "canvas"},
 }
