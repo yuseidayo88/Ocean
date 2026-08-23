@@ -50,7 +50,8 @@ const LIST = `(() => {
  */
 const STATE = `[
   location.pathname + location.search,
-  document.body.innerText.length,
+  // **文字数ではなく中身。** 100% → 110% は長さが同じなので、数えるだけだと見逃す
+  (() => { let h = 0; const t = document.body.innerText; for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0; return h; })(),
   document.querySelectorAll('*').length,
   document.querySelector('aside') ? 1 : 0,
   // レールは中の <nav> が幅固定で、**外の器のほうが 0 になる**。内側を測ると開閉が見えない
@@ -75,7 +76,9 @@ let deadAll = 0, liveAll = 0;
 for (const path of PAGES) {
   const { ws, send } = await conn(BASE + path);
   const ev = async (e) => (await send('Runtime.evaluate', { expression: e, returnByValue: true }))?.result?.value;
-  const go = async () => { await send('Page.navigate', { url: BASE + path }); await new Promise((r) => setTimeout(r, 2600)); };
+  // オフィスの盤面は絵が重いので、描き終わるまで少し待つ
+  const wait = path.startsWith('/home') && !path.includes('view=') ? 3600 : 2600;
+  const go = async () => { await send('Page.navigate', { url: BASE + path }); await new Promise((r) => setTimeout(r, wait)); };
   await go();
   const items = await ev(LIST);
   const dead = [];
