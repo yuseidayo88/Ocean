@@ -2478,48 +2478,74 @@ def hang(px, py, chips):
         h += node(x + 14, cy_, CHIPW, ct, cs, 'gate', h=46)
     return h, g
 
+# 格子。列は 180px おき、段は 104px おき。**全部この上に載せる**
+COLX = [56, 236, 416, 596, 776, 956]
+ROWY = [96, 200, 304, 408, 512, 616]
+CC = lambda i: COLX[i] + MW / 2
+
+def elbow(pts, r=12, col='#333333'):
+    """直角に曲がる線（角だけ丸める）。地下鉄の路線図と同じ引き方 —
+       斜めの曲線をやめると、線がどこへ行くのか目で追える"""
+    d = 'M %d %d' % pts[0]
+    for i in range(1, len(pts) - 1):
+        x0, y0 = pts[i - 1]; x1, y1 = pts[i]; x2, y2 = pts[i + 1]
+        def unit(ax, ay, bx, by):
+            L = math.hypot(bx - ax, by - ay) or 1
+            return (bx - ax) / L, (by - ay) / L
+        ux, uy = unit(x0, y0, x1, y1)
+        vx, vy = unit(x1, y1, x2, y2)
+        rr = min(r, math.hypot(x1 - x0, y1 - y0) / 2, math.hypot(x2 - x1, y2 - y1) / 2)
+        d += ' L %.1f %.1f' % (x1 - ux * rr, y1 - uy * rr)
+        d += ' Q %d %d %.1f %.1f' % (x1, y1, x1 + vx * rr, y1 + vy * rr)
+    d += ' L %d %d' % pts[-1]
+    return '<path d="%s" fill="none" stroke="%s" stroke-width="1.3"/>' % (d, col)
+
 def workflow_map():
     h, g = '', ''
-    # ── 日本語学習サービス（根）
-    h += mname(56, 70, '日本語学習サービス', '判断待ち', AMBER_T)
-    a_, b_ = mchain(56, 96, [('調査','done',0),('戦略','now',32),('プロダクト','wait',0),('ローンチ','wait',0)],
-                    ('cyan','purple'))
+    R = ROWY
+    # ── 日本語学習サービス（根）: 段0
+    h += mname(COLX[0], R[0] - 26, '日本語学習サービス', '判断待ち', AMBER_T)
+    a_, b_ = mchain(COLX[0], R[0], [('調査','done',0),('戦略','now',32),
+                                    ('プロダクト','wait',0),('ローンチ','wait',0)], ('cyan','purple'))
     h += a_; g += b_
-    a_, b_ = hang(236, 148, [('収益モデル比較','成果物 · 要確認'), ('価格モデル','判断 · あなたの番')])
+    SB = R[0] + MH                       # 戦略の下端
+    # 成果物と判断 — 戦略から右へ枝を出して、段1 に降ろす
+    g += elbow([(CC(1) + 40, SB), (CC(1) + 40, SB + 28), (CC(1), SB + 28), (CC(1), R[1])], col='#2E2E2E')
+    g += elbow([(CC(1) + 40, SB + 28), (CC(2), SB + 28), (CC(2), R[1])], col='#2E2E2E')
+    h += node(COLX[1], R[1], MW, '収益モデル比較', '成果物 · 要確認', 'gate', h=46)
+    h += node(COLX[2], R[1], MW, '価格モデル', '判断 · あなたの番', 'gate', h=46)
+    # 新しい Work — 戦略から左に降りて、段2 の左右へ分かれる
+    TR = 180                              # 縦の幹（列のあいだの通り道）
+    g += elbow([(CC(1) - 40, SB), (CC(1) - 40, SB + 14), (TR, SB + 14), (TR, R[1] + 66), (CC(0), R[1] + 66), (CC(0), R[2])])
+    g += elbow([(TR, R[1] + 66), (CC(3), R[1] + 66), (CC(3), R[2])])
+    h += branch_label(TR, R[1] + 20)
+    # ── 段2: 価格表の作り直し / LPと申込フォーム
+    h += mname(COLX[0], R[2] - 26, '価格表の作り直し')
+    a_, b_ = mchain(COLX[0], R[2], [('設計','done',0),('実装','now',24),('公開','wait',0)], ('indigo',))
     h += a_; g += b_
-    # ── 子: LPと申込フォーム（戦略から右下へ）
-    g += curve(356, 148, 600, 320, (356, 250), (470, 320))
-    h += branch_label(492, 300)
-    h += mname(600, 268, 'LPと申込フォーム')
-    a_, b_ = mchain(600, 294, [('設計','done',0),('制作','now',61),('公開','wait',0)], ('green',))
+    h += mname(COLX[3], R[2] - 26, 'LPと申込フォーム')
+    a_, b_ = mchain(COLX[3], R[2], [('設計','done',0),('制作','now',61),('公開','wait',0)], ('green',))
     h += a_; g += b_
-    # ── 孫: 問い合わせ導線（制作から左下へ）
-    g += curve(860, 346, 620, 462, (860, 410), (740, 462))
-    h += branch_label(806, 396)
-    h += mname(620, 410, '問い合わせ導線')
-    a_, b_ = mchain(620, 436, [('調査','done',0),('設計','now',8),('実装','wait',0)], ('cyan',))
+    # ── 段3: SNS運用の立ち上げ（根）/ 問い合わせ導線（LPの制作から）
+    g += elbow([(CC(4), R[2] + MH), (CC(4), R[2] + MH + 26), (CC(3), R[2] + MH + 26), (CC(3), R[3])])
+    h += branch_label(CC(4), R[2] + MH + 26)
+    h += mname(COLX[0], R[3] - 26, 'SNS運用の立ち上げ', '遅れ 2日', RED_T)
+    a_, b_ = mchain(COLX[0], R[3], [('準備','done',0),('運用設計','now',46),('運用','wait',0)], ('indigo',))
     h += a_; g += b_
-    # ── 子: 価格表の作り直し（戦略から左下へ）
-    g += curve(256, 148, 96, 434, (176, 220), (146, 350))
-    h += branch_label(152, 306)
-    h += mname(96, 382, '価格表の作り直し')
-    a_, b_ = mchain(96, 408, [('設計','done',0),('実装','now',24),('公開','wait',0)], ('indigo',))
+    h += mname(COLX[3], R[3] - 26, '問い合わせ導線')
+    a_, b_ = mchain(COLX[3], R[3], [('調査','done',0),('設計','now',8),('実装','wait',0)], ('cyan',))
     h += a_; g += b_
-    # ── 根: SNS運用の立ち上げ
-    h += mname(56, 516, 'SNS運用の立ち上げ', '遅れ 2日', RED_T)
-    a_, b_ = mchain(56, 542, [('準備','done',0),('運用設計','now',46),('運用','wait',0)], ('indigo',))
+    # ── 段4: ブログの立ち上げ（根）/ 採用ページの改修（根）
+    h += mname(COLX[0], R[4] - 26, 'ブログの立ち上げ')
+    a_, b_ = mchain(COLX[0], R[4], [('企画','done',0),('執筆','now',12),('公開','wait',0)], ('purple',))
     h += a_; g += b_
-    # ── 根: 採用ページの改修
-    h += mname(620, 508, '採用ページの改修', '要確認', AMBER_T)
-    a_, b_ = mchain(620, 534, [('調査','done',0),('設計','done',0),('試作','done',0),
-                               ('実装','now',71),('公開','wait',0)], ('green',))
+    h += mname(COLX[3], R[4] - 26, '採用ページの改修', '要確認', AMBER_T)
+    a_, b_ = mchain(COLX[3], R[4], [('調査','done',0),('設計','done',0),('試作','done',0),
+                                    ('実装','now',71),('公開','wait',0)], ('green',))
     h += a_; g += b_
-    a_, b_ = hang(800, 586, [('求人票の下書き','成果物 · 要確認')])
-    h += a_; g += b_
-    # ── 根: ブログの立ち上げ
-    h += mname(96, 624, 'ブログの立ち上げ')
-    a_, b_ = mchain(96, 650, [('企画','done',0),('執筆','now',12),('公開','wait',0)], ('purple',))
-    h += a_; g += b_
+    # ── 段5: 採用ページの成果物
+    g += elbow([(CC(4), R[4] + MH), (CC(4), R[5])], col='#2E2E2E')
+    h += node(COLX[4], R[5], MW, '求人票の下書き', '成果物 · 要確認', 'gate', h=46)
 
     out = ('<svg width="1180" height="782" viewBox="0 0 1180 782" style="position:absolute;inset:0">%s</svg>'
            % g) + h
@@ -2529,10 +2555,11 @@ def workflow_map():
             'background:#0A0A0A;border:1px solid %s;overflow:hidden">' % LINE
             + ''.join('<div style="position:absolute;left:%dpx;top:%dpx;width:%dpx;height:4px;border-radius:1px;'
                       'background:%s"></div>' % v for v in
-                      [(12, 14, 46, 'rgba(227,116,0,0.5)'), (30, 24, 34, '#2A2A2A'), (58, 34, 34, '#2A2A2A'),
-                       (22, 44, 30, '#2A2A2A'), (12, 60, 30, 'rgba(217,48,37,0.55)'),
-                       (72, 60, 40, 'rgba(227,116,0,0.5)'), (12, 74, 30, '#2A2A2A'),
-                       (96, 20, 30, '#2A2A2A'), (104, 46, 26, '#2A2A2A')])
+                      [(12, 14, 60, 'rgba(227,116,0,0.5)'), (28, 26, 30, 'rgba(227,116,0,0.5)'),
+                       (12, 40, 44, '#2A2A2A'), (76, 40, 44, '#2A2A2A'),
+                       (12, 54, 44, 'rgba(217,48,37,0.55)'), (76, 54, 44, '#2A2A2A'),
+                       (12, 68, 44, '#2A2A2A'), (76, 68, 60, 'rgba(227,116,0,0.5)'),
+                       (100, 82, 26, '#2A2A2A')])
             + '<div style="position:absolute;left:6px;top:6px;width:110px;height:76px;border-radius:5px;'
               'border:1px solid #4A4A4A;background:rgba(255,255,255,0.03)"></div></div>')
     out += composer()
@@ -2540,7 +2567,7 @@ def workflow_map():
 
 io.open(OUT + '/WorkflowMap.dc.html', 'w', encoding='utf-8').write(
     board('横に区切らない。鎖を地図に置く', 'ワークフロー（地図）', workflow_map(), GREEN_T,
-          'ポートをやめた · ぶら下げは縦 · 枝に名前を付けた'))
+          '列は 180px · 段は 104px · 枝は直角に曲げる'))
 print('WorkflowMap ok')
 
 # ══════════════════════ canvas.json ══════════════════════
