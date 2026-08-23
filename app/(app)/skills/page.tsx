@@ -159,7 +159,18 @@ export default function SkillsPage() {
       </Centre>
 
       {open && (
-      <Pane width={440} onClose={tabs.close} right={<Icon name="download" color={T4} size={14} />}
+      <Pane width={440} onClose={tabs.close} right={
+        /* ⬇ は**本当に落ちる**。開いている SKILL.md をそのまま書き出す（サーバー要らず） */
+        <button className="icob" title="ダウンロード" style={{ display: 'inline-flex', padding: 4, flexShrink: 0 }}
+          onClick={() => {
+            const url = URL.createObjectURL(new Blob([body(open)], { type: 'text/markdown' }));
+            const a = Object.assign(document.createElement('a'), { href: url, download: open });
+            a.click();
+            URL.revokeObjectURL(url);
+          }}>
+          <Icon name="download" color={T4} size={14} />
+        </button>
+      }
             tabs={tabs.ids.map((f) => ({ label: f }))} tab={tabs.at} onTab={tabs.select}>
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 18 }}>
           <pre style={{

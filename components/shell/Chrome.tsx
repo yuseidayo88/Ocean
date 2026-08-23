@@ -382,7 +382,9 @@ export function Pane({ width = 430, title, icon, dot, tabs, tab: tabAt, onTab, r
               );
             })}
             <div style={{ flex: 1 }} />
-            {right ?? <span className="icob" style={{ display: 'inline-flex', padding: 4, flexShrink: 0 }}><Icon name="plus" color={T4} size={14} /></span>}
+            {/* **飾りの ＋ を出さない。** タブを足す道は一覧の行（押すと開く）。
+                押せる顔でハンドラの無いものを既定にしない */}
+            {right}
           </>
         ) : (
           <>

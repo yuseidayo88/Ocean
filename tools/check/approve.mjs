@@ -84,6 +84,10 @@ await ev(`[...document.querySelectorAll('.rise button')].find(b => b.innerText =
 await wait(2500);
 ok('自由入力が通る（全部答えたら板は消える）', (await askText()).trim() === '', (await askText()).slice(0, 40));
 
+// 板が消えたら、答えは**緑のチップ**で残る（どこにも見えなくならない）
+const chips = await text();
+ok('答えがチップで残る', chips.includes('答えてもらった条件') && chips.includes('個人') && chips.includes('半年くらい'));
+
 // ② 根拠のペインに、その計画と関係のない前提が残っていないか
 await ev(`[...document.querySelectorAll('button')].find(b => b.title === '右を開く')?.click()`); await wait(700);
 const why = await ev(`document.querySelector('aside')?.innerText ?? ''`);

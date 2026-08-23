@@ -167,9 +167,17 @@ RLS の with check は `account_id = private.current_account_id()` のままな�
 | 変数 | いつ要るか |
 |---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ログインとデータ。Phase 3 |
-| `SUPABASE_SERVICE_ROLE_KEY` | バックエンドから進捗や台帳を書くとき。Phase 6 以降 |
-| `ANTHROPIC_API_KEY` | AI社員が動き出すとき。Phase 7 |
-| `OPENAI_API_KEY` | 同上（いまは全階層 Anthropic なので任意） |
+| ~~`SUPABASE_SERVICE_ROLE_KEY`~~ | **使っていない**（.env.example からも消した）。行は全部 RLS で絞るので、漏れたとき全社が出る鍵を持つ理由がない。Phase 7 の実行基盤（Durable Object にはセッションが無い）でどう書くかは、**そのとき service role を安易に持ち出さずに決める** — 候補は「絞った専用ロール ＋ 引き金」 |
+| `OPENROUTER_API_KEY` | AI社員が動き出すとき。Phase 7。**通り道は OpenRouter**（→ 05 判断ログ） |
+| `APP_URL` | OpenRouter の一覧に出す名前（任意） |
+| `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | 直につなぐときの逃げ道。`lib/ai/tiers.ts` の `vendor` を書き換えたときだけ |
+
+本番（Cloudflare）では `wrangler secret put OPENROUTER_API_KEY` で入れる。
+`wrangler.jsonc` の `vars` に書かない（`vars` は平文でリポジトリに残る）。
+
+**鍵が入ったら最初に確かめること**（この開発環境からは `openrouter.ai` に出られない）:
+`GET https://openrouter.ai/api/v1/models` でモデルの slug
+（`anthropic/claude-opus-5` の綴り）／ プロンプトキャッシュの透過 ／ `usage` の中身。
 
 ## デプロイ
 

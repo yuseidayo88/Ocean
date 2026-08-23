@@ -91,9 +91,14 @@ export async function reviseWork(id: string, ask: string): Promise<ReviseResult>
   let out: { draft: Draft; real: boolean };
   try {
     // 前の計画を文脈に渡す。**ゼロから引き直させない**（直しなので、残すところは残す）
+    // **社長が答えたことも渡す** — 聞いておいて引き直しで忘れるのがいちばん失礼
+    const answered = before.questions
+      .filter((q) => q.answer)
+      .map((q) => `${q.body} → ${q.answer}`);
     out = await draftWork(before.goal, [
       'これは引き直しです。前に立てた計画はこうでした:',
       JSON.stringify({ container: before.container, plan: before.plan, hires: before.hires }),
+      ...(answered.length ? ['', '社長がすでに答えていること:', ...answered] : []),
       '',
       '社長からの直しの指示:',
       text,

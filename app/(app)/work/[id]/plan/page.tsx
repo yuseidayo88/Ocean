@@ -5,7 +5,7 @@ import { Go as Link } from '@/components/ui/Go';
 
 import { useOpen } from '@/lib/use-open';
 import { notFound, useParams } from 'next/navigation';
-import { Ask, Centre, Composer, ExecStatus, Pane, TopBar } from '@/components/shell/Chrome';
+import { Ask, Centre, Chips, Composer, ExecStatus, Pane, TopBar } from '@/components/shell/Chrome';
 import { AMBER, AMBER_T, BLUE, COMPOSER_H, DIM, EDGE, GREEN_T, HAIR, RED_T, SEAM, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
 import { useShell } from '@/components/shell/Shell';
 import { Icon } from '@/components/ui/Icon';
@@ -115,6 +115,14 @@ export default function PlanPage() {
   const firstOpen = v.asks.findIndex((a) => !a.answer);
   const askAt = at >= 0 ? Math.min(at, v.asks.length - 1) : firstOpen;
   const ASK = !hideAsk && askAt >= 0 ? v.asks[askAt] : null;
+  /**
+   * 板が閉じたら（全部答えた / スキップで引っ込めた）、答えは**緑のチップで残す**。
+   * 答えたのに画面のどこにも見えない、をつくらない（→ CLAUDE.md「答え終わった条件は
+   * 緑のチェック＋項目名つきのチップで見せる」）。承認済みの画面でも出す。
+   */
+  const DONE = !ASK
+    ? v.asks.filter((a) => a.answer).map((a) => [a.body, a.answer!] as [string, string])
+    : [];
   // 作るものは2列に割る
   const half = Math.ceil(v.makes.length / 2);
   const MAKES = [v.makes.slice(0, half), v.makes.slice(half)];
@@ -301,7 +309,7 @@ export default function PlanPage() {
           */}
         <Composer placeholder="直したいところを書く、@ で資料を参照"
                   onSend={revise} busy={!!busy}
-                  above={ASK && (
+                  above={ASK ? (
                     <Ask
                       q={ASK.body} idx={askAt + 1} total={v.asks.length}
                       options={ASK.options} free="自分の言葉で書く" answer={ASK.answer}
@@ -314,7 +322,7 @@ export default function PlanPage() {
                       }}
                       onMove={(d) => setAt(Math.min(Math.max(askAt + d, 0), v.asks.length - 1))}
                     />
-                  )} />
+                  ) : DONE.length > 0 ? <Chips items={DONE} /> : undefined} />
       </Centre>
 
       {pane && (

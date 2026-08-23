@@ -97,15 +97,19 @@ export const supabaseStore: Store = {
     if (!w?.plan_draft) return null;
 
     const d = w.plan_draft as unknown as DraftBody;
-    // 答えは台帳のほうが真実。控えの質問に重ねる（並びは作った順＝聞いた順）
+    /**
+     * 答えは台帳のほうが真実。控えの質問に **seq（＝聞いた順）で** 重ねる。
+     * 前は本文で引いていた — 同じ文の質問が2つあると混線するし、
+     * `answer(id, index)` は seq で書くので、読む側も同じ物差しで揃える。
+     */
     const { data: qs } = await c
-      .from('questions').select('seq, body, answer').eq('work_id', id).order('seq');
-    const byBody = new Map((qs ?? []).map((q) => [q.body, q.answer ?? undefined]));
+      .from('questions').select('seq, answer').eq('work_id', id).order('seq');
+    const bySeq = new Map((qs ?? []).map((q) => [q.seq as number, (q.answer ?? undefined) as string | undefined]));
 
     return {
       id: w.id as string, title: w.title as string, goal: w.goal as string,
       container: d.container, hires: d.hires, plan: d.plan, real: d.real,
-      questions: d.questions.map((q) => ({ ...q, answer: byBody.get(q.body) ?? q.answer })),
+      questions: d.questions.map((q, i) => ({ ...q, answer: bySeq.get(i + 1) ?? q.answer })),
       approved: w.status !== 'plan_review',
       createdAt: w.created_at as string,
     };

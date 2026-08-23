@@ -22,7 +22,8 @@ export function pickProvider(): { p: ModelProvider; real: boolean } {
   return { p: providerFor('deep'), real: true };
 }
 
-const shape = (system: string, goal: string, ctx: string): Msg[] => [
+// 憲法は system に載る（provider が渡す）。ここは user の1通だけ
+const shape = (goal: string, ctx: string): Msg[] => [
   { role: 'user', content: `${ctx}\n\n社長のゴール:\n${goal}\n\n道具を順に呼んでください。文章では答えないでください。` },
 ];
 
@@ -36,7 +37,7 @@ export async function draftWork(goal: string, ctx = ''): Promise<RunResult> {
   for await (const c of p.stream({
     tier: 'deep',
     system: CONSTITUTION,
-    messages: shape(CONSTITUTION, goal, ctx),
+    messages: shape(goal, ctx),
     tools: PHASE5_TOOLS,
     /**
      * 道具を5つ、1往復で全部書かせる。**4,000 では足りない。**

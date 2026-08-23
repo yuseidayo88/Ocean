@@ -20,7 +20,11 @@ export interface TierSpec {
    *   anthropic / openai → そのまま（例 `claude-opus-5`）
    */
   model: string
-  /** 直につないだときの名前。OpenRouter が使えないときの逃げ道 */
+  /**
+   * **Anthropic 直**につないだときの名前。OpenRouter が使えないときの逃げ道。
+   * `vendor: 'openai'` に切り替えるなら、この表ごと OpenAI のモデル名に書き換えること
+   * （`direct` は Anthropic の名前しか持っていない）。
+   */
   direct: string
   /** 100万トークンあたりの単価（USD）。原価の計算に使う。**画面には出さない** */
   inPerMTok: number
