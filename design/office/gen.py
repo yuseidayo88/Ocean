@@ -31,6 +31,13 @@ HEAD = '''<!doctype html>
     .tnum { font-variant-numeric: tabular-nums; }
     /* 並ぶものはヘアラインだけで区切る。外枠は付けない */
     .r { border-top: 1px solid %s; }
+    /* スクロールの棒は細く。色は増やさない */
+    .sy, .sx { scrollbar-width: thin; scrollbar-color: #2A2A2A transparent; }
+    .sy { overflow-y: auto; overflow-x: hidden; }
+    .sx { overflow-x: auto; overflow-y: hidden; }
+    .sy::-webkit-scrollbar, .sx::-webkit-scrollbar { width: 6px; height: 6px; }
+    .sy::-webkit-scrollbar-track, .sx::-webkit-scrollbar-track { background: transparent; }
+    .sy::-webkit-scrollbar-thumb, .sx::-webkit-scrollbar-thumb { background: #2A2A2A; border-radius: 3px; }
   </style>
 </helmet>
 ''' % (BG, T1, HAIR)
@@ -1059,6 +1066,13 @@ FEED_A3 = FEED + [
     ('07:40', '戦略担当', '調査担当 から事実 34件を受け取りました',       T3),
     ('07:22', '統括AI',   'SNS運用の立ち上げ が 2日 遅れています',        RED_T),
     ('07:05', '統括AI',   'きょうのぶんの計画を引き直しました',            T3),
+    ('06:58', '開発担当', 'フォームの入力チェックを書きました',            T3),
+    ('06:44', '調査担当', '価格表を3件ぶん書き出しました',                T3),
+    ('06:30', '戦略администр'.replace('администр','担当'), '前提を4つ置きました', T3),
+    ('06:12', '企画担当', '投稿の型を2つ決めました',                      T3),
+    ('05:55', '統括AI',   '調査担当 に競合の追加調査を渡しました',         T3),
+    ('05:40', '開発担当', 'LPの下書きを受け取りました',                   T3),
+    ('05:22', '調査担当', '競合5件の機能を並べました',                    T3),
 ]
 
 rail_a3 = ('<div style="width:300px;flex-shrink:0;display:flex;flex-direction:column">'
@@ -1207,11 +1221,21 @@ def sec(t, right=''):
             '<span style="color:%s;font-size:11px">%s</span><div style="flex:1"></div>'
             '<span style="color:%s;font-size:10.5px">%s</span></div>' % (T5, t, T5, right))
 
-def logcol(n=12, w=288):
+def logcol(n=12, w=288, h=None):
+    """ログは**縦にスクロール**する。下端はグラデーションに溶かして「まだある」と分かるように"""
+    rows = ''.join(feed_row(t, a, x, c, i == n - 1) for i, (t, a, x, c) in enumerate(FEED_A3[:n]))
+    if h is None:
+        return ('<div style="width:%dpx;flex-shrink:0;display:flex;flex-direction:column;'
+                'border-left:1px solid %s;padding-left:20px">%s%s</div>'
+                % (w, HAIR, sec('今日の出来事', '動いています'), rows))
     return ('<div style="width:%dpx;flex-shrink:0;display:flex;flex-direction:column;'
-            'border-left:1px solid %s;padding-left:20px">%s%s</div>'
-            % (w, HAIR, sec('今日の出来事', '動いています'),
-               ''.join(feed_row(t, a, x, c, i == n - 1) for i, (t, a, x, c) in enumerate(FEED_A3[:n]))))
+            'border-left:1px solid %s;padding-left:20px">%s'
+            '<div style="position:relative;height:%dpx;min-height:0">'
+            '<div class="sy" style="position:absolute;inset:0;padding-right:8px">%s</div>'
+            '<div style="position:absolute;left:0;right:0;bottom:0;height:36px;pointer-events:none;'
+            'background:linear-gradient(rgba(0,0,0,0), #000)"></div>'
+            '</div></div>'
+            % (w, HAIR, sec('今日の出来事', '動いています'), h, rows))
 
 def logband(cols=4, rows=3):
     """ログを横に流す。時系列なので左→右・上→下で読める"""
@@ -1393,8 +1417,8 @@ def deskcard(name, key, state, spec, now, el, done, running, total, log, first=F
     fig, cap = PRODUCE_C[name]()
     w = WAIT[name]
     return ('<div style="%sdisplay:flex;flex-direction:column;gap:8px;min-width:0">'
-            % ('width:206px;flex-shrink:0;' if first
-               else 'flex:1;border-left:1px solid %s;padding-left:24px;' % HAIR)
+            % ('width:186px;flex:0 0 186px;' if first
+               else 'flex:0 0 186px;border-left:1px solid %s;padding-left:20px;box-sizing:content-box;' % HAIR)
             # 誰
             + '<div style="display:flex;align-items:center;gap:8px;height:26px">'
               + orb(RGB[key], 26) + '<span style="font-size:13px">%s</span>' % name
@@ -1432,14 +1456,15 @@ b3 = ('<div style="position:relative;padding:16px 30px 0;display:flex;flex-direc
     + '<div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center">%s</div>'
       % flow(810, 404, ringset((222, 90), (312, 126), (402, 162)),
              orb_px=34, exec_px=46, labdeg=[198, 225, 242])
-    + logcol(8)
+    + logcol(len(FEED_A3), h=378)
   + '</div>'
   # 下: 社員。**入力欄のぶん逃がす**
   + '<div style="border-top:1px solid %s;padding-top:12px;margin-bottom:%dpx">' % (HAIR, COMPOSER_NOTE)
     + '<div style="display:flex;align-items:baseline;padding-bottom:10px">'
       '<span style="color:%s;font-size:11px">AI社員</span><div style="flex:1"></div>'
       '<span style="color:%s;font-size:10.5px" class="tnum">4人  ·  稼働 4 / 4</span></div>' % (T5, T5)
-    + '<div style="display:flex;gap:24px;align-items:flex-start">'
+    # **人が増えたら横にスクロール**。1人ぶんの幅は縮めない
+    + '<div class="sx" style="display:flex;gap:20px;align-items:flex-start;padding-bottom:6px">'
       + ''.join(deskcard(*m, first=(i == 0)) for i, m in enumerate(REAL))
     + '</div>'
   + '</div>'
@@ -1469,6 +1494,356 @@ io.open(OUT + '/LayoutOneColumn.dc.html', 'w', encoding='utf-8').write(
           '引き換えに: ログが6件しか出ない'))
 print('L4 ok')
 
+# ══════════════════════ 図の作り直し（意味のない要素をなくす） ══════════════════════
+# 1つの Work は「フェーズが順番に進む道」。データはこれで全部そろう。
+#   name / 総週数 / [(フェーズ名, 週数, その区間をやった人 or None)] / いまの位置(週) /
+#   [(位置, 名前, 色, 判断待ちか)] / 予定との差
+WF = [
+    ('日本語学習サービス', 10,
+     [('調査', 3, 'cyan'), ('戦略', 3, 'purple'), ('プロダクト', 2, None), ('ローンチ', 2, None)],
+     5.2, [(1.5, '調査担当', 'cyan', False), (4.1, '戦略担当', 'purple', True)], None, '戦略'),
+    ('SNS運用の立ち上げ', 5,
+     [('準備', 1, 'indigo'), ('運用設計', 2, 'indigo'), ('運用', 2, None)],
+     1.9, [(1.45, '企画担当', 'indigo', False)], (1.9, 2.6), '運用設計'),
+    ('LPと申込フォーム', 7,
+     [('設計', 2, 'indigo'), ('制作', 3, 'green'), ('公開', 2, None)],
+     4.27, [(3.14, '開発担当', 'green', False)], None, '制作'),
+]
+
+def tri(x, y, dx, dy, s_, color):
+    """進む向きの矢羽根"""
+    L = math.hypot(dx, dy); dx, dy = dx / L, dy / L
+    nx, ny = -dy, dx
+    return ('<polygon points="%.1f,%.1f %.1f,%.1f %.1f,%.1f" fill="%s"/>'
+            % (x + dx * s_, y + dy * s_,
+               x - dx * s_ * .55 + nx * s_ * .78, y - dy * s_ * .55 + ny * s_ * .78,
+               x - dx * s_ * .55 - nx * s_ * .78, y - dy * s_ * .55 - ny * s_ * .78, color))
+
+# ── 図B 川（横＝フェーズ） ───────────────────────────────────
+def fig_river(fw=810, fh=404):
+    X0, X1 = 196, fw - 26
+    W_ = X1 - X0
+    lanes = [92, 202, 312]
+    g = ['<svg width="%d" height="%d" viewBox="0 0 %d %d" style="position:absolute;inset:0">' % (fw, fh, fw, fh)]
+    html = ''
+    # 統括AI から各 Work のはじまりへ（仕事が生まれるところ）
+    for y in lanes:
+        g.append('<path d="M 64 %d C 120 %d 120 %.0f 190 %.0f" fill="none" stroke="#1F1F1F" stroke-width="1"/>'
+                 % (fh // 2, fh // 2, y, y))
+    for li, (name, tot, phases, at, emps, behind, curph) in enumerate(WF):
+        y = lanes[li]
+        ty = y                                         # 道の高さ
+        cum = 0.0
+        # フェーズの区切りと名前
+        for pi, (pn, wk, holder) in enumerate(phases):
+            x0 = X0 + W_ * cum / tot
+            x1 = X0 + W_ * (cum + wk) / tot
+            if pi:
+                g.append('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#232323" stroke-width="1"/>'
+                         % (x0, ty - 13, x0, ty + 13))
+            # 道: 済んだぶんは担当の色、これからは暗い面
+            g.append('<rect x="%.1f" y="%.1f" width="%.1f" height="6" rx="3" fill="#161616"/>'
+                     % (x0 + 1, ty - 3, max(0, x1 - x0 - 2)))
+            fill = min(x1, X0 + W_ * at / tot)
+            if fill > x0 and holder:
+                cur = cum + wk > at                    # いまいるフェーズ
+                g.append('<rect x="%.1f" y="%.1f" width="%.1f" height="6" rx="3" fill="%s" opacity="%s"/>'
+                         % (x0 + 1, ty - 3, max(0, fill - x0 - 2), HEX[holder], '.95' if cur else '.5'))
+            if pi:                                     # 担当が変わるところ＝引き継ぎ
+                if holder and phases[pi - 1][2] and holder != phases[pi - 1][2] and x0 <= X0 + W_ * at / tot:
+                    g.append(tri(x0, ty, 1, 0, 5.0, HEX[holder]))
+            html += ('<div style="position:absolute;left:%.1fpx;top:%.1fpx;color:%s;font-size:10px;'
+                     'white-space:nowrap">%s</div>' % (x0 + 5, ty - 26, T5 if x1 - x0 > 44 else 'transparent', pn))
+            cum += wk
+        # 予定との差
+        if behind:
+            b0, b1 = X0 + W_ * behind[0] / tot, X0 + W_ * behind[1] / tot
+            g.append('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="%s" stroke-width="2" '
+                     'stroke-dasharray="3 4" stroke-linecap="round"/>' % (b0, ty, b1, ty, RED))
+        # 判断待ち＝先端のすぐ先に橙の菱形
+        gate = [e for e in emps if e[3]]
+        if gate:
+            gx = X0 + W_ * at / tot + 16
+            g.append('<circle cx="%.1f" cy="%.1f" r="11" fill="rgba(227,116,0,0.13)"/>' % (gx, ty))
+            g.append('<rect x="%.1f" y="%.1f" width="9" height="9" rx="1.5" fill="%s" '
+                     'transform="rotate(45 %.1f %.1f)"/>' % (gx - 4.5, ty - 4.5, AMBER, gx, ty))
+        # Work 名（左）
+        html += ('<div style="position:absolute;left:0px;top:%.1fpx;width:%dpx;text-align:right;'
+                 'display:flex;align-items:center;justify-content:flex-end;gap:7px;white-space:nowrap">'
+                 '<span style="color:%s;font-size:11.5px">%s</span>%s</div>'
+                 % (ty - 8, X0 - 16, T3, name, dot(HEX[phases[-1][2] or emps[-1][2]], 5)))
+        # 社員は道の上に立つ。**いるフェーズの真上**
+        for ex, en, ek, eg in emps:
+            x = X0 + W_ * ex / tot
+            # **道の上に立つ**（いるフェーズの真上）。名前は下
+            html += ('<div style="position:absolute;left:%.1fpx;top:%.1fpx;transform:translate(-50%%,-50%%);'
+                     'display:flex">%s</div>'
+                     '<div style="position:absolute;left:%.1fpx;top:%.1fpx;transform:translateX(-50%%);'
+                     'color:%s;font-size:11px;white-space:nowrap">%s</div>'
+                     % (x, ty, orb(RGB[ek], 28), x, ty + 20, AMBER_T if eg else T2, en))
+    g.append('</svg>')
+    html += ('<div style="position:absolute;left:18px;top:%dpx;transform:translateY(-50%%);'
+             'display:flex;flex-direction:column;align-items:center;gap:6px">'
+             '%s<span style="color:#E8E8E8;font-size:11.5px">統括AI</span></div>'
+             % (fh // 2, orb(RGB['white'], 44, glow=.5)))
+    return ('<div style="position:relative;width:%dpx;height:%dpx;flex-shrink:0">%s%s</div>'
+            % (fw, fh, ''.join(g), html))
+
+# ── 図A フェーズの扇（中心から外へ ＝ 完成に近づく） ─────────────
+def fig_fan(fw=810, fh=404):
+    cx, cy = fw / 2, fh - 34
+    RX, RY = 290, 286
+    ANG = [150, 90, 30]
+    def pt(f, a):
+        r = math.radians(a)
+        return cx + f * RX * math.cos(r), cy - f * RY * math.sin(r)
+    g = ['<svg width="%d" height="%d" viewBox="0 0 %d %d" style="position:absolute;inset:0">' % (fw, fh, fw, fh)]
+    for f, c in [(.25, '#151515'), (.5, '#151515'), (.75, '#151515'), (1.0, '#242424')]:
+        x0, y0 = pt(f, 176); x1, y1 = pt(f, 4)
+        g.append('<path d="M %.1f %.1f A %.1f %.1f 0 0 1 %.1f %.1f" fill="none" stroke="%s" stroke-width="1"/>'
+                 % (x0, y0, f * RX, f * RY, x1, y1, c))
+    html = ''
+    for li, (name, tot, phases, at, emps, behind, curph) in enumerate(WF):
+        a = ANG[li]
+        cum = 0.0
+        # 道（薄い線）
+        x0, y0 = pt(0.10, a); x1, y1 = pt(1.0, a)
+        g.append('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#161616" stroke-width="6" '
+                 'stroke-linecap="round"/>' % (x0, y0, x1, y1))
+        for pi, (pn, wk, holder) in enumerate(phases):
+            f0, f1 = .10 + .90 * cum / tot, .10 + .90 * (cum + wk) / tot
+            ff = .10 + .90 * at / tot
+            if pi:                                   # フェーズの境目
+                bx, by = pt(f0, a)
+                dx, dy = pt(f0 + .02, a)[0] - bx, pt(f0 + .02, a)[1] - by
+                L = math.hypot(dx, dy)
+                g.append('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#2E2E2E" stroke-width="1"/>'
+                         % (bx - dy / L * 7, by + dx / L * 7, bx + dy / L * 7, by - dx / L * 7))
+            if holder and ff > f0:
+                ex, ey = pt(min(f1, ff), a); sx, sy = pt(f0, a)
+                cur = cum + wk > at
+                g.append('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="%s" stroke-width="6" '
+                         'stroke-linecap="round" opacity="%s"/>' % (sx, sy, ex, ey, HEX[holder], '.95' if cur else '.5'))
+                if pi and phases[pi - 1][2] and holder != phases[pi - 1][2]:
+                    dx, dy = pt(f0 + .02, a)[0] - sx, pt(f0 + .02, a)[1] - sy
+                    g.append(tri(sx, sy, dx, dy, 5.0, HEX[holder]))
+            cum += wk
+        if behind:
+            f0, f1 = .10 + .90 * behind[0] / tot, .10 + .90 * behind[1] / tot
+            bx0, by0 = pt(f0, a); bx1, by1 = pt(f1, a)
+            g.append('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="%s" stroke-width="2.4" '
+                     'stroke-dasharray="3 4" stroke-linecap="round"/>' % (bx0, by0, bx1, by1, RED))
+        gate = [e for e in emps if e[3]]
+        if gate:
+            gx, gy = pt(.10 + .90 * at / tot + .05, a)
+            g.append('<circle cx="%.1f" cy="%.1f" r="11" fill="rgba(227,116,0,0.13)"/>' % (gx, gy))
+            g.append('<rect x="%.1f" y="%.1f" width="9" height="9" rx="1.5" fill="%s" '
+                     'transform="rotate(45 %.1f %.1f)"/>' % (gx - 4.5, gy - 4.5, AMBER, gx, gy))
+        # Work 名は道の先（外）に
+        tx, ty = pt(1.06, a)
+        al = 'flex-end' if a > 100 else ('center' if a == 90 else 'flex-start')
+        html += ('<div style="position:absolute;left:%.0fpx;top:%.0fpx;transform:translate(%s,-50%%);'
+                 'display:flex;align-items:center;gap:7px;white-space:nowrap">%s'
+                 '<span style="color:%s;font-size:11px">%s</span></div>'
+                 % (tx, ty, '-100%' if a > 100 else ('-50%' if a == 90 else '0'),
+                    dot(HEX[phases[-1][2] or emps[-1][2]], 5), T3, name))
+        nudge = {150: (-30, 18), 90: (38, 2), 30: (30, 18)}[a]
+        for ef, en, ek, eg in emps:
+            f = .10 + .90 * ef / tot
+            x, y = pt(f, a)
+            lead = ef == max(e2[0] for e2 in emps)
+            html += ('<div style="position:absolute;left:%.1fpx;top:%.1fpx;transform:translate(-50%%,-50%%);'
+                     'display:flex">%s</div>'
+                     '<div style="position:absolute;left:%.1fpx;top:%.1fpx;transform:translate(-50%%,0);'
+                     'display:flex;flex-direction:column;align-items:center;gap:2px;white-space:nowrap">'
+                     '<span style="color:%s;font-size:11px">%s</span>%s</div>'
+                     % (x, y, orb(RGB[ek], 30),
+                        x + nudge[0], y + nudge[1], AMBER_T if eg else T2, en,
+                        ('<span style="color:%s;font-size:10px">%s</span>' % (T5, curph)) if lead else ''))
+    g.append('</svg>')
+    html += ('<div style="position:absolute;left:%.0fpx;top:%.0fpx;transform:translate(-50%%,-50%%);'
+             'display:flex;flex-direction:column;align-items:center;gap:5px">'
+             '%s<span style="color:#E8E8E8;font-size:11.5px">統括AI</span></div>'
+             % (cx, cy - 4, orb(RGB['white'], 44, glow=.5)))
+    x1, y1 = pt(1.0, 4)
+    html += ('<div style="position:absolute;left:%.0fpx;top:%.0fpx;color:%s;font-size:10px">完了</div>'
+             % (x1 + 6, y1 - 6, DIM))
+    return ('<div style="position:relative;width:%dpx;height:%dpx;flex-shrink:0">%s%s</div>'
+            % (fw, fh, ''.join(g), html))
+
+# ── 図C いまの輪＋フェーズの刻み ─────────────────────────────
+CR = [(124, 78), (174, 110), (226, 146)]
+CSEG = [[(0, 30, 'cyan'), (30, 52, 'purple')], [(0, 38, 'indigo')], [(0, 28.57, 'indigo'), (28.57, 61, 'green')]]
+CTICK = [[30, 60, 80], [20, 60], [28.57, 71.43]]
+CEMP = [[(15, '調査担当', 'cyan', False), (41, '戦略担当', 'purple', True)],
+        [(19, '企画担当', 'indigo', False)], [(44.8, '開発担当', 'green', False)]]
+CLAB = [198, 225, 242]
+
+def fig_rings(fw=810, fh=404):
+    cx, cy = fw / 2, fh / 2
+    def pt(rx, ry, p):
+        a = math.radians(-90 + 3.6 * p)
+        return cx + rx * math.cos(a), cy + ry * math.sin(a)
+    g = ['<svg width="%d" height="%d" viewBox="0 0 %d %d" style="position:absolute;inset:0">' % (fw, fh, fw, fh)]
+    for li, (rx, ry) in enumerate(CR):
+        name, tot, phases, at, _, behind, curph = WF[li]
+        g.append('<ellipse cx="%.0f" cy="%.0f" rx="%d" ry="%d" fill="none" stroke="#1B1B1B" stroke-width="1"/>'
+                 % (cx, cy, rx, ry))
+        # **フェーズの境目を輪に刻む**（これがあると「どのフェーズにいるか」が輪の上で読める）
+        for t in [0] + CTICK[li]:
+            x, y = pt(rx, ry, t)
+            a = math.radians(-90 + 3.6 * t)
+            nx, ny = math.cos(a), math.sin(a)
+            g.append('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#2E2E2E" stroke-width="1"/>'
+                     % (x - nx * 5, y - ny * 5, x + nx * 5, y + ny * 5))
+        for k, (p0, p1, key) in enumerate(CSEG[li]):
+            x0, y0 = pt(rx, ry, p0); x1, y1 = pt(rx, ry, p1)
+            g.append('<path d="M %.1f %.1f A %.1f %.1f 0 %d 1 %.1f %.1f" fill="none" stroke="%s" '
+                     'stroke-width="2.6" stroke-linecap="round" opacity=".95"/>'
+                     % (x0, y0, rx, ry, 1 if p1 - p0 > 50 else 0, x1, y1, HEX[key]))
+            if k:
+                a = math.radians(-90 + 3.6 * p0)
+                tx, ty2 = -rx * math.sin(a), ry * math.cos(a)
+                g.append(tri(x0, y0, tx, ty2, 5.0, HEX[key]))
+        tip = CSEG[li][-1][1]
+        for back, r, o in [(1.6, 2.6, .9), (4.0, 2.0, .5), (6.8, 1.5, .26)]:
+            x, y = pt(rx, ry, tip - back)
+            g.append('<circle cx="%.1f" cy="%.1f" r="%s" fill="%s" opacity="%s"/>' % (x, y, r, HEX[CSEG[li][-1][2]], o))
+        if behind:
+            b0, b1 = tip, tip + (behind[1] - behind[0]) / tot * 100
+            x0, y0 = pt(rx, ry, b0); x1, y1 = pt(rx, ry, b1)
+            g.append('<path d="M %.1f %.1f A %.1f %.1f 0 0 1 %.1f %.1f" fill="none" stroke="%s" '
+                     'stroke-width="2.2" stroke-dasharray="3 4" stroke-linecap="round"/>' % (x0, y0, rx, ry, x1, y1, RED))
+        if any(e[3] for e in CEMP[li]):
+            a = math.radians(-90 + 3.6 * tip)
+            tx, ty2 = -rx * math.sin(a), ry * math.cos(a)
+            L = math.hypot(tx, ty2)
+            x, y = pt(rx, ry, tip)
+            x += tx / L * 34; y += ty2 / L * 34
+            g.append('<circle cx="%.1f" cy="%.1f" r="11" fill="rgba(227,116,0,0.13)"/>' % (x, y))
+            g.append('<rect x="%.1f" y="%.1f" width="9" height="9" rx="1.5" fill="%s" '
+                     'transform="rotate(45 %.1f %.1f)"/>' % (x - 4.5, y - 4.5, AMBER, x, y))
+    for li, (rx, ry) in enumerate(CR):
+        for ep, en, ek, eg in CEMP[li]:
+            x, y = pt(rx, ry, ep)
+            dx, dy = x - cx, y - cy
+            L = math.hypot(dx, dy)
+            g.append('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#1F1F1F" stroke-width="1"/>'
+                     % (cx + dx / L * 30, cy + dy / L * 30, cx + dx / L * (L - 20), cy + dy / L * (L - 20)))
+    g.append('</svg>')
+    out = ''.join(g)
+    for li, (rx, ry) in enumerate(CR):
+        name, tot, phases, at, _, behind, curph = WF[li]
+        a = math.radians(CLAB[li])
+        x, y = cx + rx * math.cos(a) + 1, cy + ry * math.sin(a)
+        out += ('<div style="position:absolute;left:%.0fpx;top:%.0fpx;transform:translate(-100%%,-50%%);'
+                'display:flex;align-items:center;gap:7px;white-space:nowrap">'
+                '%s<span style="color:%s;font-size:11px">%s</span>'
+                '<span style="width:12px;height:1px;background:#2E2E2E"></span></div>'
+                % (x, y, dot(HEX[CSEG[li][-1][2]], 5), T3, name))
+    out += ('<div style="position:absolute;left:%.0fpx;top:%.0fpx;transform:translate(-50%%,-50%%);'
+            'display:flex;flex-direction:column;align-items:center;gap:6px">'
+            '%s<span style="color:#E8E8E8;font-size:12px">統括AI</span></div>'
+            % (cx, cy, orb(RGB['white'], 44, glow=.5)))
+    for li, (rx, ry) in enumerate(CR):
+        curph = WF[li][6]
+        lead = max(e[0] for e in CEMP[li])
+        for ep, en, ek, eg in CEMP[li]:
+            x, y = pt(rx, ry, ep)
+            out += ('<div style="position:absolute;left:%.0fpx;top:%.0fpx;transform:translate(-50%%,-50%%);'
+                    'display:flex;flex-direction:column;align-items:center;gap:5px;white-space:nowrap">'
+                    '%s<span style="color:%s;font-size:11.5px">%s</span>%s</div>'
+                    % (x, y, orb(RGB[ek], 32), AMBER_T if eg else T2, en,
+                       ('<span style="color:%s;font-size:10px">%s</span>' % (T5, curph)) if ep == lead else ''))
+    return '<div style="position:relative;width:%dpx;height:%dpx;flex-shrink:0">%s</div>' % (fw, fh, out)
+
+def figboard(title, tag, note, fig, tagcolor=BLUE_T):
+    return board(title, tag,
+                 '<div style="padding:30px 0 34px;display:flex;justify-content:center">%s</div>' % fig,
+                 tagcolor, note)
+
+io.open(OUT + '/FigureRiver.dc.html', 'w', encoding='utf-8').write(
+    figboard('横がフェーズ。道の上に社員が立つ', '図B 川', '進捗のガントと形が似る', fig_river()))
+print('FigB ok')
+io.open(OUT + '/FigureFan.dc.html', 'w', encoding='utf-8').write(
+    figboard('中心から外へ。外の弧に届いたら完了', '図A 扇', '3本より増えると角度が窮屈', fig_fan()))
+print('FigA ok')
+io.open(OUT + '/FigureRings.dc.html', 'w', encoding='utf-8').write(
+    figboard('いまの輪に、フェーズの境目を刻む', '図C 輪＋刻み', 'いちばん変更が小さい · 左半分は空いたまま', fig_rings()))
+print('FigC ok')
+
+# ══════════════════════ 図の意味の台帳 ══════════════════════
+NONE = '意味なし'
+
+MEAN = [
+  ('中心にあるもの',   '統括AI',            '統括AI（仕事が生まれるところ）', '統括AI（左端が源）',      '統括AI'),
+  ('中心からの距離',   NONE + '（重ねる順だけ）', '完成にどれだけ近いか',    '—',                      NONE + '（重ねる順だけ）'),
+  ('角度 / 縦の位置',  '進んだ割合',        'どの Work か',                'どの Work か',            '進んだ割合'),
+  ('道の長さ',         '進んだ割合',        '進んだ割合',                  '進んだ割合',              '進んだ割合'),
+  ('道の色',           'その区間をやった人', 'その区間をやった人',          'その区間をやった人',      'その区間をやった人'),
+  ('色の変わり目',     '引き継ぎ',          '引き継ぎ ＝ フェーズの境目',   '引き継ぎ ＝ フェーズの境目', '引き継ぎ ＝ フェーズの境目'),
+  ('先端の尾',         'いま動いているところ', 'いま動いているところ',      '—（球が先端に立つ）',      'いま動いているところ'),
+  ('目盛り',           '無い',              'フェーズの境目',              'フェーズの境目 ＋ 名前',   'フェーズの境目'),
+  ('赤い点線',         '予定との差',        '予定との差',                  '予定との差',              '予定との差'),
+  ('橙の菱形',         'あなたが決めるところ', 'あなたが決めるところ',      'あなたが決めるところ',    'あなたが決めるところ'),
+  ('球の位置',         'その人の区間のまん中', 'いるフェーズ',              'いるフェーズ',            'いるフェーズ'),
+  ('球の大きさ',       NONE,                NONE + '（わざと）',           NONE + '（わざと）',       NONE + '（わざと）'),
+  ('外の縁 / 右の端',  NONE,                '完了',                        '完了',                    NONE),
+]
+
+QMAP = [
+  ('誰から誰に渡ったか',   '道の色が変わるところ。変わり目に時計回りの矢羽根が立つ'),
+  ('どのくらい進んでいるか', '道の長さ。A は中心からの距離、B は左からの距離、C は弧の角度'),
+  ('どのフェーズに誰がいるか', '球が立っている区間。境目の目盛りと、先頭の球の下のフェーズ名'),
+]
+
+def m_cell(t, w):
+    c = RED_T if t.startswith(NONE) else (T2 if t not in ('—', '無い') else T5)
+    return ('<span style="width:%dpx;flex-shrink:0;color:%s;font-size:11.5px;line-height:18px">%s</span>'
+            % (w, c, t))
+
+mean_body = ('<div style="padding:22px 30px 30px;display:flex;flex-direction:column;gap:26px">'
+  '<span style="color:%s;font-size:13.5px;line-height:22px;max-width:960px">'
+  '図に置いてあるもの全部に、意味があるかどうかを書き出しました。'
+  'いまの図で<b style="color:%s">何も言っていないのは3つ</b> — '
+  '中心からの距離・球の大きさ・外の縁。ここに意味を入れると、'
+  '「誰から誰に / どのくらい / どのフェーズに誰が」が図だけで読めます。</span>' % (T2, RED_T) +
+
+  '<div>'
+    '<span style="display:block;color:%s;font-size:11px;padding-bottom:10px">'
+    '聞きたいこと3つは、どの要素が答えるか</span>' % T5
+    + ''.join('<div class="r" style="display:flex;gap:16px;padding:11px 0">'
+              '<span style="width:200px;flex-shrink:0;font-size:13px">%s</span>'
+              '<span style="flex:1;color:%s;font-size:12.5px;line-height:20px">%s</span></div>' % (q, T2, a)
+              for q, a in QMAP)
+  + '</div>'
+
+  '<div style="height:1px;background:%s"></div>' % HAIR +
+
+  '<div>'
+    '<div style="display:flex;gap:14px;padding-bottom:8px">'
+      '<span style="width:118px;flex-shrink:0;color:%s;font-size:11px">図の要素</span>'
+      '<span style="width:216px;flex-shrink:0;color:%s;font-size:11px">いまの図</span>'
+      '<span style="width:216px;flex-shrink:0;color:%s;font-size:11px">A 扇</span>'
+      '<span style="width:216px;flex-shrink:0;color:%s;font-size:11px">B 川</span>'
+      '<span style="width:216px;flex-shrink:0;color:%s;font-size:11px">C 輪＋刻み</span>'
+    '</div>' % (T5, T5, BLUE_T, BLUE_T, BLUE_T)
+    + ''.join('<div class="r" style="display:flex;gap:14px;padding:10px 0">'
+              '<span style="width:118px;flex-shrink:0;font-size:12px">%s</span>%s%s%s%s</div>'
+              % (r[0], m_cell(r[1], 216), m_cell(r[2], 216), m_cell(r[3], 216), m_cell(r[4], 216))
+              for r in MEAN)
+  + '</div>'
+
+  '<span style="color:%s;font-size:12px;line-height:20px;max-width:960px">'
+  '球の大きさは<b style="color:%s">わざと意味を持たせません</b>。'
+  '大きさに意味を入れると、小さい球が「重要ではない社員」に見えてしまう。'
+  'AI社員は増やしたり止めたりするもので、序列をつけるものではないので。</span>' % (T5, T2) +
+  '</div>')
+
+io.open(OUT + '/Meaning.dc.html', 'w', encoding='utf-8').write(
+    board('図の要素と、その意味', '④ 意味の棚卸し', mean_body, T3))
+print('Meaning ok')
+
 # ══════════════════════ canvas.json ══════════════════════
 import json
 canvas = {
@@ -1490,6 +1865,11 @@ canvas = {
     {"file": "LayoutLogBottom.dc.html", "x": 1300, "y": 3750, "w": 1180, "h": 900, "title": "② 下にログ"},
     {"file": "LayoutTeamBottom.dc.html","x": 2600, "y": 3750, "w": 1180, "h": 860, "title": "③ 下に社員（採用）"},
     {"file": "LayoutOneColumn.dc.html", "x": 3900, "y": 3750, "w": 1180, "h": 860, "title": "④ 右に1本"},
+    # 5段目 = 図の作り直し（要素を全部意味のあるものにする）
+    {"file": "Meaning.dc.html",      "x": 0,    "y": 4790, "w": 1180, "h": 980, "title": "④ 図の意味の棚卸し"},
+    {"file": "FigureFan.dc.html",    "x": 1300, "y": 4790, "w": 1180, "h": 580, "title": "図A 扇"},
+    {"file": "FigureRiver.dc.html",  "x": 2600, "y": 4790, "w": 1180, "h": 580, "title": "図B 川"},
+    {"file": "FigureRings.dc.html",  "x": 3900, "y": 4790, "w": 1180, "h": 580, "title": "図C 輪＋刻み"},
   ],
   "launch": {"view": "canvas"},
 }

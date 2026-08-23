@@ -103,6 +103,38 @@
       "w": 1180,
       "h": 860,
       "title": "④ 右に1本"
+    },
+    {
+      "file": "Meaning.dc.html",
+      "x": 0,
+      "y": 4790,
+      "w": 1180,
+      "h": 980,
+      "title": "④ 図の意味の棚卸し"
+    },
+    {
+      "file": "FigureFan.dc.html",
+      "x": 1300,
+      "y": 4790,
+      "w": 1180,
+      "h": 580,
+      "title": "図A 扇"
+    },
+    {
+      "file": "FigureRiver.dc.html",
+      "x": 2600,
+      "y": 4790,
+      "w": 1180,
+      "h": 580,
+      "title": "図B 川"
+    },
+    {
+      "file": "FigureRings.dc.html",
+      "x": 3900,
+      "y": 4790,
+      "w": 1180,
+      "h": 580,
+      "title": "図C 輪＋刻み"
     }
   ],
   "launch": {
