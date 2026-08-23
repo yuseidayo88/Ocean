@@ -1,6 +1,6 @@
 import { AGENT_COLOR, type EmployeeColor } from '@/lib/dummy';
 import { AppError } from '@/lib/errors';
-import type { DraftWork, LiveDecision, LiveWork, RunStep, Store } from './types';
+import type { DraftWork, LiveDecision, LiveEmployee, LiveWork, RunStep, Store } from './types';
 
 /**
  * メモリの保存先。**Supabase に出られない環境（デモ・この開発環境）用。**
@@ -167,6 +167,21 @@ export const memoryStore: Store = {
 
   async addDecisionRefs() { /* メモリ版は台帳を持たない（本物は decision_refs） */ },
 
+  async hireEmployee(definitionId, displayName) {
+    const had = staff.find((e) => e.definitionId === definitionId && e.state !== 'retired');
+    if (had) return had.id;
+    const e: LiveEmployee = {
+      id: `emp-${staff.length + 1}`, definitionId, name: displayName,
+      color: AGENT_COLOR[colorFor(definitionId, staff.length)], state: 'idle',
+      hiredAt: new Date().toISOString(),
+    };
+    staff.push(e);
+    notes.push({ kind: '要確認', body: `${displayName} を採用しました` });
+    return e.id;
+  },
+
+  async listEmployees() { return [...staff]; },
+
   async advancePhase(workId, nextTasks) {
     const live = [...bag.values()].find((d) => d.live?.id === workId)?.live;
     if (!live) return null;
@@ -240,8 +255,9 @@ const g2 = globalThis as unknown as {
 };
 const runs = (g2.__runs ??= new Map());
 const notes = (g2.__notes ??= []);
-const g3 = globalThis as unknown as { __decs?: LiveDecision[] };
+const g3 = globalThis as unknown as { __decs?: LiveDecision[]; __staff?: LiveEmployee[] };
 const decisions = (g3.__decs ??= []);
+const staff = (g3.__staff ??= []);
 
 function findTask(taskId: string) {
   for (const d of bag.values()) {

@@ -5,6 +5,7 @@ import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/componen
 
 import { Orb } from '@/components/ui/Orb';
 import { AGENT_COLOR, HIRE_CANDIDATES } from '@/lib/dummy';
+import { hire } from '@/app/actions/run';
 import { pressable } from '@/lib/a11y';
 import { useShell } from '@/components/shell/Shell';
 import { BLUE, COMPOSER_H, FAINT, GREEN_T, HAIR, RULE, SUNK, T2, T3, T4, T5 } from '@/lib/design/tokens';
@@ -29,6 +30,17 @@ const DETAIL = {
 
 export default function HirePage() {
   const { say5 } = useShell();
+  /**
+   * **採用は本当に効く**（Phase 10）。候補はロスターの定義で採る。
+   * 同じ定義の社員がいれば使い回されるので、二度押しても2人にならない。
+   */
+  const SLUG: Record<string, string> = {
+    'c-writer': 'content-writer', 'c-quality': 'quality-reviewer', 'c-analyst': 'data-analyst',
+  };
+  const take = async (id: string, name: string) => {
+    const r = await hire(SLUG[id] ?? id, name);
+    say5(r.ok ? `${name} を採用しました。メンバーに並びます` : r.message ?? '採用できませんでした');
+  };
   const [open, setOpen] = useOpen();
   const top = HIRE_CANDIDATES[0];
   return (
@@ -57,7 +69,7 @@ export default function HirePage() {
                     {c.recommended && <span style={{ color: GREEN_T, fontSize: 11 }}>おすすめ</span>}
                     <div style={{ flex: 1 }} />
                     {/* **青は1ペインに1つ。** ここは全部おとなしく、下の「執筆担当を採用」だけ青 */}
-                    <button onClick={(ev) => { ev.stopPropagation(); say5(`${c.name}をここから採用できるのは Phase 10 から。いまは計画の承認と一緒に採用されます`); }} className="btn" style={{
+                    <button onClick={(ev) => { ev.stopPropagation(); take(c.id, c.name); }} className="btn" style={{
                       display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 15px', borderRadius: 8,
                       background: 'transparent', border: `1px solid ${RULE}`, color: T3, whiteSpace: 'nowrap',
                     }}>採用する</button>
@@ -90,7 +102,7 @@ export default function HirePage() {
               {top.name}を入れれば、フェーズ3はこの4人で回ります
             </span>
             <div style={{ flex: 1 }} />
-            <button onClick={() => say5(`${top.name}をここから採用できるのは Phase 10 から。いまは計画の承認と一緒に採用されます`)} className="solid" style={{
+            <button onClick={() => take(top.id, top.name)} className="solid" style={{
               display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px',
               borderRadius: 8, background: BLUE, color: '#fff', whiteSpace: 'nowrap',
             }}>{top.name}を採用</button>

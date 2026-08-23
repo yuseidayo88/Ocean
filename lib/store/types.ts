@@ -126,7 +126,23 @@ export interface Store {
    * 次が無ければ Work を done にする。返り値は次のフェーズ名（無ければ null）
    */
   advancePhase(workId: string, nextTasks: { title: string; intent: string; ownerHint?: string }[]): Promise<string | null>;
+
+  /* ══════════════ 社員（Phase 10）══════════════ */
+
+  /**
+   * 採用する。**同じ定義の社員がいれば使い回す**（承認のときと同じ規則）。
+   * 返り値は社員の id
+   */
+  hireEmployee(definitionId: string, displayName: string): Promise<string>;
+  /** 在籍の一覧（メンバー画面が読む） */
+  listEmployees(): Promise<LiveEmployee[]>;
 }
+
+export type LiveEmployee = {
+  id: string; definitionId: string; name: string; color: string;
+  state: 'idle' | 'running' | 'paused' | 'retired';
+  hiredAt?: string;
+};
 
 export type LiveDecision = {
   id: string; workId: string; taskId?: string;

@@ -1,7 +1,7 @@
 'use server';
 
 import { runTask, type RunOutcome } from '@/lib/run/worker';
-import { store, type LiveDecision, type LiveDeliverable, type RunStep } from '@/lib/store';
+import { store, type LiveDecision, type LiveDeliverable, type LiveEmployee, type RunStep } from '@/lib/store';
 import { draftNextTasks } from '@/lib/exec/next';
 import { sayError } from '@/lib/errors';
 
@@ -116,4 +116,24 @@ export async function approvePhase(workId: string): Promise<{ ok: boolean; next?
   } catch (e) {
     return { ok: false, message: sayError(e, '進められませんでした') };
   }
+}
+
+/* ══════════════ 社員（Phase 10）══════════════ */
+
+/**
+ * 採用する。**候補の id ではなくロスターの定義で採る**（→ lib/roster）。
+ * 同じ定義の社員がいれば使い回す — 調査担当が2人にならない。
+ */
+export async function hire(definitionId: string, displayName: string): Promise<{ ok: boolean; message?: string }> {
+  try {
+    await store().hireEmployee(definitionId, displayName);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, message: sayError(e, '採用できませんでした') };
+  }
+}
+
+/** 在籍の一覧（メンバー画面が読む） */
+export async function listEmployees(): Promise<LiveEmployee[]> {
+  try { return await store().listEmployees(); } catch { return []; }
 }

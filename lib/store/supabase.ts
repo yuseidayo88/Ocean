@@ -545,6 +545,33 @@ export const supabaseStore: Store = {
     return next.name as string;
   },
 
+  async hireEmployee(definitionId, displayName) {
+    const c = await db();
+    const { data: had } = await c.from('employees')
+      .select('id').eq('definition_id', definitionId).neq('status', 'retired').limit(1).maybeSingle();
+    if (had) return had.id as string;
+    const { data: row, error } = await c.from('employees').insert({
+      definition_id: definitionId, definition_version: 1, display_name: displayName,
+      color_token: colorFor(definitionId, 0) satisfies EmployeeColor, status: 'idle',
+    }).select('id').single();
+    if (error || !row) throw new AppError('unknown', error?.message ?? 'employees insert failed');
+    await c.from('notifications').insert({ kind: '要確認', body: `${displayName} を採用しました`, subject_type: 'employee', subject_id: row.id });
+    return row.id as string;
+  },
+
+  async listEmployees() {
+    const c = await db();
+    const { data } = await c.from('employees')
+      .select('id, definition_id, display_name, color_token, status, hired_at')
+      .neq('status', 'retired').order('hired_at');
+    return (data ?? []).map((e) => ({
+      id: e.id as string, definitionId: e.definition_id as string, name: e.display_name as string,
+      color: AGENT_COLOR[e.color_token as EmployeeColor] ?? '#5C6BC0',
+      state: e.status as 'idle' | 'running' | 'paused' | 'retired',
+      hiredAt: (e.hired_at ?? undefined) as string | undefined,
+    }));
+  },
+
   async closePhaseIfDone(workId) {
     const c = await db();
     const { data: ph } = await c.from('phases')

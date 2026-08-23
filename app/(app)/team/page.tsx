@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
 import { useOpen, openHref } from '@/lib/use-open';
 import { Go as Link } from '@/components/ui/Go';
 import { Centre, Composer, Pane, Section, TopBar } from '@/components/shell/Chrome';
@@ -9,6 +11,9 @@ import { Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
 import { AGENT_COLOR, EFFORT_WORDS, EMPLOYEES, EXEC, HIRE_SUGGESTION, MODELS, RULES, SKILLS, type Employee } from '@/lib/dummy';
 import { pressable } from '@/lib/a11y';
+import { hire, listEmployees } from '@/app/actions/run';
+import { definitionOf } from '@/lib/roster';
+import type { LiveEmployee } from '@/lib/store';
 import { useShell } from '@/components/shell/Shell';
 
 /**
@@ -47,6 +52,11 @@ const EXEC_LINE: Line = {
 };
 
 export default function TeamPage() {
+  /** 本物の在籍（採用した社員）。**ダミーの4人のあとに並ぶ** */
+  const [staff, setStaff] = useState<LiveEmployee[]>([]);
+  const reloadStaff = () => { listEmployees().then(setStaff); };
+  useEffect(reloadStaff, []);
+
   // 右は閉じた状態から始まる。行か歯車を押すと、その1人ぶんだけ開く
   const [openId, setOpenId] = useOpen();
   const sel = EMPLOYEES.find((e) => e.id === openId) ?? null;
@@ -82,6 +92,16 @@ export default function TeamPage() {
           <Row l={EXEC_LINE} top on={openId === EXEC.id} onOpen={() => setOpenId(EXEC.id)} />
           <div style={{ height: 1, background: RULE }} />
 
+          {staff.map((e) => {
+            const d = definitionOf(e.definitionId);
+            const l: Line = {
+              id: e.id, name: e.name, en: d?.en ?? '', state: e.state === 'running' ? '実行中' : '待機',
+              color: e.color, seed: e.name.length * 7 + 3,
+              lead: d?.mission ?? '', can: (d?.rules ?? []).slice(0, 2).map((r) => r.split('。')[0]),
+              canMore: 0, model: '自動', effort: 2,
+            };
+            return <Row key={e.id} l={l} on={openId === e.id} onOpen={() => setOpenId(e.id)} />;
+          })}
           {EMPLOYEES.map((e, i) => (
             <Row key={e.id} l={line(e)} on={e.id === openId} onOpen={() => setOpenId(e.id)} top={i === 0} />
           ))}
@@ -115,7 +135,11 @@ export default function TeamPage() {
             </div>
             <div style={{ flex: 1 }} />
             <Link href="/hire" className="lnk" style={{ color: T5, fontSize: 12, flexShrink: 0 }}>ほかの候補を見る ›</Link>
-            <button onClick={() => say5('この画面からの採用は Phase 10 から。いまは計画を承認すると、統括AIが薦めた社員が採用されます')} className="solid" style={{
+            <button onClick={async () => {
+              const r = await hire('content-writer', '執筆担当');
+              say5(r.ok ? '執筆担当 を採用しました。下に並びます' : r.message ?? '採用できませんでした');
+              reloadStaff();
+            }} className="solid" style={{
               display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 14px',
               borderRadius: 8, background: BLUE, color: '#fff', fontSize: 12.5, flexShrink: 0,
             }}>採用する</button>
