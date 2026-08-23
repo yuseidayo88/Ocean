@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef, useState } from 'react';
 import { useTabs } from '@/lib/use-open';
 import { Centre, Composer, Pane, TopBar } from '@/components/shell/Chrome';
 import { Icon } from '@/components/ui/Icon';
@@ -25,7 +26,8 @@ const SHARED = SKILLS.filter((s) => s.scope === 'company');
 
 
 
-function Head({ label, note, actions = [] }: { label: string; note?: string; actions?: string[] }) {
+function Head({ label, note, actions = [] }:
+  { label: string; note?: string; actions?: { text: string; on: () => void }[] }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 34, paddingBottom: 6 }}>
       <span style={{ color: T3 }}>{label}</span>
@@ -33,16 +35,30 @@ function Head({ label, note, actions = [] }: { label: string; note?: string; act
       {note && <span style={{ color: T5, fontSize: 12 }}>{note}</span>}
       {/* 押せるものだけが面と枠を持てる */}
       {actions.map((a) => (
-        <span key={a} className="btn" style={{
+        <button key={a.text} onClick={a.on} className="btn" style={{
           display: 'inline-flex', alignItems: 'center', gap: 7, height: 32, padding: '0 13px',
           borderRadius: 8, background: '#141414', border: '1px solid #262626', color: T2, fontSize: 12.5,
         }}>
-          <Icon name={a.startsWith('SKILL') ? 'down' : 'plus'} color={T4} size={12} />{a}
-        </span>
+          <Icon name={a.text.startsWith('SKILL') ? 'upload' : 'plus'} color={T4} size={12} />{a.text}
+        </button>
       ))}
     </div>
   );
 }
+
+/** 新しく書くときの中身。**空の板を渡さない** — 何を書けばいいか分かる形で開く */
+const TEMPLATE = `---
+name: 新しいスキル
+description: どんなときに読むか。ここに書いた条件に当てはまると読まれる
+---
+
+## 手順
+1.
+2.
+
+## この会社での注意
+-
+`;
 
 function Rows({ rows, onOpen }: { rows: Skill[]; onOpen: (f: string) => void }) {
   return (
@@ -71,22 +87,65 @@ function Rows({ rows, onOpen }: { rows: Skill[]; onOpen: (f: string) => void }) 
 }
 
 export default function SkillsPage() {
+  /**
+   * 読み込んだもの・新しく書いたもの。**Phase 4 なのでどこにも保存されない**
+   * （読み込み直すと消える）。ただし「押しても何も起きない」のはやめる —
+   * 選んだ `.md` はその場で開いて中身が読める。
+   */
+  const [extra, setExtra] = useState<{ file: string; body: string }[]>([]);
+  const pick = useRef<HTMLInputElement>(null);
   // タブは本物。開いている並びといま見ているものを URL に持つ（`?open=a.md,b.md&at=1`）
-  const tabs = useTabs(SKILLS.map((s) => s.file));
+  const tabs = useTabs([...SKILLS.map((s) => s.file), ...extra.map((e) => e.file)]);
   const open = tabs.ids[tabs.at];
+  const body = (f: string) => SKILL_BODY[f] ?? extra.find((e) => e.file === f)?.body ?? '';
+
+  /** 同じ名前で2つ開かない。増えるたび末尾に番号を足す */
+  const uniq = (name: string) => {
+    const taken = new Set([...SKILLS.map((s) => s.file), ...extra.map((e) => e.file)]);
+    if (!taken.has(name)) return name;
+    const [stem, ext] = [name.replace(/\.md$/, ''), '.md'];
+    let n = 2; while (taken.has(`${stem}-${n}${ext}`)) n++;
+    return `${stem}-${n}${ext}`;
+  };
+  const add = (file: string, text: string) => {
+    const f = uniq(file);
+    setExtra((x) => [...x, { file: f, body: text }]);
+    // 名簿に載ってから開く（useTabs は知らない名前を弾く）
+    requestAnimationFrame(() => tabs.open(f));
+  };
+  const [over, setOver] = useState(false);
+  const read = (files: FileList | null) => {
+    for (const f of Array.from(files ?? []).slice(0, 8)) {
+      f.text().then((t) => add(f.name, t)).catch(() => {});
+    }
+  };
   return (
     <>
       <Centre>
         <TopBar crumb="メンバー / 調査担当" title="スキル" onPanel={() => tabs.open(MINE[0].file)} panelOn={!!open} />
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: `20px 26px ${COMPOSER_H}px`, display: 'flex', flexDirection: 'column', gap: 34 }}>
           <div>
-            <Head label="この社員のスキル" actions={['SKILL.md を読み込む', '新しく書く']} />
+            <Head label="この社員のスキル" actions={[
+              { text: 'SKILL.md を読み込む', on: () => pick.current?.click() },
+              { text: '新しく書く', on: () => add('新しいスキル.md', TEMPLATE) },
+            ]} />
+            <input ref={pick} type="file" accept=".md,.zip" multiple hidden
+                   onChange={(e) => { read(e.target.files); e.target.value = ''; }} />
             <Rows rows={MINE} onOpen={tabs.open} />
-            <div style={{
-              marginTop: 14, display: 'flex', flexDirection: 'column', alignItems: 'center',
-              justifyContent: 'center', gap: 7, height: 104, borderRadius: 12, border: '1px dashed #262626',
-            }} className="card">
-              <Icon name="down" color={T4} size={16} />
+            {/* 本当に落とせる。落としたものはその場で開く */}
+            <div
+              onDragOver={(e) => { e.preventDefault(); setOver(true); }}
+              onDragLeave={() => setOver(false)}
+              onDrop={(e) => { e.preventDefault(); setOver(false); read(e.dataTransfer.files); }}
+              {...pressable(() => pick.current?.click())}
+              style={{
+                marginTop: 14, display: 'flex', flexDirection: 'column', alignItems: 'center',
+                justifyContent: 'center', gap: 7, height: 104, borderRadius: 12,
+                border: `1px dashed ${over ? '#1A73E8' : '#262626'}`,
+                background: over ? 'rgba(26,115,232,0.06)' : undefined,
+                transition: 'border-color .14s ease, background-color .14s ease',
+              }} className="card">
+              <Icon name="upload" color={over ? '#669DF6' : T4} size={16} />
               <span style={{ color: T4, fontSize: 12.5 }}>SKILL.md をここに落とす、または <span style={{ color: T2 }}>選ぶ</span></span>
               <span style={{ color: '#3A3A3A', fontSize: 11 }}>.md · .zip · 何個でも</span>
             </div>
@@ -107,7 +166,7 @@ export default function SkillsPage() {
           <pre style={{
             margin: 0, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
             fontSize: 12, lineHeight: '20px', color: T2, whiteSpace: 'pre-wrap',
-          }}>{SKILL_BODY[open]}</pre>
+          }}>{body(open)}</pre>
         </div>
         {/* 保存は右下に小さく。ペイン幅いっぱいの青にしない */}
         <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', padding: 16, borderTop: '1px solid #161616' }}>

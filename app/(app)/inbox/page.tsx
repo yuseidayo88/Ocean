@@ -1,11 +1,12 @@
 'use client';
 
 import { Go as Link } from '@/components/ui/Go';
-import { openHref, useOpen } from '@/lib/use-open';
+import { openHref, useOpen, useParam } from '@/lib/use-open';
 import { Centre, Composer, TopBar } from '@/components/shell/Chrome';
 import { Dot, Icon } from '@/components/ui/Icon';
-import { INBOX, INBOX_DONE, type InboxItem, type InboxKind } from '@/lib/dummy';
+import { INBOX, INBOX_DONE, INBOX_HANDLED, type InboxItem, type InboxKind } from '@/lib/dummy';
 import { pressable } from '@/lib/a11y';
+import { useShell } from '@/components/shell/Shell';
 import { COMPOSER_H } from '@/lib/design/tokens';
 
 /**
@@ -36,9 +37,14 @@ const TONE: Record<InboxKind, { line: string; text: string; face: string }> = {
 export default function InboxPage() {
   // 片づける画面なので、いつも1件選ばれている（閉じた状態から始めない）
   const [openId, setOpen] = useOpen();
-  const at = Math.max(INBOX.findIndex((n) => n.id === openId), 0);
-  const item = INBOX[at];
-  const next = INBOX[at + 1] ?? INBOX[0];
+  // 済んだものに切り替えたかどうかは URL に持つ（戻ってきても同じ側を見ている）
+  const [done, setDone] = useParam('done', '');
+  const list = done ? INBOX_HANDLED : INBOX;
+  const at = Math.max(list.findIndex((n) => n.id === openId), 0);
+  const item = list[at];
+  const next = list[at + 1] ?? list[0];
+  const { say5 } = useShell();
+  const flip = (to: boolean) => { setDone(to ? '1' : ''); setOpen((to ? INBOX_HANDLED : INBOX)[0].id); };
 
   return (
     <Centre>
@@ -53,14 +59,15 @@ export default function InboxPage() {
           borderRight: '1px solid #1C1C1C',
         }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, height: 42, padding: '0 16px', flexShrink: 0 }}>
-            <span style={{ color: T3, fontSize: 12 }}>未処理</span>
-            <span style={{ color: T5, fontSize: 12 }} className="tnum">{INBOX.length}</span>
+            {/* 未処理 ⇄ 済んだもの。**同じ場所で切り替える**（別の画面に飛ばさない） */}
+            <button onClick={() => flip(false)} className="lnk" style={{ color: done ? T5 : T3, fontSize: 12 }}>未処理</button>
+            <span style={{ color: done ? '#3A3A3A' : T5, fontSize: 12 }} className="tnum">{INBOX.length}</span>
             <div style={{ flex: 1 }} />
-            <span className="lnk" style={{ color: T5, fontSize: 12 }}>済んだもの</span>
+            <button onClick={() => flip(true)} className="lnk" style={{ color: done ? T3 : T5, fontSize: 12 }}>済んだもの</button>
           </div>
 
           <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-            {INBOX.map((n) => {
+            {list.map((n) => {
               const on = n.id === item.id;
               const tone = TONE[n.kind];
               return (
@@ -91,14 +98,16 @@ export default function InboxPage() {
           </div>
 
           {/* 片づけ終わったものは日ごとに畳んで、いちばん下に1行だけ */}
-          <div className="row" style={{
+          <button onClick={() => flip(!done)} className="row" style={{
             display: 'flex', alignItems: 'center', gap: 10, height: 56, padding: '0 16px',
-            borderTop: '1px solid #1C1C1C', flexShrink: 0, marginBottom: COMPOSER_H,
+            borderTop: '1px solid #1C1C1C', flexShrink: 0, marginBottom: COMPOSER_H, textAlign: 'left',
           }}>
-            <Icon name="check" color="#3A3A3A" size={13} width={2} />
-            <span style={{ color: T5, fontSize: 12 }}>{INBOX_DONE.label}</span>
-            <span style={{ color: '#3A3A3A', fontSize: 12 }} className="tnum">{INBOX_DONE.count}件</span>
-          </div>
+            <Icon name={done ? 'inbox' : 'check'} color="#3A3A3A" size={13} width={2} />
+            <span style={{ color: T5, fontSize: 12 }}>{done ? '未処理にもどる' : INBOX_DONE.label}</span>
+            {!done && <span style={{ color: '#3A3A3A', fontSize: 12 }} className="tnum">{INBOX_DONE.count}件</span>}
+            <div style={{ flex: 1 }} />
+            <Icon name="chev" color="#2E2E2E" size={12} />
+          </button>
         </div>
 
         {/* ── 右: 片づける ─────────────────────────── */}
@@ -123,16 +132,16 @@ export default function InboxPage() {
             flexShrink: 0, display: 'flex', alignItems: 'center', gap: 11, height: 56,
             padding: '0 28px', marginBottom: COMPOSER_H, borderTop: '1px solid #1C1C1C',
           }}>
-            <span className="solid" style={{
+            <button onClick={() => say5('決めた内容を残すのは Phase 5 から')} className="solid" style={{
               display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px',
               borderRadius: 8, background: item.kind === 'エラー' ? '#1A1A1A' : BLUE,
               border: item.kind === 'エラー' ? '1px solid #2A2A2A' : undefined,
               color: item.kind === 'エラー' ? T1 : '#fff',
-            }}>{item.primary}</span>
-            <span className="btn" style={{
+            }}>{item.primary}</button>
+            <button onClick={() => say5('統括AIが答えるのは Phase 5 から')} className="btn" style={{
               display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 14px',
               borderRadius: 8, border: '1px solid #2A2A2A', color: T2, fontSize: 12.5,
-            }}>{item.secondary}</span>
+            }}>{item.secondary}</button>
             <div style={{ flex: 1 }} />
             <span className="lnk" {...pressable(() => setOpen(next.id))} style={{
               display: 'inline-flex', alignItems: 'center', gap: 8, color: T5, fontSize: 12,

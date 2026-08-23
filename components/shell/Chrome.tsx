@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { CompanyPicker, useShell } from '@/components/shell/Shell';
 import { COMPOSER_H as TOKEN_COMPOSER_H, EASE, EASE_FAST } from '@/lib/design/tokens';
+import { EFFORT_WORDS } from '@/lib/dummy';
 
 const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
 const BLUE = '#1A73E8';
@@ -136,7 +137,7 @@ export function Composer({ placeholder, mode = '統括AI', effort = '自動', ab
   /** 2行以上になったか。1行のうちは**横一列のまま**にする */
   const [tall, setTall] = useState(false);
   const box = useRef<HTMLTextAreaElement>(null);
-  const { chat: talk, say } = useShell();
+  const { chat: talk, say, say5 } = useShell();
 
   /**
    * **入力欄は全画面で1つ。** 会話が開いたら、中央のものは引っ込んでペインの中のものになる。
@@ -186,12 +187,13 @@ export function Composer({ placeholder, mode = '統括AI', effort = '自動', ab
         // 高さを測るときの計算を、この器の中だけで済ませる
         contain: 'layout',
       }}>
-        <span className="icob" style={{
-          width: 28, height: 28, flexShrink: 0, borderRadius: 999,
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        }}>
+        <button onClick={() => say5('資料を添えられるのは Phase 5 から')} className="icob"
+          aria-label="資料を添える" style={{
+            width: 28, height: 28, flexShrink: 0, borderRadius: 999,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          }}>
           <Icon name="plus" color={T4} size={16} />
-        </span>
+        </button>
         <textarea
           ref={box}
           onKeyDown={(e) => {
@@ -213,14 +215,17 @@ export function Composer({ placeholder, mode = '統括AI', effort = '自動', ab
             padding: 0, transition: `height ${EASE}`,
           } as React.CSSProperties}
         />
-        <span className="btn" style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 9px',
-          borderRadius: 8, color: T2, flexShrink: 0, whiteSpace: 'nowrap',
-        }}>{mode}<Icon name="down" color={T4} size={12} /></span>
-        <span className="btn" style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 9px',
-          borderRadius: 8, color: T2, flexShrink: 0, whiteSpace: 'nowrap',
-        }}><Icon name="bars" color={T4} size={13} />{effort}</span>
+        {/**
+          * **宛先は変わらないので ⌄ を付けない。**
+          * 書いたものは全部 統括AI に届く（社員に直接は頼めない）。
+          * 選べないのに ⌄ が付いていると、押して何も起きないものが全画面に1つ増える。
+          */}
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 6px',
+          color: T4, fontSize: 12.5, flexShrink: 0, whiteSpace: 'nowrap',
+        }}>{mode}</span>
+        {/* 深さは本物の選択。統括AI がどこまで考えるかを、その場で変える */}
+        <EffortMenu init={effort} />
         {/* **書いていないときは送れない。** 押せないものを押せる顔にしない */}
         <button disabled={!can} onClick={send} className={can ? 'solid' : undefined} style={{
           width: 32, height: 32, borderRadius: 999, flexShrink: 0,
@@ -426,6 +431,49 @@ export function Ask({ q, idx, total, options, free }: {
   options: { label: string; note: string; recommended?: boolean }[];
   free: string;
 }) {
+  /**
+   * **選んだら、板は消えて緑のチップになる**（→ CLAUDE.md「答え終わった条件は
+   * 緑のチェック＋項目名つきのチップで見せる」）。1〜3 と Esc でも選べる。
+   * Phase 4 なので答えはどこにも届かないが、**選んだことは見える**。
+   */
+  const [picked, setPicked] = useState<string | null>(null);
+  const [gone, setGone] = useState(false);
+
+  useEffect(() => {
+    if (gone || picked) return;
+    const h = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT')) return;
+      if (e.key === 'Escape') { setGone(true); return; }
+      const n = Number(e.key);
+      if (n >= 1 && n <= options.length) { e.preventDefault(); setPicked(options[n - 1].label); }
+    };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [gone, picked, options]);
+
+  if (gone) return null;
+
+  // 答え終わった条件は、選択肢と見間違えないように緑のチップで
+  if (picked) {
+    return (
+      <div className="rise" style={{
+        width: '100%', maxWidth: 748, boxSizing: 'border-box',
+        display: 'flex', alignItems: 'center', gap: 9,
+      }}>
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: 8, height: 30, padding: '0 12px',
+          borderRadius: 8, background: 'rgba(30,142,62,0.12)', border: '1px solid rgba(30,142,62,0.35)',
+        }}>
+          <Icon name="check" color="#5BB974" size={12} width={2.2} />
+          <span style={{ color: T5, fontSize: 11.5 }}>{q}</span>
+          <span style={{ color: '#5BB974', fontSize: 12.5 }}>{picked}</span>
+        </span>
+        <button onClick={() => setPicked(null)} className="lnk" style={{ color: T5, fontSize: 12 }}>選び直す</button>
+      </div>
+    );
+  }
+
   return (
     <div className="rise" style={{
       width: '100%', maxWidth: 748, boxSizing: 'border-box', borderRadius: 14,
@@ -439,14 +487,15 @@ export function Ask({ q, idx, total, options, free }: {
           <span className="tnum" style={{ padding: '0 2px' }}>{idx} / {total}</span>
           <span className="icob" style={{ display: 'inline-flex', padding: 3 }}><Icon name="fwd" color={T5} size={12} /></span>
         </span>
-        <span className="icob" style={{ display: 'inline-flex', padding: 4, marginRight: -2 }}>
+        <button onClick={() => setGone(true)} className="icob" title="閉じる"
+                style={{ display: 'inline-flex', padding: 4, marginRight: -2 }}>
           <Icon name="close" color={T5} size={13} />
-        </span>
+        </button>
       </div>
       {options.map((o, i) => (
-        <div key={o.label} className="row" style={{
-          display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px',
-          borderTop: '1px solid #1B1B1B',
+        <button key={o.label} onClick={() => setPicked(o.label)} className="row" style={{
+          display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 14px',
+          borderTop: '1px solid #1B1B1B', textAlign: 'left',
         }}>
           <span style={{
             width: 20, height: 20, borderRadius: 5, background: '#1C1C1C', color: T4,
@@ -459,7 +508,7 @@ export function Ask({ q, idx, total, options, free }: {
             </span>
             <span style={{ color: T5, fontSize: 12 }}>{o.note}</span>
           </div>
-        </div>
+        </button>
       ))}
       <div className="row" style={{
         display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderTop: '1px solid #1B1B1B',
@@ -469,7 +518,7 @@ export function Ask({ q, idx, total, options, free }: {
         </span>
         <span style={{ color: T3 }}>{free}</span>
         <div style={{ flex: 1 }} />
-        <span className="lnk" style={{ color: T5, fontSize: 12 }}>スキップ</span>
+        <button onClick={() => setGone(true)} className="lnk" style={{ color: T5, fontSize: 12 }}>スキップ</button>
       </div>
     </div>
   );
@@ -685,5 +734,52 @@ export function PaneNote({ children, color = '#FDD663' }: { children: React.Reac
     <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', padding: '10px 18px 0' }}>
       <span style={{ color, fontSize: 12 }}>{children}</span>
     </div>
+  );
+}
+
+/**
+ * 入力欄の深さ。**thinking の量**を決める（モデルは変わらない）。
+ * メンバー画面の行に置いたものと同じ言葉づかい。`自動` は統括AIに任せる。
+ */
+function EffortMenu({ init }: { init: string }) {
+  const [v, setV] = useState(init);
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); setOpen(false); } };
+    document.addEventListener('mousedown', away);
+    document.addEventListener('keydown', esc, true);
+    return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', esc, true); };
+  }, [open]);
+  return (
+    <span ref={box} style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
+      <button className="btn" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen(!open)} style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 9px',
+        borderRadius: 8, color: T2, whiteSpace: 'nowrap',
+        boxShadow: open ? 'inset 0 0 0 40px rgba(255,255,255,.03)' : undefined,
+      }}>
+        <Icon name="bars" color={T4} size={13} />{v}
+      </button>
+      {open && (
+        <span role="listbox" className="pop" style={{
+          position: 'absolute', bottom: 36, right: 0, zIndex: 20, width: 168, padding: 5, borderRadius: 11,
+          background: '#1A1A1A', border: '1px solid #2E2E2E', boxShadow: '0 18px 44px rgba(0,0,0,.74)',
+        }}>
+          {['自動', ...EFFORT_WORDS].map((w) => (
+            <button key={w} role="option" aria-selected={w === v} className={w === v ? undefined : 'btn'}
+              onClick={() => { setV(w); setOpen(false); }} style={{
+                display: 'flex', alignItems: 'center', width: '100%', height: 30, padding: '0 10px',
+                borderRadius: 7, background: w === v ? '#1F1F1F' : undefined,
+                color: w === v ? T1 : T2, fontSize: 12,
+              }}>
+              {w}<span style={{ flex: 1 }} />
+              {w === v && <span style={{ color: '#5BB974', fontSize: 11 }}>✓</span>}
+            </button>
+          ))}
+        </span>
+      )}
+    </span>
   );
 }

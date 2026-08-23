@@ -1,10 +1,10 @@
 'use client';
 
 import { Go as Link } from '@/components/ui/Go';
-import { openHref } from '@/lib/use-open';
+import { openHref, useParam } from '@/lib/use-open';
 
 import { Icon } from '@/components/ui/Icon';
-import { AGENT_COLOR, DONE_WORKS, TICKS, TODAY_X, WORKS, employee, type Phase, type Work } from '@/lib/dummy';
+import { AGENT_COLOR, DONE_WORKS, DONE_WORKS_LIST, TICKS, TODAY_X, WORKS, employee, type Phase, type Work } from '@/lib/dummy';
 
 /**
  * 進捗＝図で読む。中身は「答えの1行」と「タイムライン」だけ。
@@ -120,6 +120,8 @@ function Lane({ w, last }: { w: Work; last: boolean }) {
 }
 
 export function Progress() {
+  // 畳みを開いたかどうかは URL に持つ（ホームの他のビューへ行って戻っても同じ）
+  const [done, setDone] = useParam('done', '');
   const late = WORKS.filter((w) => typeof w.health === 'object').length;
   const gates = WORKS.filter((w) => w.gate).length;
 
@@ -169,13 +171,33 @@ export function Progress() {
 
         {WORKS.map((w, i) => <Lane key={w.id} w={w} last={i === WORKS.length - 1} />)}
 
-        {/* 完了した Work は下に溜めない */}
-        <div className="row" style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12, height: 42, borderRadius: 7, padding: '0 8px', margin: '0 -8px' }}>
+        {/* 完了した Work は下に溜めない。押したときだけ開く */}
+        <button onClick={() => setDone(done ? '' : '1')} className="row" style={{
+          flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+          height: 42, borderRadius: 7, padding: '0 8px', margin: '0 -8px', textAlign: 'left',
+        }}>
           <span style={{ color: T4 }}>完了した Work</span>
           <span style={{ color: T5, fontSize: 12 }} className="tnum">{DONE_WORKS}件</span>
           <div style={{ flex: 1 }} />
-          <Icon name="chev" color={T5} size={13} />
-        </div>
+          <Icon name={done ? 'up' : 'chev'} color={T5} size={13} />
+        </button>
+
+        {done && (
+          <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+            {DONE_WORKS_LIST.map((w) => (
+              <div key={w.id} style={{
+                display: 'flex', alignItems: 'center', gap: 12, height: 36, padding: '0 8px',
+                borderTop: '1px solid #161616',
+              }}>
+                <Icon name="check" color="#2E2E2E" size={13} width={2} />
+                <span style={{ color: T5, fontSize: 13 }}>{w.title}</span>
+                <div style={{ flex: 1 }} />
+                <span style={{ color: '#3A3A3A', fontSize: 11.5 }} className="tnum">フェーズ{w.phases}</span>
+                <span style={{ color: '#3A3A3A', fontSize: 11.5, width: 62, textAlign: 'right' }}>{w.ended}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

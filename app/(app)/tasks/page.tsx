@@ -174,10 +174,10 @@ function GateBand({ t, on, onOpen }: { t: Task; on: boolean; onOpen: () => void 
       <span style={{ color: T4, fontSize: 12, whiteSpace: 'nowrap' }}>
         {TASK_BODY.rows.map((r) => `${r.k} ${r.v}`).join(' / ')}
       </span>
-      <span className="solid" style={{
+      <Link href={openHref('/inbox', 'i-price')} onClick={(e) => e.stopPropagation()} className="solid" style={{
         display: 'inline-flex', alignItems: 'center', height: 32, padding: '0 16px',
         borderRadius: 8, background: AMBER, color: '#fff', flexShrink: 0,
-      }}>決める</span>
+      }}>決める</Link>
     </div>
   );
 }

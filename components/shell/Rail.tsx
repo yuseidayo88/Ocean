@@ -74,7 +74,7 @@ const Hair = () => <div style={{ height: 1, margin: '5px 8px', background: '#262
 
 export function Rail({ empty }: { empty?: boolean } = {}) {
   const path = usePathname();
-  const { rail, setRail } = useShell();
+  const { rail, setRail, setFind } = useShell();
   const [account, setAccount] = useState(false);
   const blank = empty ?? isBlank(path);
 
@@ -110,7 +110,8 @@ export function Rail({ empty }: { empty?: boolean } = {}) {
         </button>
       </div>
 
-      <div className="field hit" style={{
+      <button onClick={() => setFind(true)} className="field hit" style={{
+        width: '100%', boxSizing: 'border-box',
         height: 32, display: 'flex', alignItems: 'center', gap: 9, padding: '0 10px',
         borderRadius: 8, background: '#1A1A1A', border: '1px solid #262626',
       }}>
@@ -118,7 +119,7 @@ export function Rail({ empty }: { empty?: boolean } = {}) {
         <span style={{ color: T4 }}>検索</span>
         <div style={{ flex: 1 }} />
         <span style={{ color: T5 }}>⌘K</span>
-      </div>
+      </button>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
         {NAV.map((n) => (

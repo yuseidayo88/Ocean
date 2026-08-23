@@ -6,6 +6,7 @@ import { useOpen } from '@/lib/use-open';
 import { notFound, useParams } from 'next/navigation';
 import { Centre, Composer, Pane, TopBar } from '@/components/shell/Chrome';
 import { COMPOSER_H } from '@/lib/design/tokens';
+import { useShell } from '@/components/shell/Shell';
 import { Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
 import { AGENT_COLOR, WORKS } from '@/lib/dummy';
@@ -36,6 +37,7 @@ const MAKES: [string, string][][] = [
 
 
 export default function PlanPage() {
+  const { say5 } = useShell();
   const { id } = useParams<{ id: string }>();
   // 右は閉じた状態から始まる。トップバーの板アイコンで出し入れする
   const [openId, setOpen] = useOpen();
@@ -182,9 +184,9 @@ export default function PlanPage() {
           <Link href={`/work/${w.id}`} className="solid" style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px', borderRadius: 8, background: BLUE, color: '#fff' }}>
             承認して始める
           </Link>
-          <span className="btn" style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 14px', borderRadius: 8, border: '1px solid #2A2A2A', color: T3 }}>
+          <button onClick={() => say5('直したいところは、下の入力欄に書いてください')} className="btn" style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 14px', borderRadius: 8, border: '1px solid #2A2A2A', color: T3 }}>
             直したい
-          </span>
+          </button>
         </div>
         <Composer placeholder="直したいところを書く、@ で資料を参照" />
       </Centre>

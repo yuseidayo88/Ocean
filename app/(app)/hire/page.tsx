@@ -6,6 +6,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
 import { AGENT_COLOR, HIRE_CANDIDATES } from '@/lib/dummy';
 import { pressable } from '@/lib/a11y';
+import { useShell } from '@/components/shell/Shell';
 import { COMPOSER_H } from '@/lib/design/tokens';
 
 /**
@@ -31,6 +32,7 @@ const DETAIL = {
 };
 
 export default function HirePage() {
+  const { say5 } = useShell();
   const [open, setOpen] = useOpen();
   const top = HIRE_CANDIDATES[0];
   return (
@@ -59,10 +61,10 @@ export default function HirePage() {
                     {c.recommended && <span style={{ color: GREEN_T, fontSize: 11 }}>おすすめ</span>}
                     <div style={{ flex: 1 }} />
                     {/* **青は1ペインに1つ。** ここは全部おとなしく、下の「執筆担当を採用」だけ青 */}
-                    <span className="btn" style={{
+                    <button onClick={(ev) => { ev.stopPropagation(); say5(`${c.name}を採用できるのは Phase 5 から`); }} className="btn" style={{
                       display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 15px', borderRadius: 8,
                       background: 'transparent', border: '1px solid #262626', color: T3, whiteSpace: 'nowrap',
-                    }}>採用する</span>
+                    }}>採用する</button>
                   </div>
                   <span style={{ color: T5, fontSize: 11 }}>{c.en} · agency-agents 由来</span>
                   <span style={{ color: T2, fontSize: 13, lineHeight: '21px' }}>{c.lead}</span>
@@ -92,10 +94,10 @@ export default function HirePage() {
               {top.name}を入れれば、フェーズ3はこの4人で回ります
             </span>
             <div style={{ flex: 1 }} />
-            <span className="solid" style={{
+            <button onClick={() => say5(`${top.name}を採用できるのは Phase 5 から`)} className="solid" style={{
               display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px',
               borderRadius: 8, background: BLUE, color: '#fff', whiteSpace: 'nowrap',
-            }}>{top.name}を採用</span>
+            }}>{top.name}を採用</button>
           </div>
         </div>
 

@@ -164,7 +164,12 @@ export const WORKS: Work[] = [
 ];
 
 export const work = (id: string) => WORKS.find((w) => w.id === id)!;
-export const DONE_WORKS = 2;
+/** 終わった Work。進捗の下の1行を開くと出る */
+export const DONE_WORKS_LIST = [
+  { id: 'w-name', title: 'サービス名を決める', ended: '8月13日', phases: 2 },
+  { id: 'w-logo', title: 'ロゴを作る', ended: '8月16日', phases: 3 },
+];
+export const DONE_WORKS = DONE_WORKS_LIST.length;
 
 export const TICKS = [
   { x: 0, label: '8/11' }, { x: 25, label: '8/18' }, { x: 50, label: '8/25' },
@@ -449,8 +454,21 @@ export const INBOX: InboxItem[] = [
     primary: '空欄のまま進める', secondary: '統括AIに相談する' },
 ];
 
-/** 左の下段。片づけ終わったものは日ごとにまとめて畳む */
+/** 片づけ終わったもの。左の下段から開く */
 export const INBOX_DONE = { label: 'きのう片づけた', count: 2 };
+
+export const INBOX_HANDLED: InboxItem[] = [
+  { id: 'h-target', kind: '判断待ち', when: '昨日', title: 'ターゲットの決定', sub: '韓国在住の20〜30代・初中級',
+    meta: 'あなた · 昨日 18:40 · 日本語学習サービス / フェーズ1',
+    lead: ['韓国在住の20〜30代・初中級に絞りました。', '調査担当の調査に基づく判断です。'],
+    after: [['フェーズ2の計画が作られた', '統括AI']],
+    primary: '決定事項で見る', secondary: '取り消す' },
+  { id: 'h-mkt', kind: '要確認', when: '昨日', title: '市場調査レポート v2 を承認しました', sub: '調査担当',
+    meta: 'あなた · 昨日 18:41 · 日本語学習サービス / フェーズ1',
+    lead: ['承認したので、フェーズ1は完了しました。'],
+    look: [['市場調査レポート v2', '調査担当']],
+    primary: '成果物で見る', secondary: '取り消す' },
+];
 
 export const NOTICE_GROUPS: { label: string; items: Notice[] }[] = [
   { label: '今日', items: [

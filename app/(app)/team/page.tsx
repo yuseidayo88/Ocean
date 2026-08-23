@@ -12,6 +12,7 @@ import {
   type Employee,
 } from '@/lib/dummy';
 import { pressable } from '@/lib/a11y';
+import { useShell } from '@/components/shell/Shell';
 
 /**
  * メンバー＝**どんなAI社員がいて、何を頼めるか**（C案）。
@@ -53,6 +54,7 @@ export default function TeamPage() {
   const [openId, setOpenId] = useOpen();
   const sel = EMPLOYEES.find((e) => e.id === openId) ?? null;
   const gate = EMPLOYEES.find((e) => e.state === '要確認') ?? null;
+  const { say5 } = useShell();
 
   return (
     <>
@@ -114,10 +116,10 @@ export default function TeamPage() {
             </div>
             <div style={{ flex: 1 }} />
             <Link href="/hire" className="lnk" style={{ color: T5, fontSize: 12, flexShrink: 0 }}>ほかの候補を見る ›</Link>
-            <span className="solid" style={{
+            <button onClick={() => say5('採用が本当に効くのは Phase 5 から')} className="solid" style={{
               display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 14px',
               borderRadius: 8, background: BLUE, color: '#fff', fontSize: 12.5, flexShrink: 0,
-            }}>採用する</span>
+            }}>採用する</button>
           </div>
         </div>
 

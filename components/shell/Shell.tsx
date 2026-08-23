@@ -30,18 +30,43 @@ type Shell = {
   /** 新しいチャットにする */
   fresh: () => void;
   closeChat: () => void;
+  /** 検索の板（⌘K）。どの画面からでも開く */
+  find: boolean; setFind: (v: boolean) => void;
+  /**
+   * **まだ効かないものを押したときの返し。**
+   * 黙って何も起きないのがいちばん悪い（押せる顔をしているのに）。
+   * Phase 5 で書き込みが通るまで、何が要るのかを1行だけ返す。
+   */
+  note: string | null; say5: (what: string) => void;
 };
 
 const Ctx = createContext<Shell>({
   rail: true, setRail: () => {},
   chat: { on: false, thread: null, said: [] },
   say: () => {}, fresh: () => {}, closeChat: () => {},
+  find: false, setFind: () => {}, note: null, say5: () => {},
 });
 export const useShell = () => useContext(Ctx);
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const [rail, setRail] = useState(true);
   const [chat, setChat] = useState<Chat>({ on: false, thread: null, said: [] });
+  const [find, setFind] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+
+  // ⌘K / Ctrl+K はどの画面でも効く
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setFind((v) => !v); }
+    };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, []);
+
+  const say5 = (what: string) => {
+    setNote(what);
+    window.setTimeout(() => setNote((n) => (n === what ? null : n)), 3200);
+  };
 
   const say = (text: string, thread?: string | null) =>
     setChat((c) => ({
@@ -53,7 +78,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const closeChat = () => setChat((c) => ({ ...c, on: false }));
 
   return (
-    <Ctx.Provider value={{ rail, setRail, chat, say, fresh, closeChat }}>{children}</Ctx.Provider>
+    <Ctx.Provider value={{ rail, setRail, chat, say, fresh, closeChat, find, setFind, note, say5 }}>
+      {children}
+    </Ctx.Provider>
   );
 }
 

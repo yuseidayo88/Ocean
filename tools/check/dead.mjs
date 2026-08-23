@@ -44,7 +44,20 @@ const LIST = `(() => {
   return out;
 })()`;
 
-const STATE = `location.pathname + location.search + '|' + document.body.innerText.length + '|' + document.querySelectorAll('*').length + '|' + (document.querySelector('aside') ? 1 : 0)`;
+/**
+ * 「何か起きた」の見分け方。URL と中身の量だけだと、
+ * **見た目しか変わらないもの**（レールの開閉・板が開く）を死んだと数えてしまう。
+ */
+const STATE = `[
+  location.pathname + location.search,
+  document.body.innerText.length,
+  document.querySelectorAll('*').length,
+  document.querySelector('aside') ? 1 : 0,
+  // レールは中の <nav> が幅固定で、**外の器のほうが 0 になる**。内側を測ると開閉が見えない
+  Math.round(document.querySelector('nav')?.parentElement?.getBoundingClientRect().width ?? -1),
+  document.querySelectorAll('[role=dialog],[role=listbox],[role=status],.pop').length,
+  (document.activeElement?.tagName ?? '') + (document.activeElement?.getAttribute?.('placeholder') ?? ''),
+].join('|')`;
 
 const conn = async (url) => {
   const t = await (await fetch(`http://127.0.0.1:${PORT}/json/new?${encodeURIComponent(url)}`, { method: 'PUT' })).json();
@@ -74,7 +87,15 @@ for (const path of PAGES) {
       await send('Input.dispatchMouseEvent', { type, x: it.x, y: it.y, button: 'left', clickCount: 1 });
     await new Promise((r) => setTimeout(r, 320));
     const after = await ev(STATE);
-    if (before === after) { dead.push(it.label); deadAll++; } else { liveAll++; await go(); }
+    if (before === after) { dead.push(it.label); deadAll++; }
+    else { liveAll++; await go(); continue; }
+    /**
+     * 死んでいても、開きっぱなしの板が次の当たりを塞ぐことがある。
+     * ただし **Esc をむやみに押さない** — Esc で閉じるもの（質問の板）まで消えて、
+     * そのあとの要素が全部「死」に見える（実際それで8件を誤判定した）。
+     * **開いているものがあるときだけ**閉じる。
+     */
+    if ((await ev(`document.querySelectorAll('[role=dialog],[role=listbox],.pop').length`)) > 0) await go();
   }
   console.log(`${path}  押せる ${items.length} / 死 ${dead.length}`);
   for (const d of dead) console.log(`    ✗ ${d}`);

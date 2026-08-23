@@ -6,7 +6,7 @@ import { Composer, Pills, TopBar } from '@/components/shell/Chrome';
 import { Dot, Icon } from '@/components/ui/Icon';
 import { EMPLOYEES, FLOW } from '@/lib/dummy';
 import { BOARD_W, EASE } from '@/lib/design/tokens';
-import { Zoom } from '@/components/home/Zoom';
+import { MAX_K, MIN_K, Zoom } from '@/components/home/Zoom';
 import { Office } from '@/components/home/Office';
 import { Desk } from '@/components/home/Desk';
 import { Progress } from '@/components/home/Progress';
@@ -29,7 +29,10 @@ const VIEWS = [
  */
 function Canvas({ head, children }: { head: React.ReactNode; children: React.ReactNode }) {
   const box = useRef<HTMLDivElement>(null);
-  const [k, setK] = useState(1);
+  const [fitK, setK] = useState(1);
+  /** 自分で拡大縮小したぶん。**入る大きさに縮めるぶんとは別に持つ**（掛けて使う） */
+  const [own, setOwn] = useState(1);
+  const k = fitK * own;
   useEffect(() => {
     const el = box.current;
     if (!el) return;
@@ -41,7 +44,11 @@ function Canvas({ head, children }: { head: React.ReactNode; children: React.Rea
     return () => ro.disconnect();
   }, []);
   return (
-    <Zoom.Provider value={k}>
+    <Zoom.Provider value={{
+      k, own,
+      zoom: (d: number) => setOwn((v) => Math.min(MAX_K, Math.max(MIN_K, Math.round((v + d) * 100) / 100))),
+      fit: () => setOwn(1),
+    }}>
       <div style={{
         flex: 1, minHeight: 0, overflow: 'hidden',
         display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px 16px 0',
@@ -52,7 +59,7 @@ function Canvas({ head, children }: { head: React.ReactNode; children: React.Rea
         }}>
           <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10, height: 20 }}>{head}</div>
           <div style={{
-            width: BOARD_W, transformOrigin: 'top left', transform: k < 1 ? `scale(${k})` : undefined,
+            width: BOARD_W, transformOrigin: 'top left', transform: k !== 1 ? `scale(${k})` : undefined,
             transition: `transform ${EASE}`,
           }}>{children}</div>
         </div>

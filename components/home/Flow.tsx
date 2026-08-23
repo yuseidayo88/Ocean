@@ -4,6 +4,7 @@ import type { Route } from 'next';
 import { Go as Link } from '@/components/ui/Go';
 import { Icon } from '@/components/ui/Icon';
 import { FLOW, type FlowKind } from '@/lib/dummy';
+import { STEP, useZoom } from '@/components/home/Zoom';
 
 /**
  * ワークフロー＝左から右へ流れるノードグラフ
@@ -90,14 +91,16 @@ const Sub = ({ x, top, label }: { x: number; top: number; label: string }) => (
   </>
 );
 
-const Tool = ({ name, on = false }: { name: 'hand' | 'expand' | 'minus' | 'plus'; on?: boolean }) => (
-  <span className={on ? 'hit' : 'icob'} style={{
+const Tool = ({ name, on = false, onPress, title }:
+  { name: 'hand' | 'expand' | 'minus' | 'plus'; on?: boolean; onPress?: () => void; title?: string }) => (
+  <button onClick={onPress} title={title} className={on ? 'hit' : 'icob'} style={{
     width: 28, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center',
     justifyContent: 'center', background: on ? '#262626' : undefined,
-  }}><Icon name={name} color={on ? T1 : '#8B8B8B'} size={15} width={1.7} /></span>
+  }}><Icon name={name} color={on ? T1 : '#8B8B8B'} size={15} width={1.7} /></button>
 );
 
 export function Flow() {
+  const board = useZoom();
   const cy = (top: number) => top + NH / 2;
   const rowY = RY.map(cy);
   const mid = cy(ROW);
@@ -143,12 +146,15 @@ export function Flow() {
         background: '#121212', border: '1px solid #2A2A2A',
       }}>
         <span style={{ color: T5, fontSize: 12, padding: '0 5px' }}>⠿</span>
-        <Tool name="hand" on />
-        <Tool name="expand" />
+        <Tool name="hand" on title="動かす" />
+        <Tool name="expand" onPress={board.fit} title="収める" />
         <span style={{ width: 1, height: 18, background: '#262626', margin: '0 4px' }} />
-        <Tool name="minus" />
-        <span style={{ color: T2, fontSize: 12, padding: '0 4px' }} className="tnum">100%</span>
-        <Tool name="plus" />
+        <Tool name="minus" onPress={() => board.zoom(-STEP)} title="小さく" />
+        {/* 数字は掛けたあとの値。**絵と食い違わせない** */}
+        <button onClick={board.fit} title="100% に戻す" className="btn" style={{
+          color: T2, fontSize: 12, padding: '0 4px', borderRadius: 6,
+        }}><span className="tnum">{Math.round(board.k * 100)}%</span></button>
+        <Tool name="plus" onPress={() => board.zoom(STEP)} title="大きく" />
       </div>
 
       {/* 右下のミニマップ */}
