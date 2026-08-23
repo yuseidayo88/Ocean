@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { Icon } from '@/components/ui/Icon';
 import { usePathname } from 'next/navigation';
 import { COMPANIES } from '@/lib/dummy';
+import { morning } from '@/app/actions/run';
 import { FAINT, RULE, SHELL_MIN, SUNK, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
 /**
  * 器の開け閉め。左レールはレールの中の印で閉じ、閉じたら**端に何も残さない**。
@@ -59,6 +60,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
   }, []);
+
+  /**
+   * 朝の報告。**開いた側から統括AIが言う**（チャットボットは聞かれるまで黙っている —
+   * ここが違い）。器が開いたとき1回だけ呼ぶ。その日すでに書いたかはストアが判定する。
+   * 結果は待たない — 報告は通知の画面に落ちるので、ここで画面を止める理由が無い。
+   */
+  useEffect(() => { void morning(); }, []);
 
   /**
    * **器の口は識別を変えない。** ここは全画面が読む context なので、

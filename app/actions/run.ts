@@ -170,3 +170,13 @@ export async function billing(): Promise<{
     return { balanceTokens: null, rows: [] };
   }
 }
+/* ══════════════ 朝の報告 ══════════════ */
+
+/**
+ * その日はじめて開いたとき、統括AIが**聞かれる前に**きのうの動きを1通にする。
+ * 器（Shell）が開いたときに1回だけ呼ぶ。重複はストア側が日付で止める。
+ * 失敗しても画面は困らない（報告は義務ではない）ので、黙って false。
+ */
+export async function morning(): Promise<boolean> {
+  try { return await store().morningBrief(); } catch { return false; }
+}

@@ -145,6 +145,15 @@ export interface Store {
   ledger(): Promise<{ deltaCents: number; reason: string; when?: string }[]>;
   /** 枠に当たって止める。works → paused ＋ エラー通知 */
   pauseWork(workId: string, why: string): Promise<void>;
+
+  /* ══════════════ 朝の報告 ══════════════ */
+
+  /**
+   * 統括AIの朝の報告。**その日はじめて開いたとき、動きがあった朝だけ**1通。
+   * チャットボットとの違いはここ — 聞かれる前に、会社のほうから言う。
+   * 書いたら true（同じ日に二度書かない）
+   */
+  morningBrief(): Promise<boolean>;
 }
 
 export type LiveEmployee = {

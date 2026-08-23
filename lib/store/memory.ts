@@ -185,6 +185,9 @@ export const memoryStore: Store = {
   /** メモリ版は台帳を持たない。**残高があるふりをしない**（null = 上限なし） */
   async balanceCents() { return null; },
   async ledger() { return []; },
+  /** デモ（メモリ）は通知の画面がダミーなので、書いても誰も読めない。正直に何もしない */
+  async morningBrief() { return false; },
+
   async pauseWork(workId, why) {
     const live = [...bag.values()].find((d) => d.live?.id === workId)?.live;
     if (live) live.status = 'paused';

@@ -590,6 +590,39 @@ export const supabaseStore: Store = {
     }));
   },
 
+  async morningBrief() {
+    const c = await db();
+    const today = new Date().toISOString().slice(0, 10);
+    const key = `morning-${today}`;
+    // きょうのぶんが既にあれば書かない
+    const { data: had } = await c.from('notifications').select('id').eq('group_key', key).limit(1).maybeSingle();
+    if (had) return false;
+
+    const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const [{ data: doneRuns }, { data: dels }, { data: opens }, { data: paused }] = await Promise.all([
+      c.from('runs').select('id').eq('status', 'done').gte('ended_at', since),
+      c.from('deliverables').select('id').eq('status', 'review').gte('created_at', since),
+      c.from('decisions').select('id').eq('status', 'open'),
+      c.from('works').select('id').eq('status', 'paused'),
+    ]);
+    const ran = doneRuns?.length ?? 0, del = dels?.length ?? 0,
+          open = opens?.length ?? 0, stop = paused?.length ?? 0;
+    // **動きが無かった朝は黙る。** 空の報告は報告ではない
+    if (ran + del + open + stop === 0) return false;
+
+    const parts: string[] = [];
+    if (ran) parts.push(`きのうから実行が ${ran}件 終わりました`);
+    if (del) parts.push(`見てほしい成果物が ${del}件`);
+    if (open) parts.push(`判断待ちが ${open}件`);
+    if (stop) parts.push(`止まっている Work が ${stop}件`);
+    const { error } = await c.from('notifications').insert({
+      kind: del || ran ? '要確認' : open ? '判断待ち' : 'エラー',
+      body: `朝の報告 — ${parts.join('、')}`, group_key: key,
+    });
+    if (error) throw new AppError('unknown', error.message);
+    return true;
+  },
+
   async pauseWork(workId, why) {
     const c = await db();
     await c.from('works').update({ status: 'paused' }).eq('id', workId);
