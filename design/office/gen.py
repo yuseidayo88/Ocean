@@ -914,7 +914,7 @@ def a3_strip(name, key, state, spec, now, el, done, running, total, log, last=Fa
     sc = STATE_C[state]
     fig, cap = PRODUCE[name]()
     w = WAIT[name]
-    return ('<div style="display:flex;flex-direction:column;gap:7px;padding:12px 0;%s">'
+    return ('<div style="display:flex;flex-direction:column;gap:7px;padding:13px 0;%s">'
             % ('' if last else 'border-bottom:1px solid %s' % HAIR)
             + '<div style="display:flex;align-items:center;gap:9px">'
               + orb(RGB[key], 24, state == '待機')
@@ -932,7 +932,6 @@ def a3_strip(name, key, state, spec, now, el, done, running, total, log, last=Fa
                 + steps(done, running, total, HEX[key], 96)
                 + '<span style="color:%s;font-size:11px">%d / %d · %s</span>' % (T5, done, total, STEPNAME[name])
               + '</div>'
-              # ★ 採ったもの: produces ごとに形の違う計器 ＋ 待ち
               + '<div style="display:flex;align-items:center;gap:9px;min-height:11px">'
                 + fig + (mono(cap) if cap else '')
                 + '<div style="flex:1"></div>'
@@ -940,43 +939,157 @@ def a3_strip(name, key, state, spec, now, el, done, running, total, log, last=Fa
               + '</div>'
             + '</div></div>')
 
+# ── 真ん中の図に「流れ」を出す ──────────────────────────────
+# 弧は Work の進み。**その区間を誰がやったかで色を変える**（② THE TRACE を輪の上に巻いた形）。
+# 色が変わるところ＝引き継ぎ。時計回りの矢羽根を置く。先端には尾を引かせる（いま動いている）。
+FW, FH = 468, 560
+FCX, FCY = 234, 280
+
+def fpt(rx, ry, p):
+    a = math.radians(-90 + 3.6 * p)
+    return FCX + rx * math.cos(a), FCY + ry * math.sin(a)
+
+def fseg(rx, ry, p0, p1, color, w=2.6, op=1.0, dash=None):
+    x0, y0 = fpt(rx, ry, p0); x1, y1 = fpt(rx, ry, p1)
+    large = 1 if (p1 - p0) > 50 else 0
+    return ('<path d="M %.1f %.1f A %.1f %.1f 0 %d 1 %.1f %.1f" fill="none" stroke="%s" '
+            'stroke-width="%s" stroke-linecap="round" opacity="%s"%s/>'
+            % (x0, y0, rx, ry, large, x1, y1, color, w, op,
+               ' stroke-dasharray="3 4"' if dash else ''))
+
+def fhand(rx, ry, p, color):
+    """引き継ぎの矢羽根。輪の接線に沿って、時計回りを向く"""
+    a = math.radians(-90 + 3.6 * p)
+    x, y = FCX + rx * math.cos(a), FCY + ry * math.sin(a)
+    tx, ty = -rx * math.sin(a), ry * math.cos(a)
+    L = math.hypot(tx, ty); tx, ty = tx / L, ty / L
+    nx, ny = -ty, tx
+    s = 5.0
+    pts = '%.1f,%.1f %.1f,%.1f %.1f,%.1f' % (
+        x + tx * s, y + ty * s,
+        x - tx * s * .55 + nx * s * .78, y - ty * s * .55 + ny * s * .78,
+        x - tx * s * .55 - nx * s * .78, y - ty * s * .55 - ny * s * .78)
+    tick = ('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#3A3A3A" stroke-width="1"/>'
+            % (x + nx * 7, y + ny * 7, x - nx * 7, y - ny * 7))
+    return tick + '<polygon points="%s" fill="%s"/>' % (pts, color)
+
+def ftail(rx, ry, p, color):
+    """先端の尾。**動いているものにだけ引く**"""
+    out = ''
+    for k, (back, r, o) in enumerate([(1.6, 2.6, .9), (4.0, 2.0, .5), (6.8, 1.5, .26)]):
+        x, y = fpt(rx, ry, p - back)
+        out += '<circle cx="%.1f" cy="%.1f" r="%s" fill="%s" opacity="%s"/>' % (x, y, r, color, o)
+    return out
+
+FRINGS = [
+    # rx,  ry,  区間[(from,to,色)],                       先端, 判断待ち, 予定との差, Work名,             ひとこと
+    (124,  86, [(0, 22, 'cyan'), (22, 52, 'purple')],      52,  True,  None,     '日本語学習サービス', None),
+    (174, 120, [(0, 38, 'indigo')],                        38,  False, (38, 47), 'SNS運用の立ち上げ',  ('遅れ 2日', RED_T)),
+    (226, 158, [(0, 26, 'indigo'), (26, 61, 'green')],     61,  False, None,     'LPと申込フォーム',   None),
+]
+# 社員は**自分がやった区間のまん中**に立つ。先端（いま）は尾を引く粒が言う
+FEMP = [(0, 0, 22, '調査担当', 'cyan'), (0, 22, 52, '戦略担当', 'purple'),
+        (1, 0, 38, '企画担当', 'indigo'), (2, 26, 61, '開発担当', 'green')]
+
+def flow_board():
+    g = ['<svg width="%d" height="%d" viewBox="0 0 %d %d" style="display:block">' % (FW, FH, FW, FH)]
+    g.append('<defs><radialGradient id="c2"><stop offset="0" stop-color="#D2D2D2" stop-opacity=".22"/>'
+             '<stop offset="1" stop-color="#D2D2D2" stop-opacity="0"/></radialGradient></defs>')
+    for rx, ry, segs, tip, gate, behind, _, _ in FRINGS:
+        g.append('<ellipse cx="%d" cy="%d" rx="%d" ry="%d" fill="none" stroke="#1B1B1B" stroke-width="1"/>'
+                 % (FCX, FCY, rx, ry))
+        g.append('<line x1="%d" y1="%.1f" x2="%d" y2="%.1f" stroke="#2E2E2E" stroke-width="1"/>'
+                 % (FCX, FCY - ry - 5, FCX, FCY - ry + 5))
+        if behind:                       # 予定との差。赤い点線ではみ出したぶんを見せる
+            g.append(fseg(rx, ry, behind[0], behind[1], RED, 2.2, .85, dash=True))
+        for k, (p0, p1, key) in enumerate(segs):
+            g.append(fseg(rx, ry, p0, p1, HEX[key], 2.6, .95))
+            if k:                        # 色が変わるところ＝引き継ぎ
+                g.append(fhand(rx, ry, p0, HEX[key]))
+        g.append(ftail(rx, ry, tip, HEX[segs[-1][2]]))
+        if gate:
+            # あなたが決めるところ。**先端の少し先**に立てる（この Work の次は、あなたの番）
+            a = math.radians(-90 + 3.6 * tip)
+            tx, ty = -rx * math.sin(a), ry * math.cos(a)
+            L = math.hypot(tx, ty)
+            x, y = FCX + rx * math.cos(a) + tx / L * 36, FCY + ry * math.sin(a) + ty / L * 36
+            g.append('<circle cx="%.1f" cy="%.1f" r="11" fill="rgba(227,116,0,0.13)"/>' % (x, y))
+            g.append('<rect x="%.1f" y="%.1f" width="9" height="9" rx="1.5" fill="%s" '
+                     'transform="rotate(45 %.1f %.1f)"/>' % (x - 4.5, y - 4.5, AMBER, x, y))
+    # 統括AI から、その区間を持っている人へ（割り当て。**引き継ぎより弱く**）
+    for ri, p0, p1, _, _ in FEMP:
+        rx, ry = FRINGS[ri][0], FRINGS[ri][1]
+        x, y = fpt(rx, ry, (p0 + p1) / 2)
+        dx, dy = x - FCX, y - FCY
+        L = math.hypot(dx, dy)
+        g.append('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#1F1F1F" stroke-width="1"/>'
+                 % (FCX + dx / L * 32, FCY + dy / L * 32, FCX + dx / L * (L - 22), FCY + dy / L * (L - 22)))
+    g.append('<circle cx="%d" cy="%d" r="44" fill="url(#c2)"/>' % (FCX, FCY))
+    g.append('</svg>')
+
+    out = ''.join(g)
+    # Work 名は**輪のはじまり（真上）の横**に置く。輪が大きいほど上に来るので、どの名前がどの輪か迷わない
+    for rx, ry, segs, tip, gate, behind, title, note in FRINGS:
+        out += ('<div style="position:absolute;left:%dpx;top:%dpx;transform:translate(-100%%,-50%%);'
+                'display:flex;align-items:center;gap:7px;white-space:nowrap">'
+                '%s<span style="color:%s;font-size:11px">%s</span>%s'
+                '<span style="width:12px;height:1px;background:#2E2E2E"></span></div>'
+                % (FCX - 8, FCY - ry, dot(HEX[segs[-1][2]], 5), T3, title,
+                   ('<span style="color:%s;font-size:11px">%s</span>' % (note[1], note[0])) if note else ''))
+    out += ('<div style="position:absolute;left:%dpx;top:%dpx;transform:translate(-50%%,-50%%);'
+            'display:flex;flex-direction:column;align-items:center;gap:6px">'
+            '%s<span style="color:#E8E8E8;font-size:12.5px">統括AI</span></div>'
+            % (FCX, FCY, orb(RGB['white'], 58, glow=.5)))
+    for ri, p0, p1, name, key in FEMP:
+        rx, ry = FRINGS[ri][0], FRINGS[ri][1]
+        x, y = fpt(rx, ry, (p0 + p1) / 2)
+        gate = FRINGS[ri][4] and p1 == FRINGS[ri][3]
+        out += ('<div style="position:absolute;left:%.0fpx;top:%.0fpx;transform:translate(-50%%,-50%%);'
+                'display:flex;flex-direction:column;align-items:center;gap:6px;white-space:nowrap">'
+                '%s<span style="color:%s;font-size:12px">%s</span></div>'
+                % (x, y, orb(RGB[key], 40), AMBER_T if gate else T2, name))
+    return '<div style="position:relative;width:%dpx;height:%dpx;flex-shrink:0">%s</div>' % (FW, FH, out)
+
+FEED_A3 = FEED + [
+    ('08:12', '開発担当', 'フォームの下書きを 調査担当 から受け取りました', T3),
+    ('08:04', '統括AI',   '企画担当 に投稿カレンダーを渡しました',        T3),
+    ('07:51', '調査担当', '価格ページ 12件を読み終えました',              T3),
+    ('07:40', '戦略担当', '調査担当 から事実 34件を受け取りました',       T3),
+    ('07:22', '統括AI',   'SNS運用の立ち上げ が 2日 遅れています',        RED_T),
+]
+
 rail_a3 = ('<div style="width:300px;flex-shrink:0;display:flex;flex-direction:column">'
   '<div style="display:flex;align-items:baseline;padding-bottom:2px">'
-  '<span style="color:%s;font-size:11px">いま誰が何を</span><div style="flex:1"></div>'
+  '<span style="color:%s;font-size:11px">AI社員</span><div style="flex:1"></div>'
   '<span style="color:%s;font-size:10.5px">5人</span></div>' % (T5, T5)
   + ''.join(a3_strip(*m, last=(i == len(REAL) - 1)) for i, m in enumerate(REAL))
   + '</div>')
 
-def a3_frame(rail, orbit_html):
-    """A2 の骨格に、① の承認の台帳を1つだけ足す"""
-    return ('<div style="padding:16px 30px 22px;display:flex;flex-direction:column;gap:12px">'
-      '<div style="display:flex;align-items:baseline;gap:14px">'
-        '<span style="font-size:16px;line-height:26px">3つの Work のうち<b style="color:%s">1つが遅れています</b>。'
-        '<b style="color:%s">判断待ちが 1件</b>、要確認が 1件。</span>'
-        '<div style="flex:1"></div>'
-        '<span style="color:%s;font-size:11.5px">きょうの決定 <span class="tnum" style="color:%s">14</span>'
-        '  ·  うちあなたが <span class="tnum" style="color:%s">2</span></span>'
-        '<span style="width:1px;height:12px;background:%s"></span>'
-        '<span style="color:%s;font-size:11.5px" class="tnum">稼働 4 / 4</span>'
-      '</div>' % (RED_T, AMBER_T, T5, T2, T2, LINE, T5)
-      + '<div style="display:flex;gap:22px;align-items:stretch">'
-      + rail
-      + '<div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center">%s</div>' % orbit_html
-      + '<div style="width:260px;flex-shrink:0;display:flex;flex-direction:column;'
-        'border-left:1px solid %s;padding-left:20px">' % HAIR
-        + '<div style="display:flex;align-items:baseline;padding-bottom:2px">'
-          '<span style="color:%s;font-size:11px">今日の出来事</span><div style="flex:1"></div>'
-          '<span style="display:inline-flex;align-items:center;gap:6px;color:%s;font-size:10.5px">%s動いています</span></div>'
-          % (T5, T5, dot(GREEN, 5))
-        + ''.join(feed_row(t, w, x, c, i == len(FEED) - 1) for i, (t, w, x, c) in enumerate(FEED))
-      + '</div></div>'
-      + '<div style="padding-top:6px">'
-        '<span style="display:block;color:%s;font-size:11px;padding-bottom:2px">Work</span>' % T5
-        + ''.join(work_row(*w, last=(i == len(WORKS) - 1)) for i, w in enumerate(WORKS))
-      + '</div></div>')
+a3_body = ('<div style="padding:16px 30px 22px;display:flex;flex-direction:column;gap:12px">'
+  '<div style="display:flex;align-items:baseline;gap:14px">'
+    '<span style="font-size:16px;line-height:26px">3つの Work のうち<b style="color:%s">1つが遅れています</b>。'
+    '<b style="color:%s">判断待ちが 1件</b>、要確認が 1件。</span>'
+    '<div style="flex:1"></div>'
+    '<span style="color:%s;font-size:11.5px">きょうの決定 <span class="tnum" style="color:%s">14</span>'
+    '  ·  うちあなたが <span class="tnum" style="color:%s">2</span></span>'
+    '<span style="width:1px;height:12px;background:%s"></span>'
+    '<span style="color:%s;font-size:11.5px" class="tnum">稼働 4 / 4</span>'
+  '</div>' % (RED_T, AMBER_T, T5, T2, T2, LINE, T5)
+  + '<div style="display:flex;gap:22px;align-items:stretch">'
+  + rail_a3
+  + '<div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center">%s</div>' % flow_board()
+  + '<div style="width:288px;flex-shrink:0;display:flex;flex-direction:column;'
+    'border-left:1px solid %s;padding-left:20px">' % HAIR
+    + '<div style="display:flex;align-items:baseline;padding-bottom:2px">'
+      '<span style="color:%s;font-size:11px">今日の出来事</span><div style="flex:1"></div>'
+      '<span style="display:inline-flex;align-items:center;gap:6px;color:%s;font-size:10.5px">%s動いています</span></div>'
+      % (T5, T5, dot(GREEN, 5))
+    + ''.join(feed_row(t, w, x, c, i == len(FEED_A3) - 1) for i, (t, w, x, c) in enumerate(FEED_A3))
+  + '</div></div>'
+  + '</div>')
 
 io.open(OUT + '/OptionA3.dc.html', 'w', encoding='utf-8').write(
-    board('A2 ＋ 4枚から採った7つ', 'A3 採用ぶんを入れた', a3_frame(rail_a3, ORBIT2), BLUE_T))
+    board('Work の行をやめて、絵に流れを出す', 'A3 採用ぶんを入れた', a3_body, BLUE_T))
 print('A3 ok')
 
 # ══════════════════════ canvas.json ══════════════════════
@@ -994,7 +1107,7 @@ canvas = {
     {"file": "OptionC.dc.html",  "x": 2600, "y": 1120, "w": 1180, "h": 800, "title": "C 一気見の表"},
     # 3段目 = 参考4枚の計器を1つずつ見た結果
     {"file": "Params.dc.html",   "x": 0,    "y": 2050, "w": 1180, "h": 1560, "title": "③ 4枚の計器を1つずつ"},
-    {"file": "OptionA3.dc.html", "x": 1300, "y": 2050, "w": 1180, "h": 890,  "title": "A3 採用ぶんを入れた"},
+    {"file": "OptionA3.dc.html", "x": 1300, "y": 2050, "w": 1180, "h": 810,  "title": "A3 採用ぶんを入れた"},
   ],
   "launch": {"view": "canvas"},
 }
