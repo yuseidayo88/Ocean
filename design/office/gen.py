@@ -1058,6 +1058,7 @@ FEED_A3 = FEED + [
     ('07:51', '調査担当', '価格ページ 12件を読み終えました',              T3),
     ('07:40', '戦略担当', '調査担当 から事実 34件を受け取りました',       T3),
     ('07:22', '統括AI',   'SNS運用の立ち上げ が 2日 遅れています',        RED_T),
+    ('07:05', '統括AI',   'きょうのぶんの計画を引き直しました',            T3),
 ]
 
 rail_a3 = ('<div style="width:300px;flex-shrink:0;display:flex;flex-direction:column">'
@@ -1095,7 +1096,7 @@ io.open(OUT + '/OptionA3.dc.html', 'w', encoding='utf-8').write(
 print('A3 ok')
 
 # ══════════════════════ 置き場所の4案（答えの一文をやめる） ══════════════════════
-def flow(fw, fh, rings, orb_px=40, exec_px=58):
+def flow(fw, fh, rings, orb_px=40, exec_px=58, labdeg=None):
     """輪＝Work。弧の色＝その区間を誰がやったか。色が変わるところが引き継ぎ"""
     cx, cy = fw / 2, fh / 2
     def pt(rx, ry, p):
@@ -1160,12 +1161,17 @@ def flow(fw, fh, rings, orb_px=40, exec_px=58):
     g.append('</svg>')
 
     out = ''.join(g)
-    for rx, ry, segs, tip, gate, behind, title, note in rings:
+    for k, (rx, ry, segs, tip, gate, behind, title, note) in enumerate(rings):
+        if labdeg:
+            a = math.radians(labdeg[k])
+            lx, ly = cx + rx * math.cos(a) + 1, cy + ry * math.sin(a)
+        else:
+            lx, ly = cx - 8, cy - ry
         out += ('<div style="position:absolute;left:%.0fpx;top:%.0fpx;transform:translate(-100%%,-50%%);'
                 'display:flex;align-items:center;gap:7px;white-space:nowrap">'
                 '%s<span style="color:%s;font-size:11px">%s</span>%s'
                 '<span style="width:12px;height:1px;background:#2E2E2E"></span></div>'
-                % (cx - 8, cy - ry, dot(HEX[segs[-1][2]], 5), T3, title,
+                % (lx, ly, dot(HEX[segs[-1][2]], 5), T3, title,
                    ('<span style="color:%s;font-size:11px">%s</span>' % (note[1], note[0])) if note else ''))
     out += ('<div style="position:absolute;left:%.0fpx;top:%.0fpx;transform:translate(-50%%,-50%%);'
             'display:flex;flex-direction:column;align-items:center;gap:6px">'
@@ -1325,21 +1331,77 @@ io.open(OUT + '/LayoutLogBottom.dc.html', 'w', encoding='utf-8').write(
           '引き換えに: 社員の行が1段減る ＋ 入力欄のぶん 108px'))
 print('L2 ok')
 
-# ── ③ 下に社員 ────────────────────────────────────────────
-b3 = ('<div style="padding:16px 30px 22px;display:flex;flex-direction:column;gap:10px">'
-  + topline()
+# ── ③ 下に社員（採用）──────────────────────────────────────
+def doc_icon(c=AMBER, w=9, h=11):
+    """要確認は文字の右に書類のアイコン。押すとその成果物へ飛ぶ（メンバー画面と同じ作法）"""
+    return ('<span style="width:%dpx;height:%dpx;border:1px solid %s;border-radius:2px;'
+            'flex-shrink:0;display:inline-block"></span>' % (w, h, c))
+
+PRODUCE_C = {
+    '統括AI':  lambda: (mono('AIが決めた 12  ·  あなたが 2', T5), ''),
+    '調査担当': lambda: (sq_run(12, 8, CYAN),      '事実 34'),
+    '戦略担当': lambda: (text_lines(PURPLE, (40, 33, 22)), '1,248字'),
+    '開発担当': lambda: (dot_run(18, 18, AGREEN),  'テスト 24'),
+    '企画担当': lambda: (week_cells(4, 1, INDIGO), '1 / 4週'),
+}
+
+def deskcard(name, key, state, spec, now, el, done, running, total, log, first=False):
+    """1人ぶんを縦に積む。**5段**（誰 / どんな設定で / いま何を / 工程 / 出したもの）"""
+    sc = STATE_C[state]
+    fig, cap = PRODUCE_C[name]()
+    w = WAIT[name]
+    return ('<div style="%sdisplay:flex;flex-direction:column;gap:8px;min-width:0">'
+            % ('width:206px;flex-shrink:0;' if first
+               else 'flex:1;border-left:1px solid %s;padding-left:24px;' % HAIR)
+            # 誰
+            + '<div style="display:flex;align-items:center;gap:8px;height:26px">'
+              + orb(RGB[key], 26) + '<span style="font-size:13px">%s</span>' % name
+            + '</div>'
+            # どんな設定で動いているか（状態 ＋ モデル ＋ 深さ）
+            + '<div style="display:flex;align-items:center;gap:6px;height:14px">'
+              + dot(sc[0], 5)
+              + '<span style="color:%s;font-size:10.5px">%s</span>' % (sc[1], state)
+              + (doc_icon() if state == '要確認' else '')
+              + '<span style="color:%s;font-size:10.5px">·  %s</span>' % (T5, spec.replace(' · ', ' · '))
+            + '</div>'
+            # いま何をしているか
+            + '<div style="display:flex;align-items:baseline;gap:8px;height:17px">'
+              + '<span style="color:%s;font-size:12px;overflow:hidden;text-overflow:ellipsis;'
+                'white-space:nowrap">%s</span><div style="flex:1"></div>%s'
+                % (T2, now, mono(el, T5) if el else '')
+            + '</div>'
+            # 工程（run_steps を1本に畳む）
+            + '<div style="display:flex;align-items:center;gap:9px;height:14px">'
+              + steps(done, running, total, HEX[key], 76)
+              + '<span style="color:%s;font-size:10.5px;white-space:nowrap;overflow:hidden;'
+                'text-overflow:ellipsis">%d / %d · %s</span>' % (T5, done, total, STEPNAME[name])
+            + '</div>'
+            # 出したもの（器は produces で決まる）＋ このあと積まれているぶん
+            + '<div style="display:flex;align-items:center;gap:9px;height:13px">'
+              + fig + (mono(cap) if cap else '') + '<div style="flex:1"></div>'
+              + (mono('待ち %d' % w, T5) if w else '')
+            + '</div></div>')
+
+b3 = ('<div style="padding:16px 30px 0;display:flex;flex-direction:column;gap:20px">'
+  # 上: 絵とログ。**答えの一文も上の帯も置かない**（数は絵と社員の行が言っている）
   + '<div style="display:flex;gap:22px;align-items:stretch">'
     + '<div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center">%s</div>'
-      % flow(810, 380, ringset((218, 82), (306, 115), (394, 148)), orb_px=36, exec_px=52)
+      % flow(810, 460, ringset((222, 102), (312, 143), (402, 184)),
+             orb_px=34, exec_px=46, labdeg=[198, 225, 242])
     + logcol(9)
   + '</div>'
-  + '<div style="padding-top:10px;margin-bottom:%dpx;border-top:1px solid %s">%s'
-    '<div style="display:flex;gap:28px;padding-top:8px">%s</div></div>'
-    % (COMPOSER_NOTE, HAIR, sec('AI社員', '5人'), ''.join(card(*m) for m in REAL))
-  + '</div>')
+  # 下: 社員。**入力欄のぶん逃がす**
+  + '<div style="border-top:1px solid %s;padding-top:12px;margin-bottom:%dpx">' % (HAIR, COMPOSER_NOTE)
+    + '<div style="display:flex;align-items:baseline;padding-bottom:10px">'
+      '<span style="color:%s;font-size:11px">AI社員</span><div style="flex:1"></div>'
+      '<span style="color:%s;font-size:10.5px" class="tnum">4人  ·  稼働 4 / 4</span></div>' % (T5, T5)
+    + '<div style="display:flex;gap:24px;align-items:flex-start">'
+      + ''.join(deskcard(*m, first=(i == 0)) for i, m in enumerate(REAL))
+    + '</div>'
+  + '</div></div>')
 io.open(OUT + '/LayoutTeamBottom.dc.html', 'w', encoding='utf-8').write(
-    board('絵とログが上、社員は下に5列', '③ 下に社員', b3, BLUE_T,
-          '引き換えに: 6人目から横スクロール ＋ 入力欄のぶん 108px'))
+    board('絵とログが上、社員は下に5列', '③ 下に社員', b3, GREEN_T,
+          '統括AI は左に分けて置く · 6人目から横スクロール'))
 print('L3 ok')
 
 # ── ④ 右に1本 ─────────────────────────────────────────────
@@ -1380,7 +1442,7 @@ canvas = {
     # 4段目 = 答えの一文をやめたあとの置き場所（社員とログをどこに置くか）
     {"file": "LayoutSides.dc.html",     "x": 0,    "y": 3750, "w": 1180, "h": 800, "title": "① 左右"},
     {"file": "LayoutLogBottom.dc.html", "x": 1300, "y": 3750, "w": 1180, "h": 900, "title": "② 下にログ"},
-    {"file": "LayoutTeamBottom.dc.html","x": 2600, "y": 3750, "w": 1180, "h": 880, "title": "③ 下に社員"},
+    {"file": "LayoutTeamBottom.dc.html","x": 2600, "y": 3750, "w": 1180, "h": 880, "title": "③ 下に社員（採用）"},
     {"file": "LayoutOneColumn.dc.html", "x": 3900, "y": 3750, "w": 1180, "h": 860, "title": "④ 右に1本"},
   ],
   "launch": {"view": "canvas"},
