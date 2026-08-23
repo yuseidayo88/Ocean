@@ -1297,6 +1297,33 @@ def strip2(name, key, state, spec, now, el, done, running, total, log, last=Fals
 
 COMPOSER_NOTE = 108   # 下に置いたものは入力欄のぶん逃がす（52 ＋ 窓の下との間 24 ＋ 中身との間 32）
 
+ICONS = {
+  'team': '<circle cx="9.2" cy="8.6" r="3.1"/><path d="M4 19.2c0-2.9 2.3-5.2 5.2-5.2s5.2 2.3 5.2 5.2"/>'
+          '<path d="M15.6 5.9a3 3 0 0 1 0 5.5M17.6 14.4c1.8.8 3 2.6 3 4.8"/>',
+  'panel': '<rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="M9.5 5v14"/>',
+  'check': '<path d="m5 12.5 4 4 9-10"/>',
+  'roadmap': '<circle cx="6" cy="6" r="2.2"/><circle cx="6" cy="18" r="2.2"/>'
+             '<path d="M6 8.2v7.6M8.2 6H15a3 3 0 0 1 3 3v0"/>',
+}
+
+def icon(n, c=T4, size=14, w=1.5):
+    return ('<svg width="%d" height="%d" viewBox="0 0 24 24" fill="none" stroke="%s" stroke-width="%s" '
+            'stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;display:block">%s</svg>'
+            % (size, size, c, w, ICONS[n]))
+
+def pills(active='オフィス'):
+    """ホームの4ビュー切替。**上部ピル**（ホームだけ右ペインなしの全幅）"""
+    out = ''
+    for label, ic in [('オフィス', 'team'), ('デスク', 'panel'), ('進捗', 'check'), ('ワークフロー', 'roadmap')]:
+        on = label == active
+        out += ('<span style="display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 15px;'
+                'border-radius:999px;%scolor:%s;white-space:nowrap;font-size:13px">%s%s</span>'
+                % ('background:#2A2A2A;' if on else '', T1 if on else T4,
+                   icon(ic, T1 if on else T4), label))
+    return ('<div style="display:flex;justify-content:center">'
+            '<div style="display:inline-flex;align-items:center;gap:3px;padding:4px;border-radius:999px;'
+            'background:#141414;border:1px solid %s">%s</div></div>' % (LINE, out))
+
 def composer():
     """入力欄。**全画面で同じものを1つ**・中央下部・幅748・高さ52・角丸26。
        中身の上に浮くので、下に貼り付く行は COMPOSER_NOTE ぶん逃がす"""
@@ -1398,12 +1425,14 @@ def deskcard(name, key, state, spec, now, el, done, running, total, log, first=F
             + '</div></div>')
 
 b3 = ('<div style="position:relative;padding:16px 30px 0;display:flex;flex-direction:column;gap:20px">'
-  # 上: 絵とログ。**答えの一文も上の帯も置かない**（数は絵と社員の行が言っている）
+  # いちばん上: ホームの4ビュー切替
+  + pills('オフィス')
+  # 絵とログ。**答えの一文も上の帯も置かない**（数は絵と社員の行が言っている）
   + '<div style="display:flex;gap:22px;align-items:stretch">'
     + '<div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center">%s</div>'
-      % flow(810, 460, ringset((222, 102), (312, 143), (402, 184)),
+      % flow(810, 404, ringset((222, 90), (312, 126), (402, 162)),
              orb_px=34, exec_px=46, labdeg=[198, 225, 242])
-    + logcol(9)
+    + logcol(8)
   + '</div>'
   # 下: 社員。**入力欄のぶん逃がす**
   + '<div style="border-top:1px solid %s;padding-top:12px;margin-bottom:%dpx">' % (HAIR, COMPOSER_NOTE)
