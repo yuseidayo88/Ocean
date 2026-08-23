@@ -6,28 +6,52 @@
       "y": 0,
       "w": 1180,
       "h": 770,
-      "title": "診断"
+      "title": "① 診断"
     },
     {
-      "file": "OptionA.dc.html",
+      "file": "Numbers.dc.html",
       "x": 1300,
       "y": 0,
       "w": 1180,
+      "h": 910,
+      "title": "② その数字はどこから来るか"
+    },
+    {
+      "file": "OptionA1.dc.html",
+      "x": 2600,
+      "y": 0,
+      "w": 1180,
+      "h": 960,
+      "title": "A1 実機（CPU をそのまま）"
+    },
+    {
+      "file": "OptionA2.dc.html",
+      "x": 3900,
+      "y": 0,
+      "w": 1180,
+      "h": 960,
+      "title": "A2 正直な計器"
+    },
+    {
+      "file": "OptionA.dc.html",
+      "x": 0,
+      "y": 1120,
+      "w": 1180,
       "h": 730,
-      "title": "A 計器盤"
+      "title": "A 計器盤（採用）"
     },
     {
       "file": "OptionB.dc.html",
-      "x": 2600,
-      "y": 0,
+      "x": 1300,
+      "y": 1120,
       "w": 1180,
       "h": 780,
       "title": "B 濃い盤面"
     },
     {
       "file": "OptionC.dc.html",
-      "x": 3900,
-      "y": 0,
+      "x": 2600,
+      "y": 1120,
       "w": 1180,
       "h": 800,
       "title": "C 一気見の表"

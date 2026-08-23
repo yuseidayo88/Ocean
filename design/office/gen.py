@@ -493,14 +493,278 @@ io.open(OUT + '/OptionC.dc.html', 'w', encoding='utf-8').write(
     board('絵をやめる。数えずに読める形に', 'C 一気見の表', c_body, BLUE_T))
 print('C ok')
 
+# ══════════════════════ 各AI社員に「マシン」を持たせる ══════════════════════
+MONO = 'ui-monospace, SFMono-Regular, Menlo, monospace'
+
+def rnd(seed, n):
+    """決め打ちの揺らぎ（毎回同じ絵になる）"""
+    v, x = [], seed
+    for _ in range(n):
+        x = (x * 1103515245 + 12345) % 2147483648
+        v.append(((x >> 13) % 1000) / 1000)
+    return v
+
+def spark(seed, color, n=26, h=18, dim=False):
+    """細い縦棒の折れ線。**動いていない社員は平ら**にする（嘘の脈を打たせない）"""
+    v = rnd(seed, n)
+    bars = ''
+    for i, u in enumerate(v):
+        hh = 2 if dim else max(2, round(3 + u * (h - 4)))
+        o = .3 if dim else (.34 + .55 * u)
+        bars += ('<span style="width:2px;height:%dpx;border-radius:1px;background:%s;opacity:%.2f"></span>'
+                 % (hh, color, o))
+    return ('<span style="display:inline-flex;align-items:flex-end;gap:1px;height:%dpx;flex-shrink:0">%s</span>'
+            % (h, bars))
+
+def mono(t, c=DIM, size=10.5):
+    return '<span style="font-family:%s;font-size:%spx;color:%s;white-space:nowrap">%s</span>' % (MONO, size, c, t)
+
+def steps(done, now, total, color, w=104):
+    """工程の行を1本に畳む。済＝暗い面 / いま＝明るい面 / これから＝点線（進捗の読み方と同じ）"""
+    cw = (w - (total - 1) * 3) / total
+    out = ''
+    for i in range(total):
+        if i < done:
+            st = 'background:%s;opacity:.45' % color
+        elif i == done and now:
+            st = 'background:%s' % color
+        else:
+            st = 'background:#191919'
+        out += '<span style="width:%.1fpx;height:4px;border-radius:2px;%s"></span>' % (cw, st)
+    return '<span style="display:inline-flex;gap:3px;flex-shrink:0">%s</span>' % out
+
+STATE_C = {'実行中': (GREEN, GREEN_T), '要確認': (AMBER, AMBER_T), '待機': ('#4A4A4A', T4)}
+
+def a_frame(rail, orbit_html, feed_w=260, orbit_w=460):
+    """A の骨格。左＝社員 / 中＝絵 / 右＝今日の出来事 / 下＝Work"""
+    return ('<div style="padding:16px 30px 22px;display:flex;flex-direction:column;gap:12px">'
+      '<div style="display:flex;align-items:baseline;gap:12px">'
+        '<span style="font-size:16px;line-height:26px">3つの Work のうち<b style="color:%s">1つが遅れています</b>。'
+        '<b style="color:%s">判断待ちが 1件</b>、要確認が 1件。</span>'
+        '<div style="flex:1"></div>'
+        '<span style="color:%s;font-size:11.5px" class="tnum">稼働 4 / 4</span>'
+      '</div>' % (RED_T, AMBER_T, T5)
+      + '<div style="display:flex;gap:22px;align-items:stretch">'
+      + rail
+      + '<div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center">%s</div>' % orbit_html
+      + '<div style="width:%dpx;flex-shrink:0;display:flex;flex-direction:column;'
+        'border-left:1px solid %s;padding-left:20px">' % (feed_w, HAIR)
+        + '<div style="display:flex;align-items:baseline;padding-bottom:2px">'
+          '<span style="color:%s;font-size:11px">今日の出来事</span><div style="flex:1"></div>'
+          '<span style="display:inline-flex;align-items:center;gap:6px;color:%s;font-size:10.5px">%s動いています</span></div>'
+          % (T5, T5, dot(GREEN, 5))
+        + ''.join(feed_row(t, w, x, c, i == len(FEED) - 1) for i, (t, w, x, c) in enumerate(FEED))
+      + '</div></div>'
+      + '<div style="padding-top:6px">'
+        '<span style="display:block;color:%s;font-size:11px;padding-bottom:2px">Work</span>' % T5
+        + ''.join(work_row(*w, last=(i == len(WORKS) - 1)) for i, w in enumerate(WORKS))
+      + '</div></div>')
+
+# 絵は A と同じ読み方のまま、レールに場所を譲って小さくする
+OW2, OH2 = 460, 380
+OCX, OCY = OW2 / 2, OH2 / 2
+ORINGS = [(105, 66), (150, 95), (195, 124)]
+svg2, _, _ = orbit(OW2, OH2,
+    rings=[(105, 66, 52, 'purple', False), (150, 95, 38, 'indigo', False), (195, 124, 61, 'green', False)],
+    emps=[(0, 74, 'cyan', False), (0, 41, 'purple', False), (1, 22, 'indigo', False), (2, 62, 'green', False)],
+    gate_ring=0)
+lab2 = ''
+for ri, d, title, key in [(0, 198, '日本語学習サービス', 'purple'),
+                          (1, 216, 'SNS運用の立ち上げ',  'indigo'),
+                          (2, 234, 'LPと申込フォーム',   'green')]:
+    a = math.radians(d)
+    x, y = OCX + ORINGS[ri][0] * math.cos(a), OCY + ORINGS[ri][1] * math.sin(a)
+    lab2 += ('<div style="position:absolute;left:%.0fpx;top:%.0fpx;transform:translate(-100%%,-50%%);'
+             'display:flex;align-items:center;gap:7px;white-space:nowrap">'
+             '%s<span style="color:%s;font-size:11px">%s</span>'
+             '<span style="width:9px;height:1px;background:#2E2E2E"></span></div>'
+             % (x + 1, y, dot(HEX[key], 5), T3, title))
+ORBIT2 = ('<div style="position:relative;width:%dpx;height:%dpx;flex-shrink:0">%s%s</div>'
+          % (OW2, OH2, svg2, lab2))
+
+# ══════════════════════ A1 実機（頼まれたとおり） ══════════════════════
+MACHINE = [
+    ('統括AI',   'white',  '実行中', 'フェーズ2の関門を立てました',   'exec-00',       34, 96, '0.9s', '1.8 GB', 11),
+    ('調査担当', 'cyan',   '実行中', '競合ポジショニング分析',        'vm-research-01', 71, 82, '1.4s', '3.2 GB', 23),
+    ('戦略担当', 'purple', '要確認', '収益モデル比較レポート',        'vm-strategy-02', 12, 44, '2.1s', '1.1 GB', 31),
+    ('開発担当', 'green',  '実行中', '申込フォームの実装',            'vm-build-03',    88, 91, '1.1s', '4.6 GB', 47),
+    ('企画担当', 'indigo', '実行中', '投稿カレンダー作成',            'vm-plan-04',     46, 63, '1.7s', '2.4 GB', 59),
+]
+
+def m_strip(name, key, state, now, host, cpu, up, lat, mem, seed, last=False):
+    sc = STATE_C[state]
+    hot = RED_T if cpu >= 85 else (T2 if cpu >= 40 else T4)
+    return ('<div style="display:flex;flex-direction:column;gap:7px;padding:12px 0;%s">'
+            % ('' if last else 'border-bottom:1px solid %s' % HAIR)
+            + '<div style="display:flex;align-items:center;gap:9px">'
+              + orb(RGB[key], 24, state == '待機')
+              + '<span style="font-size:13px">%s</span>' % name + dot(sc[0], 5)
+              + '<span style="color:%s;font-size:11px">%s</span>' % (sc[1], state)
+              + '<div style="flex:1"></div>' + mono(host)
+            + '</div>'
+            + '<div style="padding-left:33px;display:flex;flex-direction:column;gap:6px">'
+              + '<span style="color:%s;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;'
+                'white-space:nowrap">%s</span>' % (T5, now)
+              + '<div style="display:flex;align-items:center;gap:8px">'
+                + mono('CPU', T5) + bar(cpu, HEX[key], 62, 4)
+                + '<span style="width:30px;color:%s;font-size:11px" class="tnum">%d%%</span>' % (hot, cpu)
+                + spark(seed, HEX[key], 26, 16, state == '待機')
+              + '</div>'
+              + mono('稼働 %d%%  ·  応答 %s  ·  メモリ %s' % (up, lat, mem))
+            + '</div></div>')
+
+rail_a1 = ('<div style="width:300px;flex-shrink:0;display:flex;flex-direction:column">'
+  '<div style="display:flex;align-items:baseline;padding-bottom:2px">'
+  '<span style="color:%s;font-size:11px">マシン</span><div style="flex:1"></div>'
+  '<span style="color:%s;font-size:10.5px">5台</span></div>' % (T5, T5)
+  + ''.join(m_strip(*m, last=(i == len(MACHINE) - 1)) for i, m in enumerate(MACHINE))
+  + '</div>')
+
+io.open(OUT + '/OptionA1.dc.html', 'w', encoding='utf-8').write(
+    board('CPU・稼働率・応答をそのまま出す', 'A1 実機', a_frame(rail_a1, ORBIT2), AMBER_T))
+print('A1 ok')
+
+# ══════════════════════ A2 正直な計器 ══════════════════════
+# 見た目の密度は A1 と同じ。**出ている数が全部ほんとうの数**なところだけ違う
+REAL = [
+    ('統括AI',   'white',  '実行中', 'Opus 5 · 深さ 5',   'フェーズ2の関門を立てる',  '',      3, True, 4,
+     '判断 3件  ·  提案 2件  ·  今日 5時間02分'),
+    ('調査担当', 'cyan',   '実行中', 'Sonnet 5 · 深さ 4', '競合ポジショニング分析',   '4:12',  3, True, 5,
+     'web検索 12  ·  取得 34  ·  書き出し 3  ·  今日 3時間12分'),
+    ('戦略担当', 'purple', '要確認', 'Opus 5 · 深さ 5',   '収益モデル比較レポート',   '',      5, False, 5,
+     '読んだ資料 18  ·  書き出し 1  ·  今日 2時間41分'),
+    ('開発担当', 'green',  '実行中', 'Sonnet 5 · 深さ 3', '申込フォームの実装',       '11:38', 2, True, 4,
+     'ファイル 9  ·  テスト 24  ·  今日 4時間05分'),
+    ('企画担当', 'indigo', '実行中', 'Haiku 4.5 · 深さ 2', '投稿カレンダー作成',      '1:56',  1, True, 3,
+     '書き出し 4  ·  今日 1時間20分'),
+]
+STEPNAME = {'統括AI': '関門を立てる', '調査担当': 'ページ取得', '戦略担当': '完了',
+            '開発担当': 'テスト', '企画担当': '下書き'}
+
+def r_strip(name, key, state, spec, now, el, done, running, total, log, last=False):
+    sc = STATE_C[state]
+    return ('<div style="display:flex;flex-direction:column;gap:7px;padding:12px 0;%s">'
+            % ('' if last else 'border-bottom:1px solid %s' % HAIR)
+            + '<div style="display:flex;align-items:center;gap:9px">'
+              + orb(RGB[key], 24, state == '待機')
+              + '<span style="font-size:13px">%s</span>' % name + dot(sc[0], 5)
+              + '<span style="color:%s;font-size:11px">%s</span>' % (sc[1], state)
+              + '<div style="flex:1"></div>'
+              + '<span style="color:%s;font-size:10.5px;white-space:nowrap">%s</span>' % (T5, spec)
+            + '</div>'
+            + '<div style="padding-left:33px;display:flex;flex-direction:column;gap:6px">'
+              + '<div style="display:flex;align-items:baseline;gap:8px">'
+                + '<span style="color:%s;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;'
+                  'white-space:nowrap">%s</span><div style="flex:1"></div>%s' % (T2, now, mono(el, T5) if el else '')
+              + '</div>'
+              + '<div style="display:flex;align-items:center;gap:9px">'
+                + steps(done, running, total, HEX[key], 104)
+                + '<span style="color:%s;font-size:11px">%d / %d · %s</span>' % (T5, done, total, STEPNAME[name])
+              + '</div>'
+              + mono(log)
+            + '</div></div>')
+
+rail_a2 = ('<div style="width:300px;flex-shrink:0;display:flex;flex-direction:column">'
+  '<div style="display:flex;align-items:baseline;padding-bottom:2px">'
+  '<span style="color:%s;font-size:11px">いま誰が何を</span><div style="flex:1"></div>'
+  '<span style="color:%s;font-size:10.5px">5人</span></div>' % (T5, T5)
+  + ''.join(r_strip(*m, last=(i == len(REAL) - 1)) for i, m in enumerate(REAL))
+  + '</div>')
+
+io.open(OUT + '/OptionA2.dc.html', 'w', encoding='utf-8').write(
+    board('同じ密度のまま、全部ほんとうの数にする', 'A2 正直な計器', a_frame(rail_a2, ORBIT2), BLUE_T))
+print('A2 ok')
+
+# ══════════════════════ その数字はどこから来るか ══════════════════════
+def num_row(metric, has, hcol, why, alt, last=False):
+    return ('<div style="display:flex;align-items:flex-start;gap:16px;padding:12px 0;%s">'
+            % ('' if last else 'border-bottom:1px solid %s' % HAIR)
+            + '<span style="width:118px;flex-shrink:0;font-size:13px">%s</span>' % metric
+            + '<span style="width:78px;flex-shrink:0;color:%s;font-size:12px">%s</span>' % (hcol, has)
+            + '<span style="width:352px;flex-shrink:0;color:%s;font-size:12px;line-height:20px">%s</span>' % (T5, why)
+            + '<span style="flex:1;min-width:0;color:%s;font-size:12.5px;line-height:20px">%s</span>' % (T2, alt)
+            + '</div>')
+
+num_body = ('<div style="padding:22px 30px 30px;display:flex;flex-direction:column;gap:24px">'
+  '<span style="color:%s;font-size:13.5px;line-height:22px;max-width:940px">'
+  'AI社員は<b style="color:%s">たしかに1人1台のマシンで動いています</b>'
+  '（サンドボックスが1人に1つ。ap-northeast-1）。'
+  'なので「マシンを持たせる」という方向そのものは合っています。'
+  '問題は<b style="color:%s">どの計器を出すか</b>だけです。</span>' % (T2, T1, T1) +
+
+  '<div>'
+    '<div style="display:flex;gap:16px;padding-bottom:8px">'
+      '<span style="width:118px;flex-shrink:0;color:%s;font-size:11px">参考にあった計器</span>'
+      '<span style="width:78px;flex-shrink:0;color:%s;font-size:11px">実データ</span>'
+      '<span style="width:352px;flex-shrink:0;color:%s;font-size:11px">なぜ</span>'
+      '<span style="flex:1;color:%s;font-size:11px">代わりに出せる、ほんとうの数</span>'
+    '</div>' % (T5, T5, T5, T5)
+    + num_row('CPU 使用率', 'ない', RED_T,
+              'AI社員がやっているのは LLM の呼び出しと道具の実行。'
+              '走っているのは Workers と外部API で、CPU という単位が存在しない',
+              'いまどの工程にいるか（run_steps を1本に畳んだ帯）')
+    + num_row('メモリ', 'ない', RED_T,
+              '同じ。GB という数え方をしていない',
+              '読んだ資料の件数 · 書き出した件数')
+    + num_row('レイテンシ', 'ある', GREEN_T,
+              '1往復の秒数は記録している。ただし社長はこれを見ても何もできない。'
+              '遅ければ待つし、止まればエラーで分かる',
+              '経過時間（このタスクを何分やっているか）')
+    + num_row('稼働率', 'ある', GREEN_T,
+              '「今日このAI社員が動いていた時間」なら出せる。'
+              'ただし％にすると「上げるべき数字」に見えてしまう',
+              '今日 3時間12分 · タスク 7件（時間そのもので言う）')
+    + num_row('スループット', 'ない', RED_T,
+              '1人が同時に1タスクしか持たない設計なので、req/s に意味がない',
+              '待ち 2件（このあと何が積まれているか）')
+    + num_row('トークン · 単価', 'ある', AMBER_T,
+              '本当にあるが、ふだんの画面に出さないと決めてある'
+              '（→ CLAUDE.md「トークンはふだんの画面に出さない」）',
+              '請求とプランの画面 · 枠に当たって止まったときだけ', last=True)
+  + '</div>'
+
+  '<div style="height:1px;background:%s"></div>' % HAIR +
+
+  '<div style="display:flex;gap:44px">'
+    '<div style="flex:1">'
+      '<span style="display:block;color:%s;font-size:11px;padding-bottom:10px">A1 を選ぶとどうなるか</span>' % T5
+      + ''.join('<div class="r" style="display:flex;gap:12px;padding:11px 0">%s%s</div>' % (dot('#4A4A4A', 5), cell(t, x))
+        for t, x in [
+          ('計器が6つのうち3つ作り話になる', 'CPU・メモリ・スループットは値を発明することになる'),
+          ('作り話は1つでも隣に移る', '同じ帯の「稼働 82%」まで疑われる。計器盤の値打ちは全部本当なところにしかない'),
+          ('直せなくなる', '本物の実装が来たときに CPU だけ出せない。'
+                          'その1マスを消すと帯のデザインが崩れる'),
+        ]) +
+    '</div>'
+    '<div style="flex:1">'
+      '<span style="display:block;color:%s;font-size:11px;padding-bottom:10px">A2 で失うもの・得るもの</span>' % T5
+      + ''.join('<div class="r" style="display:flex;gap:12px;padding:11px 0">%s%s</div>' % (dot(GREEN, 5), cell(t, x))
+        for t, x in [
+          ('見た目の密度は同じ', '1人4行・スパークラインの代わりに工程の帯。参考の「生きている感じ」は工程の帯が動いて出す'),
+          ('全部いま記録している数', 'run_steps / 経過 / モデルと深さ / 道具の使用回数 / 今日の稼働時間'),
+          ('社長が動かせる', '「開発担当が11分テストで止まっている」は読んだ人が何かできる。「CPU 88%」は何もできない'),
+        ]) +
+    '</div>'
+  '</div>'
+  '</div>')
+
+io.open(OUT + '/Numbers.dc.html', 'w', encoding='utf-8').write(
+    board('その数字はどこから来るか', '検討', num_body, T3))
+print('Numbers ok')
+
 # ══════════════════════ canvas.json ══════════════════════
 import json
 canvas = {
   "artboards": [
-    {"file": "Main.dc.html",    "x": 0,    "y": 0, "w": 1180, "h": 770, "title": "診断"},
-    {"file": "OptionA.dc.html", "x": 1300, "y": 0, "w": 1180, "h": 730, "title": "A 計器盤"},
-    {"file": "OptionB.dc.html", "x": 2600, "y": 0, "w": 1180, "h": 780, "title": "B 濃い盤面"},
-    {"file": "OptionC.dc.html", "x": 3900, "y": 0, "w": 1180, "h": 800, "title": "C 一気見の表"},
+    # 上の段 = いまの検討（CPU を出すか、正直な計器にするか）
+    {"file": "Main.dc.html",     "x": 0,    "y": 0,    "w": 1180, "h": 770, "title": "① 診断"},
+    {"file": "Numbers.dc.html",  "x": 1300, "y": 0,    "w": 1180, "h": 910, "title": "② その数字はどこから来るか"},
+    {"file": "OptionA1.dc.html", "x": 2600, "y": 0,    "w": 1180, "h": 960, "title": "A1 実機（CPU をそのまま）"},
+    {"file": "OptionA2.dc.html", "x": 3900, "y": 0,    "w": 1180, "h": 960, "title": "A2 正直な計器"},
+    # 下の段 = 先に見せた3案（A を選んでもらった。B / C は記録として残す）
+    {"file": "OptionA.dc.html",  "x": 0,    "y": 1120, "w": 1180, "h": 730, "title": "A 計器盤（採用）"},
+    {"file": "OptionB.dc.html",  "x": 1300, "y": 1120, "w": 1180, "h": 780, "title": "B 濃い盤面"},
+    {"file": "OptionC.dc.html",  "x": 2600, "y": 1120, "w": 1180, "h": 800, "title": "C 一気見の表"},
   ],
   "launch": {"view": "canvas"},
 }
