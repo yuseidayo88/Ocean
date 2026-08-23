@@ -2263,6 +2263,150 @@ io.open(OUT + '/WorkflowFew.dc.html', 'w', encoding='utf-8').write(
           '規則は増えたときと1つも変えていない'))
 print('WorkflowFew ok')
 
+# ══════════════════════ ワークフロー（前の形のまま、増えても持つ） ══════════════════════
+# 見た目は前のまま（同じノード・同じ色帯・同じ薄い面・ぶら下げ）。
+# 増えたときに効くのは、この4つだけ
+#  1. **親と子を1つの塊にする。** Work ごとではなく「家族」ごとに束ねる。
+#     子は塊の中に `↳ 名前` で入る。Work をまたぐ長い線が消える（線は増えるほど絡まる）
+#  2. **済んだフェーズが2つ以上続いたら1枚に畳む**（`調査・設計 / 済 2フェーズ`）。
+#     ノードの形は変えないので、見た目は前のまま。行の幅だけ伸びなくなる
+#  3. **完了した Work は下の1行に畳む**
+#  4. **ミニマップは中身が窓より大きいときだけ**
+FW2, FH2 = 200, 56
+FGAP = 20
+FX0, FIND = 64, 28
+
+def fnode(x, y, title, sub, kind, pct=None, w=FW2):
+    out = node(x, y, w, title, sub, kind, h=FH2)
+    if pct is not None:
+        out += ('<div style="position:absolute;left:%dpx;top:%.1fpx;width:%dpx;height:3px;background:#1A1A1A;'
+                'border-radius:2px;overflow:hidden"><div style="width:%s%%;height:100%%;background:%s;'
+                'border-radius:2px"></div></div>' % (x + 13, y + FH2 - 5.5, w - 26, pct, T2))
+    return out
+
+def fold(ph):
+    """済んだフェーズが2つ以上続いたら1枚に畳む。**ノードの形は変えない**。
+       畳んでも元のフェーズ番号は失わない（1〜3 · 完了）"""
+    out, run = [], []
+    def flush():
+        if not run:
+            return
+        if len(run) > 1:
+            out.append(('・'.join(r[0] for r in run), 'done', 0, run[0][3], run[-1][3]))
+        else:
+            out.append((run[0][0], 'done', 0, run[0][3], run[0][3]))
+        run.clear()
+    for i, p_ in enumerate(ph):
+        q = (p_[0], p_[1], p_[2], i + 1)
+        if q[1] == 'done':
+            run.append(q)
+            continue
+        flush()
+        out.append((q[0], q[1], q[2], q[3], q[3]))
+    flush()
+    return out
+
+def frow(x0, y, phases, crewkeys=()):
+    """1本のフェーズの列。線もノードの色帯と同じ読み方（済＝明るい / これから＝点線）"""
+    h, g, x, nowx = '', [], x0, None
+    ph = fold(phases)
+    n = len(ph)
+    for i, (pn, kind, pct, p0, p1) in enumerate(ph):
+        num = '%d〜%d' % (p0, p1) if p1 > p0 else '%d' % p0
+        sub = 'フェーズ %s · %s' % (num, {'done': '完了', 'now': '実行中', 'wait': '待機'}[kind])
+        if i:
+            g.append('<line x1="%d" y1="%.1f" x2="%d" y2="%.1f" stroke="%s" stroke-width="1.3"%s/>'
+                     % (x - FGAP, y + FH2 / 2, x, y + FH2 / 2,
+                        '#3A3A3A' if kind != 'wait' else '#242424',
+                        ' stroke-dasharray="3 3"' if kind == 'wait' else ''))
+            h += port(x, y + FH2 / 2, kind != 'wait')
+            h += port(x - FGAP, y + FH2 / 2, kind != 'wait')
+        h += fnode(x, y, pn, sub, kind, pct if kind == 'now' else None)
+        if kind == 'now':
+            nowx = x
+        x += FW2 + FGAP
+    if crewkeys and nowx is not None:
+        for i, k in enumerate(reversed(crewkeys)):
+            h += ('<div style="position:absolute;left:%.0fpx;top:%.0fpx;display:flex">%s</div>'
+                  % (nowx + FW2 - 15 - i * 12 - 9, y + FH2 / 2 - 9, orb(RGB[k], 18)))
+    return h, ''.join(g), x - FGAP
+
+def family(y, fam):
+    """親と子で1つの塊。子は `↳ 名前` で塊の中に入る"""
+    name, ph, st, sc, chips, cw, kids = fam
+    h, g = '', ''
+    top = y
+    y += 10
+    hn = ('<div style="position:absolute;left:%dpx;top:%dpx;color:%s;font-size:13px;'
+          'white-space:nowrap">%s</div>' % (FX0 - 8, y, T2, name))
+    if st:
+        hn += ('<div style="position:absolute;left:0;top:%dpx;width:1120px;text-align:right;color:%s;'
+               'font-size:11.5px;white-space:nowrap">%s</div>' % (y, sc, st))
+    y += 24
+    part, gg, endx = frow(FX0, y, ph, cw)
+    h += hn + part; g += gg
+    nowx = FX0 + (FW2 + FGAP) * next(i for i, p_ in enumerate(fold(ph)) if p_[1] == 'now')
+    y += FH2
+    if chips:
+        for i, (ct, cs) in enumerate(chips):
+            g += ('<path d="M %d %d C %d %d, %d %d, %d %d" fill="none" stroke="#282828" stroke-width="1.3"/>'
+                  % (nowx + FW2 / 2, y, nowx + FW2 / 2, y + 8, nowx + 100 + i * 212, y + 4,
+                     nowx + 100 + i * 212, y + 14))
+            h += fnode(nowx + i * 212, y + 14, ct, cs, 'gate', w=200)
+        y += 14 + FH2
+    for kn, kph, kcw in kids:
+        y += 12
+        h += ('<div style="position:absolute;left:%dpx;top:%dpx;color:%s;font-size:12px;'
+              'white-space:nowrap"><span style="color:%s">↳</span>  %s</div>' % (FX0 - 8, y, T3, DIM, kn))
+        y += 20
+        part, gg, _ = frow(FX0 + FIND, y, kph, kcw)
+        h += part; g += gg
+        y += FH2
+    y += 14
+    face = ('<div style="position:absolute;left:36px;top:%dpx;width:1112px;height:%dpx;'
+            'border-radius:16px;background:%s"></div>' % (top, y - top, GRP))
+    return face + h, g, y
+
+FAM = [
+  ('日本語学習サービス',
+   [('調査','done',0),('戦略','now',32),('プロダクト','wait',0),('ローンチ','wait',0)],
+   '判断待ち', AMBER_T,
+   [('収益モデル比較','成果物 · 要確認'), ('価格モデル','判断 · あなたの番')], ('cyan','purple'),
+   [('LPと申込フォーム', [('設計','done',0),('制作','now',61),('公開','wait',0)], ('green',)),
+    ('価格表の作り直し', [('設計','done',0),('実装','now',24),('公開','wait',0)], ('indigo',))]),
+  ('SNS運用の立ち上げ',
+   [('準備','done',0),('運用設計','now',46),('運用','wait',0)], '遅れ 2日', RED_T, [], ('indigo',), []),
+  ('採用ページの改修',
+   [('調査','done',0),('設計','done',0),('試作','done',0),('実装','now',71),('公開','wait',0)],
+   '要確認', AMBER_T, [('求人票の下書き','成果物 · 要確認')], ('green',),
+   [('問い合わせ導線', [('調査','done',0),('設計','now',8),('実装','wait',0),('公開','wait',0)], ('cyan',))]),
+  ('ブログの立ち上げ',
+   [('企画','done',0),('執筆','now',12),('公開','wait',0)], '', T5, [], ('purple',), []),
+]
+
+def workflow_fam(fams, done_n=0, mini=False):
+    h, gs, y = '', '', 84
+    for f in fams:
+        part, g, y = family(y, f)
+        h += part; gs += g
+        y += 16
+    if done_n:
+        h += collapsed(y, done_n)
+    out = ('<svg width="1180" height="782" viewBox="0 0 1180 782" style="position:absolute;inset:0">%s</svg>'
+           % gs) + h
+    out += '<div style="position:absolute;left:0;right:0;top:18px">%s</div>' % pills('ワークフロー')
+    out += toolbar()
+    if mini:
+        out += minimap(9, 5)
+    out += composer()
+    return canvas_frame(out)
+
+io.open(OUT + '/WorkflowFamily.dc.html', 'w', encoding='utf-8').write(
+    board('親と子で1つの塊。見た目は前のまま', 'ワークフロー（増えても持つ）',
+          workflow_fam(FAM, done_n=4, mini=True), GREEN_T,
+          'Work をまたぐ長い線が消える · 済んだフェーズは1枚に畳む'))
+print('WorkflowFamily ok')
+
 # ══════════════════════ canvas.json ══════════════════════
 import json
 canvas = {
@@ -2294,7 +2438,8 @@ canvas = {
     {"file": "WorkflowAll.dc.html", "x": 1300, "y": 5910, "w": 1180, "h": 860, "title": "ワークフロー（採用）"},
     # 7段目 = Work が増えたとき
     {"file": "WorkflowFew.dc.html",   "x": 0,    "y": 6910, "w": 1180, "h": 860, "title": "ワークフロー（3件）"},
-    {"file": "WorkflowScale.dc.html", "x": 1300, "y": 6910, "w": 1180, "h": 860, "title": "ワークフロー（12件）"},
+    {"file": "WorkflowScale.dc.html", "x": 1300, "y": 6910, "w": 1180, "h": 860, "title": "（不採用）行の形にしたもの"},
+    {"file": "WorkflowFamily.dc.html","x": 2600, "y": 6910, "w": 1180, "h": 880, "title": "ワークフロー（採用・増えても持つ）"},
   ],
   "launch": {"view": "canvas"},
 }
