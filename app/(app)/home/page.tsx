@@ -75,7 +75,8 @@ function Home() {
           : view === 'desk' ? <Desk /> : <Progress />}
       </div>
 
-      <Composer placeholder="統括AIに指示する" />
+      {/* 盤面は中身が入力欄の上に収まっていて潜らない。**黒に溶かすとドットを切るだけ** */}
+      <Composer placeholder="統括AIに指示する" veil={!bleed} />
     </div>
   );
 }

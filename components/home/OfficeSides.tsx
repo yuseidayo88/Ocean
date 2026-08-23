@@ -109,8 +109,13 @@ function Meter({ p, color }: { p: Produce; color: string }) {
   return <>{fig}<Mono t={p.cap} /></>;
 }
 
-/** run_steps を1本に畳む。済＝暗い / いま＝明るい / これから＝暗い面 */
-function Steps({ done, all, color, w = 70 }: { done: number; all: number; color: string; w?: number }) {
+/**
+ * run_steps を1本に畳む。済＝暗い / いま＝明るい / これから＝暗い面。
+ * **いまやっている1つだけ脈打つ**（動いているという事実なので、動きを減らす設定でも止めない）。
+ */
+function Steps({ done, all, color, run, w = 70 }: {
+  done: number; all: number; color: string; run?: boolean; w?: number;
+}) {
   const cw = (w - (all - 1) * 3) / all;
   return (
     <span style={{ display: 'inline-flex', gap: 3, flexShrink: 0 }}>
@@ -119,6 +124,7 @@ function Steps({ done, all, color, w = 70 }: { done: number; all: number; color:
           width: cw, height: 4, borderRadius: 2,
           background: i < done ? color : i === done ? color : '#191919',
           opacity: i < done ? 0.45 : 1,
+          animation: run && i === done ? 'pulse 1.5s ease-in-out infinite' : undefined,
         }} />
       ))}
     </span>
@@ -161,7 +167,7 @@ function Card({ who, first, lit, onHover }: {
         {d.el && <Mono t={d.el} c={T5} />}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, height: 14 }}>
-        <Steps done={d.step.done} all={d.step.all} color={who.color} />
+        <Steps done={d.step.done} all={d.step.all} color={who.color} run={who.state === '実行中'} />
         <span style={{ color: T5, fontSize: 10.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {d.step.done} / {d.step.all} · {d.step.name}
         </span>
@@ -176,17 +182,11 @@ function Card({ who, first, lit, onHover }: {
 }
 
 export function OfficeTeam({ lit, onHover }: { lit?: string; onHover?: (id: string) => void }) {
-  const running = EMPLOYEES.filter((e) => e.state === '実行中').length;
   const [rail, edge] = useRail<HTMLDivElement>();
   return (
-    <div style={{ borderTop: `1px solid ${HAIR}`, paddingTop: 12 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', paddingBottom: 10 }}>
-        <span style={{ color: T5, fontSize: 11 }}>AI社員</span>
-        <div style={{ flex: 1 }} />
-        <span style={{ color: T5, fontSize: 10.5 }} className="tnum">
-          {EMPLOYEES.length}人  ·  稼働 {running} / {EMPLOYEES.length}
-        </span>
-      </div>
+    /* **見出しは置かない。** 顔と名前が並んでいれば「AI社員」だと分かるし、
+       人数も稼働も1枚ずつのカードが言っている（同じことを2回書かない） */
+    <div style={{ borderTop: `1px solid ${HAIR}`, paddingTop: 16 }}>
       {/* 人が増えたら横に送る。**1人ぶんの幅は縮めない。**
           縦のホイールも横に効かせる（横一列はそう動くのが当たり前） */}
       <div style={{ position: 'relative' }}>

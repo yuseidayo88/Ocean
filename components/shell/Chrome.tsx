@@ -121,8 +121,14 @@ function grow(t: HTMLTextAreaElement, onH?: (h: number) => void) {
 }
 
 export function Composer({ placeholder, mode = '統括AI', effort = '自動', above, floating = true,
-                           inPane = false, local = false, onSend, busy = false }:
+                           veil = true, inPane = false, local = false, onSend, busy = false }:
   { placeholder: string; mode?: string; effort?: string; above?: React.ReactNode; floating?: boolean;
+    /**
+     * 下端を黒に溶かすか。**中身がスクロールして入力欄の裏に潜る画面だけ。**
+     * 盤面（ワークフロー）は中身が入力欄の上に収まっていて潜らないので、
+     * 溶かすと背景のドットを切るだけになる → `false`
+     */
+    veil?: boolean;
     /** 右ペインの中に置くほう。器の余白と幅を、ペインに合わせる */
     inPane?: boolean;
     /** チャット画面のように、その場で会話が続く画面。右ペインを開かない */
@@ -166,21 +172,25 @@ export function Composer({ placeholder, mode = '統括AI', effort = '自動', ab
     ? {
         position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 5, boxSizing: 'border-box',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '48px 24px 24px',
-        background: 'linear-gradient(to top, #000 0%, #000 44%, rgba(0,0,0,0.86) 66%, rgba(0,0,0,0) 100%)',
+        /* 溶かさないときは**帯そのものを透かす**（盤面のホイールをふさがない） */
+        pointerEvents: veil ? undefined : 'none',
+        background: veil
+          ? 'linear-gradient(to top, #000 0%, #000 44%, rgba(0,0,0,0.86) 66%, rgba(0,0,0,0) 100%)'
+          : undefined,
       }
     : { width: '100%', boxSizing: 'border-box', flexShrink: 0, display: 'flex',
         flexDirection: 'column', alignItems: 'center', gap: 8, padding: '0 24px' };
 
   return (
     <div style={wrap}>
-      {above}
+      {above && <div style={{ pointerEvents: 'auto', width: '100%', display: 'flex', justifyContent: 'center' }}>{above}</div>}
       {/**
         * **1行にまとめる**（参考: ChatGPT の入力欄）。
         * ＋ / 書くところ / 統括AI / 深さ / ↑ を横一列に置く。2段に分けない。
         * 書いて2行以上になったら、そのときだけ縦に伸ばし、道具は下端に揃える。
         */}
       <div className="field" style={{
-        width: '100%', maxWidth: 748, boxSizing: 'border-box',
+        width: '100%', maxWidth: 748, boxSizing: 'border-box', pointerEvents: 'auto',
         display: 'flex', alignItems: tall ? 'flex-end' : 'center', gap: inPane ? 7 : 10,
         minHeight: inPane ? 46 : 52,
         padding: tall

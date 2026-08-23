@@ -33,6 +33,12 @@ const BOARD_W = 1180, BOARD_H = 748;
  */
 const NW = 176, NH = 60, CHIP_H = 52;
 const CREW = 40, CREW_PAD = 10;
+/**
+ * 盤面が出るときの順番。**フェーズ1から順に、左から右へ**。
+ * 列ごとに遅らせるので、鎖が2本並ぶ段でも1枚の波として読める。
+ */
+const STEP = 0.058, IN = `.34s cubic-bezier(.33, 1, .68, 1)`;
+const rise = (col: number) => `flowin ${IN} ${(0.04 + col * STEP).toFixed(3)}s backwards`;
 /** 新しい Work の枝が一度落ちる、列のあいだの通り道 */
 const TRUNK = 180;
 const cc = (col: number) => COL[col] + NW / 2;
@@ -49,9 +55,9 @@ const SKIN: Record<Kind, { bg: string; border: string; bar: string; title: strin
   gate: { bg: 'rgba(227,116,0,0.05)', border: '1px solid rgba(227,116,0,0.28)', bar: AMBER, title: T1, sub: AMBER_T },
 };
 
-function Node({ x, y, w, h, title, sub, kind, pct, crew = 0, lit, pick }: {
+function Node({ x, y, w, h, title, sub, kind, pct, crew = 0, col = 0, lit, pick }: {
   x: number; y: number; w: number; h: number; title: string; sub: string;
-  kind: Kind; pct?: number; crew?: number; lit: boolean; pick: () => void;
+  kind: Kind; pct?: number; crew?: number; col?: number; lit: boolean; pick: () => void;
 }) {
   const s = SKIN[kind];
   /** 社員の球のぶんだけ右を空ける。**文字が球の下に潜らない** */
@@ -63,7 +69,7 @@ function Node({ x, y, w, h, title, sub, kind, pct, crew = 0, lit, pick }: {
       display: 'flex', alignItems: 'center', padding: `0 ${right}px 0 14px`, borderRadius: 14,
       background: s.bg, border: s.border, overflow: 'hidden',
       textAlign: 'left', font: 'inherit', color: 'inherit', cursor: 'pointer',
-      opacity: lit ? 1 : 0.26, transition: `opacity ${EASE}`,
+      opacity: lit ? 1 : 0.26, transition: `opacity ${EASE}`, animation: rise(col),
     }}>
       <span style={{ position: 'absolute', left: 0, top: 11, bottom: 11, width: 3, borderRadius: '0 2px 2px 0', background: s.bar }} />
       <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -76,7 +82,12 @@ function Node({ x, y, w, h, title, sub, kind, pct, crew = 0, lit, pick }: {
           position: 'absolute', left: 12, bottom: 5, width: w - 24, height: 3,
           borderRadius: 2, background: '#1A1A1A', overflow: 'hidden',
         }}>
-          <span style={{ display: 'block', width: `${pct}%`, height: '100%', borderRadius: 2, background: T2 }} />
+          {/* **0 から今の割合まで、左から右へ満ちる**（ノードが出たすぐあと） */}
+          <span style={{
+            display: 'block', width: `${pct}%`, height: '100%', borderRadius: 2, background: T2,
+            transformOrigin: 'left',
+            animation: `fillin .66s cubic-bezier(.33, 1, .68, 1) ${(0.2 + col * STEP).toFixed(3)}s backwards`,
+          }} />
         </span>
       )}
     </button>
@@ -126,10 +137,10 @@ function elbow(pts: [number, number][], r = 12) {
 function build() {
   /** どの要素も **どの鎖のものか**（`of`）を持つ。押したときに残すものが決まる */
   const nodes: { x: number; y: number; w: number; h: number; kind: Kind; tone?: string;
-                 title: string; sub: string; pct?: number; crew?: number; of: string }[] = [];
-  const links: { pts: [number, number][]; faint?: boolean; of: string[] }[] = [];
-  const labels: { x: number; y: number; of: string[] }[] = [];
-  const names: { x: number; y: number; title: string; status?: string; tone?: string; of: string }[] = [];
+                 title: string; sub: string; pct?: number; crew?: number; col: number; of: string }[] = [];
+  const links: { pts: [number, number][]; faint?: boolean; col: number; of: string[] }[] = [];
+  const labels: { x: number; y: number; col: number; of: string[] }[] = [];
+  const names: { x: number; y: number; title: string; status?: string; tone?: string; col: number; of: string }[] = [];
 
   const byId = new Map<string, MapWork>();
   const folded = new Map<string, Folded[]>();
@@ -140,16 +151,17 @@ function build() {
 
   for (const w of FLOWMAP.works) {
     const fs = folded.get(w.id)!;
-    names.push({ x: COL[w.col], y: ROW[w.row] - 26, title: w.title, status: w.status, tone: w.tone, of: w.id });
+    names.push({ x: COL[w.col], y: ROW[w.row] - 26, title: w.title, status: w.status, tone: w.tone,
+                 col: w.col, of: w.id });
     fs.forEach((f, i) => {
       nodes.push({
-        x: COL[w.col + i], y: ROW[w.row], w: NW, h: NH, kind: f.kind, of: w.id,
+        x: COL[w.col + i], y: ROW[w.row], w: NW, h: NH, kind: f.kind, of: w.id, col: w.col + i,
         title: f.name, pct: f.pct, crew: f.kind === 'now' ? w.crew.length : 0,
         sub: `フェーズ ${f.from === f.to ? f.from : `${f.from}〜${f.to}`} · ${WORD[f.kind]}`,
         tone: w.tone === 'late' && f.kind === 'now' ? 'late' : undefined,
       });
-      if (i) links.push({ of: [w.id],
-        pts: [[COL[w.col + i] - 20, ROW[w.row] + NH / 2], [COL[w.col + i], ROW[w.row] + NH / 2]] });
+      if (i) links.push({ of: [w.id], col: w.col + i,
+        pts: [[COL[w.col + i] - 22, ROW[w.row] + NH / 2], [COL[w.col + i], ROW[w.row] + NH / 2]] });
     });
   }
 
@@ -166,19 +178,20 @@ function build() {
     const pb = ROW[p.row] + NH;
     if (ks.length > 1) {
       const lane = ROW[p.row + 1] + 66;
-      links.push({ of: [p.id, ks[0].id],
+      links.push({ of: [p.id, ks[0].id], col: ks[0].col,
         pts: [[cc(pcol) - 40, pb], [cc(pcol) - 40, pb + 14], [TRUNK, pb + 14],
               [TRUNK, lane], [cc(ks[0].col), lane], [cc(ks[0].col), ROW[ks[0].row]]] });
       for (const k of ks.slice(1)) {
-        links.push({ of: [p.id, k.id], pts: [[TRUNK, lane], [cc(k.col), lane], [cc(k.col), ROW[k.row]]] });
+        links.push({ of: [p.id, k.id], col: k.col,
+                     pts: [[TRUNK, lane], [cc(k.col), lane], [cc(k.col), ROW[k.row]]] });
       }
-      labels.push({ x: TRUNK, y: ROW[p.row + 1] + 20, of: [p.id, ...ks.map((k) => k.id)] });
+      labels.push({ x: TRUNK, y: ROW[p.row + 1] + 20, col: 0, of: [p.id, ...ks.map((k) => k.id)] });
     } else {
       const k = ks[0];
       const lane = pb + 26;
-      links.push({ of: [p.id, k.id],
+      links.push({ of: [p.id, k.id], col: k.col,
         pts: [[cc(pcol), pb], [cc(pcol), lane], [cc(k.col), lane], [cc(k.col), ROW[k.row]]] });
-      labels.push({ x: cc(pcol), y: lane, of: [p.id, k.id] });
+      labels.push({ x: cc(pcol), y: lane, col: pcol, of: [p.id, k.id] });
     }
   }
 
@@ -196,7 +209,7 @@ function build() {
     const stem = cs.length > 1 ? cc(pcol) + 40 : cc(pcol);
     cs.forEach((c, i) => {
       links.push({
-        faint: true, of: [p.id],
+        faint: true, of: [p.id], col: c.col,
         pts: i === 0 && cs.length > 1
           ? [[stem, pb], [stem, pb + 28], [cc(c.col), pb + 28], [cc(c.col), ROW[c.row]]]
           : cs.length > 1
@@ -204,7 +217,7 @@ function build() {
             : [[stem, pb], [cc(c.col), ROW[c.row]]],
       });
       nodes.push({ x: COL[c.col], y: ROW[c.row], w: NW, h: CHIP_H, kind: 'gate',
-                   title: c.title, sub: c.sub, of: p.id });
+                   title: c.title, sub: c.sub, col: c.col, of: p.id });
     });
   }
   return { nodes, links, labels, names };
@@ -253,6 +266,8 @@ const MiniMap = memo(function MiniMap({ nodes, links, lit, sc, X0, Y0, H, frame,
       position: 'absolute', right: 24, bottom: COMPOSER_H, width: MAP_W, height: H,
       borderRadius: 10, background: '#0A0A0A', border: '1px solid #232323', overflow: 'hidden',
       cursor: 'pointer', touchAction: 'none',
+      /* 盤面が描き終わるころに出る（先に地図だけあると、そこだけ浮いて見える） */
+      animation: `flowfade ${IN} .34s backwards`,
     }}>
       <svg width={MAP_W} height={H} viewBox={`0 0 ${MAP_W} ${H}`} style={{ pointerEvents: 'none' }}>
         {links.map((l, i) => (
@@ -302,8 +317,9 @@ const Scene = memo(function Scene({ nodes, links, labels, names, endX, endY, lit
            style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
         {links.map((l, i) => (
           <path key={i} d={elbow(l.pts)} fill="none" strokeWidth={1.3}
-                stroke={l.faint ? '#2E2E2E' : '#333333'}
-                opacity={lit(l.of) ? 1 : 0.26} style={{ transition: `opacity ${EASE}` }} />
+                stroke={l.faint ? '#2E2E2E' : '#333333'} opacity={lit(l.of) ? 1 : 0.26}
+                style={{ transition: `opacity ${EASE}`,
+                         animation: `flowfade ${IN} ${(0.02 + l.col * STEP).toFixed(3)}s backwards` }} />
         ))}
       </svg>
 
@@ -312,7 +328,7 @@ const Scene = memo(function Scene({ nodes, links, labels, names, endX, endY, lit
           position: 'absolute', left: n.x, top: n.y, display: 'flex', alignItems: 'center', gap: 9,
           whiteSpace: 'nowrap', color: T2, fontSize: 13,
           background: 'none', border: 0, padding: 0, font: 'inherit', cursor: 'pointer',
-          opacity: lit(n.of) ? 1 : 0.26, transition: `opacity ${EASE}`,
+          opacity: lit(n.of) ? 1 : 0.26, transition: `opacity ${EASE}`, animation: rise(n.col),
         }}>
           {n.title}
           <Mark status={n.status} />
@@ -333,6 +349,7 @@ const Scene = memo(function Scene({ nodes, links, labels, names, endX, endY, lit
           <span key={`${w.id}-${c}`} style={{
             position: 'absolute', left: x - (w.crew.length - 1 - k) * 17 - CREW / 2, top: y - CREW / 2,
             opacity: lit(w.id) ? 1 : 0.26, transition: `opacity ${EASE}`, pointerEvents: 'none',
+            animation: `flowfade ${IN} ${(0.24 + (w.col + i) * STEP).toFixed(3)}s backwards`,
           }}>
             <Orb color={AGENT_COLOR[c]} size={CREW} seed={c.length * 7 + 3} />
           </span>
@@ -344,6 +361,7 @@ const Scene = memo(function Scene({ nodes, links, labels, names, endX, endY, lit
           position: 'absolute', left: l.x, top: l.y, transform: 'translate(-50%, -50%)',
           padding: '0 6px', color: T5, fontSize: 10.5, whiteSpace: 'nowrap', background: CANVAS,
           opacity: lit(l.of) ? 1 : 0.26, transition: `opacity ${EASE}`, pointerEvents: 'none',
+          animation: `flowfade ${IN} ${(0.1 + l.col * STEP).toFixed(3)}s backwards`,
         }}>新しい Work</span>
       ))}
   </>);
@@ -351,10 +369,16 @@ const Scene = memo(function Scene({ nodes, links, labels, names, endX, endY, lit
 
 /** 見る目の位置。中身 → 画面は `translate(x, y) scale(z)` */
 type Eye = { x: number; y: number; z: number };
-const MIN_Z = 0.25, MAX_Z = 3;
+const MIN_Z = 0.16, MAX_Z = 4;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 /** 中身と器のあいだに空ける縁 */
 const EDGE = 26;
+/**
+ * 端から端まで送ったあと、**さらに動かせるぶん**（器の 45%）。
+ * ぴったりで止めると盤面が窮屈で、地図を隅に寄せて見る、ができない。
+ * 押しても中身が半分は残るので、迷子にはならない。
+ */
+const SLACK = 0.45;
 
 export function Flow() {
   /** 盤面の形はデータで決まる。**描き直すたびに組み直さない**（`Scene` の memo が効かなくなる） */
@@ -396,8 +420,8 @@ export function Flow() {
    */
   const hold = useCallback((e: Eye): Eye => {
     const ax = (v: number, p0: number, p1: number, box: number) => {
-      const a = -p0 * e.z + EDGE, b = box - p1 * e.z - EDGE;
-      return clamp(v, Math.min(a, b), Math.max(a, b));
+      const a = -p0 * e.z + EDGE, b = box - p1 * e.z - EDGE, s = box * SLACK;
+      return clamp(v, Math.min(a, b) - s, Math.max(a, b) + s);
     };
     return { z: e.z, x: ax(e.x, B.x0, B.x1, vw), y: ax(e.y, B.y0, B.y1, vh) };
   }, [B, vw, vh]);
@@ -485,8 +509,8 @@ export function Flow() {
       const px = ev.clientX - r.left, py = ev.clientY - r.top;
       const v = goal.current;
       if (ev.ctrlKey || ev.metaKey) {
-        /* 1目盛りは 1.19 倍。**大きく飛ばすと、間を詰めても段に見える** */
-        const z = clamp(v.z * Math.exp(-ev.deltaY / 700), MIN_Z, MAX_Z);
+        /* 1目盛りは 1.33 倍。間はフレームごとに詰めるので、段には見えない */
+        const z = clamp(v.z * Math.exp(-ev.deltaY / 420), MIN_Z, MAX_Z);
         aim(hold({ z, x: px - (px - v.x) * (z / v.z), y: py - (py - v.y) * (z / v.z) }));
       } else {
         /** 二本指の移動は指と1対1。**追いかけると滑って見える** */

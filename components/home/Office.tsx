@@ -31,6 +31,8 @@ const AMBER = '#E37400', AMBER_T = '#FDD663', RED = '#D93025';
 const RX = [0.546, 0.773, 1], RY = [0.4, 0.7, 1];
 /** 輪の上に立つ球。下に名前とフェーズ名がぶら下がるので、その半分ぶんを縁に空ける */
 const ORB = 56, BOX = ORB + 5 + 17 + 5 + 14;
+/** 輪を1周ぶん引くのにかける時間（秒）と、その上に置くものの出方 */
+const SWEEP = 1.05, DOT = '.3s ease-out';
 
 /** 背景の瞬き。[left%, top%, 遅れ秒] */
 const SPECKS: [number, number, number][] = [
@@ -68,13 +70,20 @@ export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) 
 
   const rings: React.ReactNode[] = [];
   const labels: React.ReactNode[] = [];
-  const people: { x: number; y: number; id: string; gate: boolean; phase: string }[] = [];
+  const people: { x: number; y: number; id: string; gate: boolean; phase: string; in: string }[] = [];
 
   works.forEach((w, i) => {
     const [rx, ry] = RINGS[i];
     const R = w.ring;
     const lead = Math.max(...R.crew.map((c) => c.at));
     const phase = w.phases[w.phaseIndex - 1]?.name ?? '';
+    /**
+     * **輪は 0% から今の割合まで引かれる。** 進み具合そのものが動きになる。
+     * 位置（%）を時間に写すので、引き継ぎの矢羽根も社員も、
+     * 弧がそこに届いた瞬間に出る（あとから足したように見えない）。
+     */
+    const at = (pct: number) => (0.06 + i * 0.05 + (pct / R.tip) * SWEEP).toFixed(3);
+    const span = (a: number, b: number) => (((b - a) / R.tip) * SWEEP).toFixed(3);
 
     const parts: React.ReactNode[] = [
       <ellipse key="e" cx={CX} cy={CY} rx={rx} ry={ry} fill="none" stroke="#1B1B1B" strokeWidth={1} />,
@@ -85,7 +94,9 @@ export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) 
     R.segs.forEach((sg, k) => {
       const col = AGENT_COLOR[employee(sg.owner).color];
       parts.push(<path key={`a${k}`} d={arc(rx, ry, from, sg.to)} fill="none" stroke={col}
-                       strokeWidth={2.6} strokeLinecap="round" opacity={0.95} />);
+                       strokeWidth={2.6} strokeLinecap="round" opacity={0.95}
+                       pathLength={1} strokeDasharray={1}
+                       style={{ animation: `draw ${span(from, sg.to)}s linear ${at(from)}s backwards` }} />);
       /* 色が変わるところ＝引き継ぎ。時計回りの矢羽根 */
       if (k) {
         const [px, py] = on(rx, ry, from);
@@ -93,7 +104,8 @@ export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) 
         let tx = -rx * Math.sin(a), ty = ry * Math.cos(a);
         const L = Math.hypot(tx, ty); tx /= L; ty /= L;
         const nx = -ty, ny = tx, s = 5;
-        parts.push(<polygon key={`h${k}`} fill={col} points={
+        parts.push(<polygon key={`h${k}`} fill={col}
+          style={{ animation: `flowfade ${DOT} ${at(from)}s backwards` }} points={
           [`${r2(px + tx * s)},${r2(py + ty * s)}`,
            `${r2(px - tx * s * 0.55 + nx * s * 0.78)},${r2(py - ty * s * 0.55 + ny * s * 0.78)}`,
            `${r2(px - tx * s * 0.55 - nx * s * 0.78)},${r2(py - ty * s * 0.55 - ny * s * 0.78)}`].join(' ')} />);
@@ -104,12 +116,14 @@ export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) 
     const tipCol = AGENT_COLOR[employee(R.segs[R.segs.length - 1].owner).color];
     ([[1.6, 2.6, 0.9], [4, 2, 0.5], [6.8, 1.5, 0.26]] as const).forEach(([back, r, o], k) => {
       const [x, y] = on(rx, ry, R.tip - back);
-      parts.push(<circle key={`t${k}`} cx={x} cy={y} r={r} fill={tipCol} opacity={o} />);
+      parts.push(<circle key={`t${k}`} cx={x} cy={y} r={r} fill={tipCol} opacity={o}
+                         style={{ animation: `flowfade ${DOT} ${at(R.tip)}s backwards` }} />);
     });
     /* 予定との差。はみ出したぶんを赤い点線で見せる */
     if (R.behind !== undefined) {
       parts.push(<path key="b" d={arc(rx, ry, R.tip, R.behind)} fill="none" stroke={RED}
-                       strokeWidth={2.2} strokeDasharray="3 4" strokeLinecap="round" />);
+                       strokeWidth={2.2} strokeDasharray="3 4" strokeLinecap="round"
+                       style={{ animation: `flowfade ${DOT} ${at(R.tip)}s backwards` }} />);
     }
     /* あなたが決めるところ。**先端の少し先**に立てる（この Work の次は、あなたの番） */
     if (w.gate) {
@@ -119,7 +133,7 @@ export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) 
       const [bx, by] = on(rx, ry, R.tip);
       const gx = r2(bx + tx * 34), gy = r2(by + ty * 34);
       parts.push(
-        <g key="g">
+        <g key="g" style={{ animation: `flowfade ${DOT} ${(+at(R.tip) + 0.12).toFixed(3)}s backwards` }}>
           <circle cx={gx} cy={gy} r={11} fill="rgba(227,116,0,0.13)" />
           <rect x={gx - 4.5} y={gy - 4.5} width={9} height={9} rx={1.5} fill={AMBER}
                 transform={`rotate(45 ${gx} ${gy})`} />
@@ -145,7 +159,7 @@ export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) 
 
     R.crew.forEach((c) => {
       const [x, y] = on(rx, ry, c.at);
-      people.push({ x, y, id: c.id, gate: !!c.gate, phase: c.at === lead ? phase : '' });
+      people.push({ x, y, id: c.id, gate: !!c.gate, phase: c.at === lead ? phase : '', in: at(c.at) });
     });
   });
 
@@ -216,7 +230,7 @@ export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) 
         <span style={{ whiteSpace: 'nowrap', fontSize: 13 }}>統括AI</span>
       </div>
 
-      {people.map(({ x, y, id, gate, phase }, i) => {
+      {people.map(({ x, y, id, gate, phase, in: show }, i) => {
         const e = employee(id);
         return (
           /* **ゆらぎは中の層に掛ける。** 外側に掛けると transform が上書きされて
@@ -227,6 +241,7 @@ export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) 
             style={{
             position: 'absolute', left: x, top: y, transform: 'translate(-50%, -50%)',
             display: 'flex', whiteSpace: 'nowrap',
+            animation: `flowfade ${DOT} ${show}s backwards`,
           }}>
             <span style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
