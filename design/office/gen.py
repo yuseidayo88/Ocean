@@ -2480,7 +2480,7 @@ def hang(px, py, chips):
 
 # 格子。列は 180px おき、段は 104px おき。**全部この上に載せる**
 COLX = [56, 236, 416, 596, 776, 956]
-ROWY = [96, 200, 304, 408, 512, 616]
+ROWY = [96, 200, 304, 408, 512, 616, 720]
 CC = lambda i: COLX[i] + MW / 2
 
 def elbow(pts, r=12, col='#333333'):
@@ -2500,74 +2500,108 @@ def elbow(pts, r=12, col='#333333'):
     d += ' L %d %d' % pts[-1]
     return '<path d="%s" fill="none" stroke="%s" stroke-width="1.3"/>' % (d, col)
 
+# ミニマップは**盤面と同じデータから描く**。飾りの棒を並べない
+MINI_C = {'done': '#2E2E2E', 'now': '#7A7A7A', 'wait': '#1C1C1C', 'gate': 'rgba(227,116,0,0.6)'}
+
+def minimap_of(nodes, links, view, box_w=184):
+    """盤面の実寸をそのまま縮める。窓の枠は**いま見えている範囲**"""
+    X0, Y0, X1, Y1 = 30, 58, 1150, 800
+    pad = 8
+    sc = min((box_w - pad * 2) / (X1 - X0), 116 / (Y1 - Y0))
+    bw, bh = box_w, (Y1 - Y0) * sc + pad * 2
+    m = lambda x, y: (pad + (x - X0) * sc, pad + (y - Y0) * sc)
+    g = ''
+    for pts in links:
+        d = 'M %.1f %.1f' % m(*pts[0]) + ''.join(' L %.1f %.1f' % m(*q) for q in pts[1:])
+        g += '<path d="%s" fill="none" stroke="#242424" stroke-width="0.8"/>' % d
+    for x, y, w, h, kind, col in nodes:
+        mx, my = m(x, y)
+        g += ('<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f" rx="1.5" fill="%s"/>'
+              % (mx, my, w * sc, max(2.4, h * sc), col or MINI_C[kind]))
+    vx, vy = m(view[0], view[1])
+    vw, vh = (view[2] - view[0]) * sc, (view[3] - view[1]) * sc
+    # いま見えている範囲。**つまんで動かせる**（盤面がその場でついてくる）
+    g += ('<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f" rx="4" fill="rgba(255,255,255,0.05)" '
+          'stroke="#6E6E6E" stroke-width="1.2"/>'
+          % (max(2, vx), max(2, vy), min(vw, bw - 4), min(vh, bh - 4)))
+    return ('<div style="position:absolute;right:24px;bottom:24px;width:%dpx;height:%.0fpx;border-radius:10px;'
+            'background:#0A0A0A;border:1px solid %s;overflow:hidden">'
+            '<svg width="%d" height="%.0f" viewBox="0 0 %d %.0f">%s</svg></div>'
+            % (bw, bh, LINE, bw, bh, bw, bh, g))
+
 def workflow_map():
-    h, g = '', ''
+    h, g, N, L = '', '', [], []
     R = ROWY
-    # ── 日本語学習サービス（根）: 段0
+
+    def chain(col, row, phases, crew=(), red_now=False):
+        nonlocal h, g
+        x, y = COLX[col], R[row]
+        a_, b_ = mchain(x, y, phases, crew)
+        h += a_; g += b_
+        for i, (pn, kind, pct, p0, p1) in enumerate(fold(phases)):
+            N.append((x + i * MSTEP, y, MW, MH, kind,
+                      'rgba(217,48,37,0.6)' if (red_now and kind == 'now') else None))
+
+    def gate(col, row, title, sub, hgt=46):
+        nonlocal h
+        h += node(COLX[col], R[row], MW, title, sub, 'gate', h=hgt)
+        N.append((COLX[col], R[row], MW, hgt, 'gate', None))
+
+    def link(pts, col='#333333'):
+        nonlocal g
+        g += elbow(pts, col=col); L.append(pts)
+
+    # ── 段0: 日本語学習サービス（根）
     h += mname(COLX[0], R[0] - 26, '日本語学習サービス', '判断待ち', AMBER_T)
-    a_, b_ = mchain(COLX[0], R[0], [('調査','done',0),('戦略','now',32),
-                                    ('プロダクト','wait',0),('ローンチ','wait',0)], ('cyan','purple'))
-    h += a_; g += b_
-    SB = R[0] + MH                       # 戦略の下端
-    # 成果物と判断 — 戦略から右へ枝を出して、段1 に降ろす
-    g += elbow([(CC(1) + 40, SB), (CC(1) + 40, SB + 28), (CC(1), SB + 28), (CC(1), R[1])], col='#2E2E2E')
-    g += elbow([(CC(1) + 40, SB + 28), (CC(2), SB + 28), (CC(2), R[1])], col='#2E2E2E')
-    h += node(COLX[1], R[1], MW, '収益モデル比較', '成果物 · 要確認', 'gate', h=46)
-    h += node(COLX[2], R[1], MW, '価格モデル', '判断 · あなたの番', 'gate', h=46)
-    # 新しい Work — 戦略から左に降りて、段2 の左右へ分かれる
-    TR = 180                              # 縦の幹（列のあいだの通り道）
-    g += elbow([(CC(1) - 40, SB), (CC(1) - 40, SB + 14), (TR, SB + 14), (TR, R[1] + 66), (CC(0), R[1] + 66), (CC(0), R[2])])
-    g += elbow([(TR, R[1] + 66), (CC(3), R[1] + 66), (CC(3), R[2])])
+    chain(0, 0, [('調査','done',0),('戦略','now',32),('プロダクト','wait',0),('ローンチ','wait',0)],
+          ('cyan','purple'))
+    SB = R[0] + MH
+    # 成果物と判断
+    link([(CC(1) + 40, SB), (CC(1) + 40, SB + 28), (CC(1), SB + 28), (CC(1), R[1])], '#2E2E2E')
+    link([(CC(1) + 40, SB + 28), (CC(2), SB + 28), (CC(2), R[1])], '#2E2E2E')
+    gate(1, 1, '収益モデル比較', '成果物 · 要確認')
+    gate(2, 1, '価格モデル', '判断 · あなたの番')
+    # 新しい Work
+    TR = 180
+    link([(CC(1) - 40, SB), (CC(1) - 40, SB + 14), (TR, SB + 14), (TR, R[1] + 66), (CC(0), R[1] + 66), (CC(0), R[2])])
+    link([(TR, R[1] + 66), (CC(3), R[1] + 66), (CC(3), R[2])])
     h += branch_label(TR, R[1] + 20)
-    # ── 段2: 価格表の作り直し / LPと申込フォーム
+    # ── 段2
     h += mname(COLX[0], R[2] - 26, '価格表の作り直し')
-    a_, b_ = mchain(COLX[0], R[2], [('設計','done',0),('実装','now',24),('公開','wait',0)], ('indigo',))
-    h += a_; g += b_
+    chain(0, 2, [('設計','done',0),('実装','now',24),('公開','wait',0)], ('indigo',))
     h += mname(COLX[3], R[2] - 26, 'LPと申込フォーム')
-    a_, b_ = mchain(COLX[3], R[2], [('設計','done',0),('制作','now',61),('公開','wait',0)], ('green',))
-    h += a_; g += b_
-    # ── 段3: SNS運用の立ち上げ（根）/ 問い合わせ導線（LPの制作から）
-    g += elbow([(CC(4), R[2] + MH), (CC(4), R[2] + MH + 26), (CC(3), R[2] + MH + 26), (CC(3), R[3])])
+    chain(3, 2, [('設計','done',0),('制作','now',61),('公開','wait',0)], ('green',))
+    # ── 段3
+    link([(CC(4), R[2] + MH), (CC(4), R[2] + MH + 26), (CC(3), R[2] + MH + 26), (CC(3), R[3])])
     h += branch_label(CC(4), R[2] + MH + 26)
     h += mname(COLX[0], R[3] - 26, 'SNS運用の立ち上げ', '遅れ 2日', RED_T)
-    a_, b_ = mchain(COLX[0], R[3], [('準備','done',0),('運用設計','now',46),('運用','wait',0)], ('indigo',))
-    h += a_; g += b_
+    chain(0, 3, [('準備','done',0),('運用設計','now',46),('運用','wait',0)], ('indigo',), red_now=True)
     h += mname(COLX[3], R[3] - 26, '問い合わせ導線')
-    a_, b_ = mchain(COLX[3], R[3], [('調査','done',0),('設計','now',8),('実装','wait',0)], ('cyan',))
-    h += a_; g += b_
-    # ── 段4: ブログの立ち上げ（根）/ 採用ページの改修（根）
+    chain(3, 3, [('調査','done',0),('設計','now',8),('実装','wait',0)], ('cyan',))
+    # ── 段4
     h += mname(COLX[0], R[4] - 26, 'ブログの立ち上げ')
-    a_, b_ = mchain(COLX[0], R[4], [('企画','done',0),('執筆','now',12),('公開','wait',0)], ('purple',))
-    h += a_; g += b_
+    chain(0, 4, [('企画','done',0),('執筆','now',12),('公開','wait',0)], ('purple',))
     h += mname(COLX[3], R[4] - 26, '採用ページの改修', '要確認', AMBER_T)
-    a_, b_ = mchain(COLX[3], R[4], [('調査','done',0),('設計','done',0),('試作','done',0),
-                                    ('実装','now',71),('公開','wait',0)], ('green',))
-    h += a_; g += b_
+    chain(3, 4, [('調査','done',0),('設計','done',0),('試作','done',0),
+                 ('実装','now',71),('公開','wait',0)], ('green',))
     # ── 段5: 採用ページの成果物
-    g += elbow([(CC(4), R[4] + MH), (CC(4), R[5])], col='#2E2E2E')
-    h += node(COLX[4], R[5], MW, '求人票の下書き', '成果物 · 要確認', 'gate', h=46)
+    link([(CC(4), R[4] + MH), (CC(4), R[5])], '#2E2E2E')
+    gate(4, 5, '求人票の下書き', '成果物 · 要確認')
+    # ── 段6: まだ手をつけていない Work（窓の下にはみ出す）
+    h += mname(COLX[0], 720 - 26, 'メール配信の準備')
+    chain(0, 6, [('準備','wait',0),('設計','wait',0),('配信','wait',0)])
 
     out = ('<svg width="1180" height="782" viewBox="0 0 1180 782" style="position:absolute;inset:0">%s</svg>'
            % g) + h
     out += '<div style="position:absolute;left:0;right:0;top:18px">%s</div>' % pills('ワークフロー')
-    out += toolbar()
-    out += ('<div style="position:absolute;right:24px;bottom:24px;width:150px;height:96px;border-radius:10px;'
-            'background:#0A0A0A;border:1px solid %s;overflow:hidden">' % LINE
-            + ''.join('<div style="position:absolute;left:%dpx;top:%dpx;width:%dpx;height:4px;border-radius:1px;'
-                      'background:%s"></div>' % v for v in
-                      [(12, 14, 60, 'rgba(227,116,0,0.5)'), (28, 26, 30, 'rgba(227,116,0,0.5)'),
-                       (12, 40, 44, '#2A2A2A'), (76, 40, 44, '#2A2A2A'),
-                       (12, 54, 44, 'rgba(217,48,37,0.55)'), (76, 54, 44, '#2A2A2A'),
-                       (12, 68, 44, '#2A2A2A'), (76, 68, 60, 'rgba(227,116,0,0.5)'),
-                       (100, 82, 26, '#2A2A2A')])
-            + '<div style="position:absolute;left:6px;top:6px;width:110px;height:76px;border-radius:5px;'
-              'border:1px solid #4A4A4A;background:rgba(255,255,255,0.03)"></div></div>')
+    # 道具は置かない。動かすのは指（スクロールで移動 / ⌘スクロールで拡大）と、右下の地図
+    out += minimap_of(N, L, (0, 58, 1180, 706))
     out += composer()
     return canvas_frame(out)
 
 io.open(OUT + '/WorkflowMap.dc.html', 'w', encoding='utf-8').write(
     board('横に区切らない。鎖を地図に置く', 'ワークフロー（地図）', workflow_map(), GREEN_T,
-          '列は 180px · 段は 104px · 枝は直角に曲げる'))
+          '道具は置かない · 右下の地図が盤面そのもの'))
 print('WorkflowMap ok')
 
 # ══════════════════════ canvas.json ══════════════════════
