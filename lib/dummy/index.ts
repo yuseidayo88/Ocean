@@ -41,6 +41,26 @@ export type Employee = {
   /** モデルは固定。深さは**そのモデルの中でどれだけ考えるか**（thinking）で、モデルを変えない */
   model: string;
   effort: number;
+  /** ホームのオフィス下段。**器は担当ではなく produces で決める**（業種を埋め込まない） */
+  desk: Desk;
+};
+
+/** 出したものの見せ方。形が担当ごとに違うので、レールを見るだけで職種が分かる */
+export type Produce =
+  | { kind: 'squares'; n: number; filled: number; cap: string }   // 積まれる事実
+  | { kind: 'lines'; cap: string }                                // 1文字ずつ伸びる文章
+  | { kind: 'dots'; n: number; ok: number; cap: string }           // テストの目盛り
+  | { kind: 'weeks'; n: number; done: number; cap: string }        // 週のマス
+  | { kind: 'text'; cap: string };                                 // 統括AI（決めた件数）
+
+export type Desk = {
+  /** 経過。空なら出さない */
+  el: string;
+  /** run_steps を1本に畳んだもの */
+  step: { done: number; all: number; name: string };
+  produce: Produce;
+  /** このあと積まれているタスク。0 なら出さない */
+  wait: number;
 };
 
 /** モデルの選択肢。**Thinking 版を並べない** — それは深さのほう */
@@ -54,22 +74,30 @@ export const EMPLOYEES: Employee[] = [
     state: '実行中', now: '競合ポジショニング分析', load: 74, tasks: 4, deliverables: 5, since: '8月14日',
     en: 'Research Analyst', lead: '数字には必ず出典を付けます。',
     can: ['競合表を作る', '市場規模を出す', '価格の帯を調べる'], canMore: 2,
-    model: 'Sonnet 5', effort: 2 },
+    model: 'Sonnet 5', effort: 2,
+    desk: { el: '4:12', step: { done: 3, all: 5, name: 'ページ取得' },
+            produce: { kind: 'squares', n: 12, filled: 8, cap: '事実 34' }, wait: 2 } },
   { id: 'e-strategy', name: '戦略担当', role: '収益設計・価格', color: 'purple',
     state: '要確認', now: '収益モデル比較レポート', load: 41, tasks: 3, deliverables: 2, since: '8月14日',
     en: 'Revenue Strategist', lead: '案は2つ以上出して、選んだ理由を書きます。',
     can: ['価格を決める', '損益を引く', '継続率を読む'], canMore: 0,
-    model: 'Opus 5', effort: 4 },
+    model: 'Opus 5', effort: 4,
+    desk: { el: '', step: { done: 5, all: 5, name: '完了' },
+            produce: { kind: 'lines', cap: '1,248字' }, wait: 0 } },
   { id: 'e-dev',      name: '開発担当', role: '実装・テスト', color: 'green',
     state: '実行中', now: '申込フォームの実装', load: 62, tasks: 2, deliverables: 1, since: '8月17日',
     en: 'Full-stack Engineer', lead: 'テストを通してから渡します。',
     can: ['画面を作る', 'APIをつなぐ', 'テストを書く'], canMore: 3,
-    model: 'Sonnet 5', effort: 3 },
+    model: 'Sonnet 5', effort: 3,
+    desk: { el: '11:38', step: { done: 2, all: 4, name: 'テスト' },
+            produce: { kind: 'dots', n: 18, ok: 18, cap: 'テスト 24' }, wait: 1 } },
   { id: 'e-plan',     name: '企画担当', role: '要件・仕様', color: 'indigo',
     state: '実行中', now: '投稿カレンダー作成', load: 38, tasks: 4, deliverables: 2, since: '8月16日',
     en: 'Product Planner', lead: '作らないものも決めます。',
     can: ['仕様に落とす', '作らないものを決める'], canMore: 0,
-    model: 'Haiku 4.5', effort: 1 },
+    model: 'Haiku 4.5', effort: 1,
+    desk: { el: '1:56', step: { done: 1, all: 3, name: '下書き' },
+            produce: { kind: 'weeks', n: 4, done: 1, cap: '1 / 4週' }, wait: 3 } },
 ];
 export const employee = (id: string) => EMPLOYEES.find((e) => e.id === id)!;
 
@@ -82,6 +110,11 @@ export const EXEC = {
   lead: 'あなたの言葉は全部ここに届きます。',
   can: ['Workを立てる', '計画を作る', '社員を選ぶ'], canMore: 1,
   model: 'Opus 5', effort: 4,
+  now: 'フェーズ2の関門を立てる',
+  desk: {
+    el: '', step: { done: 3, all: 4, name: '関門を立てる' },
+    produce: { kind: 'text' as const, cap: 'AIが決めた 12  ·  あなたが 2' }, wait: 0,
+  },
 };
 
 /** 統括AIからの採用提案（1件だけ。無ければ提案の行そのものを出さない） */
@@ -114,6 +147,24 @@ export type Phase = {
   owner?: string;
 };
 
+/**
+ * オフィスの輪。**1本の輪が1つの Work**、真上がはじまり、時計回り。
+ *   弧の色 ＝ その区間をやった人。色が変わるところが引き継ぎ ＝ フェーズの境目。
+ *   刻みは置かない（色の変わり目が境目なので、二度言うことになる）。
+ */
+export type Ring = {
+  /** 0 から順に区切る。to までを owner がやった */
+  segs: { to: number; owner: string }[];
+  /** 弧の先端（Work の進み） */
+  tip: number;
+  /** 予定との差。tip からここまで赤い点線 */
+  behind?: number;
+  /** 名前を置く角度（輪の外側・左上） */
+  labelDeg: number;
+  /** 球の位置。**自分の区間のまん中に立つ** */
+  crew: { id: string; at: number; gate?: boolean }[];
+};
+
 export type Work = {
   id: string; title: string; goal: string;
   phaseIndex: number; progress: number; health: Health; state: State; restDays: number; endDate: string;
@@ -122,6 +173,7 @@ export type Work = {
   crew: { id: string; x: number; ring: number; dim?: boolean }[];
   gate?: { x: number; label: string };
   over?: { x: number; w: number; label: string };
+  ring: Ring;
 };
 
 export const TODAY_X = 35.7;
@@ -138,6 +190,8 @@ export const WORKS: Work[] = [
     ],
     crew: [{ id: 'e-plan', x: 21, ring: 45 }],
     over: { x: 28.6, w: 7.1, label: '+2日' },
+    ring: { segs: [{ to: 38, owner: 'e-plan' }], tip: 38, behind: 52, labelDeg: 225,
+            crew: [{ id: 'e-plan', at: 19 }] },
   },
   {
     id: 'w-japanese', title: '日本語学習サービス', goal: '韓国の社会人に、読解でつまずかない学習体験を届ける',
@@ -150,6 +204,8 @@ export const WORKS: Work[] = [
     ],
     crew: [{ id: 'e-research', x: 44, ring: 68 }, { id: 'e-strategy', x: 53, ring: 32, dim: true }],
     gate: { x: TODAY_X, label: '価格モデルの決定' },
+    ring: { segs: [{ to: 30, owner: 'e-research' }, { to: 52, owner: 'e-strategy' }], tip: 52,
+            labelDeg: 198, crew: [{ id: 'e-research', at: 15 }, { id: 'e-strategy', at: 41, gate: true }] },
   },
   {
     id: 'w-lp', title: 'LPと申込フォーム', goal: '問い合わせが来る状態にする',
@@ -160,10 +216,43 @@ export const WORKS: Work[] = [
       { name: '公開', goal: '出して計測する',     state: 'next', x: 57.1, w: 21.5, done: 0, all: 2, from: '8/27', to: '9/2' },
     ],
     crew: [{ id: 'e-dev', x: 43, ring: 62 }],
+    ring: { segs: [{ to: 28.6, owner: 'e-plan' }, { to: 61, owner: 'e-dev' }], tip: 61,
+            labelDeg: 242, crew: [{ id: 'e-dev', at: 44.8 }] },
   },
 ];
 
 export const work = (id: string) => WORKS.find((w) => w.id === id)!;
+
+/**
+ * 今日の出来事。**引き継ぎもここに出る**（「◯◯ から △△ を受け取りました」）。
+ * 右の列は高さが決まっていて縦にスクロールする。下端はグラデーションに溶かす。
+ */
+export type Event = { at: string; who: string; what: string; tone?: 'gate' | 'ok' | 'bad' };
+export const EVENTS: Event[] = [
+  { at: '09:41', who: '戦略担当', what: '収益モデル比較レポート を出しました', tone: 'gate' },
+  { at: '09:38', who: '調査担当', what: '競合12件の価格を取り終えました' },
+  { at: '09:22', who: '統括AI',   what: 'フェーズ2の関門「価格の方向性」を立てました' },
+  { at: '09:05', who: '開発担当', what: '申込フォームのテストが通りました', tone: 'ok' },
+  { at: '08:52', who: '企画担当', what: '投稿カレンダー 1/4週ぶんを書きました' },
+  { at: '08:31', who: '調査担当', what: '競合サイト1件が読めませんでした', tone: 'bad' },
+  { at: '08:20', who: '統括AI',   what: '調査フェーズを完了にしました', tone: 'ok' },
+  { at: '08:12', who: '開発担当', what: 'フォームの下書きを 調査担当 から受け取りました' },
+  { at: '08:04', who: '統括AI',   what: '企画担当 に投稿カレンダーを渡しました' },
+  { at: '07:51', who: '調査担当', what: '価格ページ 12件を読み終えました' },
+  { at: '07:40', who: '戦略担当', what: '調査担当 から事実 34件を受け取りました' },
+  { at: '07:22', who: '統括AI',   what: 'SNS運用の立ち上げ が 2日 遅れています', tone: 'bad' },
+  { at: '07:05', who: '統括AI',   what: 'きょうのぶんの計画を引き直しました' },
+  { at: '06:58', who: '開発担当', what: 'フォームの入力チェックを書きました' },
+  { at: '06:44', who: '調査担当', what: '価格表を3件ぶん書き出しました' },
+  { at: '06:30', who: '戦略担当', what: '前提を4つ置きました' },
+  { at: '06:12', who: '企画担当', what: '投稿の型を2つ決めました' },
+  { at: '05:55', who: '統括AI',   what: '調査担当 に競合の追加調査を渡しました' },
+  { at: '05:40', who: '開発担当', what: 'LPの下書きを受け取りました' },
+  { at: '05:22', who: '調査担当', what: '競合5件の機能を並べました' },
+];
+
+/** きょうの決定。**AIが決めたぶんと、あなたが決めたぶんを分ける**（憲法を画面で証明する） */
+export const DECIDED_TODAY = { ai: 12, you: 2 };
 /** 終わった Work。進捗の下の1行を開くと出る */
 export const DONE_WORKS_LIST = [
   { id: 'w-name', title: 'サービス名を決める', ended: '8月13日', phases: 2 },
@@ -722,21 +811,72 @@ export type FlowNode = { id: string; title: string; sub: string; kind: FlowKind;
  * 成果物の「要確認」は行の左の色帯で言っているので、ここでは面を塗らない。
  * 右の列は「次のフェーズ」（同じ Work）と「新しい Work」（枝分かれ）が横に並ぶ。
  */
-export const FLOW = {
-  /** 盤面の上に置く見出し。ノードではない */
-  caption: '日本語学習サービス',
-  chain: [
-    { id: 'p1', title: '調査',           sub: 'フェーズ 1 · 完了',  kind: 'done' as const },
-    { id: 'p2', title: '戦略',           sub: 'フェーズ 2 · 32%',   kind: 'sel'  as const },
-    { id: 'd1', title: '収益モデル比較', sub: '成果物 · 要確認',    kind: 'done' as const, href: '/deliverables?open=d-rev' },
-    { id: 'g1', title: '価格モデル',     sub: '判断 · B案を推奨',   kind: 'gate' as const, href: '/decisions?open=dec-price' },
+/**
+ * ワークフロー＝地図。**横に区切らない。** 鎖（Work）を格子の上に置いて、
+ * 関係は直角に曲がる線で言う（地下鉄の路線図と同じ引き方）。
+ *   ・鎖の中は横の線（次のフェーズ）／枝は縦の線（新しい Work・成果物）
+ *   ・済んだフェーズが2つ以上続いたら1枚に畳む（フェーズ 1〜3 · 完了）
+ *   ・列と段の番号だけ持つ。ピクセルは画面側が決める
+ */
+export type MapPhase = { name: string; kind: 'done' | 'now' | 'wait'; pct?: number };
+export type MapWork = {
+  id: string; title: string; href: string;
+  /** 格子の位置 */
+  col: number; row: number;
+  status?: string; tone?: 'gate' | 'late';
+  phases: MapPhase[];
+  /** そのフェーズにいる社員 */
+  crew: EmployeeColor[];
+  /** この Work を生んだところ [親の id, 親のフェーズ番号(0始まり)] */
+  from?: [string, number];
+};
+export type MapChip = {
+  title: string; sub: string; href: string;
+  col: number; row: number;
+  /** ぶら下がる先 [Work の id, フェーズ番号] */
+  owner: [string, number];
+};
+
+export const FLOWMAP: { works: MapWork[]; chips: MapChip[] } = {
+  works: [
+    { id: 'w-japanese', title: '日本語学習サービス', href: '/work/w-japanese', col: 0, row: 0,
+      status: '判断待ち', tone: 'gate', crew: ['cyan', 'purple'],
+      phases: [{ name: '調査', kind: 'done' }, { name: '戦略', kind: 'now', pct: 32 },
+               { name: 'プロダクト', kind: 'wait' }, { name: 'ローンチ', kind: 'wait' }] },
+    { id: 'w-price', title: '価格表の作り直し', href: '/work/w-japanese', col: 0, row: 2,
+      crew: ['indigo'], from: ['w-japanese', 1],
+      phases: [{ name: '設計', kind: 'done' }, { name: '実装', kind: 'now', pct: 24 },
+               { name: '公開', kind: 'wait' }] },
+    { id: 'w-lp', title: 'LPと申込フォーム', href: '/work/w-lp', col: 3, row: 2,
+      crew: ['green'], from: ['w-japanese', 1],
+      phases: [{ name: '設計', kind: 'done' }, { name: '制作', kind: 'now', pct: 61 },
+               { name: '公開', kind: 'wait' }] },
+    { id: 'w-sns', title: 'SNS運用の立ち上げ', href: '/work/w-sns', col: 0, row: 3,
+      status: '遅れ 2日', tone: 'late', crew: ['indigo'],
+      phases: [{ name: '準備', kind: 'done' }, { name: '運用設計', kind: 'now', pct: 46 },
+               { name: '運用', kind: 'wait' }] },
+    { id: 'w-contact', title: '問い合わせ導線', href: '/work/w-lp', col: 3, row: 3,
+      crew: ['cyan'], from: ['w-lp', 1],
+      phases: [{ name: '調査', kind: 'done' }, { name: '設計', kind: 'now', pct: 8 },
+               { name: '実装', kind: 'wait' }] },
+    { id: 'w-blog', title: 'ブログの立ち上げ', href: '/work/w-sns', col: 0, row: 4,
+      crew: ['purple'],
+      phases: [{ name: '企画', kind: 'done' }, { name: '執筆', kind: 'now', pct: 12 },
+               { name: '公開', kind: 'wait' }] },
+    { id: 'w-hire', title: '採用ページの改修', href: '/work/w-lp', col: 3, row: 4,
+      status: '要確認', tone: 'gate', crew: ['green'],
+      phases: [{ name: '調査', kind: 'done' }, { name: '設計', kind: 'done' }, { name: '試作', kind: 'done' },
+               { name: '実装', kind: 'now', pct: 71 }, { name: '公開', kind: 'wait' }] },
+    { id: 'w-mail', title: 'メール配信の準備', href: '/work/w-sns', col: 0, row: 6,
+      crew: [],
+      phases: [{ name: '準備', kind: 'wait' }, { name: '設計', kind: 'wait' }, { name: '配信', kind: 'wait' }] },
   ],
-  /** 右の列。上から 新しい Work / 次のフェーズ / 新しい Work */
-  right: [
-    { id: 'b1', title: 'LPと申込フォーム',   sub: '新しい Work · 準備中', kind: 'work' as const, edge: '新しい Work', href: '/work/w-lp' },
-    { id: 'p3', title: 'プロダクト',         sub: 'フェーズ 3 · 待機',    kind: 'wait' as const, edge: '次のフェーズ' },
-    { id: 'b2', title: 'SNS運用の立ち上げ',  sub: '新しい Work · 準備中', kind: 'work' as const, edge: '新しい Work', href: '/work/w-sns' },
+  chips: [
+    { title: '収益モデル比較', sub: '成果物 · 要確認', href: '/deliverables?open=d-rev',
+      col: 1, row: 1, owner: ['w-japanese', 1] },
+    { title: '価格モデル', sub: '判断 · あなたの番', href: '/decisions?open=dec-price',
+      col: 2, row: 1, owner: ['w-japanese', 1] },
+    { title: '求人票の下書き', sub: '成果物 · 要確認', href: '/deliverables?open=d-rev',
+      col: 4, row: 5, owner: ['w-hire', 3] },
   ],
-  /** 選択中のノードにぶら下がるサブポート */
-  subs: ['担当 2', '成果物 1'],
 };

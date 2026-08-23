@@ -2,35 +2,36 @@
 
 import { Go as Link } from '@/components/ui/Go';
 import { openHref } from '@/lib/use-open';
-
 import { Orb } from '@/components/ui/Orb';
-import { Icon } from '@/components/ui/Icon';
+import { useSize } from '@/lib/use-size';
 import { AGENT_COLOR, WORKS, employee } from '@/lib/dummy';
-import { STEP, useZoom } from '@/components/home/Zoom';
 
 /**
  * オフィス＝1枚の絵だけ。
- *   軌道 = Work。1本の輪が1つの Work で、輪そのものが進捗の計器になる。
+ *   **軌道 = Work。1本の輪が1つの Work** で、輪そのものが進捗の計器になる。
  *   真上がはじまり、時計回りに済んだぶんだけ明るい弧。数字は書かない。
- *   社員は担当している Work の輪の上に立つ。輪のどこにいるか＝タスクがどこまで来ているか。
- *   **判断待ちの Work をいちばん内側に置く**（社長がまず見るものが中心に近い）。
+ *
+ *   **弧の色 ＝ その区間をやった人。** 色が変わるところが引き継ぎで、
+ *   それはそのままフェーズの境目でもある（だから刻みは置かない — 二度言うことになる）。
+ *   変わり目には時計回りの矢羽根を立てる。先端は尾を引いて「いま」を言う。
+ *
+ *   社員は**自分がやった区間のまん中**に立つ。先頭の球の下にいまのフェーズ名。
+ *   赤い点線＝予定との差。橙の菱形＝あなたが決めるところ（先端の少し先）。
  *   「あなた」は描かない。社長は統括AIより上にいる存在で、社員の一部ではない。
  */
 
-const OW = 1148, OH = 760, CX = 574, CY = 330;
-const T2 = '#B8B8B8', T4 = '#6E6E6E', T5 = '#5F5F5F';
-const AMBER = '#E37400';
+const T2 = '#B8B8B8', T3 = '#8B8B8B', T5 = '#5F5F5F';
+const AMBER = '#E37400', AMBER_T = '#FDD663', RED = '#D93025';
 
-/** 輪の大きさ（内側から） */
-const RINGS = [
-  { rx: 280, ry: 158 },
-  { rx: 380, ry: 215 },
-  { rx: 470, ry: 266 },
-];
-/** 名前は輪の外側、左上の空いているところに。輪ごとに角度を変えて重ならないようにする */
-const LANGS = [200, 215, 230];
-/** 統括AIの球と社員の球のぶんだけ、線の両端を空ける */
-const GAP0 = 66, GAP1 = 56;
+/**
+ * 輪の大きさ（内側から）。判断待ちの Work をいちばん内側に置く。
+ * **器の実寸に対する比率で持つ** — 窓が高ければ輪も大きくなる。
+ * 縦は一定の比にしない: 内側を平たくしておかないと、
+ * 内の輪の社員と外の輪の社員が同じ角度で重なる（球は縮まないので）。
+ */
+const RX = [0.546, 0.773, 1], RY = [0.4, 0.7, 1];
+/** 輪の上に立つ球。下に名前とフェーズ名がぶら下がるので、その半分ぶんを縁に空ける */
+const ORB = 56, BOX = ORB + 5 + 17 + 5 + 14;
 
 /** 背景の瞬き。[left%, top%, 遅れ秒] */
 const SPECKS: [number, number, number][] = [
@@ -45,78 +46,111 @@ const CORE: [number, number, number][] = [
 /** Math.cos/sin は実装で最後の桁が変わる。server と client でずれるので必ず丸める */
 const r2 = (n: number) => Number(n.toFixed(2));
 
-const on = (rx: number, ry: number, pct: number) => {
-  const a = ((-90 + (360 * pct) / 100) * Math.PI) / 180;
-  return [r2(CX + rx * Math.cos(a)), r2(CY + ry * Math.sin(a))] as const;
-};
-
-function arc(rx: number, ry: number, pct: number) {
-  if (pct <= 0) return null;
-  const [x1, y1] = on(rx, ry, pct);
-  const large = pct > 50 ? 1 : 0;
-  return <path d={`M ${CX} ${CY - ry} A ${rx} ${ry} 0 ${large} 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`}
-               fill="none" stroke="#8A8A8A" strokeWidth={2} strokeLinecap="round" />;
-}
-
 export function Office() {
-  const board = useZoom();
+  const [box, { w: OW, h: OH }] = useSize<HTMLDivElement>();
+  const CX = OW / 2, CY = OH / 2;
+  /** 縁は、球の下にぶら下がる名前ぶんだけ空ける（切れさせない） */
+  const MX = CX - 46, MY = CY - BOX / 2 - 9;
+  const RINGS: [number, number][] = [0, 1, 2].map((i) => [MX * RX[i], MY * RY[i]]);
+  const on = (rx: number, ry: number, pct: number) => {
+    const a = ((-90 + (360 * pct) / 100) * Math.PI) / 180;
+    return [r2(CX + rx * Math.cos(a)), r2(CY + ry * Math.sin(a))] as const;
+  };
+  const arc = (rx: number, ry: number, p0: number, p1: number) => {
+    const [x0, y0] = on(rx, ry, p0), [x1, y1] = on(rx, ry, p1);
+    return `M ${x0} ${y0} A ${rx} ${ry} 0 ${p1 - p0 > 50 ? 1 : 0} 1 ${x1} ${y1}`;
+  };
+
   /** 判断待ちの Work をいちばん内側へ。あとは Work の並びのまま */
   const works = [...WORKS].sort((a, b) => Number(!!b.gate) - Number(!!a.gate));
 
   const rings: React.ReactNode[] = [];
   const labels: React.ReactNode[] = [];
-  const people: { x: number; y: number; e: ReturnType<typeof employee>; dim: boolean }[] = [];
+  const people: { x: number; y: number; id: string; gate: boolean; phase: string }[] = [];
 
   works.forEach((w, i) => {
-    const { rx, ry } = RINGS[i];
-    const a = (LANGS[i] * Math.PI) / 180;
+    const [rx, ry] = RINGS[i];
+    const R = w.ring;
+    const lead = Math.max(...R.crew.map((c) => c.at));
+    const phase = w.phases[w.phaseIndex - 1]?.name ?? '';
+
+    const parts: React.ReactNode[] = [
+      <ellipse key="e" cx={CX} cy={CY} rx={rx} ry={ry} fill="none" stroke="#1B1B1B" strokeWidth={1} />,
+      /* 真上がはじまり */
+      <line key="s" x1={CX} y1={CY - ry - 5} x2={CX} y2={CY - ry + 5} stroke="#2E2E2E" strokeWidth={1} />,
+    ];
+    let from = 0;
+    R.segs.forEach((sg, k) => {
+      const col = AGENT_COLOR[employee(sg.owner).color];
+      parts.push(<path key={`a${k}`} d={arc(rx, ry, from, sg.to)} fill="none" stroke={col}
+                       strokeWidth={2.6} strokeLinecap="round" opacity={0.95} />);
+      /* 色が変わるところ＝引き継ぎ。時計回りの矢羽根 */
+      if (k) {
+        const [px, py] = on(rx, ry, from);
+        const a = ((-90 + 3.6 * from) * Math.PI) / 180;
+        let tx = -rx * Math.sin(a), ty = ry * Math.cos(a);
+        const L = Math.hypot(tx, ty); tx /= L; ty /= L;
+        const nx = -ty, ny = tx, s = 5;
+        parts.push(<polygon key={`h${k}`} fill={col} points={
+          [`${r2(px + tx * s)},${r2(py + ty * s)}`,
+           `${r2(px - tx * s * 0.55 + nx * s * 0.78)},${r2(py - ty * s * 0.55 + ny * s * 0.78)}`,
+           `${r2(px - tx * s * 0.55 - nx * s * 0.78)},${r2(py - ty * s * 0.55 - ny * s * 0.78)}`].join(' ')} />);
+      }
+      from = sg.to;
+    });
+    /* 先端の尾。**動いているものにだけ引く** */
+    const tipCol = AGENT_COLOR[employee(R.segs[R.segs.length - 1].owner).color];
+    ([[1.6, 2.6, 0.9], [4, 2, 0.5], [6.8, 1.5, 0.26]] as const).forEach(([back, r, o], k) => {
+      const [x, y] = on(rx, ry, R.tip - back);
+      parts.push(<circle key={`t${k}`} cx={x} cy={y} r={r} fill={tipCol} opacity={o} />);
+    });
+    /* 予定との差。はみ出したぶんを赤い点線で見せる */
+    if (R.behind !== undefined) {
+      parts.push(<path key="b" d={arc(rx, ry, R.tip, R.behind)} fill="none" stroke={RED}
+                       strokeWidth={2.2} strokeDasharray="3 4" strokeLinecap="round" />);
+    }
+    /* あなたが決めるところ。**先端の少し先**に立てる（この Work の次は、あなたの番） */
+    if (w.gate) {
+      const a = ((-90 + 3.6 * R.tip) * Math.PI) / 180;
+      let tx = -rx * Math.sin(a), ty = ry * Math.cos(a);
+      const L = Math.hypot(tx, ty); tx /= L; ty /= L;
+      const [bx, by] = on(rx, ry, R.tip);
+      const gx = r2(bx + tx * 34), gy = r2(by + ty * 34);
+      parts.push(
+        <g key="g">
+          <circle cx={gx} cy={gy} r={11} fill="rgba(227,116,0,0.13)" />
+          <rect x={gx - 4.5} y={gy - 4.5} width={9} height={9} rx={1.5} fill={AMBER}
+                transform={`rotate(45 ${gx} ${gy})`} />
+        </g>,
+      );
+    }
+    rings.push(<g key={w.id}>{parts}</g>);
+
+    const a = (R.labelDeg * Math.PI) / 180;
     const lx = r2(CX + rx * Math.cos(a)), ly = r2(CY + ry * Math.sin(a));
-    const [ex, ey] = on(rx, ry, w.progress);
-    rings.push(
-      <g key={w.id}>
-        <ellipse cx={CX} cy={CY} rx={rx} ry={ry} fill="none" stroke="#1B1B1B" strokeWidth={1} />
-        {arc(rx, ry, w.progress)}
-        <line x1={CX} y1={CY - ry - 5} x2={CX} y2={CY - ry + 5} stroke="#2E2E2E" strokeWidth={1} />
-        <line x1={r2(lx - 7)} y1={ly} x2={r2(lx + 2)} y2={ly} stroke="#2E2E2E" strokeWidth={1} />
-        {/* 弧の先端＝その Work のいま。判断待ちの Work だけ橙の菱形 */}
-        {w.gate
-          ? <>
-              <rect x={ex - 4.5} y={ey - 4.5} width={9} height={9} rx={1.6} fill={AMBER}
-                    transform={`rotate(45 ${ex.toFixed(1)} ${ey.toFixed(1)})`} />
-              <circle cx={ex} cy={ey} r={11} fill="rgba(227,116,0,0.14)" />
-            </>
-          : <circle cx={ex} cy={ey} r={2.6} fill="#7A7A7A" />}
-      </g>,
-    );
     labels.push(
       <Link key={w.id} href={`/work/${w.id}`} className="lnk" style={{
-        position: 'absolute', left: r2(lx - 7), top: ly, transform: 'translate(-100%, -50%)',
-        paddingRight: 9, color: T4, fontSize: 11, whiteSpace: 'nowrap',
-      }}>{w.title}</Link>,
+        position: 'absolute', left: lx + 1, top: ly, transform: 'translate(-100%, -50%)',
+        display: 'flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap',
+        color: T3, fontSize: 11,
+      }}>
+        <span style={{ width: 5, height: 5, borderRadius: 9, flexShrink: 0, background: tipCol }} />
+        {w.title}
+        <span style={{ width: 12, height: 1, background: '#2E2E2E' }} />
+      </Link>,
     );
-    w.crew.forEach((c) => {
-      const [x, y] = on(rx, ry, c.ring);
-      people.push({ x, y, e: employee(c.id), dim: !!c.dim });
+
+    R.crew.forEach((c) => {
+      const [x, y] = on(rx, ry, c.at);
+      people.push({ x, y, id: c.id, gate: !!c.gate, phase: c.at === lead ? phase : '' });
     });
   });
 
   return (
-    /* 盤面は大きさが決まっていて中身も外に出ない。**外の計算から切り離す** —
-       入力欄に1文字打つたびに、ここの何千個もの粒まで 数え直さなくてよくなる */
-    <div style={{ position: 'relative', width: OW, height: OH, flexShrink: 0, overflow: 'hidden', contain: 'strict' }}>
-      <svg width={OW} height={OH} viewBox={`0 0 ${OW} ${OH}`} style={{ position: 'absolute', inset: 0 }}>
-        {rings}
-        {/* 外周の目盛り */}
-        {Array.from({ length: 64 }, (_, i) => {
-          const ang = (i * (360 / 64) * Math.PI) / 180;
-          const lg = i % 4 === 0;
-          const r1 = lg ? 0.965 : 0.982;
-          return <line key={i}
-            x1={r2(CX + 500 * r1 * Math.cos(ang))} y1={r2(CY + 283 * r1 * Math.sin(ang))}
-            x2={r2(CX + 500 * Math.cos(ang))} y2={r2(CY + 283 * Math.sin(ang))}
-            stroke={lg ? '#1E1E1E' : '#151515'} />;
-        })}
-      </svg>
+    /* 盤面は**与えられた面いっぱい**。中身は外に出ないので、外の計算から切り離す */
+    <div ref={box} style={{ position: 'absolute', inset: 0, overflow: 'hidden', contain: 'strict' }}>
+      {OW < 2 ? null : <>
+      <svg width={OW} height={OH} viewBox={`0 0 ${OW} ${OH}`} style={{ position: 'absolute', inset: 0 }}>{rings}</svg>
 
       {labels}
 
@@ -127,45 +161,31 @@ export function Office() {
         }} />
       ))}
 
-      {/* 統括AIから社員への受け渡し。**粒が流れているときだけ動いている** */}
-      {people.map(({ x, y, e, dim }) => {
-        const dx = x - CX, dy = y - CY;
-        const len = Math.hypot(dx, dy);
-        const deg = (Math.atan2(dy, dx) * 180) / Math.PI;
-        const c = AGENT_COLOR[e.color];
+      {/* 統括AI から、その区間を持っている人へ（割り当て。**引き継ぎより弱く**） */}
+      {people.map(({ x, y, id }) => {
+        const dx = x - CX, dy = y - CY, len = Math.hypot(dx, dy);
         return (
-          <div key={`l-${e.id}`} style={{
+          <div key={`l-${id}-${x}`} style={{
             position: 'absolute',
-            left: r2(CX + (GAP0 * dx) / len), top: r2(CY + (GAP0 * dy) / len),
-            width: r2(len - GAP0 - GAP1), height: 1, background: dim ? '#141414' : '#1F1F1F',
-            transformOrigin: '0 50%', transform: `rotate(${deg.toFixed(2)}deg)`,
-          }}>
-            {!dim && [0, 1.2].map((d) => (
-              <div key={d} style={{
-                position: 'absolute', top: -3, left: 0, width: 7, height: 7, borderRadius: 999, background: c,
-                boxShadow: `0 0 9px ${c}CC`,
-                // 線の長さを渡して transform で流す（left を動かすと毎フレーム計算し直しになる）
-                ['--len' as string]: `${r2(len - GAP0 - GAP1)}px`,
-                animation: `travel 3s linear ${d}s infinite reverse`,
-                willChange: 'transform',
-              }} />
-            ))}
-          </div>
+            left: r2(CX + (30 * dx) / len), top: r2(CY + (30 * dy) / len),
+            width: r2(len - 50), height: 1, background: '#1F1F1F',
+            transformOrigin: '0 50%', transform: `rotate(${((Math.atan2(dy, dx) * 180) / Math.PI).toFixed(2)}deg)`,
+          }} />
         );
       })}
 
       {/* 統括AI（白）。社長は描かない */}
       <Link href="/chat/new" className="hit" style={{
         position: 'absolute', left: CX, top: CY, transform: 'translate(-50%, -50%)', color: '#E8E8E8',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
       }}>
-        <div style={{ position: 'relative', width: 112, height: 112 }}>
+        <div style={{ position: 'relative', width: 88, height: 88 }}>
           <div style={{
-            position: 'absolute', inset: -18, borderRadius: 999,
+            position: 'absolute', inset: -16, borderRadius: 999,
             background: 'radial-gradient(circle, rgba(255,255,255,0.07), rgba(255,255,255,0) 66%)',
             filter: 'blur(12px)', animation: 'breathe 4.2s ease-in-out infinite',
           }} />
-          <span style={{ position: 'absolute', inset: 0 }}><Orb color="#D2D2D2" size={112} seed={7} /></span>
+          <span style={{ position: 'absolute', inset: 0 }}><Orb color="#D2D2D2" size={88} seed={7} /></span>
           {CORE.map(([l, t, d]) => (
             <div key={`${l}-${t}`} style={{
               position: 'absolute', left: `${l}%`, top: `${t}%`, width: 3, height: 3, borderRadius: 999,
@@ -173,41 +193,30 @@ export function Office() {
             }} />
           ))}
         </div>
-        <span style={{ whiteSpace: 'nowrap', fontSize: 14 }}>統括AI</span>
+        <span style={{ whiteSpace: 'nowrap', fontSize: 13 }}>統括AI</span>
       </Link>
 
-      {people.map(({ x, y, e, dim }, i) => (
-        <Link key={e.id} href={openHref('/team', e.id)} className="hit" style={{
-          position: 'absolute', left: x, top: y, transform: 'translate(-50%, -50%)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
-          animation: dim ? undefined : `drift 6.5s ease-in-out ${(i * 1.4).toFixed(1)}s infinite`,
-        }}>
-          <Orb color={AGENT_COLOR[e.color]} size={88} seed={e.name.length * 7 + 3} dim={dim} />
-          <span style={{ color: dim ? T5 : T2, whiteSpace: 'nowrap', fontSize: 13 }}>{e.name}</span>
-        </Link>
-      ))}
-
-      {/* 拡大縮小・移動（Figma のような形） */}
-      <div style={{
-        position: 'absolute', left: 10, top: 10, display: 'flex', alignItems: 'center', gap: 4,
-        padding: 5, borderRadius: 12, background: '#101010', border: '1px solid #262626',
-      }}>
-        {/* 数字を押すと 100% に戻す。**押せる顔をしているものは全部効く** */}
-        <button onClick={board.fit} title="100% に戻す" style={{
-          display: 'inline-flex', alignItems: 'center', gap: 7, height: 28, padding: '0 10px',
-          borderRadius: 8, color: '#8B8B8B', fontSize: 12,
-        }} className="btn">
-          <Icon name="search" color={T4} size={13} /><span className="tnum">{Math.round(board.k * 100)}%</span>
-        </button>
-        <span style={{ width: 1, height: 16, background: '#242424' }} />
-        {([['plus', () => board.zoom(STEP), '大きく'], ['minus', () => board.zoom(-STEP), '小さく'],
-           ['expand', board.fit, '収める']] as const).map(([n, on, title], i) => (
-          <button key={n} onClick={on} title={title} className={i === 2 ? 'hit' : 'icob'} style={{
-            width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            borderRadius: 8, background: i === 2 && board.own === 1 ? '#1C1C1C' : undefined,
-          }}><Icon name={n} color={i === 2 ? T2 : T4} size={14} /></button>
-        ))}
-      </div>
+      {people.map(({ x, y, id, gate, phase }, i) => {
+        const e = employee(id);
+        return (
+          /* **ゆらぎは中の層に掛ける。** 外側に掛けると transform が上書きされて
+             真ん中合わせ（translate -50%）が消え、球が輪から半個ぶんずれる */
+          <Link key={`${id}-${x}`} href={openHref('/team', id)} className="hit" style={{
+            position: 'absolute', left: x, top: y, transform: 'translate(-50%, -50%)',
+            display: 'flex', whiteSpace: 'nowrap',
+          }}>
+            <span style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+              animation: `drift 6.5s ease-in-out ${(i * 1.4).toFixed(1)}s infinite`,
+            }}>
+              <Orb color={AGENT_COLOR[e.color]} size={ORB} seed={e.name.length * 7 + 3} />
+              <span style={{ color: gate ? AMBER_T : T2, fontSize: 11.5 }}>{e.name}</span>
+              {phase && <span style={{ color: T5, fontSize: 10 }}>{phase}</span>}
+            </span>
+          </Link>
+        );
+      })}
+      </>}
     </div>
   );
 }
