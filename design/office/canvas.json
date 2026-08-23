@@ -71,6 +71,38 @@
       "w": 1180,
       "h": 810,
       "title": "A3 採用ぶんを入れた"
+    },
+    {
+      "file": "LayoutSides.dc.html",
+      "x": 0,
+      "y": 3750,
+      "w": 1180,
+      "h": 800,
+      "title": "① 左右"
+    },
+    {
+      "file": "LayoutLogBottom.dc.html",
+      "x": 1300,
+      "y": 3750,
+      "w": 1180,
+      "h": 900,
+      "title": "② 下にログ"
+    },
+    {
+      "file": "LayoutTeamBottom.dc.html",
+      "x": 2600,
+      "y": 3750,
+      "w": 1180,
+      "h": 880,
+      "title": "③ 下に社員"
+    },
+    {
+      "file": "LayoutOneColumn.dc.html",
+      "x": 3900,
+      "y": 3750,
+      "w": 1180,
+      "h": 860,
+      "title": "④ 右に1本"
     }
   ],
   "launch": {

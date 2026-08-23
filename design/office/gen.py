@@ -40,13 +40,15 @@ TAIL = '''</x-dc>
 </html>
 '''
 
-def board(title, tag, body, tagcolor=GREEN_T):
+def board(title, tag, body, tagcolor=GREEN_T, note=''):
     return (HEAD + '<div style="width: %dpx; display: flex; flex-direction: column">'
             '<div style="padding: 24px 30px 18px; display: flex; align-items: baseline; gap: 12px">'
             '<span style="color: %s; font-size: 12px">%s</span>'
-            '<span style="font-size: 20px">%s</span></div>'
+            '<span style="font-size: 20px">%s</span>'
+            '<div style="flex:1"></div>'
+            '<span style="color:%s;font-size:11.5px">%s</span></div>'
             '<div style="height:1px;background:%s"></div>'
-            % (W, tagcolor, tag, title, LINE)
+            % (W, tagcolor, tag, title, T5, note, LINE)
             + body + '</div>' + TAIL)
 
 # ══════════════════════ 部品 ══════════════════════
@@ -1092,6 +1094,273 @@ io.open(OUT + '/OptionA3.dc.html', 'w', encoding='utf-8').write(
     board('Work の行をやめて、絵に流れを出す', 'A3 採用ぶんを入れた', a3_body, BLUE_T))
 print('A3 ok')
 
+# ══════════════════════ 置き場所の4案（答えの一文をやめる） ══════════════════════
+def flow(fw, fh, rings, orb_px=40, exec_px=58):
+    """輪＝Work。弧の色＝その区間を誰がやったか。色が変わるところが引き継ぎ"""
+    cx, cy = fw / 2, fh / 2
+    def pt(rx, ry, p):
+        a = math.radians(-90 + 3.6 * p)
+        return cx + rx * math.cos(a), cy + ry * math.sin(a)
+    def seg(rx, ry, p0, p1, color, w=2.6, op=.95, dash=False):
+        x0, y0 = pt(rx, ry, p0); x1, y1 = pt(rx, ry, p1)
+        return ('<path d="M %.1f %.1f A %.1f %.1f 0 %d 1 %.1f %.1f" fill="none" stroke="%s" '
+                'stroke-width="%s" stroke-linecap="round" opacity="%s"%s/>'
+                % (x0, y0, rx, ry, 1 if p1 - p0 > 50 else 0, x1, y1, color, w, op,
+                   ' stroke-dasharray="3 4"' if dash else ''))
+    def hand(rx, ry, p, color):
+        a = math.radians(-90 + 3.6 * p)
+        x, y = pt(rx, ry, p)
+        tx, ty = -rx * math.sin(a), ry * math.cos(a)
+        L = math.hypot(tx, ty); tx, ty = tx / L, ty / L
+        nx, ny = -ty, tx
+        s_ = 5.0
+        pts = '%.1f,%.1f %.1f,%.1f %.1f,%.1f' % (
+            x + tx * s_, y + ty * s_,
+            x - tx * s_ * .55 + nx * s_ * .78, y - ty * s_ * .55 + ny * s_ * .78,
+            x - tx * s_ * .55 - nx * s_ * .78, y - ty * s_ * .55 - ny * s_ * .78)
+        return ('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#3A3A3A" stroke-width="1"/>'
+                '<polygon points="%s" fill="%s"/>'
+                % (x + nx * 7, y + ny * 7, x - nx * 7, y - ny * 7, pts, color))
+
+    g = ['<svg width="%d" height="%d" viewBox="0 0 %d %d" style="display:block">' % (fw, fh, fw, fh)]
+    g.append('<defs><radialGradient id="cg%d"><stop offset="0" stop-color="#D2D2D2" stop-opacity=".22"/>'
+             '<stop offset="1" stop-color="#D2D2D2" stop-opacity="0"/></radialGradient></defs>' % fw)
+    for rx, ry, segs, tip, gate, behind, _, _ in rings:
+        g.append('<ellipse cx="%.0f" cy="%.0f" rx="%d" ry="%d" fill="none" stroke="#1B1B1B" stroke-width="1"/>'
+                 % (cx, cy, rx, ry))
+        g.append('<line x1="%.0f" y1="%.1f" x2="%.0f" y2="%.1f" stroke="#2E2E2E" stroke-width="1"/>'
+                 % (cx, cy - ry - 5, cx, cy - ry + 5))
+        if behind:
+            g.append(seg(rx, ry, behind[0], behind[1], RED, 2.2, .85, dash=True))
+        for k, (p0, p1, key) in enumerate(segs):
+            g.append(seg(rx, ry, p0, p1, HEX[key]))
+            if k:
+                g.append(hand(rx, ry, p0, HEX[key]))
+        for back, r, o in [(1.6, 2.6, .9), (4.0, 2.0, .5), (6.8, 1.5, .26)]:
+            x, y = pt(rx, ry, tip - back)
+            g.append('<circle cx="%.1f" cy="%.1f" r="%s" fill="%s" opacity="%s"/>'
+                     % (x, y, r, HEX[segs[-1][2]], o))
+        if gate:
+            a = math.radians(-90 + 3.6 * tip)
+            tx, ty = -rx * math.sin(a), ry * math.cos(a)
+            L = math.hypot(tx, ty)
+            x, y = pt(rx, ry, tip)
+            x += tx / L * 36; y += ty / L * 36
+            g.append('<circle cx="%.1f" cy="%.1f" r="11" fill="rgba(227,116,0,0.13)"/>' % (x, y))
+            g.append('<rect x="%.1f" y="%.1f" width="9" height="9" rx="1.5" fill="%s" '
+                     'transform="rotate(45 %.1f %.1f)"/>' % (x - 4.5, y - 4.5, AMBER, x, y))
+    for ri, p0, p1, _, _ in FEMP:
+        rx, ry = rings[ri][0], rings[ri][1]
+        x, y = pt(rx, ry, (p0 + p1) / 2)
+        dx, dy = x - cx, y - cy
+        L = math.hypot(dx, dy)
+        g.append('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#1F1F1F" stroke-width="1"/>'
+                 % (cx + dx / L * 32, cy + dy / L * 32, cx + dx / L * (L - 22), cy + dy / L * (L - 22)))
+    g.append('<circle cx="%.0f" cy="%.0f" r="44" fill="url(#cg%d)"/>' % (cx, cy, fw))
+    g.append('</svg>')
+
+    out = ''.join(g)
+    for rx, ry, segs, tip, gate, behind, title, note in rings:
+        out += ('<div style="position:absolute;left:%.0fpx;top:%.0fpx;transform:translate(-100%%,-50%%);'
+                'display:flex;align-items:center;gap:7px;white-space:nowrap">'
+                '%s<span style="color:%s;font-size:11px">%s</span>%s'
+                '<span style="width:12px;height:1px;background:#2E2E2E"></span></div>'
+                % (cx - 8, cy - ry, dot(HEX[segs[-1][2]], 5), T3, title,
+                   ('<span style="color:%s;font-size:11px">%s</span>' % (note[1], note[0])) if note else ''))
+    out += ('<div style="position:absolute;left:%.0fpx;top:%.0fpx;transform:translate(-50%%,-50%%);'
+            'display:flex;flex-direction:column;align-items:center;gap:6px">'
+            '%s<span style="color:#E8E8E8;font-size:12.5px">統括AI</span></div>'
+            % (cx, cy, orb(RGB['white'], exec_px, glow=.5)))
+    for ri, p0, p1, name, key in FEMP:
+        rx, ry = rings[ri][0], rings[ri][1]
+        x, y = pt(rx, ry, (p0 + p1) / 2)
+        gate = rings[ri][4] and p1 == rings[ri][3]
+        out += ('<div style="position:absolute;left:%.0fpx;top:%.0fpx;transform:translate(-50%%,-50%%);'
+                'display:flex;flex-direction:column;align-items:center;gap:6px;white-space:nowrap">'
+                '%s<span style="color:%s;font-size:12px">%s</span></div>'
+                % (x, y, orb(RGB[key], orb_px), AMBER_T if gate else T2, name))
+    return '<div style="position:relative;width:%dpx;height:%dpx;flex-shrink:0">%s</div>' % (fw, fh, out)
+
+def ringset(a, b, c):
+    return [(a[0], a[1], [(0, 22, 'cyan'), (22, 52, 'purple')], 52, True,  None,     '日本語学習サービス', None),
+            (b[0], b[1], [(0, 38, 'indigo')],                   38, False, (38, 47), 'SNS運用の立ち上げ',  ('遅れ 2日', RED_T)),
+            (c[0], c[1], [(0, 26, 'indigo'), (26, 61, 'green')], 61, False, None,    'LPと申込フォーム',   None)]
+
+# 上の帯。**答えの一文はやめた**（遅れは赤い点線、判断待ちは橙の菱形が絵で言っている）
+def topline():
+    return ('<div style="display:flex;align-items:baseline;gap:14px;height:18px">'
+            '<div style="flex:1"></div>'
+            '<span style="color:%s;font-size:11.5px">きょうの決定 <span class="tnum" style="color:%s">14</span>'
+            '  ·  うちあなたが <span class="tnum" style="color:%s">2</span></span>'
+            '<span style="width:1px;height:12px;background:%s"></span>'
+            '<span style="color:%s;font-size:11.5px" class="tnum">稼働 4 / 4</span></div>'
+            % (T5, T2, T2, LINE, T5))
+
+def sec(t, right=''):
+    return ('<div style="display:flex;align-items:baseline;padding-bottom:2px">'
+            '<span style="color:%s;font-size:11px">%s</span><div style="flex:1"></div>'
+            '<span style="color:%s;font-size:10.5px">%s</span></div>' % (T5, t, T5, right))
+
+def logcol(n=12, w=288):
+    return ('<div style="width:%dpx;flex-shrink:0;display:flex;flex-direction:column;'
+            'border-left:1px solid %s;padding-left:20px">%s%s</div>'
+            % (w, HAIR, sec('今日の出来事', '動いています'),
+               ''.join(feed_row(t, a, x, c, i == n - 1) for i, (t, a, x, c) in enumerate(FEED_A3[:n]))))
+
+def logband(cols=4, rows=3):
+    """ログを横に流す。時系列なので左→右・上→下で読める"""
+    items = FEED_A3[:cols * rows]
+    out = ''
+    for r in range(rows):
+        cells = ''
+        for c in range(cols):
+            k = r * cols + c
+            if k >= len(items):
+                cells += '<div style="flex:1"></div>'
+                continue
+            t, who, what, col = items[k]
+            cells += ('<div style="flex:1;min-width:0;display:flex;align-items:baseline;gap:9px;'
+                      'padding:8px 0;%s">%s'
+                      '<span style="color:%s;font-size:11px;width:52px;flex-shrink:0">%s</span>'
+                      '<span style="flex:1;min-width:0;color:%s;font-size:11.5px;overflow:hidden;'
+                      'text-overflow:ellipsis;white-space:nowrap">%s</span></div>'
+                      % ('' if r == rows - 1 else 'border-bottom:1px solid #131313',
+                         mono(t), T5, who, col, what))
+        out += '<div style="display:flex;gap:24px">%s</div>' % cells
+    return '<div>%s%s</div>' % (sec('今日の出来事', '動いています'), out)
+
+def strip3(name, key, state, spec, now, el, done, running, total, log, last=False):
+    """3段。②のように下に何か置くとき用"""
+    sc = STATE_C[state]
+    fig, cap = PRODUCE[name]()
+    return ('<div style="display:flex;flex-direction:column;gap:6px;padding:11px 0;%s">'
+            % ('' if last else 'border-bottom:1px solid %s' % HAIR)
+            + '<div style="display:flex;align-items:center;gap:9px">'
+              + orb(RGB[key], 22) + '<span style="font-size:12.5px">%s</span>' % name + dot(sc[0], 5)
+              + '<span style="color:%s;font-size:11px">%s</span><div style="flex:1"></div>%s'
+                % (sc[1], state, mono(el, T5) if el else '')
+            + '</div>'
+            + '<div style="padding-left:31px;display:flex;flex-direction:column;gap:6px">'
+              + '<span style="color:%s;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;'
+                'white-space:nowrap">%s</span>' % (T2, now)
+              + '<div style="display:flex;align-items:center;gap:9px">'
+                + steps(done, running, total, HEX[key], 72)
+                + '<span style="color:%s;font-size:10.5px;white-space:nowrap">%d / %d</span>' % (T5, done, total)
+                + '<div style="flex:1"></div>' + fig + (mono(cap) if cap else '')
+              + '</div>'
+            + '</div></div>')
+
+def card(name, key, state, spec, now, el, done, running, total, log):
+    """③ 下に横並びにするとき用。1人ぶんを縦に積む"""
+    sc = STATE_C[state]
+    fig, cap = PRODUCE[name]()
+    w = WAIT[name]
+    return ('<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px">'
+            + '<div style="display:flex;align-items:center;gap:8px">'
+              + orb(RGB[key], 24) + '<span style="font-size:12.5px">%s</span>' % name + dot(sc[0], 5)
+              + '<span style="color:%s;font-size:10.5px">%s</span>' % (sc[1], state)
+            + '</div>'
+            + '<span style="color:%s;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;'
+              'white-space:nowrap">%s</span>' % (T2, now)
+            + '<div style="display:flex;align-items:center;gap:8px">'
+              + steps(done, running, total, HEX[key], 96)
+              + '<span style="color:%s;font-size:10.5px;white-space:nowrap">%d / %d</span>' % (T5, done, total)
+              + '<div style="flex:1"></div>' + (mono(el, T5) if el else '')
+            + '</div>'
+            + '<div style="display:flex;align-items:center;gap:8px;min-height:11px">'
+              + fig + (mono(cap) if cap else '') + '<div style="flex:1"></div>'
+              + (mono('待ち %d' % w, T5) if w else '')
+            + '</div></div>')
+
+def strip2(name, key, state, spec, now, el, done, running, total, log, last=False):
+    """④ 右の1列に社員とログを積むとき用。いちばん細い"""
+    sc = STATE_C[state]
+    fig, cap = PRODUCE[name]()
+    return ('<div style="display:flex;flex-direction:column;gap:6px;padding:10px 0;%s">'
+            % ('' if last else 'border-bottom:1px solid %s' % HAIR)
+            + '<div style="display:flex;align-items:center;gap:8px">'
+              + orb(RGB[key], 20) + '<span style="font-size:12.5px">%s</span>' % name + dot(sc[0], 5)
+              + '<div style="flex:1"></div>'
+              + '<span style="color:%s;font-size:11px;overflow:hidden;text-overflow:ellipsis;'
+                'white-space:nowrap;max-width:150px">%s</span>' % (T5, now)
+            + '</div>'
+            + '<div style="padding-left:28px;display:flex;align-items:center;gap:8px;overflow:hidden">'
+              + steps(done, running, total, HEX[key], 44)
+              + '<div style="flex:1"></div>' + fig + (mono(cap) if cap else '')
+            + '</div></div>')
+
+COMPOSER_NOTE = 108   # 下に置いたものは入力欄のぶん逃がす
+
+# ── ① 左右 ────────────────────────────────────────────────
+b1 = ('<div style="padding:16px 30px 22px;display:flex;flex-direction:column;gap:10px">'
+  + topline()
+  + '<div style="display:flex;gap:22px;align-items:stretch">'
+    + '<div style="width:300px;flex-shrink:0;display:flex;flex-direction:column">'
+      + sec('AI社員', '5人')
+      + ''.join(a3_strip(*m, last=(i == len(REAL) - 1)) for i, m in enumerate(REAL)) + '</div>'
+    + '<div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center">%s</div>'
+      % flow(468, 560, ringset((124, 86), (174, 120), (226, 158)))
+    + logcol(12)
+  + '</div></div>')
+io.open(OUT + '/LayoutSides.dc.html', 'w', encoding='utf-8').write(
+    board('社員は左、ログは右、絵はまんなか', '① 左右', b1, BLUE_T,
+          '引き換えに: 絵がいちばん小さい（468幅）'))
+print('L1 ok')
+
+# ── ② 下にログ ────────────────────────────────────────────
+b2 = ('<div style="padding:16px 30px 22px;display:flex;flex-direction:column;gap:10px">'
+  + topline()
+  + '<div style="display:flex;gap:22px;align-items:stretch">'
+    + '<div style="width:300px;flex-shrink:0;display:flex;flex-direction:column">'
+      + sec('AI社員', '5人')
+      + ''.join(strip3(*m, last=(i == len(REAL) - 1)) for i, m in enumerate(REAL)) + '</div>'
+    + '<div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center">%s</div>'
+      % flow(798, 440, ringset((215, 95), (302, 133), (388, 171)))
+  + '</div>'
+  + '<div style="padding-top:8px;margin-bottom:%dpx;border-top:1px solid %s">%s</div>'
+    % (COMPOSER_NOTE, HAIR, logband(4, 3))
+  + '</div>')
+io.open(OUT + '/LayoutLogBottom.dc.html', 'w', encoding='utf-8').write(
+    board('絵を横に広く。ログは下に流す', '② 下にログ', b2, BLUE_T,
+          '引き換えに: 社員の行が1段減る ＋ 入力欄のぶん 108px'))
+print('L2 ok')
+
+# ── ③ 下に社員 ────────────────────────────────────────────
+b3 = ('<div style="padding:16px 30px 22px;display:flex;flex-direction:column;gap:10px">'
+  + topline()
+  + '<div style="display:flex;gap:22px;align-items:stretch">'
+    + '<div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center">%s</div>'
+      % flow(810, 380, ringset((218, 82), (306, 115), (394, 148)), orb_px=36, exec_px=52)
+    + logcol(9)
+  + '</div>'
+  + '<div style="padding-top:10px;margin-bottom:%dpx;border-top:1px solid %s">%s'
+    '<div style="display:flex;gap:28px;padding-top:8px">%s</div></div>'
+    % (COMPOSER_NOTE, HAIR, sec('AI社員', '5人'), ''.join(card(*m) for m in REAL))
+  + '</div>')
+io.open(OUT + '/LayoutTeamBottom.dc.html', 'w', encoding='utf-8').write(
+    board('絵とログが上、社員は下に5列', '③ 下に社員', b3, BLUE_T,
+          '引き換えに: 6人目から横スクロール ＋ 入力欄のぶん 108px'))
+print('L3 ok')
+
+# ── ④ 右に1本 ─────────────────────────────────────────────
+b4 = ('<div style="padding:16px 30px 22px;display:flex;flex-direction:column;gap:10px">'
+  + topline()
+  + '<div style="display:flex;gap:22px;align-items:stretch">'
+    + '<div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center">%s</div>'
+      % flow(798, 620, ringset((215, 135), (302, 189), (388, 243)))
+    + '<div style="width:300px;flex-shrink:0;display:flex;flex-direction:column;gap:22px;'
+      'border-left:1px solid %s;padding-left:20px">' % HAIR
+      + '<div>' + sec('AI社員', '5人')
+        + ''.join(strip2(*m, last=(i == len(REAL) - 1)) for i, m in enumerate(REAL)) + '</div>'
+      + '<div>' + sec('今日の出来事', '動いています')
+        + ''.join(feed_row(t, a, x, c, i == 5) for i, (t, a, x, c) in enumerate(FEED_A3[:6])) + '</div>'
+    + '</div>'
+  + '</div></div>')
+io.open(OUT + '/LayoutOneColumn.dc.html', 'w', encoding='utf-8').write(
+    board('左レールをやめて、読むものは右の1列に', '④ 右に1本', b4, BLUE_T,
+          '引き換えに: ログが6件しか出ない'))
+print('L4 ok')
+
 # ══════════════════════ canvas.json ══════════════════════
 import json
 canvas = {
@@ -1108,6 +1377,11 @@ canvas = {
     # 3段目 = 参考4枚の計器を1つずつ見た結果
     {"file": "Params.dc.html",   "x": 0,    "y": 2050, "w": 1180, "h": 1560, "title": "③ 4枚の計器を1つずつ"},
     {"file": "OptionA3.dc.html", "x": 1300, "y": 2050, "w": 1180, "h": 810,  "title": "A3 採用ぶんを入れた"},
+    # 4段目 = 答えの一文をやめたあとの置き場所（社員とログをどこに置くか）
+    {"file": "LayoutSides.dc.html",     "x": 0,    "y": 3750, "w": 1180, "h": 800, "title": "① 左右"},
+    {"file": "LayoutLogBottom.dc.html", "x": 1300, "y": 3750, "w": 1180, "h": 900, "title": "② 下にログ"},
+    {"file": "LayoutTeamBottom.dc.html","x": 2600, "y": 3750, "w": 1180, "h": 880, "title": "③ 下に社員"},
+    {"file": "LayoutOneColumn.dc.html", "x": 3900, "y": 3750, "w": 1180, "h": 860, "title": "④ 右に1本"},
   ],
   "launch": {"view": "canvas"},
 }
