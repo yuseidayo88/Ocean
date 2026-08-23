@@ -5,6 +5,7 @@ import { Go as Link } from '@/components/ui/Go';
 import { useOpen } from '@/lib/use-open';
 import { notFound, useParams } from 'next/navigation';
 import { Centre, Composer, Pane, TopBar } from '@/components/shell/Chrome';
+import { COMPOSER_H } from '@/lib/design/tokens';
 import { Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
 import { AGENT_COLOR, WORKS } from '@/lib/dummy';
@@ -47,7 +48,7 @@ export default function PlanPage() {
     <>
       <Centre>
         <TopBar crumb={w.title} title="計画案" onPanel={() => setPane(true)} panelOn={pane} />
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '14px 26px 14px' }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '14px 26px 18px' }}>
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <span style={{ maxWidth: '78%', padding: '9px 16px', borderRadius: 18, background: '#24354A', color: '#DCE7F5' }}>
               韓国人向けの日本語学習サービスを立ち上げたい
@@ -166,14 +167,24 @@ export default function PlanPage() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 14 }}>
-            <Link href={`/work/${w.id}`} className="solid" style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px', borderRadius: 8, background: BLUE, color: '#fff' }}>
-              承認して始める
-            </Link>
-            <span className="btn" style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 14px', borderRadius: 8, color: T3 }}>
-              直したい
-            </span>
-          </div>
+        </div>
+
+        {/**
+          * **行動の行は中身と一緒にスクロールさせない。**
+          * 中身が短いとスクロールが起きないので、`padding-bottom` を積んでも行は動かず、
+          * 浮いている入力欄の下に潜って**物理的に押せなくなる**（実際そうなっていた）。
+          * 下に貼り付けて `COMPOSER_H` ぶん逃がす — 通知の行動の行と同じ作法。
+          */}
+        <div style={{
+          flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10, height: 56,
+          padding: '0 26px', marginBottom: COMPOSER_H, borderTop: '1px solid #1C1C1C',
+        }}>
+          <Link href={`/work/${w.id}`} className="solid" style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px', borderRadius: 8, background: BLUE, color: '#fff' }}>
+            承認して始める
+          </Link>
+          <span className="btn" style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 14px', borderRadius: 8, border: '1px solid #2A2A2A', color: T3 }}>
+            直したい
+          </span>
         </div>
         <Composer placeholder="直したいところを書く、@ で資料を参照" />
       </Centre>
