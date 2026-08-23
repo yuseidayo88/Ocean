@@ -1,7 +1,7 @@
 'use server';
 
 import { draftWork } from '@/lib/exec/run';
-import { store, type DraftWork } from '@/lib/store';
+import { store, type DraftWork, type LiveWork } from '@/lib/store';
 import type { Draft } from '@/lib/exec/types';
 
 /**
@@ -9,7 +9,7 @@ import type { Draft } from '@/lib/exec/types';
  *
  *   ゴール → 入れ物の判定 → 質問 → 採用の提案 → 計画 → 保存
  *
- * **承認はしない。** 状態を進めるのは Phase 6。
+ * 承認して状態を進めるのは `approveWork`（Phase 6）。
  */
 export type StartResult =
   | { ok: true; id: string; real: boolean }
@@ -53,4 +53,64 @@ export async function answerQuestion(id: string, index: number, answer: string) 
 
 export async function getDraft(id: string): Promise<DraftWork | null> {
   return store().getDraft(id);
+}
+
+
+/**
+ * **承認して始める**（Phase 6）。ここで初めて状態が進む。
+ *   works → `active` ／ 最初のフェーズ → `active` ／ 提案した社員を採用
+ * **タスクは `queued` のまま。** 走らせるのは Phase 7 —
+ * ここで `running` にすると、動いていないのに動いていることになる。
+ */
+export type ApproveResult = { ok: true } | { ok: false; message: string };
+
+export async function approveWork(id: string): Promise<ApproveResult> {
+  try {
+    await store().approve(id);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : '承認できませんでした' };
+  }
+}
+
+/**
+ * **計画を直す**（Phase 6）。書いた直しを統括AIに渡して引き直す。
+ * 立てたときと同じ道を通す（鍵が無ければ決め打ちのプロバイダ）。
+ */
+export type ReviseResult = { ok: true; real: boolean } | { ok: false; message: string };
+
+export async function reviseWork(id: string, ask: string): Promise<ReviseResult> {
+  const text = ask.trim();
+  if (!text) return { ok: false, message: '直したいところを書いてください' };
+
+  const before = await store().getDraft(id);
+  if (!before) return { ok: false, message: 'その計画は見つかりませんでした' };
+  if (before.approved) return { ok: false, message: 'もう承認された計画は直せません' };
+
+  let out: { draft: Draft; real: boolean };
+  try {
+    // 前の計画を文脈に渡す。**ゼロから引き直させない**（直しなので、残すところは残す）
+    out = await draftWork(before.goal, [
+      'これは引き直しです。前に立てた計画はこうでした:',
+      JSON.stringify({ container: before.container, plan: before.plan, hires: before.hires }),
+      '',
+      '社長からの直しの指示:',
+      text,
+    ].join('\n'));
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : '統括AIが応えませんでした' };
+  }
+  if (out.draft.kind === 'need_end') return { ok: false, message: out.draft.body };
+
+  const d = out.draft;
+  await store().revise(id, {
+    title: d.container.title, goal: before.goal,
+    container: d.container, questions: d.questions, hires: d.hires, plan: d.plan, real: out.real,
+  });
+  return { ok: true, real: out.real };
+}
+
+/** 承認したあとの Work。**Work 画面が読む** */
+export async function getWork(id: string): Promise<LiveWork | null> {
+  return store().getWork(id);
 }

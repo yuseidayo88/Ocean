@@ -33,8 +33,16 @@ export type PlanView = {
   real: boolean;
   /** なぜこの順番か（右ペイン） */
   why: string[];
+  /** 時間の使い方への一言。**統括AIが言っていないなら出さない** */
+  timeNote?: string;
+  /** 前提にしていること。同上 — 無いなら節ごと出さない */
+  facts?: [string, string][];
+  /** 見送った案。同上 */
+  dropped?: string;
   /** 承認したらすぐ動きだすタスクの数。**直近のフェーズぶんだけ引いてある** */
   firstTasks: number;
+  /** もう承認されたか。**押せる顔をさせない**ために画面が読む */
+  approved?: boolean;
 };
 
 const COLORS: EmployeeColor[] = ['cyan', 'purple', 'indigo', 'green'];
@@ -69,6 +77,7 @@ export function fromDraft(d: DraftWork): PlanView {
     }),
     real: d.real,
     firstTasks: d.plan.firstPhaseTasks.length,
+    approved: d.approved,
     why: [
       d.container.reason,
       `直近の「${rows[0]?.name ?? ''}」だけタスクまで引いています。先のフェーズは名前とねらいだけです。`,
@@ -96,6 +105,9 @@ export const DUMMY_VIEW: PlanView = {
   ],
   real: true,
   firstTasks: 3,
+  timeNote: '作る前に確かめることに半分を使います。ここで外すと、あとの5週がまるごと無駄になります。',
+  facts: [['韓国の日本語学習者', '約 12万人'], ['あなたが使える時間', '週 10時間'], ['初期の資金', '〜50万円'], ['出典', '3件 ›']],
+  dropped: 'いきなりLPを作る — 誰に何を売るかが決まる前に作ると、ほぼ作り直しになります。フェーズ3に入れました。',
   why: [
     '確かめることに半分の時間を使います。作ってから間違いに気づくほうが高くつくからです。',
     '価格を決めるまでは作りません。作るものが変わるからです。',

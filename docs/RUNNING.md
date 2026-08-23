@@ -91,6 +91,9 @@ psql "$DATABASE_URL" -f supabase/migrations/0002_entry_chat_ledger.sql
 psql "$DATABASE_URL" -f supabase/migrations/0003_rls.sql
 psql "$DATABASE_URL" -f supabase/migrations/0004_notes.sql
 psql "$DATABASE_URL" -f supabase/migrations/0005_drop_errands.sql
+psql "$DATABASE_URL" -f supabase/migrations/0006_plan_draft.sql
+psql "$DATABASE_URL" -f supabase/migrations/0007_account_default.sql
+psql "$DATABASE_URL" -f supabase/migrations/0008_works_audit.sql
 ```
 
 `0003` は RLS と、不変条件をデータベース側で守るためのトリガを入れます。
@@ -110,6 +113,21 @@ PostgREST に公開されないので、`/rest/v1/rpc/` から呼ばれません
 `tasks.work_id` を NOT NULL にします。小さい頼みごとは、いまある Work の中のタスクになります。
 → `docs/design/06-work-and-scope.md` 判断ログ
 
+`0006` は `works.plan_draft`（統括AIが立てた計画案そのもの）を足します。**Phase 5**。
+
+`0007` は **`account_id` の既定値**を22表に置きます（`accounts` と `users` は除く）。
+アプリのどの insert も `account_id` を書きません — 表が23あるので、書く方式にすると
+1か所の書き忘れが**本番でだけ** NOT NULL 違反になります
+（実際 Phase 5 の insert は全部持っていませんでした）。
+RLS の with check は `account_id = private.current_account_id()` のままなので、
+既定値と方針が一致します。**ポリシーは1行も書き換えていません**（→ Phase 11 も無変更）。
+
+`0008` は **承認と引き直しを台帳に残す引き金**です。`audit_events` は裏方の表で、
+`authenticated` に insert を渡していません（渡すと `executive` / `system` の行まで
+偽造できる）。`public` に SECURITY DEFINER の関数を置けば `rpc` から書けますが、
+リンターの警告が1件増えるので採りませんでした。**引き金なら、アプリが呼び忘れることも
+嘘の数を書くこともできません。**
+
 ### データベース側で守っていること
 
 | 不変条件 | 守り方 |
@@ -122,6 +140,9 @@ PostgREST に公開されないので、`/rest/v1/rpc/` から呼ばれません
 | 候補は消さない | `revoke delete`（rule だと cascade が壊れて退会できなくなる） |
 | 退会したらデータも消える | トリガ `users_drop_empty_account` |
 | 会社をまたいで見えない | 全28表の RLS |
+| `account_id` を書き忘れられない | 22表の既定値 `private.current_account_id()`（0007） |
+| 質問はスレッドに属する | `questions.thread_id` NOT NULL（Work のスレッドを先に作る） |
+| 承認と引き直しは必ず台帳に残る | トリガ `works_audit`（0008）。アプリは `audit_events` に書けない |
 
 ## 環境変数
 

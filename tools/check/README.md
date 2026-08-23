@@ -21,6 +21,7 @@ node tools/check/chat.mjs     9335                    # どの画面からでも
 node tools/check/cpu.mjs      9335 http://localhost:3300 /home /team
 node tools/check/motion.mjs   9335 http://localhost:3300   # 出入りが動いているか
 CPU=4 node tools/check/press.mjs 9335                     # 押してから右ペインが見えるまで
+node tools/check/approve.mjs  9335                        # 承認の道を1本（Phase 6）
 ```
 
 `BASE` で見に行く先を変えられる（既定 `http://localhost:3300`）。
@@ -38,6 +39,7 @@ CPU=4 node tools/check/press.mjs 9335                     # 押してから右�
 | `reach.mjs` | **下まで送っても、入力欄に隠れて押せなくなるものが無いか。** 入力欄は中身の上に浮くので、下に貼り付く行は `COMPOSER_H` ぶん逃がす。`padding-bottom` では足りない（中身が短いとスクロールが起きず、行は動かない） |
 | `dead.mjs` | **押しても何も起きないもの**を数える。押せる顔の要素を1つずつ押して、URL・中身・レールの幅・開いている板・フォーカスのどれも変わらなければ「死」。**1つ押すたびに読み直す**ので遅い（全画面で15〜20分）。履歴が要る 戻る/進む と、親に切り取られて押せないものは数えない |
 | `chat.mjs` | どの画面でも入力欄に書いて Enter → 右ペインが会話になって開くか。**入力欄が1つのまま**ペインの中へ移るか |
+| `approve.mjs` | **承認の道を1本通す**（ゴールを書く → 計画 → 承認 → Work）。進捗が 0 のままか・空のところが空と出ているか・二度押しできないかまで見る。`DEMO_MODE` の保存先はメモリなので、走らせるたびに新しい Work ができる |
 
 **GPU を切らない。** `--disable-gpu` で立てた Chrome はソフトウェアで描くので、
 オフィスの画面が 35fps に見える（実機は 60fps）。無い問題を追いかけることになるので、

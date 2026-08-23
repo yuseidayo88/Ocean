@@ -12,7 +12,8 @@ import { Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
 import { AGENT_COLOR, WORKS } from '@/lib/dummy';
 import { DUMMY_VIEW, fromDraft, type PlanView } from '@/lib/exec/view';
-import { getDraft } from '@/app/actions/work';
+import { approveWork, getDraft, reviseWork } from '@/app/actions/work';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 /**
@@ -23,7 +24,9 @@ import { useEffect, useState } from 'react';
  */
 
 const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
-const BLUE = '#1A73E8', AMBER = '#E37400', AMBER_T = '#FDD663';
+const BLUE = '#1A73E8', AMBER = '#E37400', AMBER_T = '#FDD663', GREEN_T = '#5BB974';
+/** 時間の使い方の帯。**色は意味にだけ使う**ので、ここは明るさだけで分ける */
+const GREYS = ['#3A3A3A', '#333333', '#2C2C2C', '#242424'];
 
 /**
  * 中身は1つの形（`PlanView`）から描く。
@@ -32,6 +35,7 @@ const BLUE = '#1A73E8', AMBER = '#E37400', AMBER_T = '#FDD663';
  */
 export default function PlanPage() {
   const { say5 } = useShell();
+  const router = useRouter();
   const { id } = useParams<{ id: string }>();
   // 右は閉じた状態から始まる。トップバーの板アイコンで出し入れする
   const [openId, setOpen] = useOpen();
@@ -40,6 +44,9 @@ export default function PlanPage() {
   const dummy = WORKS.find((x) => x.id === id);
   const [v, setV] = useState<PlanView | null>(dummy ? DUMMY_VIEW : null);
   const [gone, setGone] = useState(false);
+  /** 押しているあいだ。**二度押しさせない**（承認は1回きり） */
+  const [busy, setBusy] = useState<'' | 'approve' | 'revise'>('');
+  const [err, setErr] = useState('');
 
   // ダミーに無い id は、統括AIが立てたばかりの計画
   useEffect(() => {
@@ -49,11 +56,36 @@ export default function PlanPage() {
     return () => { live = false; };
   }, [id, dummy]);
 
+  /**
+   * **承認して始める。** ここで初めて状態が本当に変わる。
+   * ダミーの Work は書き込み先が無いので、正直にそう返す。
+   */
+  const approve = async () => {
+    if (dummy) { say5('ダミーの Work は承認できません。入力欄からゴールを書いてみてください'); return; }
+    setBusy('approve'); setErr('');
+    const r = await approveWork(id);
+    if (!r.ok) { setBusy(''); setErr(r.message); return; }
+    router.push(`/work/${id}` as Route);
+  };
+
+  /** **計画を直す。** 書いたものを統括AIに渡して引き直す */
+  const revise = async (text: string) => {
+    if (dummy) { say5('ダミーの Work は直せません。入力欄からゴールを書いてみてください'); return; }
+    setBusy('revise'); setErr('');
+    const r = await reviseWork(id, text);
+    if (!r.ok) { setBusy(''); setErr(r.message); return; }
+    const d = await getDraft(id);
+    if (d) setV(fromDraft(d));
+    setBusy('');
+  };
+
   if (gone) notFound();
   if (!v) return <Centre><TopBar title="計画案" /><Waiting /></Centre>;
 
   const PW = v.weeks || 1;
   const ROWS = v.rows;
+  // 根拠のペインが読む値は先に取る（JSX の中では narrowing が効かない）
+  const FACTS = v.facts;
   // 作るものは2列に割る
   const half = Math.ceil(v.makes.length / 2);
   const MAKES = [v.makes.slice(0, half), v.makes.slice(half)];
@@ -206,59 +238,86 @@ export default function PlanPage() {
           flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10, height: 56,
           padding: '0 26px', marginBottom: COMPOSER_H, borderTop: '1px solid #1C1C1C',
         }}>
-          <Link href={`/work/${id}` as Route} className="solid" style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px', borderRadius: 8, background: BLUE, color: '#fff' }}>
-            承認して始める
-          </Link>
-          <button onClick={() => say5('直したいところは、下の入力欄に書いてください')} className="btn" style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 14px', borderRadius: 8, border: '1px solid #2A2A2A', color: T3 }}>
-            直したい
-          </button>
+          {v.approved ? (
+            /* もう承認されている。**押せる顔をさせない** */
+            <>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: GREEN_T, fontSize: 13 }}>
+                <Icon name="check" color={GREEN_T} size={14} width={2} />承認済
+              </span>
+              <Link href={`/work/${id}` as Route} className="btn" style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 14px', borderRadius: 8, border: '1px solid #2A2A2A', color: T3 }}>
+                Work を見る
+              </Link>
+            </>
+          ) : (
+            <>
+              <button onClick={approve} disabled={!!busy} className={busy ? undefined : 'solid'} style={{
+                display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px', borderRadius: 8,
+                background: busy ? '#1C1C1C' : BLUE, color: busy ? T5 : '#fff',
+                cursor: busy ? 'default' : 'pointer',
+              }}>
+                {busy === 'approve' ? '始めています…' : '承認して始める'}
+              </button>
+              <button onClick={() => say5('直したいところは、下の入力欄に書いてください')}
+                      className="btn" style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 14px', borderRadius: 8, border: '1px solid #2A2A2A', color: T3 }}>
+                直したい
+              </button>
+            </>
+          )}
+          {busy === 'revise' && <span style={{ color: T5, fontSize: 12 }}>統括AIが引き直しています…</span>}
+          {err && <span style={{ color: '#F28B82', fontSize: 12 }}>{err}</span>}
         </div>
-        <Composer placeholder="直したいところを書く、@ で資料を参照" />
+        {/* 書いたものは**この画面が引き取る**（会話ではなく、計画の引き直しになる） */}
+        <Composer placeholder="直したいところを書く、@ で資料を参照"
+                  onSend={revise} busy={!!busy} />
       </Centre>
 
       {pane && (
       <Pane onClose={() => setPane(false)} width={440} icon="roadmap" title="この計画の根拠">
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 18px 0' }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 18px 24px' }}>
           <span style={{ color: T3, display: 'block', paddingBottom: 3 }}>時間の使い方</span>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7, padding: '8px 0 4px' }}>
             <div style={{ display: 'flex', gap: 3 }}>
-              {[[3, '#3A3A3A'], [2, '#333'], [3, '#2C2C2C'], [2, '#242424']].map(([f, c], i) => (
-                <div key={i} style={{ flex: f as number, height: 10, borderRadius: 3, background: c as string }} />
+              {ROWS.map((r, i) => (
+                <div key={r.name} style={{ flex: r.w1 - r.w0, height: 10, borderRadius: 3, background: GREYS[i % GREYS.length] }} />
               ))}
             </div>
             <div style={{ display: 'flex', gap: 3 }}>
-              {[[3, '調査'], [2, '戦略'], [3, 'プロダクト'], [2, 'ローンチ']].map(([f, n], i) => (
-                <span key={i} style={{ flex: f as number, color: T5, fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden' }}>{n}</span>
+              {ROWS.map((r) => (
+                <span key={r.name} style={{ flex: r.w1 - r.w0, color: T5, fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden' }}>{r.name}</span>
               ))}
             </div>
           </div>
-          <p style={{ color: T2, fontSize: 13, lineHeight: '21px', margin: '11px 0' }}>
-            作る前に確かめることに <span style={{ color: T1 }}>半分</span> を使います。ここで外すと、あとの5週がまるごと無駄になります。
-          </p>
+          {/* **統括AIが言っていないことは書かない。** ダミーの計画にだけ一言がある */}
+          {v.timeNote && <p style={{ color: T2, fontSize: 13, lineHeight: '21px', margin: '11px 0' }}>{v.timeNote}</p>}
 
           <span style={{ color: T3, display: 'block', padding: '22px 0 3px' }}>なぜこの順番か</span>
-          {['価格は、市場と競合を見てからでないと決められません。だから戦略はフェーズ2です。',
-            'ローンチの担当はまだ決めません。何を作るかが決まってから、合う社員を選びます。'].map((t, i) => (
-            <div key={i} style={{ padding: '11px 0', borderBottom: i === 0 ? '1px solid #161616' : undefined }}>
+          {v.why.map((t, i) => (
+            <div key={i} style={{ padding: '11px 0', borderBottom: i === v.why.length - 1 ? undefined : '1px solid #161616' }}>
               <span style={{ color: T2, fontSize: 13, lineHeight: '21px' }}>{t}</span>
             </div>
           ))}
 
-          <span style={{ color: T3, display: 'block', padding: '22px 0 3px' }}>前提にしていること</span>
-          {[['韓国の日本語学習者', '約 12万人'], ['あなたが使える時間', '週 10時間'], ['初期の資金', '〜50万円'], ['出典', '3件 ›']].map(([k, v], i) => (
-            <div key={k} style={{ display: 'flex', alignItems: 'baseline', gap: 12, padding: '9px 0', borderBottom: i === 3 ? undefined : '1px solid #161616' }}>
-              <span style={{ color: T4, fontSize: 12 }}>{k}</span>
-              <div style={{ flex: 1 }} />
-              <span style={{ color: T2, fontSize: 13 }}>{v}</span>
-            </div>
-          ))}
+          {FACTS && (
+            <>
+              <span style={{ color: T3, display: 'block', padding: '22px 0 3px' }}>前提にしていること</span>
+              {FACTS.map(([k, val], i) => (
+                <div key={k} style={{ display: 'flex', alignItems: 'baseline', gap: 12, padding: '9px 0', borderBottom: i === FACTS.length - 1 ? undefined : '1px solid #161616' }}>
+                  <span style={{ color: T4, fontSize: 12 }}>{k}</span>
+                  <div style={{ flex: 1 }} />
+                  <span style={{ color: T2, fontSize: 13 }}>{val}</span>
+                </div>
+              ))}
+            </>
+          )}
 
-          <span style={{ color: T3, display: 'block', padding: '22px 0 3px' }}>見送った案</span>
-          <div style={{ padding: '11px 0' }}>
-            <span style={{ color: T2, fontSize: 13, lineHeight: '21px' }}>
-              いきなりLPを作る — 誰に何を売るかが決まる前に作ると、ほぼ作り直しになります。フェーズ3に入れました。
-            </span>
-          </div>
+          {v.dropped && (
+            <>
+              <span style={{ color: T3, display: 'block', padding: '22px 0 3px' }}>見送った案</span>
+              <div style={{ padding: '11px 0' }}>
+                <span style={{ color: T2, fontSize: 13, lineHeight: '21px' }}>{v.dropped}</span>
+              </div>
+            </>
+          )}
         </div>
       </Pane>
       )}

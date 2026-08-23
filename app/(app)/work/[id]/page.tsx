@@ -8,17 +8,23 @@ import { notFound, useParams } from 'next/navigation';
 import { Centre, Composer, Pane, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Diamond, Dot, Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
-import { AGENT_COLOR, DELIVERABLES, TASKS, WORKS, WORK_DECISIONS, employee } from '@/lib/dummy';
+import { WORKS, employee } from '@/lib/dummy';
 import { COMPOSER_H } from '@/lib/design/tokens';
+import { fromDummy, fromLive, type WorkView } from '@/lib/exec/work-view';
+import { getWork } from '@/app/actions/work';
+import { useEffect, useState } from 'react';
 
 /**
  * Work＝会話を持たない。一目で状況が分かる1枚（参考: Upwork / Squarespace / Linear）。
  * 上に事実の帯 → フェーズ全部 → いま動いていること → 成果物。タブに隠さない。
  * 相談は「統括AIに相談する」でチャットへ飛ぶ。
+ *
+ * **読む形は1つ**（`WorkView`）。ダミー（Phase 4）でも、承認して動きだした本物でも同じ画面。
+ * 無いもの（成果物・決定・日付）は**無いと出す**。埋めるために数字を作らない。
  */
 
 const T1 = '#EDEDED', T2 = '#B8B8B8', T3 = '#8B8B8B', T4 = '#6E6E6E', T5 = '#5F5F5F';
-const AMBER = '#E37400', AMBER_T = '#FDD663', GREEN = '#1E8E3E', GREEN_T = '#5BB974', RED_T = '#F28B82';
+const AMBER_T = '#FDD663', GREEN = '#1E8E3E', GREEN_T = '#5BB974', RED_T = '#F28B82';
 
 /** 数字の下に置く図形。文章で言い直さない */
 const Bar = ({ pct }: { pct: number }) => (
@@ -33,15 +39,18 @@ const Seg = ({ n, on }: { n: number; on: number }) => (
     ))}
   </span>
 );
-const Pips = ({ ids }: { ids: string[] }) => (
+const Pips = ({ cols }: { cols: string[] }) => (
   <span style={{ display: 'flex', gap: 6, height: 15, alignItems: 'center' }}>
-    {ids.map((id) => <Dot key={id} color={AGENT_COLOR[employee(id).color]} size={5} />)}
+    {cols.map((c, i) => <Dot key={i} color={c} size={5} />)}
   </span>
 );
 const Sub = ({ children }: { children: React.ReactNode }) => (
   <span style={{ color: T5, fontSize: 11, lineHeight: '15px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
     {children}
   </span>
+);
+const Empty = ({ children }: { children: React.ReactNode }) => (
+  <span style={{ color: T5, fontSize: 12.5, lineHeight: '20px' }}>{children}</span>
 );
 /** フェーズの状態は行の先頭の印で言う（状態の列は置かない） */
 const PhaseMark = ({ state }: { state: 'done' | 'now' | 'next' }) => {
@@ -59,13 +68,26 @@ export default function WorkPage() {
   const [openId, setOpen] = useOpen();
   const pane = openId === 'about';
   const setPane = (v: boolean) => setOpen(v ? 'about' : null);
-  const w = WORKS.find((x) => x.id === id);
-  if (!w) notFound();
+  const dummy = WORKS.find((x) => x.id === id);
+  const [w, setW] = useState<WorkView | null>(dummy ? fromDummy(dummy) : null);
+  const [gone, setGone] = useState(false);
 
-  const live = TASKS.filter((t) => t.workId === w.id && t.state !== '完了').slice(0, 4);
-  const dels = DELIVERABLES.filter((d) => d.workId === w.id).slice(0, 4);
-  const decs = WORK_DECISIONS[w.id] ?? [];
-  const late = typeof w.health === 'object';
+  // ダミーに無い id は、承認して動きだした本物
+  useEffect(() => {
+    if (dummy) return;
+    let on = true;
+    getWork(id).then((r) => { if (!on) return; if (r) setW(fromLive(r)); else setGone(true); });
+    return () => { on = false; };
+  }, [id, dummy]);
+
+  if (gone) notFound();
+  // 取りに行っているあいだ。**形だけ出して、数字は出さない**
+  if (!w) return <Centre><TopBar crumb="Work" title="読み込み中" /><div style={{ flex: 1 }} /></Centre>;
+
+  const live = w.tasks;
+  const dels = w.dels;
+  const decs = w.decs;
+  const late = w.late !== undefined;
 
   return (
     <>
@@ -74,7 +96,7 @@ export default function WorkPage() {
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
             <Dot color={late ? '#D93025' : GREEN} size={7} />
             <span style={{ color: late ? RED_T : GREEN_T, fontSize: 12 }}>
-              {late ? `遅れ ${(w.health as { late: number }).late}日` : '進行中'}
+              {late ? `遅れ ${w.late}日` : '進行中'}
             </span>
           </span>
         } />
@@ -88,11 +110,11 @@ export default function WorkPage() {
           {/* 事実の帯 — ラベル（小）→ 数字（大）→ **図形**。数で言えるものは文章にしない */}
           <div style={{ display: 'flex', gap: 24 }}>
             {([
-              ['進捗',     `${w.progress}%`,                            undefined,             <Bar key="b" pct={w.progress} />],
-              ['フェーズ', `${w.phaseIndex} / ${w.phases.length}`,      undefined,             <Seg key="s" n={w.phases.length} on={w.phaseIndex} />],
-              ['判断待ち', w.gate ? '1' : '—', w.gate ? AMBER_T : undefined, w.gate ? <Sub key="g">{w.gate.label}</Sub> : null],
-              ['残り',     `${w.restDays}日`, late ? RED_T : undefined,     <Sub key="d">{w.endDate}</Sub>],
-              ['AI社員',   String(w.crew.length),                       undefined,             <Pips key="p" ids={w.crew.map((c) => c.id)} />],
+              ['進捗',     `${w.progress}%`,                       undefined,                     <Bar key="b" pct={w.progress} />],
+              ['フェーズ', `${w.phaseIndex} / ${w.phases.length}`, undefined,                     <Seg key="s" n={w.phases.length} on={w.phaseIndex} />],
+              ['判断待ち', w.gate ? '1' : '—',                     w.gate ? AMBER_T : undefined,  w.gate ? <Sub key="g">{w.gate}</Sub> : null],
+              ['残り',     w.rest ?? '—',                          late ? RED_T : undefined,      w.endDate ? <Sub key="d">{w.endDate}</Sub> : null],
+              ['AI社員',   String(w.crew.length),                  undefined,                     <Pips key="p" cols={w.crew.map((c) => c.color)} />],
             ] as [string, string, string | undefined, React.ReactNode][]).map(([k, v, c, shape], i, arr) => (
               <div key={k} style={{
                 flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 5,
@@ -122,7 +144,7 @@ export default function WorkPage() {
                   <span style={{ display: 'block', height: 4, borderRadius: 2, background: '#161616', overflow: 'hidden' }}>
                     <span style={{
                       display: 'block', height: '100%', borderRadius: 2,
-                      width: `${Math.round((p.done / p.all) * 100)}%`,
+                      width: `${p.all ? Math.round((p.done / p.all) * 100) : 0}%`,
                       background: p.state === 'done' ? GREEN : p.state === 'now' ? '#6E6E6E' : 'transparent',
                     }} />
                   </span>
@@ -131,7 +153,7 @@ export default function WorkPage() {
                   {p.done}/{p.all}
                 </span>
                 <span style={{ width: 92, flexShrink: 0, textAlign: 'right', color: '#4A4A4A', fontSize: 11 }} className="tnum">
-                  {p.from} – {p.to}
+                  {p.from && p.to ? `${p.from} – ${p.to}` : ''}
                 </span>
               </Link>
             ))}
@@ -140,8 +162,9 @@ export default function WorkPage() {
           {/* いま動いているもの — フェーズをまたいで並べる */}
           <div>
             <span style={{ color: T3, display: 'block', paddingBottom: 8 }}>いま動いているもの</span>
+            {live.length === 0 && <Empty>まだありません。</Empty>}
             {live.map((t, i) => (
-              <Link key={t.title} href={openHref('/tasks', t.id)} className="row" style={{
+              <Link key={t.id} href={openHref('/tasks', t.id)} className="row" style={{
                 display: 'flex', alignItems: 'center', gap: 12, height: 44, borderRadius: 7,
                 borderBottom: i === live.length - 1 ? undefined : '1px solid #161616',
               }}>
@@ -152,10 +175,8 @@ export default function WorkPage() {
                     : <Dot color="#6E6E6E" size={8} />}
                 </span>
                 <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
-                <span style={{ width: 84, color: T5, fontSize: 12 }}>フェーズ{w.phases.findIndex((p) => p.name === t.phase) + 1}</span>
-                <span style={{ width: 78, color: t.owner === 'me' ? AMBER_T : T4, fontSize: 12 }}>
-                  {t.owner === 'me' ? 'あなた' : employee(t.owner).name}
-                </span>
+                <span style={{ width: 84, color: T5, fontSize: 12 }}>{t.phase ? `フェーズ${t.phase}` : ''}</span>
+                <span style={{ width: 78, color: t.mine ? AMBER_T : T4, fontSize: 12 }}>{t.owner}</span>
                 <span style={{ width: 52, textAlign: 'right', color: t.state === '判断待ち' ? AMBER_T : T5, fontSize: 12 }} className="tnum">
                   {t.state === '判断待ち' ? '決める' : t.state === '待機' ? '待機' : `${t.progress}%`}
                 </span>
@@ -168,8 +189,11 @@ export default function WorkPage() {
             <div style={{ display: 'flex', alignItems: 'baseline', paddingBottom: 8 }}>
               <span style={{ color: T3 }}>成果物</span>
               <div style={{ flex: 1 }} />
-              <Link href="/deliverables" className="lnk" style={{ color: T5, fontSize: 12 }}>すべて表示 ›</Link>
+              {dels.length > 0 && (
+                <Link href="/deliverables" className="lnk" style={{ color: T5, fontSize: 12 }}>すべて表示 ›</Link>
+              )}
             </div>
+            {dels.length === 0 && <Empty>まだありません。AI社員が出したら、ここに並びます。</Empty>}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 28 }}>
               {dels.map((d, i) => (
                 <Link key={d.id} href={openHref('/deliverables', d.id)} className="row" style={{
@@ -212,21 +236,15 @@ export default function WorkPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '4px 0 8px' }}>
             <Dot color={late ? '#D93025' : GREEN} size={7} />
             <span style={{ color: late ? RED_T : GREEN_T }}>
-              {late ? `遅れ ${(w.health as { late: number }).late}日` : '順調'}
+              {late ? `遅れ ${w.late}日` : '順調'}
             </span>
-            <span style={{ color: T5, fontSize: 11 }}>統括AI · 2時間前</span>
+            <span style={{ color: T5, fontSize: 11 }}>統括AI{w.leadWhen ? ` · ${w.leadWhen}` : ''}</span>
           </div>
-          <span style={{ color: T2, fontSize: 13, lineHeight: '21px' }}>
-            {w.gate
-              ? `${w.phases.find((p) => p.state === 'now')!.name}フェーズは後半です。${w.gate.label}だけ、判断を待っています。`
-              : `${w.phases.find((p) => p.state === 'now')!.name}フェーズを進めています。`}
-          </span>
+          <span style={{ color: T2, fontSize: 13, lineHeight: '21px' }}>{w.lead}</span>
 
           <PaneHead>決めたこと</PaneHead>
           {decs.length === 0 && (
-            <span style={{ color: T5, fontSize: 12.5, lineHeight: '20px' }}>
-              まだありません。判断が要る場面になったら、統括AIが選択肢を出します。
-            </span>
+            <Empty>まだありません。判断が要る場面になったら、統括AIが選択肢を出します。</Empty>
           )}
           {decs.map(([when, what], i) => (
             <Link key={what} href="/decisions" className="row" style={{
@@ -241,24 +259,21 @@ export default function WorkPage() {
           ))}
 
           <PaneHead>AI社員</PaneHead>
-          {w.crew.map((c, i) => {
-            const e = employee(c.id);
-            const n = TASKS.filter((t) => t.workId === w.id && t.owner === c.id && t.state !== '完了').length;
-            return (
-              <Link key={c.id} href={openHref('/team', c.id)} className="row" style={{
-                display: 'flex', alignItems: 'center', gap: 11, height: 44, borderRadius: 7,
-                padding: '0 8px', margin: '0 -8px',
-                borderBottom: i === w.crew.length - 1 ? undefined : '1px solid #161616',
-              }}>
-                <Orb color={AGENT_COLOR[e.color]} size={24} seed={e.name.length * 7 + 3} dim={Boolean(c.dim)} />
-                <span style={{ color: c.dim ? T4 : T2 }}>{e.name}</span>
-                <div style={{ flex: 1 }} />
-                <span style={{ color: c.dim ? T5 : T4, fontSize: 12 }} className="tnum">
-                  {c.dim ? '待機' : `${n}タスク`}
-                </span>
-              </Link>
-            );
-          })}
+          {w.crew.length === 0 && <Empty>まだいません。</Empty>}
+          {w.crew.map((c, i) => (
+            <Link key={c.id ?? c.name} href={c.id ? openHref('/team', c.id) : '/team'} className="row" style={{
+              display: 'flex', alignItems: 'center', gap: 11, height: 44, borderRadius: 7,
+              padding: '0 8px', margin: '0 -8px',
+              borderBottom: i === w.crew.length - 1 ? undefined : '1px solid #161616',
+            }}>
+              <Orb color={c.color} size={24} seed={c.name.length * 7 + 3} dim={Boolean(c.dim)} />
+              <span style={{ color: c.dim ? T4 : T2 }}>{c.name}</span>
+              <div style={{ flex: 1 }} />
+              <span style={{ color: c.dim ? T5 : T4, fontSize: 12 }} className="tnum">
+                {c.dim ? '待機' : `${c.tasks}タスク`}
+              </span>
+            </Link>
+          ))}
         </div>
       </Pane>
       )}
