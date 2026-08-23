@@ -214,53 +214,35 @@ const MINI: Record<Kind, string> = {
   done: '#2E2E2E', now: '#7A7A7A', wait: '#1C1C1C', gate: 'rgba(227,116,0,0.6)',
 };
 
+/** 中身のいちばん外側（線のラベルも入れる）。**器に合わせるのはこの箱** */
+function bounds(b: ReturnType<typeof build>) {
+  const xs = [...b.nodes.map((n) => n.x), ...b.names.map((n) => n.x), ...b.labels.map((l) => l.x - 46)];
+  const ys = [...b.nodes.map((n) => n.y), ...b.names.map((n) => n.y), ...b.labels.map((l) => l.y - 8)];
+  const xe = [...b.nodes.map((n) => n.x + n.w), ...b.names.map((n) => n.x + 190), ...b.labels.map((l) => l.x + 46)];
+  const ye = [...b.nodes.map((n) => n.y + n.h), ...b.names.map((n) => n.y + 18), ...b.labels.map((l) => l.y + 8)];
+  return { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xe), y1: Math.max(...ye) };
+}
+
+const MAP_W = 184, MAP_PAD = 8, MAP_H = 116;
+
 /**
  * 右下の地図。**盤面と同じデータから描く**（飾りの棒を並べない）。
- * 形が一致するので「いま見ているのは地図のどこか」が絵の相似で分かる。
- * 範囲も**中身から測る**ので、Work が増えて盤面がはみ出しても地図はそのまま合う。
- * 窓の枠は、いま実際に見えている範囲（入力欄に隠れているぶんは入れない）。
+ * 縮尺は**中身だけ**から決める（送るたびに地図が伸び縮みしない）。
+ * 枠は盤面の側から毎コマ書き換えるので、ここは**中身を1回描くだけ**。
  */
-function MiniMap({ nodes, links, view, lit, go }: {
+const MiniMap = memo(function MiniMap({ nodes, links, lit, sc, X0, Y0, H, frame, go }: {
   nodes: ReturnType<typeof build>['nodes'];
   links: ReturnType<typeof build>['links'];
-  /** いま見えている範囲。**中身の座標で** [x0, y0, x1, y1] */
-  view: [number, number, number, number];
   lit: (of: string | string[]) => boolean;
-  /** つまんで動かしたとき。中身の座標のどこを真ん中にするか */
+  sc: number; X0: number; Y0: number; H: number;
+  frame: React.RefObject<SVGRectElement | null>;
+  /** つまんだところを真ん中に持ってくる（中身の座標） */
   go: (cx: number, cy: number) => void;
 }) {
-  const PAD = 8, W = 184, M = 26;
-  /**
-   * 範囲は**中身だけ**から測る。見えている範囲まで入れて測ると、
-   * 端まで送るたびに地図そのものの縮尺が変わって「勝手に拡大された」ように見える。
-   * 枠が地図からはみ出すぶんは切る（そのほうが「行き過ぎた」と分かる）。
-   */
-  const X0 = Math.min(...nodes.map((n) => n.x)) - M;
-  const Y0 = Math.min(...nodes.map((n) => n.y)) - M;
-  const X1 = Math.max(...nodes.map((n) => n.x + n.w)) + M;
-  const Y1 = Math.max(...nodes.map((n) => n.y + n.h)) + M;
-  const sc = Math.min((W - PAD * 2) / (X1 - X0), 116 / (Y1 - Y0));
-  const H = (Y1 - Y0) * sc + PAD * 2;
-  const m = (x: number, y: number): [number, number] => [PAD + (x - X0) * sc, PAD + (y - Y0) * sc];
-  const [vx, vy] = m(view[0], view[1]);
-  /** 中身は動かないので、送っているあいだ組み直さない（枠だけが動く） */
-  const shape = useMemo(() => (<>
-    {links.map((l, i) => (
-      <path key={i} d={`M ${l.pts.map((q) => m(q[0], q[1]).map((n) => n.toFixed(1)).join(' ')).join(' L ')}`}
-            fill="none" stroke="#242424" strokeWidth={0.8} opacity={lit(l.of) ? 1 : 0.26} />
-    ))}
-    {nodes.map((n, i) => {
-      const [x, y] = m(n.x, n.y);
-      return <rect key={i} x={x.toFixed(1)} y={y.toFixed(1)} width={(n.w * sc).toFixed(1)}
-                   height={Math.max(2.4, n.h * sc).toFixed(1)} rx={1.5} opacity={lit(n.of) ? 1 : 0.26}
-                   fill={n.tone === 'late' ? 'rgba(217,48,37,0.6)' : MINI[n.kind]} />;
-    })}
-  </>), [nodes, links, lit, sc, X0, Y0]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  /** 地図の中を押した／なぞったら、そこを真ん中にして盤面が付いてくる */
+  const m = (x: number, y: number): [number, number] => [MAP_PAD + (x - X0) * sc, MAP_PAD + (y - Y0) * sc];
   const at = (e: React.PointerEvent<HTMLDivElement>) => {
     const r = e.currentTarget.getBoundingClientRect();
-    go(X0 + (e.clientX - r.left - PAD) / sc, Y0 + (e.clientY - r.top - PAD) / sc);
+    go(X0 + (e.clientX - r.left - MAP_PAD) / sc, Y0 + (e.clientY - r.top - MAP_PAD) / sc);
   };
   return (
     <div
@@ -268,22 +250,27 @@ function MiniMap({ nodes, links, view, lit, go }: {
       onPointerMove={(e) => { if (e.buttons & 1) at(e); }}
       style={{
       /* 盤面の道具なので **`COMPOSER_H` ぶん逃がす**（入力欄に隠れたままにしない） */
-      position: 'absolute', right: 24, bottom: COMPOSER_H, width: W, height: Math.round(H),
+      position: 'absolute', right: 24, bottom: COMPOSER_H, width: MAP_W, height: H,
       borderRadius: 10, background: '#0A0A0A', border: '1px solid #232323', overflow: 'hidden',
       cursor: 'pointer', touchAction: 'none',
     }}>
-      <svg width={W} height={Math.round(H)} viewBox={`0 0 ${W} ${Math.round(H)}`}
-           style={{ pointerEvents: 'none' }}>
-        {shape}
-        {/* いま見えている範囲。地図の外にはみ出したぶんは切る */}
-        <rect x={Math.max(1, vx).toFixed(1)} y={Math.max(1, vy).toFixed(1)}
-              width={(Math.min(vx + (view[2] - view[0]) * sc, W - 1) - Math.max(1, vx)).toFixed(1)}
-              height={(Math.min(vy + (view[3] - view[1]) * sc, H - 1) - Math.max(1, vy)).toFixed(1)}
-              rx={4} fill="rgba(255,255,255,0.05)" stroke="#6E6E6E" strokeWidth={1.2} />
+      <svg width={MAP_W} height={H} viewBox={`0 0 ${MAP_W} ${H}`} style={{ pointerEvents: 'none' }}>
+        {links.map((l, i) => (
+          <path key={i} d={`M ${l.pts.map((q) => m(q[0], q[1]).map((n) => n.toFixed(1)).join(' ')).join(' L ')}`}
+                fill="none" stroke="#242424" strokeWidth={0.8} opacity={lit(l.of) ? 1 : 0.26} />
+        ))}
+        {nodes.map((n, i) => {
+          const [x, y] = m(n.x, n.y);
+          return <rect key={i} x={x.toFixed(1)} y={y.toFixed(1)} width={(n.w * sc).toFixed(1)}
+                       height={Math.max(2.4, n.h * sc).toFixed(1)} rx={1.5} opacity={lit(n.of) ? 1 : 0.26}
+                       fill={n.tone === 'late' ? 'rgba(217,48,37,0.6)' : MINI[n.kind]} />;
+        })}
+        {/* いま見えている範囲。**盤面の側から毎コマ書き換える** */}
+        <rect ref={frame} rx={4} fill="rgba(255,255,255,0.05)" stroke="#6E6E6E" strokeWidth={1.2} />
       </svg>
     </div>
   );
-}
+});
 
 /** ほかの画面と同じ印。判断待ち＝橙の菱形 / 要確認＝書類 */
 function Mark({ status }: { status?: string }) {
@@ -364,99 +351,128 @@ const Scene = memo(function Scene({ nodes, links, labels, names, endX, endY, lit
 
 /** 見る目の位置。中身 → 画面は `translate(x, y) scale(z)` */
 type Eye = { x: number; y: number; z: number };
-const MIN_Z = 0.3, MAX_Z = 2.4;
+const MIN_Z = 0.25, MAX_Z = 3;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+/** 中身と器のあいだに空ける縁 */
+const EDGE = 26;
 
 export function Flow() {
   /** 盤面の形はデータで決まる。**描き直すたびに組み直さない**（`Scene` の memo が効かなくなる） */
-  const { nodes, links, labels, names } = useMemo(() => build(), []);
+  const made = useMemo(() => build(), []);
+  const { nodes, links, labels, names } = made;
+  const B = useMemo(() => bounds(made), [made]);
+  const bw = B.x1 - B.x0, bh = B.y1 - B.y0;
+
   const [board, { w, h }] = useSize<HTMLDivElement>();
+  const content = useRef<HTMLDivElement>(null);
+  const frame = useRef<SVGRectElement>(null);
+
   /**
    * **押しても盤面から出ない。** 選んだ鎖だけが残り、ほかは沈む。
    * 8本の鎖が1枚に載っているので「これはどの Work か」は本当に分からなくなる。
    * 選んでいる1件は URL に持つ（`?view=flow&of=w-lp`）。
    */
   const [of, setOf] = useParam('of', '');
-  /** 選んでいる鎖が変わったときだけ作り直す（拡大縮小のあいだは同じものを使い回す） */
   const lit = useCallback(
     (o: string | string[]) => !of || (Array.isArray(o) ? o.includes(of) : o === of), [of]);
   const setRef = useRef(setOf); setRef.current = setOf;
   const pick = useCallback((o: string) => setRef.current(of === o ? '' : o), [of]);
 
+  const vw = w < 2 ? BOARD_W : w;
+  /** 見えているのは入力欄より上まで。**隠れているぶんを「見えている」と言わない** */
+  const vh = h < 2 ? BOARD_H : Math.max(160, h - COMPOSER_H);
+
+  /** 右下の地図の縮尺。**中身だけから決める**（送っても伸び縮みしない） */
+  const map = useMemo(() => {
+    const sc = Math.min((MAP_W - MAP_PAD * 2) / bw, MAP_H / bh);
+    return { sc, H: Math.round(bh * sc + MAP_PAD * 2) };
+  }, [bw, bh]);
+
   /**
-   * **動かし方は Figma と同じ。** 道具は置かない（見出しも説明文も要らない）。
-   *   二本指・ホイール＝移動 / ⌘（Ctrl）＋ホイール・ピンチ＝指の下を軸に拡大縮小 /
-   *   空きをつまんで移動 / ダブルクリック・⇧1＝全体に合わせる / ⇧0＝等倍
+   * **中身は画面から出さない。**
+   *   ・器より小さいときは、器の中で動ける（外へは出ない）
+   *   ・器より大きいときは、器が中身の中で動ける（外へは出ない）
+   * どちらも「端から端まで」で止まるので、指を動かすと盤面がどこかへ滑っていく、が起きない。
    */
-  const [eye, setEye] = useState<Eye>({ x: 0, y: 0, z: 1 });
+  const hold = useCallback((e: Eye): Eye => {
+    const ax = (v: number, p0: number, p1: number, box: number) => {
+      const a = -p0 * e.z + EDGE, b = box - p1 * e.z - EDGE;
+      return clamp(v, Math.min(a, b), Math.max(a, b));
+    };
+    return { z: e.z, x: ax(e.x, B.x0, B.x1, vw), y: ax(e.y, B.y0, B.y1, vh) };
+  }, [B, vw, vh]);
+
+  /** 全体に合わせる。**器いっぱいまで大きくする**（小さく置いて余白を残さない） */
+  const fit = useCallback((): Eye => {
+    const z = clamp(Math.min((vw - EDGE * 2) / bw, (vh - EDGE * 2) / bh), MIN_Z, MAX_Z);
+    return { z, x: (vw - bw * z) / 2 - B.x0 * z, y: (vh - bh * z) / 2 - B.y0 * z };
+  }, [vw, vh, bw, bh, B]);
+
+  const [eye, setEye] = useState<Eye>(() => ({ x: 0, y: 0, z: 1 }));
   /** 自分で動かしたか。**動かしたあとは、窓の大きさが変わっても勝手に戻さない** */
   const touched = useRef(false);
   const drag = useRef<{ x: number; y: number; ox: number; oy: number; far: boolean } | null>(null);
   const [held, setHeld] = useState(false);
 
   /**
-   * **行き先を追いかける。** ホイールの1目盛りは飛び飛びなので、そのまま当てると
-   * 段でカクつく。行き先だけ先に決めて、毎フレーム残りの距離を一定の割合で詰める
-   * （Figma と同じ手ざわり）。**つまんで動かすときは追いかけない** — 指と1対1でないと嘘になる。
+   * **描くのは DOM に直接。** 動かしているあいだ React を1回も通さない。
+   * 通すと、たとえ中身を組み直さなくても差分を取るぶんだけ毎コマ遅れて
+   * 「ぎこちない」になる。React の state は指を離したときだけ合わせる。
    */
-  const goal = useRef<Eye>(eye);
   const now = useRef<Eye>(eye);
+  const goal = useRef<Eye>(eye);
   const raf = useRef(0);
   const last = useRef(0);
+  const draw = useCallback((e: Eye) => {
+    now.current = e;
+    const c = content.current, b = board.current, f = frame.current;
+    if (c) c.style.transform = `translate(${e.x.toFixed(2)}px, ${e.y.toFixed(2)}px) scale(${e.z.toFixed(4)})`;
+    if (b) {
+      b.style.backgroundSize = `${(22 * e.z).toFixed(2)}px ${(22 * e.z).toFixed(2)}px`;
+      b.style.backgroundPosition = `${e.x.toFixed(2)}px ${e.y.toFixed(2)}px`;
+    }
+    if (f) {
+      /* いま見えている範囲を中身の座標に戻して、地図の枠に写す */
+      const vx0 = -e.x / e.z, vy0 = -e.y / e.z, vx1 = (-e.x + vw) / e.z, vy1 = (-e.y + vh) / e.z;
+      const px = (x: number) => MAP_PAD + (x - B.x0) * map.sc, py = (y: number) => MAP_PAD + (y - B.y0) * map.sc;
+      const x = clamp(px(vx0), 1, MAP_W - 2), y = clamp(py(vy0), 1, map.H - 2);
+      f.setAttribute('x', x.toFixed(1)); f.setAttribute('y', y.toFixed(1));
+      f.setAttribute('width', Math.max(2, clamp(px(vx1), 1, MAP_W - 1) - x).toFixed(1));
+      f.setAttribute('height', Math.max(2, clamp(py(vy1), 1, map.H - 1) - y).toFixed(1));
+    }
+  }, [board, vw, vh, B, map]);
+
+  /** 行き先を追いかける。時間で詰めるので、画面の速さが変わっても手ざわりが同じ */
   const chase = useCallback(() => {
     raf.current = requestAnimationFrame((t) => {
       const dt = Math.min(64, last.current ? t - last.current : 16);
       last.current = t;
       const a = now.current, b = goal.current;
-      /** 時間で詰める（画面の速さが変わっても同じ手ざわりになる）。68ms でほぼ着く */
-      const k = 1 - Math.exp(-dt / 68);
+      const k = 1 - Math.exp(-dt / 42);
       const next = { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, z: a.z * (b.z / a.z) ** k };
-      const done = Math.abs(b.x - next.x) < 0.4 && Math.abs(b.y - next.y) < 0.4 && Math.abs(b.z - next.z) < 0.0012;
-      now.current = done ? b : next;
-      setEye(now.current);
-      if (done) { raf.current = 0; last.current = 0; } else chase();
+      const done = Math.abs(b.x - next.x) < 0.3 && Math.abs(b.y - next.y) < 0.3 && Math.abs(b.z - next.z) < 0.0008;
+      draw(done ? b : next);
+      if (done) { raf.current = 0; last.current = 0; setEye(b); } else chase();
     });
-  }, []);
-  /** `snap` は指と1対1のとき（つまんで動かす・地図をつまむ） */
+  }, [draw]);
+  /** `snap` は指と1対1のとき（つまんで動かす・二本指で送る・地図をつまむ） */
   const aim = useCallback((next: Eye, snap = false) => {
     goal.current = next;
-    if (raf.current) { cancelAnimationFrame(raf.current); raf.current = 0; last.current = 0; }
-    if (snap) { now.current = next; setEye(next); return; }
-    chase();
-  }, [chase]);
+    if (snap) {
+      if (raf.current) { cancelAnimationFrame(raf.current); raf.current = 0; last.current = 0; }
+      draw(next);
+      return;
+    }
+    if (!raf.current) chase();
+  }, [chase, draw]);
   useEffect(() => () => { if (raf.current) cancelAnimationFrame(raf.current); }, []);
 
-  const vw = w < 2 ? BOARD_W : w;
-  /** 見えているのは入力欄より上まで。**隠れているぶんを「見えている」と言わない** */
-  const vh = h < 2 ? BOARD_H : Math.max(160, h - COMPOSER_H);
-  /** 中身のいちばん端 */
-  const endX = Math.max(...nodes.map((n) => n.x + n.w)) + 24;
-  const endY = Math.max(...nodes.map((n) => n.y + n.h)) + 24;
-
-  /**
-   * **入るなら動かさない。** 中身が器に収まっている軸は真ん中に留める
-   * （全部見えているのに指を動かすと盤面が逃げていく、が起きない）。
-   * はみ出している軸だけ、端の外まで送れないように止める。
-   */
-  const hold = useCallback((e: Eye): Eye => {
-    const M = 40, cw = endX * e.z, ch = endY * e.z;
-    const axis = (v: number, c: number, box: number) =>
-      c <= box ? (box - c) / 2 : clamp(v, box - c - M, M);
-    return { z: e.z, x: axis(e.x, cw, vw), y: axis(e.y, ch, vh) };
-  }, [endX, endY, vw, vh]);
-
-  /** 全体に合わせる。**入るときは拡大しない**（等倍より大きくして粗くしない） */
-  const fit = useCallback((): Eye => {
-    const z = clamp(Math.min(1, (vw - 40) / endX, (vh - 40) / endY), MIN_Z, MAX_Z);
-    return { z, x: (vw - endX * z) / 2, y: (vh - endY * z) / 2 };
-  }, [vw, vh, endX, endY]);
-
+  /** 最初の1回は追いかけない（開いた瞬間に動いて見えると、それは演出になる） */
   useEffect(() => {
     if (w < 2 || touched.current) return;
-    /** 最初の1回は追いかけない（開いた瞬間に動いて見えると、それは演出になる） */
     const f = fit();
-    goal.current = f; now.current = f; setEye(f);
-  }, [w, h, fit]);
+    goal.current = f; setEye(f); draw(f);
+  }, [w, h, fit, draw]);
 
   /** ホイールは器のほうで拾う（React のは受け身なので、拡大縮小を止められない） */
   useEffect(() => {
@@ -469,7 +485,8 @@ export function Flow() {
       const px = ev.clientX - r.left, py = ev.clientY - r.top;
       const v = goal.current;
       if (ev.ctrlKey || ev.metaKey) {
-        const z = clamp(v.z * Math.exp(-ev.deltaY / 600), MIN_Z, MAX_Z);
+        /* 1目盛りは 1.19 倍。**大きく飛ばすと、間を詰めても段に見える** */
+        const z = clamp(v.z * Math.exp(-ev.deltaY / 700), MIN_Z, MAX_Z);
         aim(hold({ z, x: px - (px - v.x) * (z / v.z), y: py - (py - v.y) * (z / v.z) }));
       } else {
         /** 二本指の移動は指と1対1。**追いかけると滑って見える** */
@@ -498,19 +515,16 @@ export function Flow() {
     !!(ev.target as HTMLElement | null)?.dataset?.pan;
 
   /** 地図をつまんだとき。中身のその点を真ん中に持ってくる */
-  const go = (cx: number, cy: number) => {
+  const go = useCallback((cx: number, cy: number) => {
     touched.current = true;
     const v = goal.current;
     aim(hold({ ...v, x: vw / 2 - cx * v.z, y: vh / 2 - cy * v.z }), true);
-  };
-
-  const view: [number, number, number, number] =
-    [-eye.x / eye.z, -eye.y / eye.z, (-eye.x + vw) / eye.z, (-eye.y + vh) / eye.z];
+  }, [aim, hold, vw, vh]);
 
   return (
     /* 盤面は中身の領域いっぱい。**外の計算から切り離す** */
     <div ref={board} data-pan="1"
-      /* 空きをつまんだら盤面が付いてくる。**動かさずに離したら「空きを押した」** */
+      /* 空きをつまんだら盤面が付いてくる。**動かさずに離したら「押した」** */
       onPointerDown={(ev) => {
         if (!(ev.button === 1 || (ev.button === 0 && empty(ev)))) return;
         drag.current = { x: ev.clientX, y: ev.clientY, ox: goal.current.x, oy: goal.current.y, far: false };
@@ -529,7 +543,8 @@ export function Flow() {
         const d = drag.current;
         drag.current = null;
         setHeld(false);
-        if (d && !d.far && of) setOf('');
+        if (d?.far) setEye(now.current);
+        else if (d && of) setOf('');
       }}
       onDoubleClick={(ev) => { if (empty(ev)) { touched.current = false; aim(fit()); } }}
       style={{
@@ -542,17 +557,18 @@ export function Flow() {
       backgroundPosition: `${eye.x}px ${eye.y}px`,
     }}>
       {/* 中身はひとかたまりで動かす。**線とノードが同じだけ動いて、同じだけ伸び縮みする** */}
-      <div data-pan="1"
+      <div ref={content} data-pan="1"
            style={{
-             position: 'absolute', left: 0, top: 0, width: endX, height: endY,
+             position: 'absolute', left: 0, top: 0, width: B.x1 + 24, height: B.y1 + 24,
              transform: `translate(${eye.x}px, ${eye.y}px) scale(${eye.z})`,
              transformOrigin: '0 0',
            }}>
         <Scene nodes={nodes} links={links} labels={labels} names={names}
-               endX={endX} endY={endY} lit={lit} pick={pick} />
+               endX={B.x1 + 24} endY={B.y1 + 24} lit={lit} pick={pick} />
       </div>
 
-      <MiniMap nodes={nodes} links={links} view={view} lit={lit} go={go} />
+      <MiniMap nodes={nodes} links={links} lit={lit}
+               sc={map.sc} X0={B.x0} Y0={B.y0} H={map.H} frame={frame} go={go} />
     </div>
   );
 }
