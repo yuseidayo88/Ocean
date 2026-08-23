@@ -13,6 +13,7 @@ import { AMBER_T, COMPOSER_H, DIM, FAINT, GREEN, GREEN_T, HAIR, MUTE, RAIL, RED,
 import { fromDummy, fromLive, type WorkView } from '@/lib/exec/work-view';
 import { getWork } from '@/app/actions/work';
 import { pumpWork, taskSteps } from '@/app/actions/run';
+import { DelActions } from '@/components/live/DelActions';
 import type { RunStep } from '@/lib/store';
 import { useEffect, useRef, useState } from 'react';
 
@@ -183,6 +184,7 @@ export default function WorkPage() {
   // 右は1枚だけ。openId が指す1件（タスクか成果物か、この Work の説明か）
   const openTask = w.live && openId && openId !== 'about' ? w.tasks.find((t) => t.id === openId) : undefined;
   const openDel = w.live && openId && openId !== 'about' && !openTask ? w.dels.find((d) => d.id === openId) : undefined;
+  const w0id = id;
 
   return (
     <>
@@ -407,6 +409,9 @@ export default function WorkPage() {
             fontSize: 12, lineHeight: '20px', color: T2, whiteSpace: 'pre-wrap',
           }}>{openDel.body ?? openDel.preview ?? ''}</pre>
         </div>
+        {/* 社長のレビュー。**押すと本当に変わる**（承認 / 差し戻し → 直しタスク） */}
+        <DelActions delId={openDel.id} workId={w0id} title={openDel.title} state={openDel.state}
+                    onDone={() => { getWork(id).then((r) => r && setW(fromLive(r))); }} />
       </Pane>
       )}
     </>

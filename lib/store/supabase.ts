@@ -411,4 +411,74 @@ export const supabaseStore: Store = {
       kind: '判断待ち', subject_type: 'task', subject_id: taskId, body: d.question,
     });
   },
+
+  async listDels() {
+    const c = await db();
+    const { data } = await c.from('deliverables')
+      .select('id, work_id, task_id, title, kind, status, preview, body, produced_by_employee_id, created_at, works(title)')
+      .order('created_at', { ascending: false }).limit(60);
+    const ids = [...new Set((data ?? []).map((d) => d.produced_by_employee_id).filter(Boolean))] as string[];
+    const { data: em } = ids.length
+      ? await c.from('employees').select('id, display_name').in('id', ids)
+      : { data: [] as { id: string; display_name: string }[] };
+    const name = new Map((em ?? []).map((e) => [e.id, e.display_name]));
+    return (data ?? []).map((d) => ({
+      id: d.id as string, title: d.title as string, kind: d.kind as string,
+      state: d.status === 'review' ? '要確認' : d.status === 'approved' ? '承認済'
+        : d.status === 'rejected' ? '差し戻し' : String(d.status),
+      preview: (d.preview ?? undefined) as string | undefined,
+      body: (d.body ?? undefined) as string | undefined,
+      by: d.produced_by_employee_id ? name.get(d.produced_by_employee_id as string) : undefined,
+      taskId: (d.task_id ?? undefined) as string | undefined,
+      workId: d.work_id as string,
+      workTitle: ((d.works as { title?: string } | null)?.title ?? '') as string,
+    }));
+  },
+
+  async setDelStatus(delId, status) {
+    const c = await db();
+    const { error } = await c.from('deliverables').update({ status }).eq('id', delId);
+    if (error) throw new AppError('unknown', error.message);
+  },
+
+  async addFixTask(workId, src, note) {
+    const c = await db();
+    const { data: from } = src.taskId
+      ? await c.from('tasks').select('phase_id, seq, assignee_type, assignee_employee_id, owner_hint').eq('id', src.taskId).maybeSingle()
+      : { data: null };
+    const { data: seqRow } = await c.from('tasks').select('seq').eq('work_id', workId)
+      .order('seq', { ascending: false }).limit(1).maybeSingle();
+    const { error } = await c.from('tasks').insert({
+      work_id: workId, phase_id: from?.phase_id ?? null, seq: (seqRow?.seq ?? 0) + 1,
+      title: `${src.title} を直す`, intent: `社長の指摘: ${note}`,
+      status: 'queued', created_by: 'user',
+      assignee_type: from?.assignee_type ?? 'user',
+      assignee_employee_id: from?.assignee_employee_id ?? null,
+      owner_hint: from?.owner_hint ?? null,
+    });
+    if (error) throw new AppError('unknown', error.message);
+    // フェーズが review まで来ていたら、直しのぶん戻す
+    if (from?.phase_id) {
+      await c.from('phases').update({ status: 'active' }).eq('id', from.phase_id).eq('status', 'review');
+    }
+  },
+
+  async closePhaseIfDone(workId) {
+    const c = await db();
+    const { data: ph } = await c.from('phases')
+      .select('id, name, status').eq('work_id', workId).eq('status', 'active');
+    let closed = false;
+    for (const p of ph ?? []) {
+      const { data: mine } = await c.from('tasks').select('status').eq('phase_id', p.id);
+      if (mine?.length && mine.every((t) => t.status === 'done' || t.status === 'cancelled')) {
+        await c.from('phases').update({ status: 'review' }).eq('id', p.id);
+        await c.from('notifications').insert({
+          kind: '判断待ち', subject_type: 'phase', subject_id: p.id,
+          body: `フェーズ「${p.name}」が終わりました。見て、次に進めてください`,
+        });
+        closed = true;
+      }
+    }
+    return closed;
+  },
 };

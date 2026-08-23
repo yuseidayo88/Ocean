@@ -61,6 +61,12 @@ export class OpenRouterProvider implements ModelProvider {
         ...input.messages.map((m) => ({ role: m.role, content: m.content })),
       ],
       ...(input.effort ? { reasoning_effort: EFFORT[input.effort] } : {}),
+      /**
+       * Web検索（OpenRouter の web プラグイン）。**既定はオフ** —
+       * 検索は従量で課金されるので、無料のテストを黙って有料にしない。
+       * `OPENROUTER_WEB=1` で全階層に付く（Phase 8 の調査を本物のWebでやるとき）。
+       */
+      ...(process.env.OPENROUTER_WEB === '1' ? { plugins: [{ id: 'web' }] } : {}),
       ...(input.tools?.length
         ? {
             tools: input.tools.map((t) => ({

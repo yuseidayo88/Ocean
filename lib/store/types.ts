@@ -93,4 +93,18 @@ export interface Store {
    * decisions に open の1行、判断待ちの通知（Phase 9 で答える側を作る）
    */
   markDecision(taskId: string, d: { question: string; why: string; options: unknown[] }): Promise<void>;
+
+  /* ══════════════ レビューと承認（Phase 8）══════════════ */
+
+  /** 会社の成果物ぜんぶ（新しい順）。成果物画面が読む */
+  listDels(): Promise<(LiveDeliverable & { workId: string; workTitle: string })[]>;
+  /** 社長のレビュー。approved = 承認済 / rejected = 差し戻し */
+  setDelStatus(delId: string, status: 'approved' | 'rejected'): Promise<void>;
+  /** 差し戻しの直しタスク。同じ担当に、社長の言葉つきで積む（ポンプが走らせる） */
+  addFixTask(workId: string, src: { taskId?: string; title: string }, note: string): Promise<void>;
+  /**
+   * フェーズのタスクが全部 done なら、フェーズを review にして判断待ちの通知を立てる。
+   * 何か閉じたら true（ポンプが呼ぶ）
+   */
+  closePhaseIfDone(workId: string): Promise<boolean>;
 }

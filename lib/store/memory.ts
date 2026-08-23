@@ -142,6 +142,50 @@ export const memoryStore: Store = {
     decisions.push({ taskId, ...d });
     notes.push({ kind: '判断待ち', body: d.question });
   },
+
+  async listDels() {
+    return [...bag.values()].flatMap((d) =>
+      (d.live?.dels ?? []).map((x) => ({ ...x, workId: d.live!.id, workTitle: d.live!.title })));
+  },
+
+  async setDelStatus(delId, status) {
+    for (const d of bag.values()) {
+      const del = d.live?.dels?.find((x) => x.id === delId);
+      if (del) { del.state = status === 'approved' ? '承認済' : '差し戻し'; return; }
+    }
+  },
+
+  async addFixTask(workId, src, note) {
+    const live = [...bag.values()].find((d) => d.live?.id === workId)?.live;
+    if (!live) return;
+    const from = live.tasks.find((t) => t.id === src.taskId);
+    const phaseId = from?.phaseId ?? live.phases.find((p) => p.state !== 'done')?.id ?? live.phases[0]?.id ?? '';
+    live.tasks.push({
+      id: `${workId}-t${live.tasks.length + 1}`, phaseId,
+      title: `${src.title} を直す`, intent: `社長の指摘: ${note}`,
+      state: 'queued', progress: 0,
+      owner: from?.owner, ownerSlug: from?.ownerSlug, ownerId: from?.ownerId,
+    });
+    // フェーズが review まで来ていたら、直しのぶん戻す
+    const ph = live.phases.find((p) => p.id === phaseId);
+    if (ph && ph.state === 'review') ph.state = 'active';
+  },
+
+  async closePhaseIfDone(workId) {
+    const live = [...bag.values()].find((d) => d.live?.id === workId)?.live;
+    if (!live) return false;
+    let closed = false;
+    for (const ph of live.phases) {
+      if (ph.state !== 'active') continue;
+      const mine = live.tasks.filter((t) => t.phaseId === ph.id);
+      if (mine.length && mine.every((t) => t.state === 'done' || t.state === 'cancelled')) {
+        ph.state = 'review';
+        notes.push({ kind: '判断待ち', body: `フェーズ「${ph.name}」が終わりました。見て、次に進めてください` });
+        closed = true;
+      }
+    }
+    return closed;
+  },
 };
 
 /** run と通知の置き場（メモリ版だけの裏方） */

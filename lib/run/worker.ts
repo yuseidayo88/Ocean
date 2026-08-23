@@ -39,6 +39,7 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
   let seq = 0;
   const usage = { in: 0, out: 0 };
   let wrote: string | undefined;
+  let bodyText = '';
   let decision: { question: string; why: string; options: unknown[] } | undefined;
   let finished = false;
 
@@ -90,6 +91,7 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
           });
         } else if (c.name === 'write_deliverable') {
           wrote = String(a.title ?? task.title);
+          bodyText = String(a.body ?? '');
           await s.addDeliverable({
             workId: work.id, taskId, employeeId: task.ownerId,
             title: wrote, kind: String(a.kind ?? 'doc'), body: String(a.body ?? ''),
@@ -139,8 +141,14 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
 
     await s.finishRun(runId, { status: 'done', tokensIn: usage.in, tokensOut: usage.out, costCents });
     if (wrote) {
+      /**
+       * **統括AIのレビュー**（Phase 8）。成果物を fast の目で1度見て、
+       * 社長への通知に一言添える。鍵が無い環境では黙って飛ばす（偽のレビューを作らない）。
+       */
+      const note = await execGlance(wrote, bodyText).catch(() => '');
       await s.addNotification({
-        kind: '要確認', body: `${wrote} ができました — ${task.owner ?? 'AI社員'}`,
+        kind: '要確認',
+        body: `${wrote} ができました — ${task.owner ?? 'AI社員'}${note ? `。統括AI: ${note}` : ''}`,
         subjectType: 'task', subjectId: taskId,
       });
     }
@@ -154,6 +162,24 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
     }).catch(() => {});
     return { ok: false, error: say(e) };
   }
+}
+
+/**
+ * 統括AIがひと目見る。**判定ではなく一言** — 「どこを見ればいいか」を社長に添える。
+ * 深く読むレビュー（差し戻しの提案など）は品質担当の仕事（Phase 10）。
+ */
+async function execGlance(title: string, body: string): Promise<string> {
+  if (!hasKey()) return '';
+  let out = '';
+  for await (const c of providerFor('fast').stream({
+    tier: 'fast', effort: 'low', maxTokens: 300,
+    system: 'あなたは一人社長の統括AI。部下の成果物を渡すとき、社長がどこを見ればいいかを日本語40文字以内の1文で添える。文だけ返す。',
+    messages: [{ role: 'user', content: `成果物「${title}」:
+${body.slice(0, 4000)}` }],
+  })) {
+    if (c.type === 'text') out += c.text;
+  }
+  return out.trim().slice(0, 60);
 }
 
 const clamp = (v: unknown) => {

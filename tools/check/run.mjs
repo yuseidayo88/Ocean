@@ -64,14 +64,58 @@ ok('全タスクが終わった', done.includes('タスクが終わりました'
 ok('成果物が並んだ', done.includes('成果物') && !done.includes('まだありません。AI社員が出したら'), '');
 ok('進捗の帯が 100%', done.includes('100%'));
 
-// ③ 成果物を押すと右ペインに本文
+// ③ 成果物を押すと右ペインに本文 ＋ 社長のレビューの口（Phase 8）
 await ev(`[...document.querySelectorAll('button')].find(b => b.className.includes('row') && b.innerText.includes('競合'))?.click()`);
 await wait(800);
-const pane = await ev(`document.querySelector('aside')?.innerText ?? ''`);
+let pane = await ev(`document.querySelector('aside')?.innerText ?? ''`);
 ok('成果物の本文が右ペインに出る', pane.includes('決め打ちの成果物') || pane.includes('分かったこと'), pane.slice(0, 60));
+ok('承認と差し戻しの口がある', pane.includes('承認して受け取る') && pane.includes('直してほしい'));
+
+// ④ 承認する → 承認済
+await ev(`[...document.querySelectorAll('aside button')].find(b => b.innerText === '承認して受け取る')?.click()`);
+await wait(1200);
+pane = await ev(`document.querySelector('aside')?.innerText ?? ''`);
+ok('承認すると 承認済 になる', pane.includes('承認済'), pane.slice(-60));
 await ev(`document.querySelector('aside button')?.click()`); await wait(400);
 
-// ④ タスク（完了）を押すと歩みが読める
+// ⑤ 別の成果物を差し戻す → 直しタスクが走って、新しい成果物が出る
+await ev(`[...document.querySelectorAll('button')].filter(b => b.className.includes('row') && /市場|対象/.test(b.innerText))[0]?.click()`);
+await wait(700);
+await ev(`[...document.querySelectorAll('aside button')].find(b => b.innerText === '直してほしい')?.click()`);
+await wait(400);
+await ev(`(() => { const t = document.querySelector('aside textarea');
+  Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(t, '出典を1行ずつ付けてほしい');
+  t.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+await wait(200);
+await ev(`[...document.querySelectorAll('aside button')].find(b => b.innerText === '差し戻す')?.click()`);
+await wait(1500);
+ok('差し戻すと 差し戻し済 と出る', ((await ev(`document.querySelector('aside')?.innerText ?? ''`))).includes('差し戻し'), '');
+await ev(`document.querySelector('aside button')?.click()`); await wait(300);
+
+// 直しタスクが（開いたまま）走り終わるのを待つ
+let fixed = false;
+for (let i = 0; i < 30; i++) {
+  await wait(1500);
+  const b = await text();
+  if (b.includes('を直す') === false && /タスクが終わりました|判断/.test(b)) { fixed = true; break; }
+  if (b.includes('を直す') && b.includes('100%')) { fixed = true; break; }
+}
+const after = await text();
+ok('直しタスクが積まれて走った', fixed || after.includes('を直す'), after.slice(0, 80));
+
+// ⑥ 直しも含めて全部終わると、最新の状況が「終わった」と言う
+//    （フェーズ→review の遷移と判断待ち通知は closePhaseIfDone の中。
+//     supabase 側の書き込みは SQL の探針、memory 側はこの lead で見える）
+let allDone = false;
+for (let i = 0; i < 30; i++) {
+  await wait(1500);
+  if ((await text()).includes('タスクが終わりました')) { allDone = true; break; }
+}
+await ev(`history.replaceState(null,'',location.pathname+'?open=about'); window.dispatchEvent(new PopStateEvent('popstate'))`);
+await wait(600);
+const about = await ev(`document.querySelector('aside')?.innerText ?? ''`);
+ok('全部終わると「終わった」と言う', allDone || about.includes('終わりました'), about.slice(0, 60));
+await ev(`document.querySelector('aside button')?.click()`); await wait(300);
 await ev(`history.replaceState(null,'',location.pathname); window.dispatchEvent(new PopStateEvent('popstate'))`);
 await wait(300);
 console.log('\nerrs:', errs.length ? errs.slice(0, 3) : 'なし');

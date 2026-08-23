@@ -3,12 +3,34 @@
 import { Go as Link } from '@/components/ui/Go';
 import { openHref } from '@/lib/use-open';
 
+import { useEffect, useState } from 'react';
 import { useTabs } from '@/lib/use-open';
 import { Centre, Composer, Pane, PaneFooter, PaneHead, PaneLoading, TopBar } from '@/components/shell/Chrome';
 import { Dot, Icon } from '@/components/ui/Icon';
 import { DELIVERABLES, DELIVERABLE_BODY, employee, type Deliverable, type Preview } from '@/lib/dummy';
+import { listDels } from '@/app/actions/run';
+import { DelActions } from '@/components/live/DelActions';
+import type { LiveDeliverable } from '@/lib/store';
 import { pressable } from '@/lib/a11y';
 import { AMBER, AMBER_T, COMPOSER_H, DIM, GREEN, HAIR, LINE, MUTE, RAIL, SUNK, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
+
+type LiveDel = LiveDeliverable & { workId: string; workTitle: string };
+
+/** 本物のサムネイル。**実際の書き出し**を小さく出す（灰色の棒を置かない） */
+function LiveThumb({ d }: { d: LiveDel }) {
+  const lines = (d.preview ?? '').split(/(?<=。)/).filter(Boolean).slice(0, 3);
+  return (
+    <div style={{
+      height: 108, boxSizing: 'border-box', borderRadius: 8, background: RAIL,
+      padding: '12px 13px', display: 'flex', flexDirection: 'column', gap: 5, overflow: 'hidden',
+    }}>
+      <div style={{ color: T4, fontSize: 10, lineHeight: '14px' }}>{d.workTitle}</div>
+      {lines.map((l, i) => (
+        <span key={i} style={{ color: '#4E4E4E', fontSize: 9.5, lineHeight: '14px' }}>{l}</span>
+      ))}
+    </div>
+  );
+}
 /**
  * 成果物＝グリッド（参考: Craft / Frame）。
  * **プレビューは中身を出す。** 灰色の棒ではなく、実際の書き出し・表・棒を小さく出して見分けられるようにする。
@@ -63,16 +85,24 @@ function Thumb({ p }: { p: Preview }) {
 const tabDot = (s: Deliverable['state']) => (s === '要確認' ? AMBER : s === '承認済' ? GREEN : MUTE);
 
 export default function DeliverablesPage() {
-  const need = DELIVERABLES.filter((d) => d.state === '要確認').length;
+  /** 本物の成果物（AI社員が書いたもの）。**先頭に混ぜる** */
+  const [live, setLive] = useState<LiveDel[]>([]);
+  const reload = () => { listDels().then(setLive); };
+  useEffect(reload, []);
+
+  const need = DELIVERABLES.filter((d) => d.state === '要確認').length
+    + live.filter((d) => d.state === '要確認').length;
 
   /**
    * **タブは本物。** 開いている並びと、いま見ているものを URL に持つ（`?open=d-rev,d-mkt&at=1`）。
    * まだ書けていないもの（生成中）も開ける。中身のかわりに「作っている」を出す。
    */
-  const tabs = useTabs(DELIVERABLES.map((d) => d.id));
-  const docs = tabs.ids.map((id) => DELIVERABLES.find((d) => d.id === id)!);
+  const tabs = useTabs([...live.map((d) => d.id), ...DELIVERABLES.map((d) => d.id)]);
+  const docs = tabs.ids.map((id) =>
+    (live.find((d) => d.id === id) ?? DELIVERABLES.find((d) => d.id === id))!);
   const top = docs[tabs.at];
-  const b = top ? DELIVERABLE_BODY[top.id] : undefined;
+  const liveTop = top && live.find((d) => d.id === top.id);
+  const b = top && !liveTop ? DELIVERABLE_BODY[top.id] : undefined;
 
   return (
     <>
@@ -85,7 +115,7 @@ export default function DeliverablesPage() {
         }}>
           <Icon name="deliv" color={T3} size={15} />
           <span>すべての成果物</span>
-          <span style={{ color: T5 }} className="tnum">· {DELIVERABLES.length}</span>
+          <span style={{ color: T5 }} className="tnum">· {DELIVERABLES.length + live.length}</span>
           <Icon name="down" color={T4} size={13} />
           <div style={{ flex: 1 }} />
           {need > 0 && (
@@ -97,6 +127,30 @@ export default function DeliverablesPage() {
 
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: `16px 16px ${COMPOSER_H}px` }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
+            {live.map((d) => (
+              <div key={d.id} className="card" {...pressable(() => tabs.open(d.id))} style={{
+                boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 11,
+                padding: 12, borderRadius: 12, background: '#121212',
+                border: `1px solid ${top?.id === d.id ? '#333' : 'transparent'}`,
+              }}>
+                <LiveThumb d={d} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ color: T5 }}>{d.by ?? 'AI社員'}</span>
+                    <div style={{ flex: 1 }} />
+                    {d.state === '要確認' && (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 9px',
+                        borderRadius: 6, background: 'rgba(227,116,0,0.18)', color: AMBER_T, whiteSpace: 'nowrap',
+                      }}>要確認</span>
+                    )}
+                    {d.state === '承認済' && <Dot color={GREEN} size={7} />}
+                  </div>
+                  <span style={{ color: T5, fontSize: 12 }}>{d.workTitle}</span>
+                </div>
+              </div>
+            ))}
             {DELIVERABLES.map((d) => (
               <div key={d.id} className="card" {...pressable(() => tabs.open(d.id))} style={{
                 boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 11,
@@ -131,13 +185,28 @@ export default function DeliverablesPage() {
 
       {top && (
       <Pane width={480} onClose={tabs.close}
-            tabs={docs.map((d) => ({ label: d.title, dot: tabDot(d.state) }))}
+            tabs={docs.map((d) => ({ label: d.title, dot: tabDot(d.state as Deliverable['state']) }))}
             tab={tabs.at} onTab={tabs.select}>
-        {!b ? <PaneLoading lines={6} /> : (
+        {liveTop ? (
+          <>
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 20px' }}>
+              <span style={{ fontSize: 16, display: 'block' }}>{liveTop.title}</span>
+              <span style={{ color: T5, fontSize: 12, display: 'block', paddingTop: 5 }}>
+                {liveTop.by ?? 'AI社員'} · {liveTop.workTitle}
+              </span>
+              <pre style={{
+                margin: '16px 0 0', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                fontSize: 12, lineHeight: '20px', color: T2, whiteSpace: 'pre-wrap',
+              }}>{liveTop.body ?? liveTop.preview ?? ''}</pre>
+            </div>
+            <DelActions delId={liveTop.id} workId={liveTop.workId} taskId={liveTop.taskId}
+                        title={liveTop.title} state={liveTop.state} onDone={reload} />
+          </>
+        ) : !b ? <PaneLoading lines={6} /> : (
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 20px 0' }}>
           <span style={{ fontSize: 16, display: 'block' }}>{top.title}</span>
           <span style={{ color: T5, fontSize: 12, display: 'block', paddingTop: 5 }}>
-            {employee(top.by).name}{top.version && ` · ${top.version}`}{top.when && ` · ${top.when}`}
+            {(() => { const d = top as Deliverable; return <>{employee(d.by).name}{d.version && ` · ${d.version}`}{d.when && ` · ${d.when}`}</>; })()}
           </span>
           <p style={{ color: T2, fontSize: 13.5, lineHeight: '22px', margin: '16px 0 0' }}>{b.lead}</p>
 
