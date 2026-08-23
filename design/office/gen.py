@@ -1328,6 +1328,15 @@ ICONS = {
   'check': '<path d="m5 12.5 4 4 9-10"/>',
   'roadmap': '<circle cx="6" cy="6" r="2.2"/><circle cx="6" cy="18" r="2.2"/>'
              '<path d="M6 8.2v7.6M8.2 6H15a3 3 0 0 1 3 3v0"/>',
+  'hand': '<path d="M8 12.5V6.2a1.4 1.4 0 0 1 2.8 0v5M10.8 11V5.2a1.4 1.4 0 0 1 2.8 0v5.6'
+          'M13.6 11.2V6.4a1.4 1.4 0 0 1 2.8 0V14c0 3.3-2 5.8-5 5.8-2.6 0-3.9-1.4-5.2-3.6l-1.5-2.6'
+          'a1.4 1.4 0 0 1 2.3-1.6l.8 1.1"/>',
+  'expand': '<path d="M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9'
+            'M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15"/>',
+  'minus': '<path d="M6 12h12"/>',
+  'plus': '<path d="M12 5.5v13M5.5 12h13"/>',
+  # 選ぶ道具。Figma と同じ「左上を向いた矢印」
+  'cursor': '<path d="M6.5 3.6 18 12.2l-5.1.5-1.2 5z" stroke-linejoin="round"/>',
 }
 
 def icon(n, c=T4, size=14, w=1.5):
@@ -1396,84 +1405,6 @@ io.open(OUT + '/LayoutLogBottom.dc.html', 'w', encoding='utf-8').write(
     board('絵を横に広く。ログは下に流す', '② 下にログ', b2, BLUE_T,
           '引き換えに: 社員の行が1段減る ＋ 入力欄のぶん 108px'))
 print('L2 ok')
-
-# ── ③ 下に社員（採用）──────────────────────────────────────
-def doc_icon(c=AMBER, w=9, h=11):
-    """要確認は文字の右に書類のアイコン。押すとその成果物へ飛ぶ（メンバー画面と同じ作法）"""
-    return ('<span style="width:%dpx;height:%dpx;border:1px solid %s;border-radius:2px;'
-            'flex-shrink:0;display:inline-block"></span>' % (w, h, c))
-
-PRODUCE_C = {
-    '統括AI':  lambda: (mono('AIが決めた 12  ·  あなたが 2', T5), ''),
-    '調査担当': lambda: (sq_run(12, 8, CYAN),      '事実 34'),
-    '戦略担当': lambda: (text_lines(PURPLE, (40, 33, 22)), '1,248字'),
-    '開発担当': lambda: (dot_run(18, 18, AGREEN),  'テスト 24'),
-    '企画担当': lambda: (week_cells(4, 1, INDIGO), '1 / 4週'),
-}
-
-def deskcard(name, key, state, spec, now, el, done, running, total, log, first=False):
-    """1人ぶんを縦に積む。**5段**（誰 / どんな設定で / いま何を / 工程 / 出したもの）"""
-    sc = STATE_C[state]
-    fig, cap = PRODUCE_C[name]()
-    w = WAIT[name]
-    return ('<div style="%sdisplay:flex;flex-direction:column;gap:8px;min-width:0">'
-            % ('width:186px;flex:0 0 186px;' if first
-               else 'flex:0 0 186px;border-left:1px solid %s;padding-left:20px;box-sizing:content-box;' % HAIR)
-            # 誰
-            + '<div style="display:flex;align-items:center;gap:8px;height:26px">'
-              + orb(RGB[key], 26) + '<span style="font-size:13px">%s</span>' % name
-            + '</div>'
-            # どんな設定で動いているか（状態 ＋ モデル ＋ 深さ）
-            + '<div style="display:flex;align-items:center;gap:6px;height:14px">'
-              + dot(sc[0], 5)
-              + '<span style="color:%s;font-size:10.5px">%s</span>' % (sc[1], state)
-              + (doc_icon() if state == '要確認' else '')
-              + '<span style="color:%s;font-size:10.5px">·  %s</span>' % (T5, spec.replace(' · ', ' · '))
-            + '</div>'
-            # いま何をしているか
-            + '<div style="display:flex;align-items:baseline;gap:8px;height:17px">'
-              + '<span style="color:%s;font-size:12px;overflow:hidden;text-overflow:ellipsis;'
-                'white-space:nowrap">%s</span><div style="flex:1"></div>%s'
-                % (T2, now, mono(el, T5) if el else '')
-            + '</div>'
-            # 工程（run_steps を1本に畳む）
-            + '<div style="display:flex;align-items:center;gap:9px;height:14px">'
-              + steps(done, running, total, HEX[key], 76)
-              + '<span style="color:%s;font-size:10.5px;white-space:nowrap;overflow:hidden;'
-                'text-overflow:ellipsis">%d / %d · %s</span>' % (T5, done, total, STEPNAME[name])
-            + '</div>'
-            # 出したもの（器は produces で決まる）＋ このあと積まれているぶん
-            + '<div style="display:flex;align-items:center;gap:9px;height:13px">'
-              + fig + (mono(cap) if cap else '') + '<div style="flex:1"></div>'
-              + (mono('待ち %d' % w, T5) if w else '')
-            + '</div></div>')
-
-b3 = ('<div style="position:relative;padding:16px 30px 0;display:flex;flex-direction:column;gap:20px">'
-  # いちばん上: ホームの4ビュー切替
-  + pills('オフィス')
-  # 絵とログ。**答えの一文も上の帯も置かない**（数は絵と社員の行が言っている）
-  + '<div style="display:flex;gap:22px;align-items:stretch">'
-    + '<div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center">%s</div>'
-      % flow(810, 404, ringset((222, 90), (312, 126), (402, 162)),
-             orb_px=34, exec_px=46, labdeg=[198, 225, 242])
-    + logcol(len(FEED_A3), h=378)
-  + '</div>'
-  # 下: 社員。**入力欄のぶん逃がす**
-  + '<div style="border-top:1px solid %s;padding-top:12px;margin-bottom:%dpx">' % (HAIR, COMPOSER_NOTE)
-    + '<div style="display:flex;align-items:baseline;padding-bottom:10px">'
-      '<span style="color:%s;font-size:11px">AI社員</span><div style="flex:1"></div>'
-      '<span style="color:%s;font-size:10.5px" class="tnum">4人  ·  稼働 4 / 4</span></div>' % (T5, T5)
-    # **人が増えたら横にスクロール**。1人ぶんの幅は縮めない
-    + '<div class="sx" style="display:flex;gap:20px;align-items:flex-start;padding-bottom:6px">'
-      + ''.join(deskcard(*m, first=(i == 0)) for i, m in enumerate(REAL))
-    + '</div>'
-  + '</div>'
-  + composer()
-  + '</div>')
-io.open(OUT + '/LayoutTeamBottom.dc.html', 'w', encoding='utf-8').write(
-    board('絵とログが上、社員は下に5列', '③ 下に社員', b3, GREEN_T,
-          '下の空きは入力欄が浮く場所 · 統括AI は左に分けて置く'))
-print('L3 ok')
 
 # ── ④ 右に1本 ─────────────────────────────────────────────
 b4 = ('<div style="padding:16px 30px 22px;display:flex;flex-direction:column;gap:10px">'
@@ -1672,7 +1603,7 @@ def fig_fan(fw=810, fh=404):
             % (fw, fh, ''.join(g), html))
 
 # ── 図C いまの輪＋フェーズの刻み ─────────────────────────────
-CR = [(124, 78), (174, 110), (226, 146)]
+CR = [(196, 84), (276, 118), (356, 152)]
 CSEG = [[(0, 30, 'cyan'), (30, 52, 'purple')], [(0, 38, 'indigo')], [(0, 28.57, 'indigo'), (28.57, 61, 'green')]]
 CTICK = [[30, 60, 80], [20, 60], [28.57, 71.43]]
 CEMP = [[(15, '調査担当', 'cyan', False), (41, '戦略担当', 'purple', True)],
@@ -1689,13 +1620,10 @@ def fig_rings(fw=810, fh=404):
         name, tot, phases, at, _, behind, curph = WF[li]
         g.append('<ellipse cx="%.0f" cy="%.0f" rx="%d" ry="%d" fill="none" stroke="#1B1B1B" stroke-width="1"/>'
                  % (cx, cy, rx, ry))
-        # **フェーズの境目を輪に刻む**（これがあると「どのフェーズにいるか」が輪の上で読める）
-        for t in [0] + CTICK[li]:
-            x, y = pt(rx, ry, t)
-            a = math.radians(-90 + 3.6 * t)
-            nx, ny = math.cos(a), math.sin(a)
-            g.append('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#2E2E2E" stroke-width="1"/>'
-                     % (x - nx * 5, y - ny * 5, x + nx * 5, y + ny * 5))
+        # 真上がはじまり
+        x, y = pt(rx, ry, 0)
+        g.append('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#2E2E2E" stroke-width="1"/>'
+                 % (x, y - 5, x, y + 5))
         for k, (p0, p1, key) in enumerate(CSEG[li]):
             x0, y0 = pt(rx, ry, p0); x1, y1 = pt(rx, ry, p1)
             g.append('<path d="M %.1f %.1f A %.1f %.1f 0 %d 1 %.1f %.1f" fill="none" stroke="%s" '
@@ -1762,6 +1690,83 @@ def figboard(title, tag, note, fig, tagcolor=BLUE_T):
                  '<div style="padding:30px 0 34px;display:flex;justify-content:center">%s</div>' % fig,
                  tagcolor, note)
 
+# ── ③ 下に社員（採用）──────────────────────────────────────
+def doc_icon(c=AMBER, w=9, h=11):
+    """要確認は文字の右に書類のアイコン。押すとその成果物へ飛ぶ（メンバー画面と同じ作法）"""
+    return ('<span style="width:%dpx;height:%dpx;border:1px solid %s;border-radius:2px;'
+            'flex-shrink:0;display:inline-block"></span>' % (w, h, c))
+
+PRODUCE_C = {
+    '統括AI':  lambda: (mono('AIが決めた 12  ·  あなたが 2', T5), ''),
+    '調査担当': lambda: (sq_run(12, 8, CYAN),      '事実 34'),
+    '戦略担当': lambda: (text_lines(PURPLE, (40, 33, 22)), '1,248字'),
+    '開発担当': lambda: (dot_run(18, 18, AGREEN),  'テスト 24'),
+    '企画担当': lambda: (week_cells(4, 1, INDIGO), '1 / 4週'),
+}
+
+def deskcard(name, key, state, spec, now, el, done, running, total, log, first=False):
+    """1人ぶんを縦に積む。**5段**（誰 / どんな設定で / いま何を / 工程 / 出したもの）"""
+    sc = STATE_C[state]
+    fig, cap = PRODUCE_C[name]()
+    w = WAIT[name]
+    return ('<div style="%sdisplay:flex;flex-direction:column;gap:8px;min-width:0">'
+            % ('width:186px;flex:0 0 186px;' if first
+               else 'flex:0 0 186px;border-left:1px solid %s;padding-left:20px;box-sizing:content-box;' % HAIR)
+            # 誰
+            + '<div style="display:flex;align-items:center;gap:8px;height:26px">'
+              + orb(RGB[key], 26) + '<span style="font-size:13px">%s</span>' % name
+            + '</div>'
+            # どんな設定で動いているか（状態 ＋ モデル ＋ 深さ）
+            + '<div style="display:flex;align-items:center;gap:6px;height:14px">'
+              + dot(sc[0], 5)
+              + '<span style="color:%s;font-size:10.5px">%s</span>' % (sc[1], state)
+              + (doc_icon() if state == '要確認' else '')
+              + '<span style="color:%s;font-size:10.5px">·  %s</span>' % (T5, spec.replace(' · ', ' · '))
+            + '</div>'
+            # いま何をしているか
+            + '<div style="display:flex;align-items:baseline;gap:8px;height:17px">'
+              + '<span style="color:%s;font-size:12px;overflow:hidden;text-overflow:ellipsis;'
+                'white-space:nowrap">%s</span><div style="flex:1"></div>%s'
+                % (T2, now, mono(el, T5) if el else '')
+            + '</div>'
+            # 工程（run_steps を1本に畳む）
+            + '<div style="display:flex;align-items:center;gap:9px;height:14px">'
+              + steps(done, running, total, HEX[key], 76)
+              + '<span style="color:%s;font-size:10.5px;white-space:nowrap;overflow:hidden;'
+                'text-overflow:ellipsis">%d / %d · %s</span>' % (T5, done, total, STEPNAME[name])
+            + '</div>'
+            # 出したもの（器は produces で決まる）＋ このあと積まれているぶん
+            + '<div style="display:flex;align-items:center;gap:9px;height:13px">'
+              + fig + (mono(cap) if cap else '') + '<div style="flex:1"></div>'
+              + (mono('待ち %d' % w, T5) if w else '')
+            + '</div></div>')
+
+b3 = ('<div style="position:relative;padding:16px 30px 0;display:flex;flex-direction:column;gap:20px">'
+  # いちばん上: ホームの4ビュー切替
+  + pills('オフィス')
+  # 絵とログ。**答えの一文も上の帯も置かない**（数は絵と社員の行が言っている）
+  + '<div style="display:flex;gap:22px;align-items:stretch">'
+    + '<div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center">%s</div>'
+      % fig_rings(810, 404)
+    + logcol(len(FEED_A3), h=378)
+  + '</div>'
+  # 下: 社員。**入力欄のぶん逃がす**
+  + '<div style="border-top:1px solid %s;padding-top:12px;margin-bottom:%dpx">' % (HAIR, COMPOSER_NOTE)
+    + '<div style="display:flex;align-items:baseline;padding-bottom:10px">'
+      '<span style="color:%s;font-size:11px">AI社員</span><div style="flex:1"></div>'
+      '<span style="color:%s;font-size:10.5px" class="tnum">4人  ·  稼働 4 / 4</span></div>' % (T5, T5)
+    # **人が増えたら横にスクロール**。1人ぶんの幅は縮めない
+    + '<div class="sx" style="display:flex;gap:20px;align-items:flex-start;padding-bottom:6px">'
+      + ''.join(deskcard(*m, first=(i == 0)) for i, m in enumerate(REAL))
+    + '</div>'
+  + '</div>'
+  + composer()
+  + '</div>')
+io.open(OUT + '/LayoutTeamBottom.dc.html', 'w', encoding='utf-8').write(
+    board('絵とログが上、社員は下に5列', '③ 下に社員', b3, GREEN_T,
+          '下の空きは入力欄が浮く場所 · 統括AI は左に分けて置く'))
+print('L3 ok')
+
 io.open(OUT + '/FigureRiver.dc.html', 'w', encoding='utf-8').write(
     figboard('横がフェーズ。道の上に社員が立つ', '図B 川', '進捗のガントと形が似る', fig_river()))
 print('FigB ok')
@@ -1769,7 +1774,8 @@ io.open(OUT + '/FigureFan.dc.html', 'w', encoding='utf-8').write(
     figboard('中心から外へ。外の弧に届いたら完了', '図A 扇', '3本より増えると角度が窮屈', fig_fan()))
 print('FigA ok')
 io.open(OUT + '/FigureRings.dc.html', 'w', encoding='utf-8').write(
-    figboard('いまの輪に、フェーズの境目を刻む', '図C 輪＋刻み', 'いちばん変更が小さい · 左半分は空いたまま', fig_rings()))
+    figboard('輪はそのまま。色の変わり目が引き継ぎ ＝ フェーズの境目', '図C 輪（採用）',
+             '刻みは置かない · 色が変わるところが境目', fig_rings(), GREEN_T))
 print('FigC ok')
 
 # ══════════════════════ 図の意味の台帳 ══════════════════════
@@ -1844,6 +1850,144 @@ io.open(OUT + '/Meaning.dc.html', 'w', encoding='utf-8').write(
     board('図の要素と、その意味', '④ 意味の棚卸し', mean_body, T3))
 print('Meaning ok')
 
+# ══════════════════════ ワークフロー（Figma のように画面いっぱい） ══════════════════════
+# **盤面を 1148×760 の箱に収めるのをやめる。** 中身の領域いっぱいに広げて、
+# ピル・ツールバー・ミニマップ・入力欄は全部その上に浮かせる。
+# 「入る大きさに縮める」も要らなくなる（無限のキャンバスなので、拡大率は自分で決める）。
+GW2, GH2 = 1180, 782
+NH2, CW2, RW2 = 66, 176, 172
+CX2 = [40, 268, 496, 724]
+ROW2 = 330
+RX2 = 976
+RY2 = [150, 330, 510]
+CANV = '#060606'
+
+NSKIN = {
+  'done': ('#0B0B0B', '1px solid #1D1D1D', GREEN,     T2, T5),
+  'sel':  ('#101010', '1px solid #333333', '#8A8A8A', T1, T4),
+  'gate': ('rgba(227,116,0,0.05)', '1px solid rgba(227,116,0,0.28)', AMBER, T1, AMBER_T),
+  'wait': ('#080808', '1px dashed #1F1F1F', '#1C1C1C', T4, T5),
+  'work': ('#0C0C0C', '1px solid #272727', '#2E2E2E', T2, T5),
+}
+
+def node(x, y, w, title, sub, kind, selected=False):
+    bg, bd, bar, tc, sc = NSKIN[kind]
+    ring = ('box-shadow:0 0 0 1.5px %s;' % BLUE) if selected else ''
+    out = ('<div style="position:absolute;left:%dpx;top:%dpx;width:%dpx;height:%dpx;box-sizing:border-box;'
+           'display:flex;align-items:center;padding:0 14px 0 15px;border-radius:14px;background:%s;'
+           'border:%s;overflow:hidden;%s">'
+           '<span style="position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 2px 2px 0;'
+           'background:%s"></span>'
+           '<div style="min-width:0;display:flex;flex-direction:column;gap:3px">'
+           '<span style="color:%s;font-size:14px;line-height:19px;white-space:nowrap;overflow:hidden;'
+           'text-overflow:ellipsis">%s</span>'
+           '<span style="color:%s;font-size:11px;line-height:15px;white-space:nowrap">%s</span>'
+           '</div></div>' % (x, y, w, NH2, bg, bd, ring, bar, tc, title, sc, sub))
+    if selected:
+        # 選んでいる印。**四隅のつまみ**（Figma と同じ読み方）
+        for dx, dy in [(0, 0), (w, 0), (0, NH2), (w, NH2)]:
+            out += ('<div style="position:absolute;left:%.1fpx;top:%.1fpx;width:7px;height:7px;'
+                    'box-sizing:border-box;border-radius:2px;background:#000;border:1.5px solid %s"></div>'
+                    % (x + dx - 3.5, y + dy - 3.5, BLUE))
+    return out
+
+def port(x, y, on=False):
+    return ('<div style="position:absolute;left:%.1fpx;top:%.1fpx;width:9px;height:9px;box-sizing:border-box;'
+            'border-radius:999px;background:%s;border:1.5px solid %s"></div>'
+            % (x - 4.5, y - 4.5, CANV, '#4E4E4E' if on else '#2E2E2E'))
+
+def elabel(x, y, t):
+    return ('<div style="position:absolute;left:%.0fpx;top:%.0fpx;transform:translate(-50%%,-50%%);'
+            'padding:0 5px;color:%s;font-size:11px;white-space:nowrap;background:%s">%s</div>'
+            % (x, y, T5, CANV, t))
+
+def subport(x, top, label):
+    return ('<div style="position:absolute;left:%dpx;top:%dpx;width:1px;height:15px;background:#262626"></div>'
+            '<div style="position:absolute;left:%.1fpx;top:%dpx;width:21px;height:21px;box-sizing:border-box;'
+            'border-radius:999px;background:#131313;border:1px solid #2E2E2E;display:flex;align-items:center;'
+            'justify-content:center">%s</div>'
+            '<div style="position:absolute;left:%dpx;top:%dpx;transform:translateX(-50%%);color:%s;'
+            'font-size:11px;white-space:nowrap">%s</div>'
+            % (x, top, x - 10.5, top + 15, icon('plus', T4, 11), x, top + 41, T5, label))
+
+def tool(n, on=False):
+    return ('<span style="width:28px;height:28px;border-radius:7px;display:inline-flex;align-items:center;'
+            'justify-content:center;%s">%s</span>'
+            % ('background:#262626;' if on else '', icon(n, T1 if on else '#8B8B8B', 15, 1.7)))
+
+def workflow():
+    mid = ROW2 + NH2 / 2
+    rowc = [y + NH2 / 2 for y in RY2]
+    g = ['<svg width="%d" height="%d" viewBox="0 0 %d %d" style="position:absolute;inset:0">' % (GW2, GH2, GW2, GH2)]
+    def edge(x1, y1, x2, y2, dash=False):
+        return ('<path d="M %.1f %.1f C %.1f %.1f, %.1f %.1f, %.1f %.1f" fill="none" stroke="#282828" '
+                'stroke-width="1.3"%s/>'
+                % (x1, y1, x1 + 30, y1, x2 - 30, y2, x2, y2, ' stroke-dasharray="4 4"' if dash else ''))
+    for i in range(3):
+        g.append(edge(CX2[i] + CW2, mid, CX2[i + 1], mid))
+    for i, y in enumerate(rowc):
+        g.append(edge(CX2[3] + CW2, mid, RX2, y, i == 1))
+    # 右の端で切れずに続く（無限のキャンバスであることを、絵のほうで言う）
+    for y in [rowc[0], rowc[2]]:
+        g.append(edge(RX2 + RW2, y, GW2 + 24, y, True))
+    g.append('</svg>')
+    h = ''.join(g)
+
+    CHAIN = [('調査', 'フェーズ 1 · 完了', 'done'), ('戦略', 'フェーズ 2 · 32%', 'sel'),
+             ('収益モデル比較', '成果物 · 要確認', 'done'), ('価格モデル', '判断 · B案を推奨', 'gate')]
+    RIGHT = [('LPと申込フォーム', '新しい Work · 準備中', 'work', '新しい Work'),
+             ('プロダクト', 'フェーズ 3 · 待機', 'wait', '次のフェーズ'),
+             ('SNS運用の立ち上げ', '新しい Work · 準備中', 'work', '新しい Work')]
+    for i, (t, sb, k) in enumerate(CHAIN):
+        h += node(CX2[i], ROW2, CW2, t, sb, k, selected=(k == 'sel'))
+    for i, (t, sb, k, _) in enumerate(RIGHT):
+        h += node(RX2, RY2[i], RW2, t, sb, k)
+    for i, x in enumerate(CX2):
+        if i:
+            h += port(x, mid, True)
+        h += port(x + CW2, mid, True)
+    for y in rowc:
+        h += port(RX2, y) + port(RX2 + RW2, y)
+    for i, (_, _, _, lab) in enumerate(RIGHT):
+        h += elabel(RX2 - 30, (mid + rowc[i]) / 2 + (12 if i == 1 else -12), lab)
+    for i, lab in enumerate(['担当 2', '成果物 1']):
+        h += subport(CX2[1] + 50 + i * 76, ROW2 + NH2, lab)
+
+    # ── 上に浮くもの ──
+    h += ('<div style="position:absolute;left:24px;top:26px;color:%s;font-size:12px">日本語学習サービス</div>' % T4)
+    h += '<div style="position:absolute;left:0;right:0;top:18px">%s</div>' % pills('ワークフロー')
+    # 左下 ＝ ツールバー。**中央下は入力欄がいるので譲る**。
+    # 「収める」ボタンは置かず、数字を押すと 100% に戻す（オフィスの盤面と同じ作法）
+    h += ('<div style="position:absolute;left:24px;bottom:24px;display:flex;align-items:center;gap:3px;'
+          'padding:5px 7px;border-radius:12px;background:#121212;border:1px solid #2A2A2A">'
+          + tool('cursor', True) + tool('hand')
+          + '<span style="width:1px;height:18px;background:#262626;margin:0 4px"></span>'
+          + tool('minus')
+          + '<span style="color:%s;font-size:12px;padding:0 4px" class="tnum">100%%</span>' % T2
+          + tool('plus') + '</div>')
+    # 右下 ＝ ミニマップ
+    mm = ''.join('<div style="position:absolute;left:%dpx;top:%dpx;width:%dpx;height:%dpx;border-radius:2px;'
+                 'background:%s"></div>' % v for v in
+                 [(10, 34, 24, 9, '#232323'), (40, 34, 24, 9, '#3A3A3A'), (70, 34, 22, 9, '#232323'),
+                  (98, 34, 22, 9, 'rgba(227,116,0,0.55)'), (124, 16, 16, 8, '#2A2A2A'),
+                  (124, 34, 16, 8, '#1E1E1E'), (124, 52, 16, 8, '#2A2A2A')])
+    h += ('<div style="position:absolute;right:24px;bottom:24px;width:148px;height:84px;border-radius:10px;'
+          'background:#0A0A0A;border:1px solid %s;overflow:hidden">%s'
+          '<div style="position:absolute;left:4px;top:20px;width:96px;height:44px;border-radius:5px;'
+          'border:1px solid #4A4A4A;background:rgba(255,255,255,0.03)"></div></div>' % (LINE, mm))
+    h += composer()
+
+    return ('<div style="position:relative;width:%dpx;height:%dpx;overflow:hidden;background:%s;'
+            'background-image:radial-gradient(#161616 1px, transparent 1px);background-size:22px 22px">'
+            '<div style="position:absolute;inset:0;background:radial-gradient(70%% 70%% at 42%% 40%%,'
+            'rgba(255,255,255,0.028), rgba(0,0,0,0) 72%%)"></div>%s</div>'
+            % (GW2, GH2, CANV, h))
+
+io.open(OUT + '/Workflow.dc.html', 'w', encoding='utf-8').write(
+    board('盤面を箱から出して、中身の領域いっぱいに', 'ワークフロー', workflow(), BLUE_T,
+          'ピル・ツールバー・ミニマップ・入力欄は全部その上に浮く'))
+print('Workflow ok')
+
 # ══════════════════════ canvas.json ══════════════════════
 import json
 canvas = {
@@ -1870,6 +2014,8 @@ canvas = {
     {"file": "FigureFan.dc.html",    "x": 1300, "y": 4790, "w": 1180, "h": 580, "title": "図A 扇"},
     {"file": "FigureRiver.dc.html",  "x": 2600, "y": 4790, "w": 1180, "h": 580, "title": "図B 川"},
     {"file": "FigureRings.dc.html",  "x": 3900, "y": 4790, "w": 1180, "h": 580, "title": "図C 輪＋刻み"},
+    # 6段目 = ワークフロー
+    {"file": "Workflow.dc.html", "x": 0, "y": 5910, "w": 1180, "h": 860, "title": "ワークフロー（画面いっぱい）"},
   ],
   "launch": {"view": "canvas"},
 }
