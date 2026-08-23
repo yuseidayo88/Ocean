@@ -42,12 +42,21 @@ export class OpenRouterProvider implements ModelProvider {
 
   async *stream(input: RunInput): AsyncIterable<Chunk> {
     const spec = TIER_TABLE[input.tier]
+    /**
+     * **モデルは env で差し替えられる**（コードを触らずに試すため）。
+     *   OPENROUTER_MODEL_DEEP / _STANDARD / _FAST に slug を入れると、その階層だけ替わる。
+     * テスト段階で `:free` のモデル（無料枠）を入れる、が主な用途。
+     * 無料モデルは**道具（tool calling）に対応しているものを選ぶ**こと —
+     * 統括AIは1往復で道具を5つ呼ぶので、対応していないと計画が1つも返らない。
+     * 対応表: https://openrouter.ai/models?max_price=0&supported_parameters=tools
+     */
+    const model = process.env[`OPENROUTER_MODEL_${input.tier.toUpperCase()}`] ?? spec.model
     const usage = { ...EMPTY_USAGE }
     const calls = new Map<number, { id: string; name: string; json: string }>()
     let stopReason: string | null = null
 
     const s = await this.client.chat.completions.create({
-      model: spec.model,
+      model,
       max_tokens: input.maxTokens ?? 4096,
       messages: [
         // **変わらない前置きを先頭に置く。** ここまでが使い回される

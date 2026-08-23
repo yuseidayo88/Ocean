@@ -179,6 +179,21 @@ RLS の with check は `account_id = private.current_account_id()` のままな�
 `GET https://openrouter.ai/api/v1/models` でモデルの slug
 （`anthropic/claude-opus-5` の綴り）／ プロンプトキャッシュの透過 ／ `usage` の中身。
 
+### 無料モデルでテストする
+
+`OPENROUTER_MODEL_DEEP` / `_STANDARD` / `_FAST` に `:free` の slug を入れると、
+**コードを触らずに**その階層だけ差し替わる（`lib/ai/openrouter.ts`）。
+
+1. 候補は **無料 × 道具対応** で絞る:
+   https://openrouter.ai/models?max_price=0&supported_parameters=tools
+   （統括AIは1往復で道具を5つ呼ぶ。**tools 非対応のモデルだと計画が1つも返らない**）
+2. https://openrouter.ai/settings/privacy で無料エンドポイントを有効にする
+   （無料モデルは**入力が学習に使われうる**。テストの文面だけにする）
+3. 無料枠はおよそ 20リクエスト/分・50リクエスト/日（$10 入金で 1,000/日）
+
+無料モデルは賢さが足りず「統括AIが入れ物を決めませんでした」で止まることがある。
+それは**モデルの限界で、コードの穴ではない**（配線の確認までが無料枠の仕事）。
+
 ## デプロイ
 
 ```bash
