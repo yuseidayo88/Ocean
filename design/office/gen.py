@@ -1337,6 +1337,7 @@ ICONS = {
   'plus': '<path d="M12 5.5v13M5.5 12h13"/>',
   # 選ぶ道具。Figma と同じ「左上を向いた矢印」
   'cursor': '<path d="M6.5 3.6 18 12.2l-5.1.5-1.2 5z" stroke-linejoin="round"/>',
+  'down': '<path d="m6 9.5 6 6 6-6"/>',
 }
 
 def icon(n, c=T4, size=14, w=1.5):
@@ -1994,11 +1995,27 @@ print('Workflow ok')
 #  5. ミニマップは**中身が窓より大きいときだけ**出す（いまは全部入っているので出さない）
 
 CW3, NH3 = 200, 66
-COL3 = [40, 300, 560, 820]
+COL3 = [56, 316, 576, 836]
 CHW, CHH = 190, 46
+# Work ごとの塊。**枠は付けず、ごく薄い面だけ**で束ねる（参考: StackAI / n8n のグループ）。
+# 行そのものが押せる（その Work へ飛ぶ）ので、面を持ってよい
+GRP = 'rgba(255,255,255,0.016)'
 
 def chip(x, y, title, sub, kind):
     return node(x, y, CHW, title, sub, kind, h=CHH)
+
+def group(x0, y0, x1, y1, name):
+    return ('<div style="position:absolute;left:%dpx;top:%dpx;width:%dpx;height:%dpx;'
+            'border-radius:18px;background:%s"></div>'
+            '<div style="position:absolute;left:%dpx;top:%dpx;color:%s;font-size:12.5px;'
+            'white-space:nowrap">%s</div>' % (x0, y0, x1 - x0, y1 - y0, GRP, x0 + 20, y0 + 12, T3, name))
+
+def pbar(x, y, w, pct, color=T2):
+    """いまのフェーズの進み。**数字では書かない**（幅そのものが言っている）"""
+    return ('<div style="position:absolute;left:%dpx;top:%.1fpx;width:%dpx;height:3px;'
+            'background:#1A1A1A;border-radius:2px;overflow:hidden">'
+            '<div style="width:%s%%;height:100%%;background:%s;border-radius:2px"></div></div>'
+            % (x + 13, y + NH3 - 5.5, w - 26, pct, color))
 
 def crew(x, y, w, h, keys):
     """そのフェーズに**いま誰がいるか**。⊕ で足すものではないので、粒をそのまま置く"""
@@ -2010,75 +2027,78 @@ def crew(x, y, w, h, keys):
 
 def workflow2():
     gw, gh = 1180, 782
-    R1, R2, R3 = 110, 330, 500
+    R1, R2, R3 = 104, 354, 520
     cy = lambda y: y + NH3 / 2
     g = ['<svg width="%d" height="%d" viewBox="0 0 %d %d" style="position:absolute;inset:0">' % (gw, gh, gw, gh)]
-    def bez(x1, y1, x2, y2, dash=False, c1=None, c2=None):
-        a = c1 or (x1 + 30, y1)
-        b = c2 or (x2 - 30, y2)
-        return ('<path d="M %.1f %.1f C %.1f %.1f, %.1f %.1f, %.1f %.1f" fill="none" stroke="#282828" '
-                'stroke-width="1.3"%s/>' % (x1, y1, a[0], a[1], b[0], b[1], x2, y2,
+    def bez(x1, y1, x2, y2, dash=False, c1=None, c2=None, col='#282828'):
+        p1 = c1 or (x1 + 30, y1)
+        p2 = c2 or (x2 - 30, y2)
+        return ('<path d="M %.1f %.1f C %.1f %.1f, %.1f %.1f, %.1f %.1f" fill="none" stroke="%s" '
+                'stroke-width="1.3"%s/>' % (x1, y1, p1[0], p1[1], p2[0], p2[1], x2, y2, col,
                                             ' stroke-dasharray="4 4"' if dash else ''))
     ROWS = [
-      (R1, '日本語学習サービス', 0,
-       [('調査', 'フェーズ 1 · 完了', 'done'), ('戦略', 'フェーズ 2 · 実行中 32%', 'now'),
+      (R1, '日本語学習サービス', 0, 32,
+       [('調査', 'フェーズ 1 · 完了', 'done'), ('戦略', 'フェーズ 2 · 実行中', 'now'),
         ('プロダクト', 'フェーズ 3 · 待機', 'wait'), ('ローンチ', 'フェーズ 4 · 待機', 'wait')]),
-      (R2, 'SNS運用の立ち上げ', 1,
+      (R2, 'SNS運用の立ち上げ', 1, 46,
        [('準備', 'フェーズ 1 · 完了', 'done'),
         ('運用設計', 'フェーズ 2 · 実行中 <span style="color:%s">遅れ 2日</span>' % RED_T, 'now'),
         ('運用', 'フェーズ 3 · 待機', 'wait')]),
-      (R3, 'LPと申込フォーム', 1,
-       [('設計', 'フェーズ 1 · 完了', 'done'), ('制作', 'フェーズ 2 · 実行中 61%', 'now'),
+      (R3, 'LPと申込フォーム', 1, 61,
+       [('設計', 'フェーズ 1 · 完了', 'done'), ('制作', 'フェーズ 2 · 実行中', 'now'),
         ('公開', 'フェーズ 3 · 待機', 'wait')]),
     ]
-    # 背骨の線
-    for y, name, off, ph in ROWS:
+    # 塊（Work）。中身より先に敷く
+    h = group(36, 70, 1056, 270, '日本語学習サービス')
+    h += group(296, 320, 1056, 436, 'SNS運用の立ち上げ')
+    h += group(296, 486, 1056, 672, 'LPと申込フォーム')
+
+    # 線も**済んだところは明るく、これからは点線**。ノードの色帯と同じ読み方
+    for y, name, off, pct, ph in ROWS:
         for i in range(len(ph) - 1):
-            g.append(bez(COL3[off + i] + CW3, cy(y), COL3[off + i + 1], cy(y)))
-    # 枝分かれ。**生まれたフェーズの位置から始める**ので、左→右の向きは壊れない。
-    # 統括AI からは始めない — Work のはじまりは、その Work の最初のフェーズ
-    for y, c in ((R2, 252), (R3, 244)):
+            done = ph[i][2] in ('done',) and ph[i + 1][2] in ('done', 'now')
+            g.append(bez(COL3[off + i] + CW3, cy(y), COL3[off + i + 1], cy(y),
+                         dash=(ph[i + 1][2] == 'wait'), col='#3A3A3A' if done else '#242424'))
+    # 枝分かれ。生まれたフェーズの位置から始めるので、左→右の向きは壊れない
+    for y, c in ((R2, 250), (R3, 242)):
         g.append(bez(COL3[1] + 26, R1 + NH3, COL3[1] - 9, cy(y), True,
                      (c, R1 + NH3 + 70), (c, cy(y) - 60)))
     # 成果物と判断は、属するフェーズの下にぶら下げる
-    for px, py, cxs, ty in [(COL3[1], R1, [COL3[1], COL3[1] + CHW + 12], 214),
-                            (COL3[1] + 0, R3, [], 0)]:
-        for c in cxs:
-            g.append(bez(px + CW3 / 2, py + NH3, c + CHW / 2, ty, False,
-                         (px + CW3 / 2, py + NH3 + 22), (c + CHW / 2, ty - 22)))
-    g.append(bez(COL3[2] + CW3 / 2, R3 + NH3, COL3[2] + CW3 / 2, 592, False,
-                 (COL3[2] + CW3 / 2, R3 + NH3 + 16), (COL3[2] + CW3 / 2, 576)))
+    for c in (COL3[1], COL3[1] + CHW + 12):
+        g.append(bez(COL3[1] + CW3 / 2, R1 + NH3, c + CHW / 2, 208, False,
+                     (COL3[1] + CW3 / 2, R1 + NH3 + 20), (c + CHW / 2, 188)))
+    g.append(bez(COL3[2] + CW3 / 2, R3 + NH3, COL3[2] + CW3 / 2, 610, False,
+                 (COL3[2] + CW3 / 2, R3 + NH3 + 16), (COL3[2] + CW3 / 2, 594)))
     g.append('</svg>')
-    h = ''.join(g)
+    h += ''.join(g)
 
-    for y, name, off, ph in ROWS:
-        h += ('<div style="position:absolute;left:%dpx;top:%dpx;color:%s;font-size:12px;'
-              'white-space:nowrap">%s</div>' % (COL3[off], y - 24, T3, name))
+    for y, name, off, pct, ph in ROWS:
         for i, (t, sb, k) in enumerate(ph):
             h += node(COL3[off + i], y, CW3, t, sb, k)
+            if k == 'now':
+                h += pbar(COL3[off + i], y, CW3, pct)
         for i in range(len(ph)):
-            if off + i:
+            if i:
                 h += port(COL3[off + i], cy(y), True)
             if i < len(ph) - 1:
                 h += port(COL3[off + i] + CW3, cy(y), True)
-    h += chip(COL3[1], 214, '収益モデル比較', '成果物 · 要確認', 'gate')
-    h += chip(COL3[1] + CHW + 12, 214, '価格モデル', '判断 · あなたの番', 'gate')
-    h += chip(COL3[2], 592, '申込フォーム', '成果物 · 実行中', 'work')
-
+    h += chip(COL3[1], 208, '収益モデル比較', '成果物 · 要確認', 'gate')
+    h += chip(COL3[1] + CHW + 12, 208, '価格モデル', '判断 · あなたの番', 'gate')
+    h += chip(COL3[2], 610, '申込フォーム', '成果物 · 実行中', 'work')
     # そのフェーズにいる社員は、ノードの右に粒で置く（⊕ で足すものではない）
     h += crew(COL3[1], R1, CW3, NH3, ['cyan', 'purple'])
     h += crew(COL3[2], R2, CW3, NH3, ['indigo'])
     h += crew(COL3[2], R3, CW3, NH3, ['green'])
-    h += elabel(252, (R1 + NH3 + cy(R2)) / 2 + 6, '新しい Work')
+    h += elabel(250, (R1 + NH3 + cy(R2)) / 2 + 4, '新しい Work')
 
-    h += ('<div style="position:absolute;left:24px;top:26px;color:%s;font-size:12px">3つの Work</div>' % T4)
     h += '<div style="position:absolute;left:0;right:0;top:18px">%s</div>' % pills('ワークフロー')
     h += ('<div style="position:absolute;left:24px;bottom:24px;display:flex;align-items:center;gap:3px;'
           'padding:5px 7px;border-radius:12px;background:#121212;border:1px solid #2A2A2A">'
           + tool('cursor', True) + tool('hand')
           + '<span style="width:1px;height:18px;background:#262626;margin:0 4px"></span>'
           + tool('minus')
-          + '<span style="color:%s;font-size:12px;padding:0 4px" class="tnum">100%%</span>' % T2
+          + '<span style="display:inline-flex;align-items:center;gap:5px;color:%s;font-size:12px;'
+            'padding:0 4px" class="tnum">100%%%s</span>' % (T2, icon('down', T5, 11))
           + tool('plus') + '</div>')
     h += composer()
     return ('<div style="position:relative;width:%dpx;height:%dpx;overflow:hidden;background:%s;'
@@ -2086,8 +2106,8 @@ def workflow2():
             '%s</div>' % (gw, gh, CANV, h))
 
 io.open(OUT + '/WorkflowAll.dc.html', 'w', encoding='utf-8').write(
-    board('会社ぜんぶ。背骨はフェーズだけ', 'ワークフロー（採用）', workflow2(), GREEN_T,
-          'Work のはじまりは、その Work の最初のフェーズ'))
+    board('Work ごとに束ねる。進みはバー、済んだ線は明るく', 'ワークフロー（採用）', workflow2(), GREEN_T,
+          '参考: StackAI / n8n のグループ · n8n の左下ツールバー'))
 print('Workflow2 ok')
 
 # ══════════════════════ canvas.json ══════════════════════
