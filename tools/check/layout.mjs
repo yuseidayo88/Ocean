@@ -9,6 +9,9 @@ const pairs = [
   ['/deliverables',        `${B}/deliverables`,        `${B}/deliverables?open=d-rev,d-mkt,d-target,d-price,d-persona&at=2`],
   ['/decisions',           `${B}/decisions`,           `${B}/decisions?open=dec-price`],
   ['/team',                `${B}/team`,                `${B}/team?open=e-research`],
+  // 統括AI と「全員に効くこと」も、社員と同じ右ペインで開く
+  ['/team?open=exec',      `${B}/team?open=exec`,      `${B}/team?open=exec`],
+  ['/team?open=all',       `${B}/team?open=all`,       `${B}/team?open=all`],
   ['/hire',                `${B}/hire`,                `${B}/hire?open=c-writer`],
   ['/skills',              `${B}/skills`,              `${B}/skills?open=${q('competitor-analysis.md')},${q('market-sizing.md')},${q('price-band.md')},${q('source-citation.md')}&at=1`],
   // 通知は右ペインを持たない（画面そのものが2列）。選び直すと右の中身が入れ替わるので、

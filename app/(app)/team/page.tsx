@@ -44,6 +44,9 @@ const line = (e: Employee): Line => ({
   lead: e.lead, can: e.can, canMore: e.canMore, model: e.model, effort: e.effort,
 });
 
+/** 全員に効くことを開いているときの id */
+const ALL = 'all';
+
 const EXEC_LINE: Line = {
   id: EXEC.id, name: EXEC.name, en: EXEC.en, state: EXEC.state, color: EXEC.color, seed: 5,
   lead: EXEC.lead, can: EXEC.can, canMore: EXEC.canMore, model: EXEC.model, effort: EXEC.effort,
@@ -53,13 +56,15 @@ export default function TeamPage() {
   // 右は閉じた状態から始まる。行か歯車を押すと、その1人ぶんだけ開く
   const [openId, setOpenId] = useOpen();
   const sel = EMPLOYEES.find((e) => e.id === openId) ?? null;
+  const execOn = openId === EXEC.id;
+  const allOn = openId === ALL;
   const gate = EMPLOYEES.find((e) => e.state === '要確認') ?? null;
   const { say5 } = useShell();
 
   return (
     <>
       <Centre>
-        <TopBar title="メンバー" onPanel={() => setOpenId(EMPLOYEES[0].id)} panelOn={!!openId} />
+        <TopBar title="メンバー" onPanel={() => setOpenId(EXEC.id)} panelOn={!!openId} />
 
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: `18px 30px ${COMPOSER_H}px` }}>
           {/* 答えを先に1行。数えるのは放っておけないものだけ */}
@@ -80,7 +85,7 @@ export default function TeamPage() {
           </div>
 
           {/* 統括AI は社員より上。設定はできるが、止めることも外すこともできない */}
-          <Row l={EXEC_LINE} top />
+          <Row l={EXEC_LINE} top on={openId === EXEC.id} onOpen={() => setOpenId(EXEC.id)} />
           <div style={{ height: 1, background: '#262626' }} />
 
           {EMPLOYEES.map((e, i) => (
@@ -95,12 +100,12 @@ export default function TeamPage() {
               {SKILLS.filter((s) => s.scope === 'company').map((s) => s.name).join(' · ')} · {RULES[0]}
             </span>
             <div style={{ flex: 1 }} />
-            <Link href="/skills" className="icob" aria-label="全員に効くスキルとルール" style={{
+            <button onClick={() => setOpenId(ALL)} className="icob" aria-label="全員に効くスキルとルール" style={{
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               width: 26, height: 26, borderRadius: 8, flexShrink: 0,
             }}>
               <Icon name="gear" color={T4} size={16} width={1.2} />
-            </Link>
+            </button>
           </div>
 
           {/* 統括AIからの提案。無ければこの行ごと出さない。「あとで」は置かない */}
@@ -126,7 +131,13 @@ export default function TeamPage() {
         <Composer placeholder="統括AIに聞く" />
       </Centre>
 
-      {sel && <SettingsPane e={sel} onClose={() => setOpenId(null)} />}
+      {/* **右ペインは1枚。** 社員も統括AIも全員も、同じ器で開く */}
+      {(sel || execOn || allOn) && (
+        <SettingsPane
+          who={allOn ? 'all' : execOn ? 'exec' : 'employee'}
+          e={sel}
+          onClose={() => setOpenId(null)} />
+      )}
     </>
   );
 }
@@ -173,22 +184,14 @@ function Row({ l, on, onOpen, top }: { l: Line; on?: boolean; onOpen?: () => voi
               <ModelInline value={l.model} models={MODELS} />
               <EffortInline value={l.effort} words={EFFORT_WORDS} />
             </div>
-            {onOpen ? (
-              <button className="icob" aria-label={`${l.name}の設定`}
-                onClick={(e) => { e.stopPropagation(); onOpen(); }} style={{
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  width: 26, height: 26, borderRadius: 8, flexShrink: 0, marginTop: -1,
-                }}>
-                <Icon name="gear" color={T4} size={16} width={1.2} />
-              </button>
-            ) : (
-              <Link href="/skills" className="icob" aria-label="統括AIの設定" style={{
+            {/* 歯車 ＝ その社員の設定。**右ペインで開く**（画面ごと移動しない） */}
+            <button className="icob" aria-label={`${l.name}の設定`}
+              onClick={(e) => { e.stopPropagation(); onOpen?.(); }} style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 width: 26, height: 26, borderRadius: 8, flexShrink: 0, marginTop: -1,
               }}>
-                <Icon name="gear" color={T4} size={16} width={1.2} />
-              </Link>
-            )}
+              <Icon name="gear" color={T4} size={16} width={1.2} />
+            </button>
           </div>
         </div>
       </div>
@@ -220,35 +223,59 @@ function StateMark({ state }: { state: string }) {
   );
 }
 
-/** AI社員の設定。**保存ボタンを置かない**（切り替えたその場で効く）。道具は社長に触らせない */
-function SettingsPane({ e, onClose }: { e: Employee; onClose: () => void }) {
+/**
+ * 設定のペイン。**社員も統括AIも「全員に効くこと」も、同じ器で開く。**
+ * 右は1枚しかないので、器を分けると同じものを3つ作ることになる。
+ *
+ * 違うのは3つだけ —
+ *   ・統括AI は**止められない**（会社に1人しかいない）
+ *   ・全員に効くことは**人ではない**ので、モデルも深さも一時停止も持たない
+ *   ・スキルは「この社員の」と「会社ぜんぶの」に分かれる（`employee_id` が null なら共通）
+ *
+ * **保存ボタンを置かない**（切り替えたその場で効く）。道具は社長に触らせない。
+ */
+function SettingsPane({ who, e, onClose }:
+  { who: 'employee' | 'exec' | 'all'; e: Employee | null; onClose: () => void }) {
   const mine = SKILLS.filter((s) => s.scope === 'employee');
   const shared = SKILLS.filter((s) => s.scope === 'company');
-  const all = [...mine, ...shared];
+  // 全員に効くことを見ているときは、会社ぜんぶのスキルだけ
+  const skills = who === 'all' ? shared : [...mine, ...shared];
+  const title = who === 'all' ? '全員に効くこと' : who === 'exec' ? '統括AIの設定' : 'AI社員の設定';
+
   return (
-    <Pane width={430} icon="gear" title="AI社員の設定" onClose={onClose}>
+    <Pane width={430} icon="gear" title={title} onClose={onClose}>
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 18px 24px', display: 'flex', flexDirection: 'column', gap: 26 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
-          <Orb color={AGENT_COLOR[e.color]} size={44} seed={e.name.length * 7 + 3} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
-              <span style={{ fontSize: 15 }}>{e.name}</span>
-              <span style={{ color: '#454545', fontSize: 11 }}>{e.en}</span>
+        {who !== 'all' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
+            <Orb color={who === 'exec' ? EXEC.color : AGENT_COLOR[e!.color]} size={44}
+                 seed={who === 'exec' ? 5 : e!.name.length * 7 + 3} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
+                <span style={{ fontSize: 15 }}>{who === 'exec' ? EXEC.name : e!.name}</span>
+                <span style={{ color: '#454545', fontSize: 11 }}>{who === 'exec' ? EXEC.en : e!.en}</span>
+              </div>
+              <span style={{ color: T5, fontSize: 11.5 }}>
+                {who === 'exec' ? '会社に1人。止めることも外すこともできません' : `${e!.role} · ${e!.since}から在籍`}
+              </span>
             </div>
-            <span style={{ color: T5, fontSize: 11.5 }}>{e.role} · {e.since}から在籍</span>
           </div>
-        </div>
+        )}
+        {who === 'all' && (
+          <span style={{ color: T3, fontSize: 13, lineHeight: '21px' }}>
+            ここに入れたものは、統括AIと全部のAI社員に効きます。
+          </span>
+        )}
 
         {/* 面に出さないのはこの2つ。行には「できること」だけ出す */}
-        <Section label="スキル" right={
+        <Section label={who === 'all' ? '会社ぜんぶのスキル' : 'スキル'} right={
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: T4, fontSize: 12 }}>
             <Icon name="plus" color={T4} size={12} />追加
           </span>
         }>
-          {all.map((s, i) => (
+          {skills.map((s, i) => (
             <Link key={s.id} href={openHref('/skills', s.file)} className="row" style={{
               display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0',
-              borderBottom: i === all.length - 1 ? undefined : '1px solid #161616',
+              borderBottom: i === skills.length - 1 ? undefined : '1px solid #161616',
             }}>
               <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</span>
@@ -278,32 +305,37 @@ function SettingsPane({ e, onClose }: { e: Employee; onClose: () => void }) {
           ))}
         </Section>
 
-        {/* モデルと深さは行にもある。同じものをここにも置いて、どちらからでも変えられる */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <span style={{ color: T3 }}>モデル</span>
-            <div style={{ flex: 1 }} />
-            <ModelInline value={e.model} models={MODELS} />
+        {/* 人ではないものにモデルと深さは無い */}
+        {who !== 'all' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <span style={{ color: T3 }}>モデル</span>
+              <div style={{ flex: 1 }} />
+              <ModelInline value={who === 'exec' ? EXEC.model : e!.model} models={MODELS} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <span style={{ color: T3 }}>思考の深さ</span>
+              <div style={{ flex: 1 }} />
+              <EffortInline value={who === 'exec' ? EXEC.effort : e!.effort} words={EFFORT_WORDS} />
+            </div>
+            <span style={{ color: T5, fontSize: 11.5 }}>
+              深さは選んだモデルの中でどれだけ考えるか。モデルは変わりません
+            </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <span style={{ color: T3 }}>思考の深さ</span>
-            <div style={{ flex: 1 }} />
-            <EffortInline value={e.effort} words={EFFORT_WORDS} />
-          </div>
-          <span style={{ color: T5, fontSize: 11.5 }}>
-            深さは選んだモデルの中でどれだけ考えるか。モデルは変わりません
-          </span>
-        </div>
+        )}
 
-        {/* 保存ボタンは置かない。一時停止は保存ではないので最後の行に */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 2 }}>
-          <span style={{ color: T3 }}>この社員を一時停止する</span>
-          <div style={{ flex: 1 }} />
-          <span className="btn" style={{
-            display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px',
-            borderRadius: 8, border: '1px solid #2A2A2A', color: T3, fontSize: 12,
-          }}>一時停止</span>
-        </div>
+        {/* 保存ボタンは置かない。一時停止は保存ではないので最後の行に。
+            **統括AI は止められない**ので、その行ごと出さない */}
+        {who === 'employee' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 2 }}>
+            <span style={{ color: T3 }}>この社員を一時停止する</span>
+            <div style={{ flex: 1 }} />
+            <span className="btn" style={{
+              display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px',
+              borderRadius: 8, border: '1px solid #2A2A2A', color: T3, fontSize: 12,
+            }}>一時停止</span>
+          </div>
+        )}
       </div>
     </Pane>
   );
