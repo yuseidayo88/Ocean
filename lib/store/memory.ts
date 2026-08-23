@@ -1,6 +1,6 @@
 import { AGENT_COLOR, type EmployeeColor } from '@/lib/dummy';
 import { AppError } from '@/lib/errors';
-import type { DraftWork, LiveWork, Store } from './types';
+import type { DraftWork, LiveWork, RunStep, Store } from './types';
 
 /**
  * メモリの保存先。**Supabase に出られない環境（デモ・この開発環境）用。**
@@ -33,12 +33,17 @@ function live(d: DraftWork): LiveWork {
     })),
     // 担当は**統括AIが言った名前で引き当てる**（Supabase 版と同じ規則）。
     // 合わなければ先頭の社員に落とす
-    tasks: d.plan.firstPhaseTasks.map((t, i) => ({
-      id: `${d.id}-t${i + 1}`, phaseId: `${d.id}-p1`, title: t.title, intent: t.intent,
-      state: 'queued',
-      owner: d.hires.find((h) => h.displayName === t.ownerHint)?.displayName
-        ?? d.hires[0]?.displayName ?? t.ownerHint,
-    })),
+    tasks: d.plan.firstPhaseTasks.map((t, i) => {
+      const hire = d.hires.find((h) => h.displayName === t.ownerHint) ?? d.hires[0];
+      return {
+        id: `${d.id}-t${i + 1}`, phaseId: `${d.id}-p1`, title: t.title, intent: t.intent,
+        state: 'queued', progress: 0,
+        owner: hire?.displayName ?? t.ownerHint,
+        ownerSlug: hire?.definitionId,
+        ownerId: hire ? `${d.id}-e${d.hires.indexOf(hire) + 1}` : undefined,
+      };
+    }),
+    dels: [],
     crew: d.hires.map((h, i) => ({
       id: `${d.id}-e${i + 1}`, name: h.displayName, color: AGENT_COLOR[colorFor(h.definitionId, i)],
     })),
@@ -77,4 +82,82 @@ export const memoryStore: Store = {
   },
 
   async getWork(id) { return bag.get(id)?.live ?? null; },
+
+  /* ══════════════ 実行（Phase 7）══════════════
+   * Supabase 版と同じ順序で同じことをする。進捗も「歩みから写す」を守る
+   * （live の中を直接いじるのはここだけ。画面は getWork で読み直す）。
+   */
+
+  async startRun(taskId) {
+    const { live, task } = findTask(taskId);
+    task.state = 'running';
+    const runId = `run-${taskId}`;
+    runs.set(runId, { taskId, workId: live.id, steps: [] });
+    return runId;
+  },
+
+  async addStep(runId, step) {
+    const r = runs.get(runId);
+    if (!r) return;
+    r.steps.push({ ...step, at: new Date().toISOString() });
+    if (step.progress != null) {
+      const { task } = findTask(r.taskId);
+      if (task.state === 'running') task.progress = step.progress;
+    }
+  },
+
+  async finishRun(runId, res) {
+    const r = runs.get(runId);
+    if (!r) return;
+    const { task } = findTask(r.taskId);
+    if (res.status === 'done') { task.state = 'done'; task.progress = 100; }
+    else task.state = 'blocked';
+  },
+
+  async addDeliverable(d) {
+    const { live } = findTask(d.taskId);
+    (live.dels ??= []).unshift({
+      id: `del-${live.dels.length + 1}-${d.taskId}`, title: d.title, kind: d.kind,
+      state: '要確認', preview: d.body.replace(/^#.*\n/, '').slice(0, 90), body: d.body,
+      by: live.tasks.find((t) => t.id === d.taskId)?.owner, when: 'たった今', taskId: d.taskId,
+    });
+  },
+
+  async addNotification(n) { notes.push(n); },
+
+  async getSteps(taskId) {
+    return runs.get(`run-${taskId}`)?.steps ?? [];
+  },
+
+  async nextQueued(workId) {
+    const live = [...bag.values()].find((d) => d.live?.id === workId)?.live;
+    if (!live || live.tasks.some((t) => t.state === 'running')) return null;
+    const next = live.tasks.find((t) => t.state === 'queued');
+    return next ? { taskId: next.id } : null;
+  },
+
+  async markDecision(taskId, d) {
+    const { task } = findTask(taskId);
+    task.state = 'needs_decision';
+    decisions.push({ taskId, ...d });
+    notes.push({ kind: '判断待ち', body: d.question });
+  },
 };
+
+/** run と通知の置き場（メモリ版だけの裏方） */
+const g2 = globalThis as unknown as {
+  __runs?: Map<string, { taskId: string; workId: string; steps: RunStep[] }>;
+  __notes?: { kind: string; body: string }[];
+};
+const runs = (g2.__runs ??= new Map());
+const notes = (g2.__notes ??= []);
+const g3 = globalThis as unknown as { __decs?: { taskId: string; question: string; why: string; options: unknown[] }[] };
+const decisions = (g3.__decs ??= []);
+
+function findTask(taskId: string) {
+  for (const d of bag.values()) {
+    const task = d.live?.tasks.find((t) => t.id === taskId);
+    if (task && d.live) return { live: d.live, task };
+  }
+  throw new Error(`task ${taskId} not found`);
+}

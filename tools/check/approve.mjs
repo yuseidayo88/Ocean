@@ -104,9 +104,10 @@ ok('承認したら Work の画面へ行く', work === plan.replace(/\/plan$/, '
 const body = await text();
 ok('タイトルとゴールが出ている', body.includes(GOAL));
 ok('フェーズが 1 / N になっている', /フェーズ\n1 \/ [2-9]/.test(body), body.match(/フェーズ\n[^\n]*/)?.[0]);
-ok('進捗は 0%（走らせるのは Phase 7）', body.includes('進捗\n0%'));
-ok('タスクが待機で並んでいる', (body.match(/待機/g) ?? []).length >= 1);
-ok('無い成果物を作っていない', body.includes('まだありません'));
+// **承認すると本当に動きだす**（Phase 7）。0% の静止を要求しない —
+// 実行の側は run.mjs が最後まで確かめる
+ok('進捗の帯が出ている', /進捗\n\d+%/.test(body));
+ok('タスクが並んでいる', body.includes('いま動いているもの'));
 
 // ④ 右ペイン
 await ev(`[...document.querySelectorAll('button')].find(b => b.title === '右を開く')?.click()`); await wait(700);

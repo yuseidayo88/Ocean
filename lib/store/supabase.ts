@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { AGENT_COLOR, type EmployeeColor } from '@/lib/dummy';
 import { colorFor } from './memory';
 import { AppError } from '@/lib/errors';
-import type { DraftWork, LiveWork, Store } from './types';
+import type { DraftWork, LiveWork, RunStep, Store } from './types';
 
 /**
  * 本番の保存先。行は全部 RLS（`account_id = private.current_account_id()`）で絞られる。
@@ -243,9 +243,11 @@ export const supabaseStore: Store = {
       .from('works').select('id, title, goal, status, started_at, plan_draft').eq('id', id).maybeSingle();
     if (!w) return null;
 
-    const [{ data: ph }, { data: tk }] = await Promise.all([
+    const [{ data: ph }, { data: tk }, { data: dl }] = await Promise.all([
       c.from('phases').select('id, seq, name, goal, status').eq('work_id', id).order('seq'),
-      c.from('tasks').select('id, phase_id, seq, title, intent, status, assignee_employee_id, owner_hint').eq('work_id', id).order('seq'),
+      c.from('tasks').select('id, phase_id, seq, title, intent, status, progress, assignee_employee_id, owner_hint').eq('work_id', id).order('seq'),
+      c.from('deliverables').select('id, task_id, title, kind, status, preview, body, produced_by_employee_id, created_at')
+        .eq('work_id', id).order('created_at', { ascending: false }),
     ]);
 
     /**
@@ -277,9 +279,22 @@ export const supabaseStore: Store = {
       tasks: (tk ?? []).map((t) => ({
         id: t.id as string, phaseId: t.phase_id as string, title: t.title as string,
         intent: (t.intent ?? '') as string, state: t.status as string,
+        progress: (t.progress ?? 0) as number,
         owner: t.assignee_employee_id
           ? em.get(t.assignee_employee_id)?.display_name
           : ((t.owner_hint ?? undefined) as string | undefined),
+        ownerSlug: t.assignee_employee_id
+          ? (em.get(t.assignee_employee_id)?.definition_id as string | undefined)
+          : undefined,
+        ownerId: (t.assignee_employee_id ?? undefined) as string | undefined,
+      })),
+      dels: (dl ?? []).map((d) => ({
+        id: d.id as string, title: d.title as string, kind: d.kind as string,
+        state: d.status === 'review' ? '要確認' : d.status === 'approved' ? '承認済' : String(d.status),
+        preview: (d.preview ?? undefined) as string | undefined,
+        body: (d.body ?? undefined) as string | undefined,
+        by: d.produced_by_employee_id ? em.get(d.produced_by_employee_id as string)?.display_name : undefined,
+        taskId: (d.task_id ?? undefined) as string | undefined,
       })),
       crew: [...em.values()].map((e) => ({
         id: e.id, name: e.display_name,
@@ -287,5 +302,113 @@ export const supabaseStore: Store = {
       })),
       startedAt: (w.started_at ?? undefined) as string | undefined,
     };
+  },
+
+  /* ══════════════ 実行（Phase 7）══════════════
+   * 進捗はここでは書かない。**run_steps → 引き金 → tasks.progress**（0012）。
+   * service role も持たない — 全部 authenticated ＋ RLS の中で済む。
+   */
+
+  async startRun(taskId) {
+    const c = await db();
+    const { data: t } = await c.from('tasks')
+      .select('id, assignee_employee_id').eq('id', taskId).maybeSingle();
+    if (!t) throw new AppError('not_found', `task ${taskId} not found`);
+
+    const { data: run, error } = await c.from('runs')
+      .insert({ task_id: taskId, employee_id: t.assignee_employee_id, status: 'running', tier: 'standard', started_at: new Date().toISOString() })
+      .select('id').single();
+    if (error || !run) throw new AppError('unknown', error?.message ?? 'runs insert failed');
+
+    await c.from('tasks').update({ status: 'running' }).eq('id', taskId);
+    if (t.assignee_employee_id) {
+      await c.from('employees').update({ status: 'running' }).eq('id', t.assignee_employee_id);
+    }
+    return run.id as string;
+  },
+
+  async addStep(runId, step) {
+    const c = await db();
+    const { error } = await c.from('run_steps').insert({
+      run_id: runId, seq: step.seq, kind: step.kind,
+      tool_name: step.tool ?? null, summary: step.summary ?? null, progress: step.progress ?? null,
+    });
+    if (error) throw new AppError('unknown', error.message);
+  },
+
+  async finishRun(runId, r) {
+    const c = await db();
+    const { data: run } = await c.from('runs').select('task_id, employee_id').eq('id', runId).maybeSingle();
+    const { error } = await c.from('runs').update({
+      status: r.status, ended_at: new Date().toISOString(),
+      tokens_in: r.tokensIn, tokens_out: r.tokensOut, cost_cents: r.costCents,
+      error: r.error ?? null,
+    }).eq('id', runId);
+    if (error) throw new AppError('unknown', error.message);
+
+    if (run) {
+      // 失敗は blocked（→ 04-state-machines。再試行の组み立ては統括AIの仕事）
+      await c.from('tasks').update({ status: r.status === 'done' ? 'done' : 'blocked' }).eq('id', run.task_id);
+      if (run.employee_id) await c.from('employees').update({ status: 'idle' }).eq('id', run.employee_id);
+    }
+  },
+
+  async addDeliverable(d) {
+    const c = await db();
+    // preview は本文の書き出し（見出し行を飛ばして90文字）
+    const preview = d.body.replace(/^#.*\n/, '').replace(/[#*|>`-]/g, '').trim().slice(0, 90);
+    const { error } = await c.from('deliverables').insert({
+      work_id: d.workId, task_id: d.taskId, title: d.title, kind: d.kind,
+      status: 'review', preview, body: d.body, produced_by_employee_id: d.employeeId ?? null,
+    });
+    if (error) throw new AppError('unknown', error.message);
+  },
+
+  async addNotification(n) {
+    const c = await db();
+    const { error } = await c.from('notifications').insert({
+      kind: n.kind, body: n.body,
+      subject_type: n.subjectType ?? null, subject_id: n.subjectId ?? null,
+    });
+    if (error) throw new AppError('unknown', error.message);
+  },
+
+  async getSteps(taskId) {
+    const c = await db();
+    const { data: run } = await c.from('runs')
+      .select('id').eq('task_id', taskId).order('started_at', { ascending: false }).limit(1).maybeSingle();
+    if (!run) return [];
+    const { data } = await c.from('run_steps')
+      .select('seq, kind, tool_name, summary, progress, created_at').eq('run_id', run.id).order('seq');
+    return (data ?? []).map((s): RunStep => ({
+      seq: s.seq as number, kind: s.kind as RunStep['kind'],
+      tool: (s.tool_name ?? undefined) as string | undefined,
+      summary: (s.summary ?? undefined) as string | undefined,
+      progress: (s.progress ?? undefined) as number | undefined,
+      at: s.created_at as string,
+    }));
+  },
+
+  async nextQueued(workId) {
+    const c = await db();
+    const { data: tk } = await c.from('tasks')
+      .select('id, status, seq').eq('work_id', workId).in('status', ['queued', 'running']).order('seq');
+    if (!tk?.length || tk.some((t) => t.status === 'running')) return null;
+    return { taskId: tk[0].id as string };
+  },
+
+  async markDecision(taskId, d) {
+    const c = await db();
+    const { data: t } = await c.from('tasks').select('id, work_id, title').eq('id', taskId).maybeSingle();
+    if (!t) throw new AppError('not_found', `task ${taskId} not found`);
+    await c.from('tasks').update({ status: 'needs_decision' }).eq('id', taskId);
+    const { error } = await c.from('decisions').insert({
+      work_id: t.work_id, task_id: taskId, question: d.question,
+      options: d.options as never, status: 'open', rationale: d.why || null,
+    });
+    if (error) throw new AppError('unknown', error.message);
+    await c.from('notifications').insert({
+      kind: '判断待ち', subject_type: 'task', subject_id: taskId, body: d.question,
+    });
   },
 };

@@ -18,6 +18,12 @@ export class FakeProvider implements ModelProvider {
     const goal = lastUser(input);
     const want = new Set((input.tools ?? []).map((t) => t.name));
 
+    // ══ AI社員の実行（Phase 7）══ 統括AIの道具が無く log_step があるときはこちら
+    if (!want.has('decide_container') && want.has('log_step')) {
+      yield* fakeRun(input);
+      return;
+    }
+
     if (want.has('decide_container')) {
       yield tool('decide_container', container(goal));
     }
@@ -37,6 +43,45 @@ export class FakeProvider implements ModelProvider {
 let n = 0;
 const tool = (name: string, inputValue: unknown): Chunk =>
   ({ type: 'tool_use', id: `fake-${++n}`, name, input: inputValue });
+
+/**
+ * AI社員の1タスク（決め打ち）。**本物と同じ4道具・同じ順**で返すので、
+ * runner のパース・DB書き込み・通知・進捗導出の穴はこれで見つかる。
+ * 歩みのあいだに少し待つ — 画面のポーリングが「流れて見える」ことまで確かめられる。
+ */
+async function* fakeRun(input: RunInput): AsyncIterable<Chunk> {
+  const text = [...input.messages].reverse().find((m) => m.role === 'user')?.content ?? '';
+  const task = text.match(/あなたのタスク: (.+)/)?.[1]?.trim() ?? '作業';
+  const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  const steps: [string, number][] = [
+    [`${task} の段取りを決めた`, 15],
+    ['材料を集めて表に並べた', 45],
+    ['抜けている前提を「要確認」に振り分けた', 75],
+  ];
+  for (const [title, progress] of steps) {
+    yield tool('log_step', { title, progress });
+    await wait(900);
+  }
+  yield tool('write_deliverable', {
+    title: task.slice(0, 18), kind: 'report',
+    body: [
+      `# ${task}`,
+      '',
+      '> これは**決め打ちの成果物**です。モデルの鍵が無い環境で、実行の通り道を確かめるためのもの。',
+      '',
+      '## 分かったこと',
+      '- 材料を3つの束に分けた（事実 / 推計 / 要確認）',
+      '- 推計には前提を並べた。前提が2割ずれると結論も変わる',
+      '',
+      '## 要確認',
+      '- 1件、確かめられなかった項目がある。次の判断の前に見てほしい',
+    ].join('\n'),
+  });
+  await wait(400);
+  yield tool('finish', { summary: `${task} を終えた。成果物1件、要確認1件` });
+  yield { type: 'done', usage: { ...EMPTY_USAGE }, stopReason: 'tool_use' };
+}
 
 /**
  * ゴールだけ取り出す。**プロンプト全文を読まない** —

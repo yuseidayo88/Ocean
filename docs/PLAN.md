@@ -37,7 +37,7 @@
 | **4** | 画面の骨組み | ✅ 完了 | ダミーデータで23画面が触れる |
 | **5** | Work の作成 | ✅ 完了 | ゴール入力 → 質問 → 採用提案 → 計画（**Case A のみ**。B / D は画面だけ） |
 | **6** | 計画の承認 | ✅ 完了 | 承認 → `active` / 引き直し / Work 画面が本物を読む |
-| **7** | モデル実行基盤 | 未着手 | AI社員が実際にモデルを呼んで動く |
+| **7** | モデル実行基盤 | ✅ 完了 | AI社員が1タスクを最後まで走る（ポンプ方式・進捗はDBが導出） |
 | **8** | 調査ワークフロー | 未着手 | **最初の成果物が出る**（ここが山場） |
 | **9** | 判断と受け渡し | 未着手 | 決定 → 次の社員へ渡る |
 | **10** | 社員を増やす | 未着手 | 2体目・3体目、Work種別による分岐 |
@@ -116,6 +116,8 @@ Phase 0〜6 を通しで見直して、**17件**直しました。**`npm run lin
 | やること | `AgentRunner`（Durable Object の中で1ターンずつ回す）／ `ModelProvider`（2社を吸収）／ 階層（`deep` / `standard` / `fast`）／ 社員の Skills と Rules を文脈に入れる ／ 実行ログとトークン計上 |
 | 完了条件 | 1タスクが最後まで走り、`run_steps` が画面にリアルタイムで流れる |
 | 参照 | [02 実行モデル](./design/02-executive-model.md) / [05 技術構成](./design/05-tech-and-cost.md) |
+| やったこと | `lib/run/`（道具4つ: log_step / write_deliverable / ask_decision / finish）／ `lib/roster/`（7人の定義文）／ Store に実行の口（memory / supabase 同型）／ **ポンプ方式** — Work 画面を開いているあいだ、次の queued が順に走る（DO もキューも無い環境で死なない。見ていない間に料金だけ増えない）／ 進捗は `run_steps` → 引き金 → `tasks.progress` の導出（0012。アプリは直接書けない）／ 成果物の本文は `deliverables.body`（R2 に出られるまでの置き場） |
+| DO はまだ | Durable Object / WebSocket 押し出しは Cloudflare に出るとき（`CLOUDFLARE_API_TOKEN` 待ち）。それまでは 2.5秒のポーリング |
 
 ## Phase 8 — 調査ワークフロー　← 最初の山場
 

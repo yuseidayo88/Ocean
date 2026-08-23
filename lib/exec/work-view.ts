@@ -1,6 +1,6 @@
 import {
   AGENT_COLOR, DELIVERABLES, TASKS, WORK_DECISIONS, employee,
-  type Deliverable, type Work,
+  type Work,
 } from '@/lib/dummy';
 import type { LiveWork } from '@/lib/store/types';
 
@@ -30,6 +30,15 @@ export type WorkTask = {
 
 export type WorkCrew = { id?: string; name: string; color: string; dim?: boolean; tasks: number };
 
+/** 成果物の1行。**ダミーも本物も同じ形**（by は名前で持つ。id 引きは器の外でしない） */
+export type WorkDel = {
+  id: string; title: string; byName: string; when?: string; state: string;
+  /** 実際の書き出し（本物）。ダミーは図形のサムネイルで代用 */
+  preview?: string;
+  /** 本文（markdown）。右ペインで開く */
+  body?: string;
+};
+
 export type WorkView = {
   title: string; goal: string;
   progress: number;
@@ -42,8 +51,12 @@ export type WorkView = {
   rest?: string; endDate?: string;
   phases: WorkPhase[];
   tasks: WorkTask[];
-  dels: Deliverable[];
+  dels: WorkDel[];
   decs: [string, string][];
+  /** 本物か。本物なら画面がポーリングして、タスクの行が右ペインを開く */
+  live?: boolean;
+  /** まだ走るものがあるか（ポンプを回すかの判定） */
+  active?: boolean;
   crew: WorkCrew[];
   /** 右ペインの「最新の状況」。**まだ何も起きていないなら、そう書く** */
   lead: string;
@@ -67,7 +80,9 @@ export function fromDummy(w: Work): WorkView {
       owner: t.owner === 'me' ? 'あなた' : employee(t.owner).name, mine: t.owner === 'me',
       state: t.state, progress: t.progress,
     })),
-    dels: DELIVERABLES.filter((d) => d.workId === w.id).slice(0, 4),
+    dels: DELIVERABLES.filter((d) => d.workId === w.id).slice(0, 4).map((d) => ({
+      id: d.id, title: d.title, byName: employee(d.by).name, when: d.when, state: d.state,
+    })),
     decs: WORK_DECISIONS[w.id] ?? [],
     crew: w.crew.map((c) => ({
       id: c.id, name: employee(c.id).name, color: AGENT_COLOR[employee(c.id).color], dim: c.dim,
@@ -88,8 +103,7 @@ const WORD: Record<string, string> = {
 
 /**
  * 承認して動きだした本物 → 画面の形。
- * **進捗は 0 のまま。** タスクはまだ `queued` で、走らせるのは Phase 7。
- * ここで見せかけの数字を入れると、画面とバックエンドがずれる。
+ * 進捗は run_steps から導出された `tasks.progress` をそのまま写す（→ 0012）。
  */
 export function fromLive(w: LiveWork): WorkView {
   const done = (id: string) => w.tasks.filter((t) => t.phaseId === id && t.state === 'done').length;
@@ -109,17 +123,36 @@ export function fromLive(w: LiveWork): WorkView {
     })),
     tasks: w.tasks.filter((t) => t.state !== 'done' && t.state !== 'cancelled').map((t) => ({
       id: t.id, title: t.title, phase: seq.get(t.phaseId) ?? 0,
-      owner: t.owner ?? '担当は未定', state: WORD[t.state] ?? t.state, progress: 0,
+      owner: t.owner ?? '担当は未定', state: WORD[t.state] ?? t.state,
+      progress: t.progress ?? 0,
     })),
-    dels: [],
+    dels: (w.dels ?? []).map((d) => ({
+      id: d.id, title: d.title, byName: d.by ?? 'AI社員', when: d.when, state: d.state,
+      preview: d.preview, body: d.body,
+    })),
     decs: [],
+    live: true,
+    active: w.status === 'active' && w.tasks.some((t) => t.state === 'queued' || t.state === 'running'),
     crew: w.crew.map((c) => ({
       id: c.id, name: c.name, color: c.color,
       tasks: w.tasks.filter((t) => t.owner === c.name && t.state !== 'done').length,
     })),
-    // **まだ何も起きていない。** そう書く
-    lead: w.status === 'active'
-      ? `「${w.phases[nowIdx]?.name ?? ''}」を始めました。タスクは並んでいますが、AI社員はまだ動いていません（実行は Phase 7）。`
-      : 'まだ始まっていません。',
+    lead: lead(w, nowIdx),
   };
+}
+
+/** 右ペインの「最新の状況」。**起きていることだけを言う** */
+function lead(w: LiveWork, nowIdx: number): string {
+  const phase = w.phases[nowIdx]?.name ?? '';
+  const running = w.tasks.find((t) => t.state === 'running');
+  const deciding = w.tasks.find((t) => t.state === 'needs_decision');
+  const blocked = w.tasks.find((t) => t.state === 'blocked');
+  if (w.status !== 'active') return 'まだ始まっていません。';
+  if (deciding) return `「${deciding.title}」で判断を待っています。決まれば続きが動きます。`;
+  if (blocked) return `「${blocked.title}」が止まっています。通知から見てください。`;
+  if (running) return `「${phase}」を進めています。いまは ${running.owner ?? 'AI社員'} が「${running.title}」の途中です。`;
+  if (w.tasks.some((t) => t.state === 'queued')) return `「${phase}」のタスクが並んでいます。画面を開いているあいだ、順に動きます。`;
+  if (w.tasks.length && w.tasks.every((t) => t.state === 'done' || t.state === 'cancelled'))
+    return `「${phase}」のタスクが終わりました。成果物を見てください。`;
+  return `「${phase}」を進めています。`;
 }

@@ -8,11 +8,13 @@ import { notFound, useParams } from 'next/navigation';
 import { Centre, Composer, Pane, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Diamond, Dot, Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
-import { WORKS, employee } from '@/lib/dummy';
+import { WORKS } from '@/lib/dummy';
 import { AMBER_T, COMPOSER_H, DIM, FAINT, GREEN, GREEN_T, HAIR, MUTE, RAIL, RED, RED_T, SUNK, T1, T2, T3, T4, T5, WELL } from '@/lib/design/tokens';
 import { fromDummy, fromLive, type WorkView } from '@/lib/exec/work-view';
 import { getWork } from '@/app/actions/work';
-import { useEffect, useState } from 'react';
+import { pumpWork, taskSteps } from '@/app/actions/run';
+import type { RunStep } from '@/lib/store';
+import { useEffect, useRef, useState } from 'react';
 
 /**
  * Work＝会話を持たない。一目で状況が分かる1枚（参考: Upwork / Squarespace / Linear）。
@@ -49,6 +51,72 @@ const Sub = ({ children }: { children: React.ReactNode }) => (
 const Empty = ({ children }: { children: React.ReactNode }) => (
   <span style={{ color: T5, fontSize: 12.5, lineHeight: '20px' }}>{children}</span>
 );
+/**
+ * 一覧の1行。**本物なら右ペインを開き、ダミーなら別画面へ**。
+ * 「押した結果がその画面の中で起きるなら、飛ばすほうが答えていない」（→ 09-navigation）。
+ */
+function Row({ live, onOpen, href, style, children }: {
+  live: boolean; onOpen: () => void; href: Parameters<typeof Link>[0]['href'];
+  style: React.CSSProperties; children: React.ReactNode;
+}) {
+  if (!live) return <Link href={href} className="row" style={style}>{children}</Link>;
+  return (
+    <button onClick={onOpen} className="row" style={{ ...style, width: '100%', textAlign: 'left' }}>
+      {children}
+    </button>
+  );
+}
+
+/**
+ * タスクの歩み（右ペイン）。**開いているあいだだけ**2秒ごとに読み直す。
+ * 実行中は最後の行が動き続けるので、流れて見える。
+ */
+function StepsPane({ taskId, running }: { taskId: string; running: boolean }) {
+  const [steps, setSteps] = useState<RunStep[]>([]);
+  useEffect(() => {
+    let on = true;
+    const load = () => taskSteps(taskId).then((r) => { if (on) setSteps(r); });
+    load();
+    if (!running) return () => { on = false; };
+    const h = window.setInterval(load, 2000);
+    return () => { on = false; window.clearInterval(h); };
+  }, [taskId, running]);
+
+  if (!steps.length) {
+    return (
+      <span style={{ color: T5, fontSize: 12.5, lineHeight: '20px' }}>
+        まだ動いていません。順番が来ると、ここに歩みが流れます。
+      </span>
+    );
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {steps.map((st, i) => {
+        const last = i === steps.length - 1;
+        return (
+          <div key={st.seq} style={{
+            display: 'flex', alignItems: 'baseline', gap: 10, padding: '8px 0',
+            borderBottom: last ? undefined : `1px solid ${HAIR}`,
+          }}>
+            <span style={{ width: 8, flexShrink: 0, display: 'inline-flex', alignSelf: 'center' }}>
+              {last && running
+                ? <span style={{ width: 7, height: 7, borderRadius: 999, background: GREEN_T,
+                                 animation: 'pulse 1.6s ease-in-out infinite' }} />
+                : <Dot color={DIM} size={5} />}
+            </span>
+            <span style={{ flex: 1, minWidth: 0, color: last && running ? T1 : T2, fontSize: 12.5, lineHeight: '19px' }}>
+              {st.summary}
+            </span>
+            {st.progress != null && (
+              <span style={{ color: T5, fontSize: 11, flexShrink: 0 }} className="tnum">{st.progress}%</span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 /** フェーズの状態は行の先頭の印で言う（状態の列は置かない） */
 const PhaseMark = ({ state }: { state: 'done' | 'now' | 'next' }) => {
   if (state === 'done') return <Icon name="check" color={GREEN_T} size={13} width={2.2} />;
@@ -77,6 +145,33 @@ export default function WorkPage() {
     return () => { on = false; };
   }, [id, dummy]);
 
+  /**
+   * **画面を開いているあいだ、会社が動く**（Phase 7 のポンプ）。
+   * 2.5秒ごとに読み直し、走っているタスクが無ければ次の queued を1つ起こす。
+   * ポンプはタスクが終わるまで返ってこないので、二重に起こさない旗を持つ。
+   * 閉じれば止まる — 見ていないところで料金だけ増える、が起きない。
+   */
+  const pumping = useRef(false);
+  const activeNow = useRef(false);
+  useEffect(() => {
+    if (dummy) return;
+    const tick = async () => {
+      if (document.hidden) return;
+      const r = await getWork(id);
+      if (r) { const v = fromLive(r); setW(v); activeNow.current = !!v.active; }
+      if (activeNow.current && !pumping.current) {
+        pumping.current = true;
+        pumpWork(id).finally(() => {
+          pumping.current = false;
+          getWork(id).then((r2) => r2 && setW(fromLive(r2)));
+        });
+      }
+    };
+    tick();
+    const h = window.setInterval(tick, 2500);
+    return () => window.clearInterval(h);
+  }, [id, dummy]);
+
   if (gone) notFound();
   // 取りに行っているあいだ。**形だけ出して、数字は出さない**
   if (!w) return <Centre><TopBar crumb="Work" title="読み込み中" /><div style={{ flex: 1 }} /></Centre>;
@@ -85,11 +180,14 @@ export default function WorkPage() {
   const dels = w.dels;
   const decs = w.decs;
   const late = w.late !== undefined;
+  // 右は1枚だけ。openId が指す1件（タスクか成果物か、この Work の説明か）
+  const openTask = w.live && openId && openId !== 'about' ? w.tasks.find((t) => t.id === openId) : undefined;
+  const openDel = w.live && openId && openId !== 'about' && !openTask ? w.dels.find((d) => d.id === openId) : undefined;
 
   return (
     <>
       <Centre>
-        <TopBar crumb="Work" title={w.title} onPanel={() => setPane(true)} panelOn={pane} right={
+        <TopBar crumb="Work" title={w.title} onPanel={() => setPane(true)} panelOn={!!openId} right={
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
             <Dot color={late ? `${RED}` : GREEN} size={7} />
             <span style={{ color: late ? RED_T : GREEN_T, fontSize: 12 }}>
@@ -161,7 +259,7 @@ export default function WorkPage() {
             <span style={{ color: T3, display: 'block', paddingBottom: 8 }}>いま動いているもの</span>
             {live.length === 0 && <Empty>まだありません。</Empty>}
             {live.map((t, i) => (
-              <Link key={t.id} href={openHref('/tasks', t.id)} className="row" style={{
+              <Row key={t.id} live={!!w.live} onOpen={() => setOpen(t.id)} href={openHref('/tasks', t.id)} style={{
                 display: 'flex', alignItems: 'center', gap: 12, height: 44, borderRadius: 7,
                 borderBottom: i === live.length - 1 ? undefined : `1px solid ${HAIR}`,
               }}>
@@ -177,7 +275,7 @@ export default function WorkPage() {
                 <span style={{ width: 52, textAlign: 'right', color: t.state === '判断待ち' ? AMBER_T : T5, fontSize: 12 }} className="tnum">
                   {t.state === '判断待ち' ? '決める' : t.state === '待機' ? '待機' : `${t.progress}%`}
                 </span>
-              </Link>
+              </Row>
             ))}
           </div>
 
@@ -193,7 +291,7 @@ export default function WorkPage() {
             {dels.length === 0 && <Empty>まだありません。AI社員が出したら、ここに並びます。</Empty>}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 28 }}>
               {dels.map((d, i) => (
-                <Link key={d.id} href={openHref('/deliverables', d.id)} className="row" style={{
+                <Row key={d.id} live={!!w.live} onOpen={() => setOpen(d.id)} href={openHref('/deliverables', d.id)} style={{
                   display: 'flex', alignItems: 'center', gap: 13, height: 56, borderRadius: 7,
                   borderBottom: i >= dels.length - 2 ? undefined : `1px solid ${HAIR}`,
                 }}>
@@ -208,7 +306,7 @@ export default function WorkPage() {
                   </span>
                   <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</span>
-                    <span style={{ color: T5, fontSize: 11 }}>{employee(d.by).name}{d.when && ` · ${d.when}`}</span>
+                    <span style={{ color: T5, fontSize: 11 }}>{d.byName}{d.when && ` · ${d.when}`}</span>
                   </div>
                   <div style={{ flex: 1 }} />
                   {d.state === '要確認' && (
@@ -217,7 +315,7 @@ export default function WorkPage() {
                       background: 'rgba(227,116,0,0.18)', color: AMBER_T, fontSize: 12, whiteSpace: 'nowrap',
                     }}>要確認</span>
                   )}
-                </Link>
+                </Row>
               ))}
             </div>
           </div>
@@ -271,6 +369,43 @@ export default function WorkPage() {
               </span>
             </Link>
           ))}
+        </div>
+      </Pane>
+      )}
+
+      {/* タスクの歩み — 本物のタスク行を押すと開く。実行中は流れる */}
+      {openTask && (
+      <Pane onClose={() => setOpen(null)} width={400} icon="task" title={openTask.title}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 18px 24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, paddingBottom: 14 }}>
+            <span style={{ color: T4, fontSize: 12 }}>{openTask.owner}</span>
+            <span style={{ color: T5, fontSize: 12 }}>{openTask.state}</span>
+            {openTask.state === '実行中' && (
+              <span style={{ color: T5, fontSize: 12 }} className="tnum">{openTask.progress}%</span>
+            )}
+          </div>
+          <StepsPane taskId={openTask.id} running={openTask.state === '実行中'} />
+        </div>
+      </Pane>
+      )}
+
+      {/* 成果物の中身 — 本物の成果物を押すと開く */}
+      {openDel && (
+      <Pane onClose={() => setOpen(null)} width={440} icon="deliv" title={openDel.title}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, paddingBottom: 12 }}>
+            <span style={{ color: T5, fontSize: 11 }}>{openDel.byName}{openDel.when ? ` · ${openDel.when}` : ''}</span>
+            {openDel.state === '要確認' && (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 8px', borderRadius: 6,
+                background: 'rgba(227,116,0,0.18)', color: AMBER_T, fontSize: 11,
+              }}>要確認</span>
+            )}
+          </div>
+          <pre style={{
+            margin: 0, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+            fontSize: 12, lineHeight: '20px', color: T2, whiteSpace: 'pre-wrap',
+          }}>{openDel.body ?? openDel.preview ?? ''}</pre>
         </div>
       </Pane>
       )}
