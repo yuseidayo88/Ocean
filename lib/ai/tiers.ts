@@ -54,6 +54,32 @@ export const TIER_TABLE: Record<Tier, TierSpec> = {
   },
 }
 
+/**
+ * **試すあいだ、ただで動かすためのモデル。**
+ *
+ * `stealth/ox-alpha`（Ox Alpha）— $0/M・道具（tools）対応・100万トークン。
+ * 稼働 99.99%（実測 2026-08-24）。統括AIは1往復で道具を5つ呼ぶので、
+ * **tools 対応であることが絶対条件**。無料モデルの多くは非対応で、そこで落ちる。
+ *
+ * **本番では使わない。** `stealth/` は前触れなく消える枠なので、
+ * `APP_ENV=production`（Cloudflare の本番。`wrangler.jsonc`）では表のモデルに戻る。
+ * env で明示すれば、そちらが常に勝つ。
+ */
+export const TEST_MODEL = 'stealth/ox-alpha'
+
+/**
+ * その階層で実際に呼ぶモデルを決める。順番は
+ *   ① env の指定（`OPENROUTER_MODEL_DEEP` など）
+ *   ② 本番でなければ**ただのモデル**
+ *   ③ 表のモデル（有料）
+ */
+export function modelFor(tier: Tier): string {
+  const named = process.env[`OPENROUTER_MODEL_${tier.toUpperCase()}`]
+  if (named) return named
+  if (process.env.APP_ENV !== 'production') return TEST_MODEL
+  return TIER_TABLE[tier].model
+}
+
 export function costUsd(tier: Tier, inTok: number, outTok: number): number {
   const s = TIER_TABLE[tier]
   return (inTok / 1e6) * s.inPerMTok + (outTok / 1e6) * s.outPerMTok

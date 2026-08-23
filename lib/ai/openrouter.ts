@@ -1,5 +1,5 @@
 import OpenAI from 'openai'
-import { TIER_TABLE } from './tiers'
+import { modelFor } from './tiers'
 import { EMPTY_USAGE, type Chunk, type ModelProvider, type RunInput } from './provider'
 
 /**
@@ -19,9 +19,14 @@ import { EMPTY_USAGE, type Chunk, type ModelProvider, type RunInput } from './pr
 
 const BASE = 'https://openrouter.ai/api/v1'
 
-/** 深さ。OpenRouter は `reasoning_effort` を受ける（low / medium / high） */
-const EFFORT: Record<string, 'low' | 'medium' | 'high'> = {
-  low: 'low', medium: 'medium', high: 'high', xhigh: 'high', max: 'high',
+/**
+ * 深さ。OpenRouter は `reasoning_effort` を受ける。
+ * **`low` / `high` / `max` の3つにしか落とさない** — モデルごとに受ける段が違い
+ * （Ox Alpha は max / high / low の3つだけ）、無い段を送ると弾かれるため。
+ * どの段を受けるかは `GET /api/v1/models` の `reasoning.supported_efforts` に出る。
+ */
+const EFFORT: Record<string, 'low' | 'high' | 'max'> = {
+  low: 'low', medium: 'low', high: 'high', xhigh: 'high', max: 'max',
 }
 
 export class OpenRouterProvider implements ModelProvider {
@@ -41,16 +46,8 @@ export class OpenRouterProvider implements ModelProvider {
   }
 
   async *stream(input: RunInput): AsyncIterable<Chunk> {
-    const spec = TIER_TABLE[input.tier]
-    /**
-     * **モデルは env で差し替えられる**（コードを触らずに試すため）。
-     *   OPENROUTER_MODEL_DEEP / _STANDARD / _FAST に slug を入れると、その階層だけ替わる。
-     * テスト段階で `:free` のモデル（無料枠）を入れる、が主な用途。
-     * 無料モデルは**道具（tool calling）に対応しているものを選ぶ**こと —
-     * 統括AIは1往復で道具を5つ呼ぶので、対応していないと計画が1つも返らない。
-     * 対応表: https://openrouter.ai/models?max_price=0&supported_parameters=tools
-     */
-    const model = process.env[`OPENROUTER_MODEL_${input.tier.toUpperCase()}`] ?? spec.model
+    // 本番は表のモデル、試すあいだは無料のモデル、env があればそれが勝つ（→ tiers.ts）
+    const model = modelFor(input.tier)
     const usage = { ...EMPTY_USAGE }
     const calls = new Map<number, { id: string; name: string; json: string }>()
     let stopReason: string | null = null

@@ -179,22 +179,32 @@ RLS の with check は `account_id = private.current_account_id()` のままな�
 `GET https://openrouter.ai/api/v1/models` でモデルの slug
 （`anthropic/claude-opus-5` の綴り）／ プロンプトキャッシュの透過 ／ `usage` の中身。
 
-### 無料モデルでテストする
+### 試すあいだは、ただで動く
 
-`OPENROUTER_MODEL_DEEP` / `_STANDARD` / `_FAST` に `:free` の slug を入れると、
-**コードを触らずに**その階層だけ差し替わる（`lib/ai/openrouter.ts`）。
+**鍵を入れるだけでいい。** `OPENROUTER_API_KEY` があれば、
+**本番以外では自動で無料のモデル**（`stealth/ox-alpha` — Ox Alpha）を使う。
+残高が 0 でも動く。切り替えは `modelFor()`（`lib/ai/tiers.ts`）の3段:
 
-1. いちばん簡単な値は **`openrouter/free`** — 無料モデルの中から**自動で選ぶ型番**
-   （2026-02 から。道具が要る呼び出しには tools 対応のものだけを当てる）。
-   自分で選ぶなら **無料 × 道具対応** で絞る:
-   https://openrouter.ai/models?max_price=0&supported_parameters=tools
-   （統括AIは1往復で道具を5つ呼ぶ。**tools 非対応のモデルだと計画が1つも返らない**）
-2. https://openrouter.ai/settings/privacy で無料エンドポイントを有効にする
-   （無料モデルは**入力が学習に使われうる**。テストの文面だけにする）
-3. 無料枠はおよそ 20リクエスト/分・50リクエスト/日（$10 入金で 1,000/日）
+| 順 | 何を見るか | いつ使われるか |
+|---|---|---|
+| ① | `OPENROUTER_MODEL_DEEP` / `_STANDARD` / `_FAST` | 明示したとき。**常に最優先** |
+| ② | `TEST_MODEL`（`stealth/ox-alpha`） | `APP_ENV` が `production` でないとき |
+| ③ | `TIER_TABLE` のモデル（Claude・有料） | 本番（`wrangler.jsonc` が `APP_ENV=production` を入れる） |
 
-無料モデルは賢さが足りず「統括AIが入れ物を決めませんでした」で止まることがある。
+Ox Alpha を選んだ理由（実測 2026-08-24）— **$0/M** ／ **tools 対応**
+（統括AIは1往復で道具を5つ呼ぶので**これが絶対条件**。無料モデルの多くは非対応で落ちる）
+／ 100万トークン ／ 稼働 99.99%。**`stealth/` は前触れなく消える枠**なので本番では使わない。
+
+**遅い。** p50 5秒・p90 35秒・p99 96秒（Stealth プロバイダの実測）。
+`app/(app)/layout.tsx` の `maxDuration = 300` はこのため。
+無料モデルは賢さが足りず「統括AIが入れ物を決めませんでした」で止まることもある。
 それは**モデルの限界で、コードの穴ではない**（配線の確認までが無料枠の仕事）。
+
+無料モデルは https://openrouter.ai/settings/privacy で
+「Enable free endpoints that may train on inputs」を有効にしないと 404 になる。
+**入力が学習に使われうる**ので、テストの文面だけにすること。
+ほかの候補を探すなら **無料 × 道具対応** で絞る:
+https://openrouter.ai/models?max_price=0&supported_parameters=tools
 
 ## デプロイ
 
