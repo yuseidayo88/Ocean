@@ -1993,10 +1993,9 @@ print('Workflow ok')
 #  4. ポートは**繋がっているところだけ**。⊕ は押せるものだけ（採用に飛ぶ「担当」だけ残す）
 #  5. ミニマップは**中身が窓より大きいときだけ**出す（いまは全部入っているので出さない）
 
-CW3, NH3 = 170, 66
-GAP3 = 48
-COL3 = [140, 358, 576, 794]
-CHW, CHH = 158, 46
+CW3, NH3 = 200, 66
+COL3 = [40, 300, 560, 820]
+CHW, CHH = 190, 46
 
 def chip(x, y, title, sub, kind):
     return node(x, y, CHW, title, sub, kind, h=CHH)
@@ -2036,12 +2035,11 @@ def workflow2():
     for y, name, off, ph in ROWS:
         for i in range(len(ph) - 1):
             g.append(bez(COL3[off + i] + CW3, cy(y), COL3[off + i + 1], cy(y)))
-    # 統括AI → いちばん上の Work
-    g.append(bez(84, 391, COL3[0] - 9, cy(R1), False, (112, 391), (112, cy(R1))))
-    # 枝分かれ。**生まれたフェーズの位置から始める**ので、左→右の向きは壊れない
-    for y in (R2, R3):
-        g.append(bez(COL3[1] + 24, R1 + NH3, COL3[1] - 9, cy(y), True,
-                     (318, R1 + NH3 + 70), (318, cy(y) - 60)))
+    # 枝分かれ。**生まれたフェーズの位置から始める**ので、左→右の向きは壊れない。
+    # 統括AI からは始めない — Work のはじまりは、その Work の最初のフェーズ
+    for y, c in ((R2, 252), (R3, 244)):
+        g.append(bez(COL3[1] + 26, R1 + NH3, COL3[1] - 9, cy(y), True,
+                     (c, R1 + NH3 + 70), (c, cy(y) - 60)))
     # 成果物と判断は、属するフェーズの下にぶら下げる
     for px, py, cxs, ty in [(COL3[1], R1, [COL3[1], COL3[1] + CHW + 12], 214),
                             (COL3[1] + 0, R3, [], 0)]:
@@ -2066,18 +2064,15 @@ def workflow2():
     h += chip(COL3[1], 214, '収益モデル比較', '成果物 · 要確認', 'gate')
     h += chip(COL3[1] + CHW + 12, 214, '価格モデル', '判断 · あなたの番', 'gate')
     h += chip(COL3[2], 592, '申込フォーム', '成果物 · 実行中', 'work')
+
     # そのフェーズにいる社員は、ノードの右に粒で置く（⊕ で足すものではない）
     h += crew(COL3[1], R1, CW3, NH3, ['cyan', 'purple'])
     h += crew(COL3[2], R2, CW3, NH3, ['indigo'])
     h += crew(COL3[2], R3, CW3, NH3, ['green'])
-    h += elabel(318, (R1 + NH3 + cy(R2)) / 2, '新しい Work')
+    h += elabel(252, (R1 + NH3 + cy(R2)) / 2 + 6, '新しい Work')
 
     h += ('<div style="position:absolute;left:24px;top:26px;color:%s;font-size:12px">3つの Work</div>' % T4)
     h += '<div style="position:absolute;left:0;right:0;top:18px">%s</div>' % pills('ワークフロー')
-    h += ('<div style="position:absolute;left:%dpx;top:%dpx;transform:translate(-50%%,-50%%);'
-          'display:flex;flex-direction:column;align-items:center;gap:6px">'
-          '%s<span style="color:#E8E8E8;font-size:11.5px">統括AI</span></div>'
-          % (56, 391, orb(RGB['white'], 44, glow=.5)))
     h += ('<div style="position:absolute;left:24px;bottom:24px;display:flex;align-items:center;gap:3px;'
           'padding:5px 7px;border-radius:12px;background:#121212;border:1px solid #2A2A2A">'
           + tool('cursor', True) + tool('hand')
@@ -2091,8 +2086,8 @@ def workflow2():
             '%s</div>' % (gw, gh, CANV, h))
 
 io.open(OUT + '/WorkflowAll.dc.html', 'w', encoding='utf-8').write(
-    board('会社ぜんぶ。背骨はフェーズだけ', 'ワークフロー 2', workflow2(), GREEN_T,
-          '成果物と判断は属するフェーズの下 · 枝は生まれた位置から'))
+    board('会社ぜんぶ。背骨はフェーズだけ', 'ワークフロー（採用）', workflow2(), GREEN_T,
+          'Work のはじまりは、その Work の最初のフェーズ'))
 print('Workflow2 ok')
 
 # ══════════════════════ canvas.json ══════════════════════
@@ -2123,7 +2118,7 @@ canvas = {
     {"file": "FigureRings.dc.html",  "x": 3900, "y": 4790, "w": 1180, "h": 580, "title": "図C 輪＋刻み"},
     # 6段目 = ワークフロー
     {"file": "Workflow.dc.html",    "x": 0,    "y": 5910, "w": 1180, "h": 860, "title": "ワークフロー 1（いまの形）"},
-    {"file": "WorkflowAll.dc.html", "x": 1300, "y": 5910, "w": 1180, "h": 860, "title": "ワークフロー 2（会社ぜんぶ）"},
+    {"file": "WorkflowAll.dc.html", "x": 1300, "y": 5910, "w": 1180, "h": 860, "title": "ワークフロー（採用）"},
   ],
   "launch": {"view": "canvas"},
 }
