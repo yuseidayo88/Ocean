@@ -59,20 +59,28 @@ export type SendResult =
   | { ok: false; message: string };
 
 /**
- * 書いたものを送って、統括AIに返してもらう。
+ * **書くだけ。** モデルを待たずに返るので、押した瞬間に会話が始められる。
  * `threadId` が null なら**新しいチャットを作る**（「始めますか」から書いたとき）。
+ *
+ * 送るのと返してもらうのを**2つに分けている**のは、押した瞬間に会話の中へ入るため。
+ * 前は1本で、モデルが返すまで `/start` に立ったままだった（押しても何も起きない、に見える）。
+ * 返事は `chatReply` が別に取りに行く（画面はもう会話の中にいて、考えていると出ている）。
  */
-export async function chatSend(threadId: string | null, text: string, title?: string): Promise<SendResult> {
+export async function chatSay(
+  threadId: string | null, text: string, title?: string,
+): Promise<SendResult> {
   const body = text.trim();
   if (!body) return { ok: false, message: '書いてから送ってください' };
-  const s = store();
-  let id = threadId;
   try {
-    id = await s.addChat(threadId, 'user', body, title);
+    return { ok: true, threadId: await store().addChat(threadId, 'user', body, title) };
   } catch (e) {
     return { ok: false, message: sayError(e, '送れませんでした') };
   }
+}
 
+/** 統括AIに返してもらう。**書くのは終わっている**ので、ここは返事だけ */
+export async function chatReply(id: string): Promise<SendResult> {
+  const s = store();
   try {
     const t = await s.getThread(id);
     if (!t) return { ok: false, message: 'このチャットは見つかりませんでした' };
@@ -150,7 +158,8 @@ export async function chatSend(threadId: string | null, text: string, title?: st
 export async function chatStart(entry: Entry, text?: string): Promise<SendResult> {
   const first = entry === 'goal' ? (text ?? '').trim() : OPENER[entry];
   if (!first) return { ok: false, message: 'やりたいことを書いてください' };
-  return chatSend(null, first, TITLE[entry]);
+  // **返事は待たない。** 会話の画面が開いてから取りに行く
+  return chatSay(null, first, TITLE[entry]);
 }
 
 /**

@@ -16,10 +16,13 @@ const PORT = process.argv[2] ?? '9335';
 const BASE = process.env.BASE ?? 'http://localhost:3300';
 const W = Number(process.argv[3] || 1440), H = Number(process.argv[4] || 860);
 
+/**
+ * 固定の行き先。**Work と会話の id は決め打ちにしない** —
+ * ダミーを消したので id は走らせるたびに変わる。下で画面から拾う。
+ */
 const PAGES = ['/home', '/home?view=desk', '/home?view=progress', '/home?view=flow',
-  '/tasks', '/tasks?done=1', '/inbox', '/team', '/deliverables', '/decisions', '/hire', '/skills',
-  '/work', '/work/w-japanese', '/work/w-japanese/plan', '/chat/t-price',
-  '/start', '/work/new', '/discovery', '/discovery/result', '/diagnosis', '/import'];
+  '/tasks', '/tasks?done=1', '/inbox', '/team', '/deliverables', '/decisions', '/skills',
+  '/work', '/start', '/chat/new'];
 
 const PROBE = `(() => {
   // まず全部いちばん下まで送る
@@ -50,8 +53,22 @@ const send = (method, params = {}) => new Promise((r) => { const i = ++id; pend.
 await send('Runtime.enable'); await send('Page.enable');
 await send('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: 1, mobile: false });
 
+/** いまの会社から、Work と会話を1つずつ拾う（無ければその行は測らない） */
+const pick = async (from, sel) => {
+  await send('Page.navigate', { url: BASE + from });
+  await new Promise((r) => setTimeout(r, 2600));
+  const e = await send('Runtime.evaluate', { expression:
+    `document.querySelector('${sel}')?.getAttribute('href') ?? ''`, returnByValue: true });
+  return e?.result?.value || null;
+};
+const someWork = await pick('/work', 'a[href^="/work/"]');
+const someChat = await pick('/tasks', 'a[href^="/chat/"]:not([href="/chat/new"])');
+const pages = [...PAGES,
+  ...(someWork ? [someWork, `${someWork}/plan`] : []),
+  ...(someChat ? [someChat] : [])];
+
 let bad = 0;
-for (const p of PAGES) {
+for (const p of pages) {
   await send('Page.navigate', { url: BASE + p });
   await new Promise((r) => setTimeout(r, 2600));
   const hidden = (await send('Runtime.evaluate', { expression: PROBE, returnByValue: true }))?.result?.value ?? [];

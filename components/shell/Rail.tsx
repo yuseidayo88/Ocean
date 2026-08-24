@@ -208,13 +208,15 @@ export function Rail({ empty }: { empty?: boolean } = {}) {
                 </Link>
               );
             })}
-            {/* レールに入りきらないときだけ出す。行き先のないリンクは置かない */}
+            {/**
+              * レールに入りきらないときだけ出す。
+              * **行き先は ⌘K**（会話も並ぶ）。押しても何も起きない行にしない。
+              */}
             {threads.length > SHOWN && (
-              <div className="row" style={{
-                display: 'flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 8,
-              }}>
-                <span className="lnk" style={{ color: T5, fontSize: 12 }}>すべて見る</span>
-              </div>
+              <button onClick={() => setFind(true)} className="row" style={{
+                display: 'flex', alignItems: 'center', width: '100%', height: 28,
+                padding: '0 12px', borderRadius: 8, color: T5, fontSize: 12, textAlign: 'left',
+              }}>すべて見る</button>
             )}
           </>
         )}

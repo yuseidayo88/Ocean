@@ -33,7 +33,7 @@ const PAGES: Hit[] = [
   { id: 'p-team', icon: 'team', label: 'メンバー', sub: '', href: '/team', kind: '行き先' },
   { id: 'p-dec', icon: 'dec', label: '決定事項', sub: '', href: '/decisions', kind: '行き先' },
   { id: 'p-skills', icon: 'bolt', label: 'スキル', sub: 'SKILL.md の管理', href: '/skills', kind: '行き先' },
-  { id: 'p-hire', icon: 'plus', label: '採用', sub: '候補を見る', href: '/hire', kind: '行き先' },
+  { id: 'p-hire', icon: 'plus', label: '採用', sub: 'まだいない社員を採る', href: '/team', kind: '行き先' },
   { id: 'p-billing', icon: 'bars', label: '請求とプラン', sub: '', href: '/billing', kind: '行き先' },
 ];
 

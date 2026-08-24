@@ -68,6 +68,8 @@ export default function InboxPage() {
   const fresh = all.filter((n) => !n.read);
   const handled = all.filter((n) => n.read);
   const list = done ? handled : fresh;
+  /** 1件も来ていない会社。**言葉だけ変える**（器は同じ2列のまま） */
+  const none = notes !== null && all.length === 0;
   const at = Math.max(list.findIndex((n) => n.id === openId), 0);
   const item = list[at] as Note | undefined;
   const next = list[at + 1] ?? list[0];
@@ -81,12 +83,11 @@ export default function InboxPage() {
         fresh.length > 0 ? <span style={{ color: T5, fontSize: 12 }} className="tnum">未処理 {fresh.length}</span> : undefined
       } />
 
-      {notes !== null && all.length === 0 ? (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-          <span style={{ fontSize: 16, color: T2 }}>通知はまだありません</span>
-          <span style={{ color: T5, fontSize: 13 }}>会社が動きだすと、あなたの番のものだけここに積まれます</span>
-        </div>
-      ) : (
+      {/**
+        * **通知が1件も無くても、器は変えない**（2026-08-24）。
+        * 前は空のときだけ中央に1枚の画面を出していたが、通知が来た瞬間に画面の形ごと変わる。
+        * 積みの列も片づける列もそのまま置いて、**変えるのは言葉だけ**にする。
+        */}
       <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
         {/* ── 左: 積み ─────────────────────────────── */}
         <div style={{
@@ -101,12 +102,8 @@ export default function InboxPage() {
             <button onClick={() => flip(true)} className="lnk" style={{ color: done ? T3 : T5, fontSize: 12 }}>済んだもの</button>
           </div>
 
-          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-            {list.length === 0 && (
-              <div style={{ padding: '18px 16px' }}>
-                <span style={{ color: T5, fontSize: 12.5 }}>{done ? 'まだ何も片づけていません' : '未処理はありません'}</span>
-              </div>
-            )}
+          {/* 空でも文字を置かない。**上の行の 0 が言っている**（二度言わない） */}
+          <div className="sy" style={{ flex: 1, minHeight: 0 }}>
             {list.map((n) => {
               const on = item && n.id === item.id;
               const tone = toneOf(n.kind);
@@ -183,12 +180,18 @@ export default function InboxPage() {
             </>
           ) : (
             <div style={{ flex: 1, display: 'grid', placeItems: 'center' }}>
-              <span style={{ color: T5, fontSize: 13 }}>{done ? 'まだ何も片づけていません' : '未処理はありません'}</span>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 9, marginBottom: COMPOSER_H }}>
+                <span style={{ fontSize: 15, color: T2 }}>
+                  {none ? '通知はまだありません' : done ? 'まだ何も片づけていません' : '未処理はありません'}
+                </span>
+                {none && (
+                  <span style={{ color: T5, fontSize: 12.5 }}>会社が動きだすと、あなたの番のものだけここに積まれます</span>
+                )}
+              </div>
             </div>
           )}
         </div>
       </div>
-      )}
 
       <Composer placeholder="統括AIに聞く" />
     </Centre>

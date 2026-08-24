@@ -5,6 +5,7 @@ import { PHASE5_TOOLS } from './tools';
 import { checkStop, toOptions, toQuestions } from './parse';
 import type { Container, Draft, Hire, Plan } from './types';
 import { AppError } from '@/lib/errors';
+import { slugOf } from '@/lib/roster';
 
 /**
  * Work を立てるまでを1回まわす。
@@ -99,9 +100,13 @@ const toContainer = (r: Record<string, unknown>): Container => ({
   reason: String(r.reason ?? ''),
 });
 
+/**
+ * 採用の提案。**definition_id はロスターの slug に寄せてから持つ**（`slugOf`）—
+ * 別名のまま在籍に入ると、同じ担当が「在籍」と「まだいない」の両方に並ぶ。
+ */
 const toHires = (rows?: Record<string, string>[]): Hire[] =>
   (rows ?? []).map((h) => ({
-    definitionId: h.definition_id, displayName: h.display_name, why: h.why, forPhase: h.for_phase,
+    definitionId: slugOf(h.definition_id), displayName: h.display_name, why: h.why, forPhase: h.for_phase,
   }));
 
 const toPlan = (r?: Record<string, unknown>): Plan => ({

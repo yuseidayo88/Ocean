@@ -64,7 +64,7 @@ npx wrangler dev --local --env preview   # workerd（本番と同じ形）
 ```
 /home            ホーム（?view=desk / progress / flow で切替）
 /work/w-japanese  Work / その /plan で計画の承認
-/tasks /deliverables /decisions /team /inbox /hire /skills
+/tasks /deliverables /decisions /team /inbox /skills
 /chat/<id>        チャット / /chat/new で新規
 /start            入口（**ここから全部チャットになる**。専用画面は 2026-08-24 に撤去）
 ```

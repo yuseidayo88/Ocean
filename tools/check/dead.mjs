@@ -13,9 +13,10 @@ const PORT = process.argv[2] ?? '9335';
 const BASE = process.env.BASE ?? 'http://localhost:3300';
 const W = 1440, H = 860;
 
+/** 固定の行き先。**Work と会話の id は決め打ちにしない**（走らせるたびに変わる） */
 const PAGES = ['/home', '/home?view=desk', '/home?view=progress', '/home?view=flow',
-  '/tasks', '/inbox', '/team', '/deliverables', '/decisions', '/hire', '/skills',
-  '/work', '/work/w-japanese', '/work/w-japanese/plan', '/chat/t-price', '/start', '/work/new'];
+  '/tasks', '/inbox', '/team', '/deliverables', '/decisions', '/skills',
+  '/work', '/start', '/chat/new'];
 
 /** 押せる顔をしているもの。中の子は数えない（親が押せるなら1つ） */
 const LIST = `(() => {

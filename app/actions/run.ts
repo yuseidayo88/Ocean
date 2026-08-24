@@ -2,6 +2,7 @@
 
 import { runTask, type RunOutcome } from '@/lib/run/worker';
 import { store, type LiveDecision, type LiveDeliverable, type LiveEmployee, type RunStep } from '@/lib/store';
+import { slugOf } from '@/lib/roster';
 import { AppError } from '@/lib/errors';
 import { draftNextTasks } from '@/lib/exec/next';
 import { sayError } from '@/lib/errors';
@@ -160,7 +161,8 @@ export async function approvePhase(workId: string): Promise<{ ok: boolean; next?
  */
 export async function hire(definitionId: string, displayName: string): Promise<{ ok: boolean; message?: string }> {
   try {
-    await store().hireEmployee(definitionId, displayName);
+    // **別名はロスターの slug に寄せてから採る**（在籍と候補の突き合わせが1つの語で済む）
+    await store().hireEmployee(slugOf(definitionId), displayName);
     return { ok: true };
   } catch (e) {
     return { ok: false, message: sayError(e, '採用できませんでした') };

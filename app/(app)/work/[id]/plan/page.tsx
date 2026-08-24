@@ -50,6 +50,8 @@ export default function PlanPage() {
    */
   const [at, setAt] = useState(-1);
   const [hideAsk, setHideAsk] = useState(false);
+  /** 入力欄の帯の実寸（質問の板が乗ると高くなる）。行動の行はこのぶん逃げる */
+  const [bandH, setBandH] = useState(COMPOSER_H);
 
   useEffect(() => {
     let live = true;
@@ -267,7 +269,9 @@ export default function PlanPage() {
           */}
         <div style={{
           flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10, height: 56,
-          padding: '0 26px', marginBottom: COMPOSER_H, borderTop: `1px solid ${SEAM}`,
+          // **質問の板が出ているぶんも逃がす。** `COMPOSER_H` は板が無いときの高さ
+          padding: '0 26px', marginBottom: Math.max(COMPOSER_H, bandH - 16),
+          borderTop: `1px solid ${SEAM}`,
         }}>
           {v.approved ? (
             /* もう承認されている。**押せる顔をさせない** */
@@ -302,7 +306,7 @@ export default function PlanPage() {
           * **質問の板は入力欄と一体で浮く。** 答え終わっていないものがあるあいだだけ出す。
           */}
         <Composer placeholder="直したいところを書く、@ で資料を参照"
-                  onSend={revise} busy={!!busy}
+                  onSend={revise} busy={!!busy} onHeight={setBandH}
                   above={ASK ? (
                     <Ask
                       q={ASK.body} idx={askAt + 1} total={v.asks.length}

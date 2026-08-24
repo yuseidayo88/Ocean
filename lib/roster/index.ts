@@ -87,8 +87,15 @@ export const ROSTER: Definition[] = [
 
 /** slug で引く。**古い別名も受ける**（fake が revenue-strategist と言っていた時期がある） */
 const ALIAS: Record<string, string> = { 'revenue-strategist': 'business-strategist' };
+
+/**
+ * 別名をロスターの slug に寄せる。**在籍と候補を突き合わせる前に必ず通す** —
+ * 別名のまま持っていると「戦略担当が在籍しているのに、候補にも戦略担当が並ぶ」になる。
+ */
+export const slugOf = (definitionId: string): string => ALIAS[definitionId] ?? definitionId;
+
 export function definitionOf(slug: string): Definition | undefined {
-  return ROSTER.find((d) => d.slug === (ALIAS[slug] ?? slug));
+  return ROSTER.find((d) => d.slug === slugOf(slug));
 }
 
 /** 実行時のシステムプロンプトに畳む */

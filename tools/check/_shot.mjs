@@ -1,0 +1,18 @@
+import { WebSocket } from 'ws';
+import { writeFileSync } from 'fs';
+const PORT = process.argv[2], W = Number(process.argv[3]), H = Number(process.argv[4]);
+const url = process.argv[5], out = process.argv[6];
+const r = await fetch(`http://127.0.0.1:${PORT}/json/new?${encodeURIComponent(url)}`, { method: 'PUT' });
+const t = await r.json();
+const ws = new WebSocket(t.webSocketDebuggerUrl);
+let id = 0; const waits = new Map();
+const send = (method, params = {}) => new Promise((res) => { const i = ++id; waits.set(i, res); ws.send(JSON.stringify({ id: i, method, params })); });
+await new Promise((res) => ws.on('open', res));
+ws.on('message', (m) => { const d = JSON.parse(m); if (d.id && waits.has(d.id)) { waits.get(d.id)(d.result); waits.delete(d.id); } });
+await send('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: 1, mobile: false });
+await send('Page.enable');
+await new Promise((res) => setTimeout(res, 2600));
+const shot = await send('Page.captureScreenshot', { format: 'png' });
+writeFileSync(out, Buffer.from(shot.data, 'base64'));
+ws.close(); await fetch(`http://127.0.0.1:${PORT}/json/close/${t.id}`);
+console.log('ok', out);

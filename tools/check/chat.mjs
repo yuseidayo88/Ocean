@@ -30,7 +30,7 @@ const PROBE = `(() => {
   return out;
 })()`;
 
-for (const path of ['/tasks', '/home', '/team', '/deliverables?open=d-rev', '/work/w-japanese', '/decisions', '/chat/t-price']) {
+for (const path of ['/tasks', '/home', '/team', '/deliverables', '/decisions']) {
   const r = await fetch(`http://127.0.0.1:${PORT}/json/new?${encodeURIComponent(BASE + path)}`, { method: 'PUT' });
   const t = await r.json(); const ws = new WebSocket(t.webSocketDebuggerUrl);
   let id = 0; const pend = new Map(); const errs = [];
@@ -65,7 +65,9 @@ for (const path of ['/tasks', '/home', '/team', '/deliverables?open=d-rev', '/wo
     if (v.textarea !== 1) L.push(`  入力欄が ${v.textarea} 個ある（1つのはず）`);
     if (!v.inPane) L.push('  入力欄がペインの中に移っていない');
     if (!v.text.some((x) => x.includes('この件、どう進める'))) L.push('  書いたものが出ていない');
-    if (!v.text.includes('考えています')) L.push('  統括AIの状態が出ていない');
+    // **返事が速いときは「考えています」を通り過ぎている。** どちらかが出ていればいい
+    if (!v.text.some((x) => x.includes('考えています') || x.includes('仮の返事')))
+      L.push(`  統括AIが応じていない（${v.text.slice(-2).join(' / ')}）`);
     for (const c of v.cut) L.push(`  …で切れ 「${c}」`);
     for (const o of v.off.slice(0, 4)) L.push(`  はみ出し 「${o}」`);
   }

@@ -205,7 +205,7 @@ function hires(goal: string) {
   return [
     { definition_id: 'market-researcher', display_name: '調査担当',
       why: '市場と競合を調べる人がいません。', for_phase: '調査' },
-    { definition_id: 'revenue-strategist', display_name: '戦略担当',
+    { definition_id: 'business-strategist', display_name: '戦略担当',
       why: 'いくらで売るかを決める人がいません。', for_phase: '戦略' },
   ];
 }

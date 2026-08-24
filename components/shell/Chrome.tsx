@@ -13,6 +13,9 @@ import { chatTargets, openWorkChat } from '@/app/actions/chat';
 /** 入力欄の高さ。**下に貼り付く中身はこのぶん逃がす**（→ lib/design/tokens.ts） */
 export const COMPOSER_H = TOKEN_COMPOSER_H;
 
+/** 宛先が「まだどの Work でもない」ときの語。**言い換えない**（1か所に置く） */
+export const NEW_CHAT = '新しいチャット';
+
 /**
  * トップバー。**偽の階層を作らない** — 本物の親子があるときだけ crumb を渡す。
  * それ以外は画面の名前ひとつ。日付や時刻は出さない（OS が出している）。
@@ -120,8 +123,8 @@ function grow(t: HTMLTextAreaElement, onH?: (h: number) => void) {
   });
 }
 
-export function Composer({ placeholder, mode = '新しいチャット', effort = '自動', above, floating = true,
-                           veil = true, inPane = false, local = false, onSend, busy = false }:
+export function Composer({ placeholder, mode = NEW_CHAT, effort = '自動', above, floating = true,
+                           veil = true, inPane = false, local = false, onSend, busy = false, onHeight }:
   { placeholder: string; mode?: string; effort?: string; above?: React.ReactNode; floating?: boolean;
     /**
      * 下端を黒に溶かすか。**中身がスクロールして入力欄の裏に潜る画面だけ。**
@@ -136,7 +139,14 @@ export function Composer({ placeholder, mode = '新しいチャット', effort =
     /** **この画面が書いたものを引き取る**（新しい Work のように、会話ではなく仕事になる画面） */
     onSend?: (text: string) => void;
     /** 引き取ったあと処理中。もう一度送れないようにする */
-    busy?: boolean }) {
+    busy?: boolean;
+    /**
+     * **この帯が実際に何 px あるか**を画面に返す。
+     * `above`（質問の板・条件のチップ）が付くと帯は `COMPOSER_H` より高くなるので、
+     * 下に貼り付く行はそのぶん逃がさないと**押せなくなる**。
+     * 逃がす量は `Math.max(COMPOSER_H, h - 16)` — 何も乗っていなければ `COMPOSER_H` に戻る。
+     */
+    onHeight?: (h: number) => void }) {
   /**
    * **打つたびに描き直さない。**
    * 見た目が変わるのは「書いたかどうか」の1点だけ（送信ボタンが青くなる）。
@@ -147,7 +157,17 @@ export function Composer({ placeholder, mode = '新しいチャット', effort =
   /** 2行以上になったか。1行のうちは**横一列のまま**にする */
   const [tall, setTall] = useState(false);
   const box = useRef<HTMLTextAreaElement>(null);
+  const band = useRef<HTMLDivElement>(null);
   const { chat: talk, say, say5 } = useShell();
+
+  // 帯の高さを測って返す（質問の板が出入りするたびに変わる）
+  useEffect(() => {
+    const el = band.current;
+    if (!el || !onHeight) return;
+    const ro = new ResizeObserver(() => onHeight(Math.round(el.getBoundingClientRect().height)));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [onHeight]);
 
   /**
    * **入力欄は全画面で1つ。** 会話が開いたら、中央のものは引っ込んでペインの中のものになる。
@@ -172,8 +192,14 @@ export function Composer({ placeholder, mode = '新しいチャット', effort =
     ? {
         position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 5, boxSizing: 'border-box',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '48px 24px 24px',
-        /* 溶かさないときは**帯そのものを透かす**（盤面のホイールをふさがない） */
-        pointerEvents: veil ? undefined : 'none',
+        /**
+         * **帯そのものは指を通す。** 受けるのは入力欄と質問の板だけ（どちらも 'auto'）。
+         * 帯は 124px あるのに中身を逃がすのは `COMPOSER_H`（108px）なので、
+         * 帯が指を受けると**下端の 16px にあるものが押せなくなる**
+         *（メンバーの全員の歯車 / 計画の「Work を見る」が実際そうだった）。
+         * 盤面のホイールをふさがない、という元の理由もこれで一緒に満たす。
+         */
+        pointerEvents: 'none',
         background: veil
           ? 'linear-gradient(to top, #000 0%, #000 44%, rgba(0,0,0,0.86) 66%, rgba(0,0,0,0) 100%)'
           : undefined,
@@ -182,7 +208,7 @@ export function Composer({ placeholder, mode = '新しいチャット', effort =
         flexDirection: 'column', alignItems: 'center', gap: 8, padding: '0 24px' };
 
   return (
-    <div style={wrap}>
+    <div ref={band} style={wrap}>
       {above && <div style={{ pointerEvents: 'auto', width: '100%', display: 'flex', justifyContent: 'center' }}>{above}</div>}
       {/**
         * **1行にまとめる**（参考: ChatGPT の入力欄）。
@@ -763,7 +789,10 @@ export function PaneHead({ children, top = false }: { children: React.ReactNode;
  * 「いまどこに書いているのか」が画面のどこにも出なくなる。
  *
  * **終わった Work は出さない**（もう相談することが無い）。
- * Work が1つも無ければ、押しても「新しいチャット」しか無いので**出さない**。
+ *
+ * **Work が1つも無くても畳まない。** 前は「選べる先が1つなら選ばせない」で素の文字にしていたが、
+ * 押せると思って押した社長には**壊れて見える**（プルダウンの ⌄ が付いているのに開かない）。
+ * 会話の途中からでも「新しいチャット」へ抜けられるので、行き先はいつも本物。
  */
 function ToMenu({ label }: { label: string }) {
   const [open, setOpen] = useState(false);
@@ -781,16 +810,6 @@ function ToMenu({ label }: { label: string }) {
     document.addEventListener('keydown', esc, true);
     return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', esc, true); };
   }, [open]);
-
-  // 選べる先が「新しいチャット」しか無いなら、選ばせない（押して何も変わらない）
-  if (!works.length) {
-    return (
-      <span style={{
-        display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 6px',
-        color: T4, fontSize: 12.5, flexShrink: 0, whiteSpace: 'nowrap',
-      }}>{label}</span>
-    );
-  }
 
   const go = async (workId: string | null) => {
     setOpen(false);
@@ -831,11 +850,15 @@ function ToMenu({ label }: { label: string }) {
               {w.title === label && <span style={{ color: GREEN_T, fontSize: 11 }}>✓</span>}
             </button>
           ))}
-          <span style={{ display: 'block', height: 1, margin: '5px 8px', background: RULE }} />
-          <button role="option" aria-selected={false} className="btn" onClick={() => go(null)} style={{
+          {works.length > 0 && <span style={{ display: 'block', height: 1, margin: '5px 8px', background: RULE }} />}
+          <button role="option" aria-selected={label === NEW_CHAT} className="btn" onClick={() => go(null)} style={{
             display: 'flex', alignItems: 'center', width: '100%', height: 30, padding: '0 10px',
-            borderRadius: 7, color: T3, fontSize: 12,
-          }}>新しいチャット</button>
+            borderRadius: 7, color: label === NEW_CHAT ? T1 : T3, fontSize: 12,
+            background: label === NEW_CHAT ? `${WELL}` : undefined,
+          }}>
+            {NEW_CHAT}<span style={{ flex: 1 }} />
+            {label === NEW_CHAT && <span style={{ color: GREEN_T, fontSize: 11 }}>✓</span>}
+          </button>
         </span>
       )}
     </span>

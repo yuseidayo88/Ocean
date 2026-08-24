@@ -171,6 +171,18 @@ ok('条件が2つそろうと、候補のカードが会話に出る',
 ok('2問ぶんの答えが両方とどいた（時間と避けるが条件に入る）',
    cands.includes('週10時間') && cands.includes('在庫を持つ'), cands.slice(-200));
 ok('候補のカードは会話の中（別の画面に飛ばない）', (await ev('location.pathname')) === threadB, await ev('location.pathname'));
+/**
+ * **いちばん下の発言が入力欄の裏に潜らない。**
+ * 会話は下に貼り付いていて（開いたときも、返ってきたときも）、
+ * 中身の終わりは `COMPOSER_H` ぶん上で終わる。
+ * 貼り付けは1回では足りない — 書体やカードで中身があとから伸びるので、伸びたら貼り直す。
+ */
+const foot = await ev(`(() => { const c = document.querySelector('.sy'); if (!c) return null;
+  const kid = c.firstElementChild;
+  return { gap: Math.round(c.scrollHeight - c.scrollTop - c.clientHeight),
+           pad: parseInt(getComputedStyle(kid).paddingBottom, 10) }; })()`);
+ok('会話は下に貼り付いていて、入力欄に隠れない',
+   !!foot && foot.gap <= 2 && foot.pad >= 100, JSON.stringify(foot));
 await ev(`[...document.querySelectorAll('button')].find(b => b.innerText === 'この案にする')?.click()`);
 const planB = await until((b) => b.includes('承認して始める'), 20, 800);
 ok('候補から Work の計画に入った', planB.includes('承認して始める') && /\/plan$/.test(await ev('location.pathname')),
