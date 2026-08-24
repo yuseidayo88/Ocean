@@ -183,8 +183,16 @@ const foot = await ev(`(() => { const c = document.querySelector('.sy'); if (!c)
            pad: parseInt(getComputedStyle(kid).paddingBottom, 10) }; })()`);
 ok('会話は下に貼り付いていて、入力欄に隠れない',
    !!foot && foot.gap <= 2 && foot.pad >= 100, JSON.stringify(foot));
-// 候補は**行そのものが選ぶもの**（ボタンではない）。押しやすさを3つとも同じにした
+/**
+ * 候補は**行そのものが選ぶもの**（ボタンではない）。押しやすさを3つとも同じにした。
+ * ただし**押しただけでは Work はできない** — 中に出る確認の「作る」を押してはじめて。
+ */
 await ev(`[...document.querySelectorAll('[role=button]')].find(b => b.innerText.includes('この案にする'))?.click()`);
+const sure = await until((b) => b.includes('この案で Work を作りますか'), 12, 500);
+ok('候補を押しただけでは Work を作らない',
+   sure.includes('この案で Work を作りますか') && !/\/plan$/.test(await ev('location.pathname')),
+   await ev('location.pathname'));
+await ev(`[...document.querySelectorAll('button')].find(b => b.innerText === '作る')?.click()`);
 const planB = await until((b) => b.includes('承認して始める'), 20, 800);
 ok('候補から Work の計画に入った', planB.includes('承認して始める') && /\/plan$/.test(await ev('location.pathname')),
    await ev('location.pathname'));

@@ -34,6 +34,20 @@ export async function startWork(goal: string): Promise<StartResult> {
   }
 
   const d = out.draft;
+  /**
+   * **空の計画を作らない。**
+   * 道具は来たのに中身が無い（フェーズ0・タスク0）ことが実際に起きて、
+   * 「0フェーズで進めます。まず「」から —。」という**壊れた計画案**ができた。
+   * 空のまま Work にすると、承認しても動くものが1つも無い。
+   * ここで止めて、社長には**引き直せる**ことを言う。
+   */
+  if (!d.plan.phases.length || !d.plan.firstPhaseTasks.length) {
+    return {
+      ok: false, need: 'error',
+      message: '計画を引けませんでした（中身が空でした）。もう一度お試しください',
+    };
+  }
+
   const id = await store().createDraft({
     title: d.container.title,
     // 画面の吹き出しは**社長が書いた言葉そのまま**。統括AIが言い直したものは container.goal に持つ

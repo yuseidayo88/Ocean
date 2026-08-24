@@ -107,9 +107,13 @@ export default function ChatPage() {
    * （止める道は作らない。返事は数行なので、止めるより読み終わるほうが早い）
    */
   const reply = useCallback(async (tid: string) => {
-    setWait(true); setFail(''); setLive(''); setStage('');
+    setWait(true); setFail(''); setLive(''); setStage('会話を読んでいます');
     let got = '';
-    const bad = await streamReply(tid, (t) => { got += t; setLive(got); }, setStage);
+    const bad = await streamReply(tid, (t) => {
+      got += t;
+      if (!got.trim()) return;
+      setLive(got); setStage('書いています');
+    }, setStage);
     if (bad) setFail(bad);
     // **読み直してから**流れていた文を下ろす（本文が一瞬消えるのを避ける）
     const r = await threadGet(tid);
@@ -150,7 +154,7 @@ export default function ChatPage() {
     const ro = new ResizeObserver(pin);
     ro.observe(kid);
     return () => { el.removeEventListener('scroll', watch); ro.disconnect(); };
-  }, [msgs.length, pending, wait]);
+  }, [msgs.length, pending, wait, stage]);
 
   const send = (text: string) => {
     setPending(text); setFail('');
@@ -202,18 +206,10 @@ export default function ChatPage() {
           ))}
           {pending && <You>{pending}</You>}
 
-          {/**
-            * 返している間の姿。**印はずっと出したまま**にして、その下に本文が流れる
-            * （参考: Claude の「〇〇中…」）。何をしているかは道具の名前から来る事実で、
-            * 分からないあいだは「考えています」。
-            */}
-          {wait && (
-            <div style={{ width: '100%', maxWidth: 748, display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                <Orb color={EXEC} size={22} seed={7} />
-                <span className="sh" style={{ fontSize: 13 }}>{stage || '考えています'}</span>
-              </div>
-              {live && <div><Body text={live} /><span className="caret" /></div>}
+          {/* 流れてきている本文。**印は会話の中に置かない**（下に貼り付けてある） */}
+          {wait && live && (
+            <div style={{ width: '100%', maxWidth: 748 }}>
+              <Body text={live} /><span className="caret" />
             </div>
           )}
 
@@ -228,6 +224,28 @@ export default function ChatPage() {
             </div>
           )}
         </div>
+        </div>
+      )}
+
+      {/**
+        * **考えているあいだ、ずっと見えるところに出す**（参考: Claude の「〇〇中…」）。
+        * 会話の中に置くと、下まで送られていないときに**入力欄の裏に隠れて見えない** —
+        * 実際そうなって「動いているのか止まっているのか分からない」になった。
+        * だから**流れない場所**（入力欄のすぐ上）に貼る。
+        * 中身は道具の名前から来る**事実**だけ。分からないあいだは「考えています」。
+        */}
+      {(wait || pending !== null) && (
+        <div style={{
+          position: 'absolute', left: 0, right: 0, bottom: COMPOSER_H - 16, zIndex: 2,
+          display: 'flex', justifyContent: 'center', pointerEvents: 'none',
+        }}>
+          <div style={{
+            width: '100%', maxWidth: 748, display: 'flex', alignItems: 'center', gap: 9,
+            padding: '0 2px',
+          }}>
+            <Orb color={EXEC} size={20} seed={7} />
+            <span className="sh" style={{ fontSize: 12.5 }}>{stage || '考えています'}</span>
+          </div>
         </div>
       )}
 

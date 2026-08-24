@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation';
 import type { Route } from 'next';
 import { Icon } from '@/components/ui/Icon';
 import { conditionChips } from '@/lib/live/conditions';
+import { Orb } from '@/components/ui/Orb';
 import { adoptCandidate, discoveryGet, findingToWork, profileGet } from '@/app/actions/entry';
 import { chatMakeWork } from '@/app/actions/chat';
 import type { ChatCard, Discovery, Profile } from '@/lib/store';
 import { pressable } from '@/lib/a11y';
-import { BLUE, EDGE, GREEN, GREEN_T, HAIR, MUTE, RED_T, SEAM, SUNK, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
+import { BLUE, EDGE, EXEC, GREEN, GREEN_T, HAIR, MUTE, RED_T, SEAM, SUNK, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
 
 /**
  * 会話の中に出るカード。**右ペインは開かない** — 中身は会話の中で完結する。
@@ -60,6 +61,12 @@ function AskCard({ card, live, onSend }:
   const q = qs[at];
   if (!q) return null;
   const on = live && !sent;
+  /**
+   * **送ったあとは、ぜんぶ同じ形にする。**
+   * 前は最後の1問だけ選択肢が開いたまま残り、**その問だけ別のものに見えていた**。
+   * 答え終わったものは、何問めでも「✓ 質問 答え」の1行。
+   */
+  const done = sent || answers.every((a) => a !== undefined);
 
   const pick = (label: string) => {
     const next = [...answers];
@@ -84,14 +91,16 @@ function AskCard({ card, live, onSend }:
   return (
     <div style={WRAP}>
       <div style={HEAD}>
-        <span style={{ flex: 1 }}>{q.why}</span>
+        <span style={{ flex: 1 }}>{done ? '答えました' : q.why}</span>
         {qs.length > 1 && (
-          <span style={{ color: T5, fontSize: 11 }} className="tnum">{at + 1} / {qs.length}</span>
+          <span style={{ color: T5, fontSize: 11 }} className="tnum">
+            {done ? qs.length : at + 1} / {qs.length}
+          </span>
         )}
       </div>
       <div style={{ padding: '8px 16px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {/* 答え終わったもの。**押せば戻って選び直せる**（送る前なら何度でも） */}
-        {qs.map((x, i) => (i === at || answers[i] === undefined ? null : (
+        {qs.map((x, i) => ((!done && i === at) || answers[i] === undefined ? null : (
           <button key={`done-${i}`} disabled={!on} onClick={() => setAt(i)} className={on ? 'row' : undefined}
             style={{
               display: 'flex', alignItems: 'center', gap: 9, width: '100%', textAlign: 'left',
@@ -99,14 +108,12 @@ function AskCard({ card, live, onSend }:
             }}>
             <Icon name="check" color={GREEN_T} size={12} width={2.4} />
             <span style={{ color: T5, fontSize: 11.5, flexShrink: 0 }}>{x.body}</span>
-            <span style={{ color: T2, fontSize: 12, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {answers[i]}
-            </span>
+            <span style={{ color: T2, fontSize: 12, minWidth: 0 }}>{answers[i]}</span>
           </button>
         )))}
 
-        <span style={{ color: T1, fontSize: 14, paddingBottom: 2 }}>{q.body}</span>
-        {q.options.map((o, i) => {
+        {!done && <span style={{ color: T1, fontSize: 14, paddingBottom: 2 }}>{q.body}</span>}
+        {!done && q.options.map((o, i) => {
           const chosen = answers[at] === o.label;
           return (
             <button key={o.label} disabled={!on} onClick={() => pick(o.label)} className={on ? 'card' : undefined}
@@ -210,6 +217,41 @@ const AXES: [string, 'speed' | 'cost' | 'strength'][] = [
   ['立ち上がりの速さ', 'speed'], ['初期費用の低さ', 'cost'], ['強みとの相性', 'strength'],
 ];
 
+/**
+ * 目盛り。**1本の棒だと、どこまで塗られているかが読めない**（3つ並ぶとなおさら）。
+ * 5つの刻みにすると「5つのうち3つ」と**数えて**読める。色は使わない —
+ * 明るさだけで言う（色は意味にだけ、が決めごと）。
+ */
+function Ticks({ value }: { value: number }) {
+  const full = Math.max(0, Math.min(5, Math.round((value / 100) * 5)));
+  return (
+    <span style={{ display: 'inline-flex', gap: 3 }} aria-label={`5段階で ${full}`}>
+      {[0, 1, 2, 3, 4].map((i) => (
+        <span key={i} style={{
+          width: 9, height: 3, borderRadius: 1,
+          background: i < full ? '#B9B9B9' : '#2A2A2A',
+        }} />
+      ))}
+    </span>
+  );
+}
+
+/**
+ * 作っている最中の姿。**「押したのに何も起きない」を作らない** —
+ * 計画を引くのは統括AIのいちばん重い往復で、10〜30秒かかる。
+ * かかることは正直に書き、動いていることは動きで見せる。
+ */
+function Building({ name }: { name: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 4 }}>
+      <Orb color={EXEC} size={20} seed={7} />
+      <span className="sh" style={{ fontSize: 12.5 }}>「{name}」の計画を引いています</span>
+      <div style={{ flex: 1 }} />
+      <span style={{ color: T5, fontSize: 11 }}>30秒ほどかかります</span>
+    </div>
+  );
+}
+
 function CandidatesCard({ id, live, threadId }: { id: string; live: boolean; threadId: string }) {
   const router = useRouter();
   const [d, setD] = useState<Discovery | null>(null);
@@ -217,6 +259,8 @@ function CandidatesCard({ id, live, threadId }: { id: string; live: boolean; thr
   const [fail, setFail] = useState('');
   /** 「何ができたら終わりですか」と聞き返された（選択肢つき） */
   const [end, setEnd] = useState<{ candId: string; body: string; options: { label: string; description: string }[] } | null>(null);
+  /** 押した1件（**まだ作っていない**）。作るのは確認を押したとき */
+  const [sure, setSure] = useState('');
   const reload = () => { discoveryGet(id).then(setD); };
   useEffect(reload, [id]);
   if (!d?.candidates.length) return null;
@@ -249,30 +293,31 @@ function CandidatesCard({ id, live, threadId }: { id: string; live: boolean; thr
         */}
       <div style={{ padding: '6px 10px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
         {d.candidates.map((c) => {
+          const asking = sure === c.id;
+          const working = busy === c.id;
           const pick = c.adoptedWorkId
             ? () => router.push(`/work/${c.adoptedWorkId}` as Route)
-            : live && !taken && !busy ? () => adopt(c.id) : undefined;
+            : live && !taken && !busy && !asking ? () => { setSure(c.id); setFail(''); } : undefined;
           return (
             <div key={c.id} {...(pick ? pressable(pick) : {})} className={pick ? 'card' : undefined} style={{
               position: 'relative', display: 'flex', flexDirection: 'column', gap: 9,
-              padding: '13px 14px 13px 16px', borderRadius: 10,
-              border: `1px solid ${c.recommended ? 'rgba(30,142,62,.34)' : SEAM}`,
-              background: c.recommended ? 'rgba(30,142,62,0.06)' : SUNK,
+              padding: '13px 14px', borderRadius: 10,
+              /**
+               * **面の色で推さない。** 前は推している1件だけ緑の面と帯を持っていて、
+               * 3つとも選べるのに**1つだけボタンのように**見えていた。
+               * 推している印は「おすすめ」の**文字だけ**にする（色は意味にだけ使う）。
+               */
+              border: `1px solid ${asking ? EDGE : SEAM}`,
+              background: SUNK,
               cursor: pick ? 'pointer' : 'default',
-              opacity: busy && busy !== c.id ? 0.5 : 1,
+              opacity: busy && !working ? 0.4 : 1,
             }}>
-              {c.recommended && <span style={{
-                position: 'absolute', left: 0, top: 12, bottom: 12, width: 3,
-                borderRadius: '0 2px 2px 0', background: GREEN,
-              }} />}
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
                 <span style={{ color: T1, fontSize: 14 }}>{c.name}</span>
                 {c.recommended && <span style={{ color: GREEN_T, fontSize: 10.5 }}>おすすめ</span>}
                 <div style={{ flex: 1 }} />
                 <span style={{ color: pick ? T3 : T5, fontSize: 12, whiteSpace: 'nowrap' }}>
-                  {c.adoptedWorkId ? 'Work を見る'
-                    : busy === c.id ? '計画を引いています…'
-                    : pick ? 'この案にする' : ''}
+                  {c.adoptedWorkId ? 'Work を見る' : pick ? 'この案にする' : ''}
                 </span>
                 {pick && <Icon name="chev" color={T5} size={12} />}
               </div>
@@ -281,11 +326,7 @@ function CandidatesCard({ id, live, threadId }: { id: string; live: boolean; thr
                 {AXES.map(([label, key]) => (
                   <span key={key} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                     <span style={{ color: T5, fontSize: 10.5 }}>{label}</span>
-                    {/* **3つとも読める濃さにする。** 推しだけ緑、あとは灰（見えない灰にしない） */}
-                    <span style={{ width: 46, height: 3, borderRadius: 2, background: '#242424', overflow: 'hidden' }}>
-                      <span style={{ display: 'block', width: `${c.fit[key]}%`, height: '100%',
-                                     background: c.recommended ? GREEN : '#6A6A6A' }} />
-                    </span>
+                    <Ticks value={c.fit[key]} />
                   </span>
                 ))}
               </div>
@@ -293,6 +334,26 @@ function CandidatesCard({ id, live, threadId }: { id: string; live: boolean; thr
               {!c.recommended && c.notChosenWhy && (
                 <span style={{ color: T5, fontSize: 11.5, lineHeight: '17px' }}>推さない理由 — {c.notChosenWhy}</span>
               )}
+
+              {/**
+                * **作る前に、一度だけ聞く。** Work は会社の仕事の入れ物で、
+                * 押した瞬間にできてしまうと「まだ選んでいただけ」との区別が無い。
+                */}
+              {asking && !working && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 3 }}>
+                  <span style={{ color: T2, fontSize: 12.5 }}>この案で Work を作りますか</span>
+                  <div style={{ flex: 1 }} />
+                  <button onClick={() => setSure('')} className="btn" style={{
+                    display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 12px',
+                    borderRadius: 8, color: T4, fontSize: 12,
+                  }}>やめる</button>
+                  <button onClick={() => adopt(c.id)} className="solid" style={{
+                    display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 15px',
+                    borderRadius: 8, background: BLUE, color: '#fff', fontSize: 12.5,
+                  }}>作る</button>
+                </div>
+              )}
+              {working && <Building name={c.name} />}
             </div>
           );
         })}
@@ -367,10 +428,11 @@ function DiagnosisCard({ id, live, threadId }: { id: string; live: boolean; thre
               <button onClick={() => start(i)} disabled={busy >= 0} className="btn" style={{
                 height: 28, padding: '0 12px', borderRadius: 7, border: `1px solid ${EDGE}`, color: T2, fontSize: 12, whiteSpace: 'nowrap',
                 opacity: busy >= 0 && busy !== i ? 0.5 : 1,
-              }}>{busy === i ? '引いています…' : 'Work にする'}</button>
+              }}>Work にする</button>
             ) : null}
           </div>
         ))}
+        {busy >= 0 && dg.findings[busy] && <Building name={dg.findings[busy].work.title} />}
         {end && (
           <EndAsk body={end.body} options={end.options} busy={busy >= 0}
             onPick={(label) => start(end.at, label)} />
@@ -424,13 +486,14 @@ function WorkCard({ card, live, threadId }:
               <button onClick={() => make()} disabled={busy} className="solid" style={{
                 height: 32, padding: '0 16px', borderRadius: 8, background: BLUE, color: '#fff',
                 fontSize: 12.5, opacity: busy ? 0.6 : 1,
-              }}>{busy ? '計画を引いています…' : 'この Work を作る'}</button>
-              <span style={{ color: T5, fontSize: 11.5 }}>作らずに、続けて相談しても構いません</span>
+              }}>この Work を作る</button>
+              {!busy && <span style={{ color: T5, fontSize: 11.5 }}>作らずに、続けて相談しても構いません</span>}
             </>
           ) : (
             <span style={{ color: T5, fontSize: 11.5 }}>この提案は流れました</span>
           )}
         </div>
+        {busy && <Building name={card.title} />}
         {end && (
           <EndAsk body={end.body} options={end.options} busy={busy}
             onPick={(label) => make(label)} />

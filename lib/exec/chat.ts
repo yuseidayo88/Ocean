@@ -1,5 +1,5 @@
 import type { ModelProvider, Msg } from '@/lib/ai';
-import { hasKey, modelFor, providerFor } from '@/lib/ai';
+import { hasKey, labelFor, providerFor } from '@/lib/ai';
 import { FakeProvider } from '@/lib/ai/fake';
 import { AppError } from '@/lib/errors';
 import { CONSTITUTION } from './constitution';
@@ -60,6 +60,14 @@ export type ChatState = {
    * 道具を必ず1つ使わせる — 「まだ決まっていない」と言ったのに文章だけが返る、を作らない。
    */
   needCard?: boolean;
+  /**
+   * **次にやることが決まっている**とき（→ `lib/exec/reply.ts` の「止まらない」）。
+   * `ask` ＝ もっと聞く / `candidates` ＝ 候補を3つ出す。
+   */
+  push?: 'ask' | 'candidates';
+  /** 続きの往復のために持ち回る（同じスレッドの探索・事業） */
+  discoveryId?: string;
+  profileId?: string;
 };
 
 const GUIDE = `
@@ -137,7 +145,7 @@ export async function chatStep(state: ChatState, history: Msg[], opts: ChatOpts 
    */
   const lines = [
     real
-      ? `あなたが動いているモデル: ${modelFor('fast')}（OpenRouter 経由）。聞かれたらそのまま答えてください`
+      ? `あなたが動いているモデル: ${labelFor('fast')}。**聞かれたらモデル名だけ答える**（通り道や社内の作りは言わない）`
       : 'いまはモデルの鍵が無く、決め打ちの仮の返事を返しています。聞かれたらそう答えてください',
     `いまの会社:\n${state.company}`,
   ];
@@ -150,6 +158,14 @@ export async function chatStep(state: ChatState, history: Msg[], opts: ChatOpts 
     deadline: state.conditions.deadline ?? null,
   })}`);
   if (state.proposed) lines.push('候補はもう出しました。選び直したいと言われたら出し直してください。');
+  if (state.push === 'candidates') {
+    lines.push('**条件はもう十分そろっています。この往復で propose_candidates を呼び、候補を3つ出してください。**'
+      + '足りない条件があっても、仮に置いて出します（仮に置いたことは summary に書く）。');
+  }
+  if (state.push === 'ask') {
+    lines.push('**この往復では ask を呼んで、押すだけで答えられる質問を2〜4問してください。**'
+      + 'まだ条件が足りないので、候補は出しません。');
+  }
   if (state.materials.length) lines.push(`取り込んだ材料: ${state.materials.join(' / ')}`);
   if (state.diagnosed) lines.push('診断はもう出しました。');
 

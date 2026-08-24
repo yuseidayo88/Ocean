@@ -96,6 +96,15 @@ export function modelFor(tier: Tier): string {
   return TIER_TABLE[tier].model
 }
 
+/**
+ * **社長に見せる名前。** 表のモデルで走っているなら `MODEL_LABEL`、
+ * env で差し替えているならその名前をそのまま（画面が嘘をつかない）。
+ */
+export function labelFor(tier: Tier): string {
+  const now = modelFor(tier)
+  return now === TIER_TABLE[tier].model ? MODEL_LABEL : now
+}
+
 export function costUsd(tier: Tier, inTok: number, outTok: number): number {
   const s = TIER_TABLE[tier]
   return (inTok / 1e6) * s.inPerMTok + (outTok / 1e6) * s.outPerMTok

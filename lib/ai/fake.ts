@@ -301,11 +301,18 @@ async function* fakeChat(input: RunInput): AsyncIterable<Chunk> {
     return;
   }
 
-  // ② まだ決まっていない道 — 条件を集めて、2つそろったら候補
+  // ② まだ決まっていない道 — 条件を集めて、そろったら候補
   const cond = condFrom(said);
   const already = sys.match(/集まっている条件:\n(\{[\s\S]*?\})/)?.[1];
   let cur: Record<string, unknown> = {};
   try { cur = JSON.parse(already ?? '{}'); } catch { /* 空のまま */ }
+
+  // 「いま候補を出してください」と言われた往復（止まらない仕掛けの2回め）
+  if (sys.includes('propose_candidates を呼び')) {
+    yield tool('propose_candidates', { candidates: fakeCands({ ...cur, ...cond }) });
+    yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
+    return;
+  }
   if (/まだ決まって|決まっていません/.test(said) && !Object.keys(cond).length) {
     yield tool('ask', { questions: [
       {
