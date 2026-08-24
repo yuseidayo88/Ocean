@@ -287,6 +287,16 @@ export const memoryStore: Store = {
     return id;
   },
 
+  async threadForWork(workId) {
+    const had = threads.find((t) => t.workId === workId);
+    if (had) return had.id;
+    const live = [...bag.values()].find((d) => d.live?.id === workId)?.live;
+    const id = `t-${threads.length + 1}`;
+    threads.push({ id, title: (live?.title ?? 'Work の相談').slice(0, 16), workId,
+                   lastAt: new Date().toISOString() });
+    return id;
+  },
+
   async linkThread(threadId, patch) {
     const th = threads.find((t) => t.id === threadId);
     if (!th) return false;

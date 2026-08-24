@@ -404,7 +404,7 @@ export default function WorkPage() {
           </div>
         </div>
 
-        <Composer placeholder="この Work について統括AIに相談する" />
+        <Composer placeholder="この Work について統括AIに相談する" mode={w.title} />
       </Centre>
 
       {pane && (

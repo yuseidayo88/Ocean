@@ -246,6 +246,11 @@ export interface Store {
    */
   linkThread(threadId: string, patch: { workId?: string; discoveryId?: string; profileId?: string }): Promise<boolean>;
   /**
+   * その Work の会話を引く（無ければ作る）。入力欄の宛先が「Work を選ぶ」になったので、
+   * **選んだ先が必ず1本ある**ようにする。1チャット=1Work の裏返し
+   */
+  threadForWork(workId: string): Promise<string>;
+  /**
    * スキル（SKILL.md）の一覧・有効の切り替え・追加・削除。
    * **1枚も無ければ標準スキル（builtin）を播く** — 元々の機能なので、どの会社にも最初からある
    */

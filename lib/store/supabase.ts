@@ -769,6 +769,12 @@ export const supabaseStore: Store = {
     return id;
   },
 
+  async threadForWork(workId) {
+    const c = await db();
+    const { data: w } = await c.from('works').select('title').eq('id', workId).maybeSingle();
+    return threadFor(c, workId, ((w?.title as string) ?? 'Work の相談').slice(0, 16));
+  },
+
   async linkThread(threadId, patch) {
     const c = await db();
     if (patch.workId) {

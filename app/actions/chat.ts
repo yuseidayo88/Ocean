@@ -179,3 +179,33 @@ export async function chatMakeWork(
     return { ok: false, need: 'error', message: sayError(e, 'Work を作れませんでした') };
   }
 }
+
+/* ══════════════ 宛先（どの Work の会話に書くか）══════════════ */
+
+/**
+ * 入力欄の宛先の候補。**Work の名前を並べ、いちばん下に「新しいチャット」**。
+ * 終わった Work は出さない（もう相談することが無い）。
+ */
+export async function chatTargets(): Promise<{ id: string; title: string }[]> {
+  try {
+    return (await store().listWorks())
+      .filter((w) => w.status !== 'archived' && w.status !== 'done')
+      .map((w) => ({ id: w.id, title: w.title }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * その Work の会話を開く（無ければ作る）。
+ * **選んだ先が必ず1本ある**ようにするので、押して何も起きない、が起きない。
+ */
+export async function openWorkChat(
+  workId: string,
+): Promise<{ ok: true; threadId: string } | { ok: false; message: string }> {
+  try {
+    return { ok: true, threadId: await store().threadForWork(workId) };
+  } catch (e) {
+    return { ok: false, message: sayError(e, 'その Work の会話を開けませんでした') };
+  }
+}

@@ -7,7 +7,7 @@ import { Composer, ExecStatus, TopBar } from '@/components/shell/Chrome';
 import { Card } from '@/components/chat/Cards';
 import { Orb } from '@/components/ui/Orb';
 import { threadGet } from '@/app/actions/live';
-import { chatSend } from '@/app/actions/chat';
+import { chatSend, chatTargets } from '@/app/actions/chat';
 import type { ChatMsg } from '@/lib/store';
 import { useEffect, useRef, useState } from 'react';
 
@@ -52,6 +52,8 @@ export default function ChatPage() {
   const [title, setTitle] = useState(fresh ? '新しいチャット' : '');
   const [pending, setPending] = useState<string | null>(null);
   const [gone, setGone] = useState(false);
+  /** この会話が宛てている先（入力欄のラベル）。Work に紐づいていればその名前 */
+  const [to, setTo] = useState('新しいチャット');
   const foot = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -62,6 +64,9 @@ export default function ChatPage() {
       if (!r) { setGone(true); return; }
       setMsgs(r.messages);
       setTitle(r.thread.title);
+      const wid = r.thread.workId;
+      if (!wid) { setTo('新しいチャット'); return; }
+      chatTargets().then((ws) => { if (on) setTo(ws.find((w) => w.id === wid)?.title ?? '新しいチャット'); });
     });
     return () => { on = false; };
   }, [id, fresh]);
@@ -123,7 +128,7 @@ export default function ChatPage() {
         </div>
       )}
 
-      <Composer placeholder="統括AIに書く" local onSend={send} busy={pending !== null} />
+      <Composer placeholder="統括AIに書く" mode={to} local onSend={send} busy={pending !== null} />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { Icon, type IconName } from '@/components/ui/Icon';
 import { CompanyPicker, useShell } from '@/components/shell/Shell';
 import { AMBER, AMBER_T, BLUE, COMPOSER_H as TOKEN_COMPOSER_H, DIM, EASE, EASE_FAST, EDGE, FAINT, GREEN_T, HAIR, LINE, RAIL, RED_T, RULE, SEAM, SUNK, T1, T2, T3, T4, T5, WELL } from '@/lib/design/tokens';
 import { EFFORT_WORDS } from '@/lib/view/model';
+import { chatTargets, openWorkChat } from '@/app/actions/chat';
 
 /** 入力欄の高さ。**下に貼り付く中身はこのぶん逃がす**（→ lib/design/tokens.ts） */
 export const COMPOSER_H = TOKEN_COMPOSER_H;
@@ -119,7 +120,7 @@ function grow(t: HTMLTextAreaElement, onH?: (h: number) => void) {
   });
 }
 
-export function Composer({ placeholder, mode = '統括AI', effort = '自動', above, floating = true,
+export function Composer({ placeholder, mode = '新しいチャット', effort = '自動', above, floating = true,
                            veil = true, inPane = false, local = false, onSend, busy = false }:
   { placeholder: string; mode?: string; effort?: string; above?: React.ReactNode; floating?: boolean;
     /**
@@ -230,14 +231,11 @@ export function Composer({ placeholder, mode = '統括AI', effort = '自動', ab
           } as React.CSSProperties}
         />
         {/**
-          * **宛先は変わらないので ⌄ を付けない。**
-          * 書いたものは全部 統括AI に届く（社員に直接は頼めない）。
-          * 選べないのに ⌄ が付いていると、押して何も起きないものが全画面に1つ増える。
+          * **宛先＝どの Work の会話に書くか。**
+          * 相手は always 統括AI（社員に直接は頼めない）ので、選ぶのは「どの話の続きか」。
+          * Work の名前を並べ、いちばん下に「新しいチャット」を置く。
           */}
-        <span style={{
-          display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 6px',
-          color: T4, fontSize: 12.5, flexShrink: 0, whiteSpace: 'nowrap',
-        }}>{mode}</span>
+        <ToMenu label={mode} />
         {/* 深さは本物の選択。統括AI がどこまで考えるかを、その場で変える */}
         <EffortMenu init={effort} />
         {/* **書いていないときは送れない。** 押せないものを押せる顔にしない */}
@@ -757,6 +755,93 @@ export function PaneHead({ children, top = false }: { children: React.ReactNode;
  * 入力欄の深さ。**thinking の量**を決める（モデルは変わらない）。
  * メンバー画面の行に置いたものと同じ言葉づかい。`自動` は統括AIに任せる。
  */
+/**
+ * 宛先のメニュー。**どの Work の会話に書くか**を選ぶ。
+ *
+ * 相手は変わらない（いつも統括AI）ので、選ぶのは**話の続き先**。
+ * 選ぶとその会話へ移る — 宛先だけ変えて画面に残ると、
+ * 「いまどこに書いているのか」が画面のどこにも出なくなる。
+ *
+ * **終わった Work は出さない**（もう相談することが無い）。
+ * Work が1つも無ければ、押しても「新しいチャット」しか無いので**出さない**。
+ */
+function ToMenu({ label }: { label: string }) {
+  const [open, setOpen] = useState(false);
+  const [works, setWorks] = useState<{ id: string; title: string }[]>([]);
+  const [busy, setBusy] = useState(false);
+  const box = useRef<HTMLSpanElement>(null);
+  const router = useRouter();
+
+  useEffect(() => { chatTargets().then(setWorks); }, []);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); setOpen(false); } };
+    document.addEventListener('mousedown', away);
+    document.addEventListener('keydown', esc, true);
+    return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', esc, true); };
+  }, [open]);
+
+  // 選べる先が「新しいチャット」しか無いなら、選ばせない（押して何も変わらない）
+  if (!works.length) {
+    return (
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 6px',
+        color: T4, fontSize: 12.5, flexShrink: 0, whiteSpace: 'nowrap',
+      }}>{label}</span>
+    );
+  }
+
+  const go = async (workId: string | null) => {
+    setOpen(false);
+    if (!workId) { router.push('/chat/new' as Route); return; }
+    setBusy(true);
+    const r = await openWorkChat(workId);
+    setBusy(false);
+    if (r.ok) router.push(`/chat/${r.threadId}` as Route);
+  };
+
+  return (
+    <span ref={box} style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
+      <button className="btn" aria-haspopup="listbox" aria-expanded={open} disabled={busy}
+        onClick={() => setOpen(!open)} style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 9px',
+          borderRadius: 8, color: T4, fontSize: 12.5, whiteSpace: 'nowrap', maxWidth: 190,
+          boxShadow: open ? 'inset 0 0 0 40px rgba(255,255,255,.03)' : undefined,
+        }}>
+        <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+        <Icon name="down" color={T5} size={11} />
+      </button>
+      {open && (
+        <span role="listbox" className="pop" style={{
+          position: 'absolute', bottom: 36, right: 0, zIndex: 20, width: 232, padding: 5, borderRadius: 11,
+          background: SUNK, border: `1px solid ${FAINT}`, boxShadow: '0 18px 44px rgba(0,0,0,.74)',
+        }}>
+          {works.map((w) => (
+            <button key={w.id} role="option" aria-selected={w.title === label} className="btn"
+              onClick={() => go(w.id)} style={{
+                display: 'flex', alignItems: 'center', width: '100%', height: 30, padding: '0 10px',
+                borderRadius: 7, color: w.title === label ? T1 : T2, fontSize: 12,
+                background: w.title === label ? `${WELL}` : undefined,
+              }}>
+              <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {w.title}
+              </span>
+              <span style={{ flex: 1 }} />
+              {w.title === label && <span style={{ color: GREEN_T, fontSize: 11 }}>✓</span>}
+            </button>
+          ))}
+          <span style={{ display: 'block', height: 1, margin: '5px 8px', background: RULE }} />
+          <button role="option" aria-selected={false} className="btn" onClick={() => go(null)} style={{
+            display: 'flex', alignItems: 'center', width: '100%', height: 30, padding: '0 10px',
+            borderRadius: 7, color: T3, fontSize: 12,
+          }}>新しいチャット</button>
+        </span>
+      )}
+    </span>
+  );
+}
+
 function EffortMenu({ init }: { init: string }) {
   const [v, setV] = useState(init);
   const [open, setOpen] = useState(false);
