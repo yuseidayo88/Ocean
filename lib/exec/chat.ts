@@ -314,8 +314,16 @@ export async function chatStep(state: ChatState, history: Msg[], opts: ChatOpts 
    * 「（返事がありませんでした）」だけが並んだ）。
    * だから**足りないときは、もう一度だけ短く書いてもらう** — 道具は渡さないので必ず文が来る。
    */
-  // 写すだけの往復（record）は黙ってよい — 続きの往復が言葉を持つ
-  if (!out.text && cards.length && state.push !== 'record') {
+  /**
+   * **条件を写しただけの往復は、言葉を作らない。**
+   * このあと続きの往復（質問か候補）が必ず走って、そちらが言葉を持つ（→ reply.ts）。
+   * ここで一言作らせると「もう1つ条件をもらえると出せます」と言った**直後に候補が出る** —
+   * 言葉と行動が食い違う（実際そうなった）。
+   */
+  const condOnly = Object.keys(conditions).length > 0
+    && !out.questions.length && !out.candidates.length && !out.findings.length
+    && !out.work && !out.materials.length;
+  if (!out.text && cards.length && state.push !== 'record' && !condOnly) {
     opts.onStage?.('言葉にしています');
     out.text = await prose(p, sys, history, cards, opts);
   }
