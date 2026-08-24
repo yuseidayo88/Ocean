@@ -261,7 +261,8 @@ export function Composer({ placeholder, mode = NEW_CHAT, effort = '自動', abov
           * 相手は always 統括AI（社員に直接は頼めない）ので、選ぶのは「どの話の続きか」。
           * Work の名前を並べ、いちばん下に「新しいチャット」を置く。
           */}
-        <ToMenu label={mode} />
+        {/* 宛先は「どの会話に書くか」。**ペインの中では出さない** — 見出しがもう名乗っている */}
+        {!inPane && <ToMenu label={mode} />}
         {/* 深さは本物の選択。統括AI がどこまで考えるかを、その場で変える */}
         <EffortMenu init={effort} />
         {/* **書いていないときは送れない。** 押せないものを押せる顔にしない */}

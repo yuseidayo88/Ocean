@@ -1,4 +1,4 @@
-import type { Msg } from '@/lib/ai';
+import type { ModelProvider, Msg } from '@/lib/ai';
 import { hasKey, providerFor } from '@/lib/ai';
 import { FakeProvider } from '@/lib/ai/fake';
 import { AppError } from '@/lib/errors';
@@ -59,23 +59,38 @@ export type ChatState = {
 
 const GUIDE = `
 ## いまの仕事 — 社長との会話
-あなたは社長と1対1で話しています。**返事は日本語で短く。** 話を進めるのが仕事です。
+あなたは社長と1対1で話しています。**まず、ふつうに返事をしてください。**
+日本語で短く（1〜4行）。挨拶にも、質問にも、雑談にも、ふつうに答える。
 
-社長は3つのどれかで来ます。見分けて、その道に乗せてください。
-1. **やりたいことがある** → 終わりが言えるか確かめ、まとまったら propose_work
-2. **まだ決まっていない** → set_conditions で条件を構造に写す（使える時間 / 使えるお金 /
-   得意なこと / やりたくないこと / いつまでに）。**2つそろったら** propose_candidates で候補を3つ
-3. **すでに事業がある** → remember_material で材料を覚える。材料がそろったら
-   describe_business → report_facts → report_diagnosis
+**道具は必要なときだけ**です。呼ばない往復のほうが多くて構いません。
+
+社長が次の3つのどれかで来たときだけ、その道に乗せてください。
+1. **やりたいことがある**（終わりの言える仕事） → まとまったら propose_work
+2. **まだ決まっていない**（何をやるか相談された） → set_conditions で条件を構造に写す
+   （使える時間 / 使えるお金 / 得意なこと / やりたくないこと / いつまでに）。
+   **2つそろったら** propose_candidates で候補を3つ
+3. **すでに事業がある**（サイト・資料・数字を渡された） → remember_material で覚える。
+   そろったら describe_business → report_facts → report_diagnosis
 
 ## 守ること
 - **Work は勝手に作らない。** propose_work で提案するだけ。作るのは社長が押したとき
 - 雑談・質問・調べもので済む話に Work は要らない。**要らないときは提案しない**
 - **この会話でもう Work を作っているなら、propose_work は二度と呼ばない**
-- 聞きたいことがあるときは ask（1度に2〜4問まで）。選択肢には必ず1行の説明を付ける
-- 道具を呼ぶときも、**本文は必ず書く**（カードだけ出して黙らない）`;
+- 聞きたいことがあるときは ask（1度に2〜4問まで）。選択肢には必ず1行の説明を付ける。
+  **本文で選択肢を並べ直さない** — 選択肢はカードとして画面に出ます
+- 分からないことは分からないと言う。知らない数字を作らない`;
 
-export async function chatStep(state: ChatState, history: Msg[]): Promise<ChatOut> {
+/**
+ * 1往復ぶんの口。**本文は流しながら渡す**（`onText`）ので、
+ * 画面は最初の1文字が届いた時点から出せる（→ `app/api/chat/route.ts`）。
+ */
+export type ChatOpts = {
+  /** 本文が1かたまり届くたびに呼ばれる */
+  onText?: (chunk: string) => void;
+  signal?: AbortSignal;
+};
+
+export async function chatStep(state: ChatState, history: Msg[], opts: ChatOpts = {}): Promise<ChatOut> {
   const real = hasKey('fast');
   const p = real ? providerFor('fast') : new FakeProvider();
 
@@ -97,15 +112,19 @@ export async function chatStep(state: ChatState, history: Msg[]): Promise<ChatOu
   let text = '';
   let stop: string | null = null;
 
+  // 前置きは2度めの往復（本文だけ書いてもらう）でも同じものを使う
+  const sys = `${CONSTITUTION}\n${GUIDE}\n\n${lines.join('\n\n')}`;
+
   for await (const c of p.stream({
     tier: 'fast',
-    system: `${CONSTITUTION}\n${GUIDE}\n\n${lines.join('\n\n')}`,
+    system: sys,
     messages: history,
     tools: [ask, setConditions, proposeCandidates, rememberMaterial, describeBusiness, reportFacts, reportDiagnosis, proposeWork],
     maxTokens: 8000,
     effort: 'low',
+    signal: opts.signal,
   })) {
-    if (c.type === 'text') text += c.text;
+    if (c.type === 'text') { text += c.text; opts.onText?.(c.text); }
     if (c.type === 'tool_use') {
       const input = (c.input ?? {}) as Record<string, unknown>;
       // 材料は1往復で何個来てもいい（ほかの道具は最後の1つが勝つ）
@@ -180,10 +199,68 @@ export async function chatStep(state: ChatState, history: Msg[]): Promise<ChatOu
   };
 
   // **黙って何も起きない、を作らない**（押しても画面が変わらない、の禁止）
-  if (!out.text && !out.questions.length && !out.candidates.length && !out.findings.length
-      && !out.work && !out.materials.length && !Object.keys(conditions).length) {
+  const cards = cardWords(out);
+  if (!out.text && !cards.length) {
     throw new AppError('upstream', `empty chat turn (stop=${stop})`,
       undefined, '統括AIが応えませんでした。もう一度お試しください');
   }
+
+  /**
+   * **道具を呼んだ往復には本文が来ない。**
+   * OpenAI 互換のモデルは `tool_calls` を返すとき `content` を空にするのがふつうで、
+   * 「道具を呼ぶときも本文を書け」と頼んでも守られない（実際 Luna で
+   * 「（返事がありませんでした）」だけが並んだ）。
+   * だから**足りないときは、もう一度だけ短く書いてもらう** — 道具は渡さないので必ず文が来る。
+   */
+  if (!out.text && cards.length) {
+    out.text = await prose(p, sys, history, cards, opts);
+  }
   return out;
+}
+
+/** いま画面に出るカードを、ひとことで言い直す（2度めの往復に渡す） */
+function cardWords(o: ChatOut): string[] {
+  const w: string[] = [];
+  if (o.questions.length) w.push(`聞きたいこと ${o.questions.length}問（選択肢つき）`);
+  if (o.candidates.length) w.push(`条件に合う道 ${o.candidates.length}つ（${o.candidates.map((c) => c.name).join(' / ')}）`);
+  if (o.findings.length) w.push(`診断で見つかったこと ${o.findings.length}件`);
+  if (o.work) w.push(`Work の提案「${o.work.title}」`);
+  if (o.materials.length) w.push(`覚えた材料 ${o.materials.length}件`);
+  if (Object.keys(o.conditions).length) w.push('条件の書き足し');
+  return w;
+}
+
+/**
+ * カードに添える1〜3行。**道具を渡さない**ので、必ず文が返る。
+ * 倒れてもカードは出したいので、**ここで投げない** — 最後の手として決め打ちの1行を返す。
+ */
+async function prose(
+  p: ModelProvider, system: string, history: Msg[], cards: string[], opts: ChatOpts,
+): Promise<string> {
+  try {
+    let out = '';
+    for await (const c of p.stream({
+      tier: 'fast',
+      system: [
+        system, '',
+        '## いま',
+        'あなたはもう手を動かしました。社長の画面には次が出ます:',
+        ...cards.map((x) => `- ${x}`),
+        '',
+        '**それに添える短い返事だけ**を日本語で書いてください（1〜3行）。',
+        'カードの中身は繰り返さない。道具はもう呼ばない。',
+      ].join('\n'),
+      messages: history,
+      maxTokens: 400,
+      effort: 'low',
+      signal: opts.signal,
+    })) {
+      if (c.type === 'text') { out += c.text; opts.onText?.(c.text); }
+    }
+    const said = out.trim();
+    if (said) return said;
+  } catch { /* 下の1行に落ちる */ }
+  const fallback = cards.length === 1 ? `${cards[0]}を出しました。` : '下にまとめました。';
+  opts.onText?.(fallback);
+  return fallback;
 }

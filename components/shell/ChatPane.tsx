@@ -10,7 +10,7 @@ import { threadGet, threadsList } from '@/app/actions/live';
 import type { ChatMsg } from '@/lib/store';
 import { useEffect, useState } from 'react';
 
-import { EXEC, T2, T4, T5 } from '@/lib/design/tokens';
+import { EXEC, RED_T, SEAM, T2, T4, T5 } from '@/lib/design/tokens';
 /**
  * **どの画面からでも統括AIと話せる。**
  * 中央の入力欄に書いて送ると、右ペインがその会話になって開き、入力欄はその中へ移る。
@@ -22,8 +22,13 @@ import { EXEC, T2, T4, T5 } from '@/lib/design/tokens';
  * **右ペインの3つめの形は作らない。** これはパネル（画面そのものの付き添い）の一種で、
  * 見出し ＋ ✕ という作法は変えない。持ち出して読み比べるものではないのでタブにもしない。
  *
- * **返事は本物。** 送ると統括AIが fast の1往復で返す（→ `sendChat`）。
+ * **中身はチャットの画面とまったく同じ統括AI**（`chatSay` → `/api/chat`）。
+ * 前はここだけ道具を持たない別の返事だったので、同じことを聞いても形が違った。
+ * 本文は**流れてくる**ので、書けたそばから読める。
  * 鍵の無い環境は「仮の返事」と名乗って返す — 偽の会話を作らない。
+ *
+ * **カードはここでは開かない。** 質問・候補・診断・Work の提案は会話の中で答えるものなので、
+ * 「◯◯があります · 開く」の1行だけ置いて、チャットの画面へ渡す（狭い器に押し込まない）。
  */
 
 export function ChatPane() {
@@ -93,7 +98,12 @@ export function ChatPane() {
         {msgs.map((m, i) => (
           m.role === 'user'
             ? <Said key={i}>{m.body}</Said>
-            : <Exec key={i}>{m.body}</Exec>
+            : (
+              <span key={i} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {m.body && <Exec>{m.body}</Exec>}
+                {m.card && id && <CardLink kind={m.card.kind} href={`/chat/${id}` as Route} />}
+              </span>
+            )
         ))}
 
         {msgs.length === 0 && chat.said.length === 0 && (
@@ -109,12 +119,19 @@ export function ChatPane() {
         {/* いま送っている途中のぶん（楽観表示。書き終わると msgs に入って消える） */}
         {chat.said.map((t, i) => <Said key={`s${i}`}>{t}</Said>)}
 
-        {/* 統括AIが本当に書いている（sendChat が返るまで） */}
-        {chat.busy && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9, paddingTop: 2 }}>
-            <Orb color={EXEC} size={22} seed={7} />
-            <ExecStatus state="thinking" />
-          </div>
+        {/* 流れてきている返事。**1文字目から出す**（考えている印は、まだ何も無いあいだだけ） */}
+        {chat.busy && (chat.live
+          ? <Exec>{chat.live}<span className="caret" /></Exec>
+          : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, paddingTop: 2 }}>
+              <Orb color={EXEC} size={22} seed={7} />
+              <ExecStatus state="thinking" />
+            </div>
+          ))}
+
+        {/* 倒れたときは理由を出す（黙って終わらせない） */}
+        {!chat.busy && chat.fail && (
+          <span style={{ color: RED_T, fontSize: 12.5 }}>{chat.fail}</span>
         )}
       </div>
 
@@ -131,6 +148,25 @@ const Said = ({ children }: { children: React.ReactNode }) => (
       background: '#24354A', color: '#DCE7F5', fontSize: 13.5, lineHeight: '21px',
     }}>{children}</span>
   </div>
+);
+
+/**
+ * カードは会話の中で答えるもの。**ここでは開かず、行き先だけ出す。**
+ * 「何か出たのに、どこにも無い」を作らない。
+ */
+const CARD_WORDS: Record<string, string> = {
+  ask: '聞きたいことがあります', candidates: '条件に合う道を出しました',
+  diagnosis: '診断が出ました', work: 'Work の提案があります',
+};
+const CardLink = ({ kind, href }: { kind: string; href: Route }) => (
+  <Link href={href} className="row" style={{
+    display: 'flex', alignItems: 'center', gap: 8, height: 34, padding: '0 11px',
+    borderRadius: 8, border: `1px solid ${SEAM}`, color: T2, fontSize: 12.5,
+  }}>
+    {CARD_WORDS[kind] ?? '続きがあります'}
+    <span style={{ flex: 1 }} />
+    <span style={{ color: T5, fontSize: 11.5 }}>チャットで開く</span>
+  </Link>
 );
 
 const Exec = ({ children }: { children: React.ReactNode }) => (

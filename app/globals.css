@@ -55,6 +55,10 @@ button { background: none; border: none; padding: 0; cursor: pointer; }
 @keyframes reveal { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 @keyframes shimmer { 0% { background-position: -180px 0; } 100% { background-position: 220px 0; } }
 @keyframes spin { to { transform: rotate(360deg); } }
+/* 書いている最中の印。**事実なので、動きを減らす設定でも止めない**（脈と同じ扱い） */
+@keyframes caret { 0%, 45% { opacity: 1; } 55%, 100% { opacity: .15; } }
+.caret { display: inline-block; width: 7px; height: 15px; margin-left: 2px;
+         vertical-align: -2px; background: var(--t5); animation: caret .9s steps(1, end) infinite; }
 
 /* 右ペイン ── 幅 0 から広がって出る。閉じるときは畳んでから消える。
    `--pw` にその画面のペイン幅が入る（画面ごとに 400〜480） */

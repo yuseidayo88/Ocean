@@ -9,6 +9,7 @@ import { BLUE, COMPOSER_H, DIM, EDGE, GREEN, GREEN_T, HAIR, MUTE, RULE, SEAM, T2
 import { Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
 import { AGENT_COLOR, EFFORT_WORDS, EXEC, MODELS } from '@/lib/view/model';
+import { MODEL_LABEL } from '@/lib/ai/tiers';
 import { pressable } from '@/lib/a11y';
 import { hire, listEmployees } from '@/app/actions/run';
 import { learningsGet, learningsSet, skillsList, skillToggle } from '@/app/actions/live';
@@ -57,7 +58,7 @@ const toLine = (e: LiveEmployee): Line => {
     id: e.id, name: e.name, en: d?.en ?? '', state: e.state === 'running' ? '実行中' : '待機',
     color: e.color, seed: e.name.length * 7 + 3,
     lead: d?.mission ?? '', can: (d?.rules ?? []).slice(0, 3).map((r) => r.split('。')[0]),
-    canMore: Math.max(0, (d?.rules.length ?? 0) - 3), model: '自動', effort: 2,
+    canMore: Math.max(0, (d?.rules.length ?? 0) - 3), model: MODEL_LABEL, effort: 2,
     rules: d?.rules ?? [],
     sub: e.hiredAt ? `${e.hiredAt.slice(0, 10)} から在籍` : undefined,
   };
@@ -68,7 +69,7 @@ const toCand = (d: Definition): Line => ({
   id: `d-${d.slug}`, name: d.name, en: d.en, state: '', color: AGENT_COLOR[d.color],
   seed: d.name.length * 9 + 5, lead: d.mission,
   can: d.rules.slice(0, 3).map((r) => r.split('。')[0]),
-  canMore: Math.max(0, d.rules.length - 3), model: '自動', effort: 2,
+  canMore: Math.max(0, d.rules.length - 3), model: MODEL_LABEL, effort: 2,
   rules: d.rules, cand: d.slug,
 });
 

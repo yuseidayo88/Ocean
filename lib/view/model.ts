@@ -5,6 +5,7 @@
  */
 
 import { agentColor, EXEC as EXEC_COLOR } from '@/lib/design/tokens';
+import { MODEL_LABEL } from '@/lib/ai/tiers';
 
 
 export type EmployeeColor = 'cyan' | 'purple' | 'indigo' | 'green';
@@ -56,8 +57,13 @@ export type Desk = {
   wait: number;
 };
 
-/** モデルの選択肢。**Thinking 版を並べない** — それは深さのほう */
-export const MODELS = ['自動', 'Haiku 4.5', 'Sonnet 5', 'Opus 5'] as const;
+/**
+ * モデル。**いまは1つしか無いので、選ばせない**（2026-08-24）。
+ * 前は 自動 / Haiku 4.5 / Sonnet 5 / Opus 5 を並べていたが、
+ * どれを選んでも実際は同じモデルで走っていた — **画面が嘘をついていた**。
+ * 選べるようにするのは、切り替えが本当に効くようになってから（→ `docs/PLAN.md`）。
+ */
+export const MODELS = [MODEL_LABEL] as const;
 
 /** 深さ ＝ thinking の量。いちばん左は考えずに答える */
 export const EFFORT_WORDS = ['考えずに答える', '浅め', '標準', 'やや深め', '深め', 'いちばん深く'] as const;
@@ -253,6 +259,6 @@ export const EXEC = {
   id: 'exec', name: '統括AI', en: 'Executive', color: EXEC_COLOR,
   lead: 'あなたの言葉は全部ここに届きます。',
   can: ['Workを立てる', '計画を作る', '社員を選ぶ'], canMore: 1,
-  model: 'Opus 5', effort: 4,
+  model: MODEL_LABEL, effort: 4,
 };
 

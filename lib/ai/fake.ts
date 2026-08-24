@@ -20,7 +20,7 @@ export class FakeProvider implements ModelProvider {
 
     // ══ 道具なし＝会話（チャットの返事）══ 偽物であることを必ず言う
     if (!input.tools?.length) {
-      yield { type: 'text', text: `（仮の返事）「${goal.slice(0, 40)}」を受け取りました。この環境には鍵が無いので、本当の返事は出せません。` };
+      yield { type: 'text', text: `（仮の返事）${chatWords(input, goal)}` };
       yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'end_turn' };
       return;
     }
@@ -260,6 +260,7 @@ async function* fakeChat(input: RunInput): AsyncIterable<Chunk> {
   // ① すでに事業がある道 — 材料が来たら覚え、そろったら診断
   const url = said.match(/([\w-]+(?:\.[\w-]+)+(?:\/\S*)?)/)?.[1];
   const numbers = /[0-9０-９][\d,，]{2,}/.test(said);
+  // 材料をもらう前は、道具が要らない（ふつうの返事だけ）
   if (/すでに事業|いまの事業|事業があります/.test(said)) {
     yield { type: 'text', text: '（仮の返事）いまの事業のことを教えてください。サイトのURL、資料、売上の数字 — あるものだけで構いません。' };
     yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'end_turn' };
@@ -270,7 +271,6 @@ async function* fakeChat(input: RunInput): AsyncIterable<Chunk> {
     if (numbers) yield tool('remember_material', { kind: 'doc', locator: '書いて渡した', content: said });
     const enough = sys.includes('取り込んだ材料:');
     if (enough || (url && numbers)) {
-      yield { type: 'text', text: '（仮の返事）材料がそろったので、診断しました。' };
       yield tool('describe_business', { name: (url ?? 'わたしの事業').replace(/^https?:\/\//, '').split('/')[0], stage: '立ち上げ期' });
       const sales = said.match(/売上[^0-9]{0,6}([\d,]{3,})/)?.[1];
       yield tool('report_facts', { facts: [
@@ -288,8 +288,6 @@ async function* fakeChat(input: RunInput): AsyncIterable<Chunk> {
           evidence: [`${url ?? '書いて渡した'} に計測の記述が無い`],
           work: { title: '申込導線の計測と改善', goal: '落ちる場所が数字で分かり、1つ直せている', weeks: 4 } },
       ] });
-    } else {
-      yield { type: 'text', text: '（仮の返事）受け取りました。ほかにも materials があれば教えてください。数字か、サイトのURLがあると診断できます。' };
     }
     yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
     return;
@@ -301,7 +299,6 @@ async function* fakeChat(input: RunInput): AsyncIterable<Chunk> {
   let cur: Record<string, unknown> = {};
   try { cur = JSON.parse(already ?? '{}'); } catch { /* 空のまま */ }
   if (/まだ決まって|決まっていません/.test(said) && !Object.keys(cond).length) {
-    yield { type: 'text', text: '（仮の返事）先に条件だけ教えてください。全部でなくて構いません。2つそろったら、候補を3つ出します。' };
     yield tool('ask', { questions: [
       {
         body: '週にどれくらい使えますか。',
@@ -330,19 +327,13 @@ async function* fakeChat(input: RunInput): AsyncIterable<Chunk> {
     const merged = { ...cur, ...cond } as Record<string, unknown>;
     const filled = ['hours_per_week', 'budget_jpy', 'strengths', 'avoid', 'deadline']
       .filter((k) => merged[k] != null && (!Array.isArray(merged[k]) || (merged[k] as unknown[]).length)).length;
-    if (filled >= 2) {
-      yield { type: 'text', text: '（仮の返事）条件に合う道を3つ出しました。いちばん上をおすすめします。' };
-      yield tool('propose_candidates', { candidates: fakeCands(merged) });
-    } else {
-      yield { type: 'text', text: '（仮の返事）受け取りました。もう1つ条件をもらえると、候補を出せます。' };
-    }
+    if (filled >= 2) yield tool('propose_candidates', { candidates: fakeCands(merged) });
     yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
     return;
   }
 
   // ③ やりたいことがある道 — まとまったら Work を提案（もう作っていれば提案しない）
   if (!hasWork && said.length >= 6 && !said.endsWith('？') && !said.endsWith('?')) {
-    yield { type: 'text', text: '（仮の返事）内容を Work にできます。終わりが言えて、単独で価値があり、3ヶ月に収まります。' };
     yield tool('propose_work', {
       title: title(said), goal: said.replace(/。$/, ''), weeks: 10,
       why: '終わりが言えて、単独で価値があるので Work にできます。',
@@ -353,6 +344,24 @@ async function* fakeChat(input: RunInput): AsyncIterable<Chunk> {
 
   yield { type: 'text', text: `（仮の返事）「${said.slice(0, 30)}」を受け取りました。この環境には鍵が無いので、本当の返事は出せません。` };
   yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'end_turn' };
+}
+
+/**
+ * 道具なしの往復（＝本文だけ書く2度め）の返事。
+ *
+ * **本物のモデルは、道具を呼ぶ往復では本文を書かない。**
+ * `chatStep` はそれを見て「本文だけもう一度」頼み直す。ここはその2度めに答える —
+ * 前置きに書かれた**いま画面に出るカード**を読んで、それに添う一言を返す。
+ */
+function chatWords(input: RunInput, goal: string): string {
+  const cards = (input.system ?? '').match(/社長の画面には次が出ます:\n([\s\S]*?)\n\n/)?.[1] ?? '';
+  if (cards.includes('聞きたいこと')) return '先に条件だけ教えてください。全部でなくて構いません。2つそろったら、候補を3つ出します。';
+  if (cards.includes('条件に合う道')) return '条件に合う道を3つ出しました。いちばん上をおすすめします。';
+  if (cards.includes('診断')) return '材料がそろったので、診断しました。重いものから見てください。';
+  if (cards.includes('Work の提案')) return '内容を Work にできます。終わりが言えて、単独で価値があり、3ヶ月に収まります。';
+  if (cards.includes('覚えた材料')) return '受け取りました。数字か、サイトのURLがもう1つあると診断できます。';
+  if (cards.includes('条件')) return '受け取りました。もう1つ条件をもらえると、候補を出せます。';
+  return `「${goal.slice(0, 40)}」を受け取りました。この環境には鍵が無いので、本当の返事は出せません。`;
 }
 
 /** 言われたことから条件を拾う（チャットと Case B で同じ読み方をする） */

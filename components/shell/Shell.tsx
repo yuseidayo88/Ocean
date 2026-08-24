@@ -3,7 +3,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { morning } from '@/app/actions/run';
-import { companyName, sendChat } from '@/app/actions/live';
+import { companyName } from '@/app/actions/live';
+import { chatSay } from '@/app/actions/chat';
+import { streamReply } from '@/lib/chat/stream';
 import { SHELL_MIN, T2 } from '@/lib/design/tokens';
 /**
  * 器の開け閉め。左レールはレールの中の印で閉じ、閉じたら**端に何も残さない**。
@@ -15,10 +17,17 @@ import { SHELL_MIN, T2 } from '@/lib/design/tokens';
  * 入力欄に書いて送ると、右ペインがその会話になって開く
  * （参考: ClickUp Brain / Fabric / HoneyBook — 右にAIを出すアプリは
  *  例外なく**入力欄もそのパネルの中**に入れている）。
- * `said` は送っている途中のぶん（楽観表示）。**返事は本物** — sendChat が統括AIの
- * 返事まで書いてから rev を上げ、ペインが読み直す。鍵の無い環境は「仮の返事」と名乗る。
+ * `said` は送っている途中のぶん（楽観表示）、`live` は流れてきている本文。
+ * **中身はチャットの画面と同じ統括AI** — `chatSay` で書いて、`/api/chat` が流し返す。
+ * 書き終わると rev を上げ、ペインが読み直す。鍵の無い環境は「仮の返事」と名乗る。
  */
-export type Chat = { on: boolean; thread: string | null; said: string[]; busy: boolean; rev: number };
+export type Chat = {
+  on: boolean; thread: string | null; said: string[]; busy: boolean; rev: number;
+  /** いま流れてきている本文（書き終わると会話に入る） */
+  live: string;
+  /** うまくいかなかった理由。次に送ると消える */
+  fail: string;
+};
 
 type Shell = {
   rail: boolean; setRail: (v: boolean) => void;
@@ -40,7 +49,7 @@ type Shell = {
 
 const Ctx = createContext<Shell>({
   rail: true, setRail: () => {},
-  chat: { on: false, thread: null, said: [], busy: false, rev: 0 },
+  chat: { on: false, thread: null, said: [], busy: false, rev: 0, live: '', fail: '' },
   say: () => {}, fresh: () => {}, closeChat: () => {},
   find: false, setFind: () => {}, note: null, say5: () => {},
 });
@@ -48,7 +57,7 @@ export const useShell = () => useContext(Ctx);
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const [rail, setRail] = useState(true);
-  const [chat, setChat] = useState<Chat>({ on: false, thread: null, said: [], busy: false, rev: 0 });
+  const [chat, setChat] = useState<Chat>({ on: false, thread: null, said: [], busy: false, rev: 0, live: '', fail: '' });
   // say はどの描画からでも呼ばれるので、最新の chat は ref で読む（依存を増やさない）
   const chatRef = useRef(chat);
   useEffect(() => { chatRef.current = chat; });
@@ -87,20 +96,28 @@ export function Shell({ children }: { children: React.ReactNode }) {
     window.setTimeout(() => setNote((n) => (n === what ? null : n)), 3200);
   }, []);
 
+  /**
+   * 送る。**チャットの画面とまったく同じ道**を通る（`chatSay` → `/api/chat`）—
+   * 前はここだけ道具を持たない別の統括AIで、同じことを聞いても返事の形が違った。
+   * 本文は流れてくるので、右ペインでも書けたそばから読める。
+   */
   const say = useCallback((text: string, thread?: string | null) => {
     const cur = chatRef.current;
     const target = cur.on ? cur.thread : thread ?? null;
-    setChat({ on: true, thread: target, said: [...(cur.on ? cur.said : []), text], busy: true, rev: cur.rev });
-    // 本当に送る。統括AIの返事まで書けたら rev を上げ、ペインが読み直す
-    void sendChat(target, text).then((r) => {
-      setChat((c) => ({
-        ...c, busy: false, said: [],
-        thread: r.ok ? r.threadId ?? c.thread : c.thread,
-        rev: c.rev + 1,
-      }));
-    });
+    setChat({ on: true, thread: target, said: [...(cur.on ? cur.said : []), text],
+              busy: true, rev: cur.rev, live: '', fail: '' });
+    void (async () => {
+      const w = await chatSay(target, text);
+      if (!w.ok) { setChat((c) => ({ ...c, busy: false, said: [], live: '', fail: w.message })); return; }
+      const tid = w.threadId;
+      setChat((c) => ({ ...c, thread: tid }));
+      let got = '';
+      const bad = await streamReply(tid, (t) => { got += t; setChat((c) => ({ ...c, live: got })); });
+      // 読み直してから流れていた文を下ろす（一瞬消えるのを避ける）
+      setChat((c) => ({ ...c, busy: false, said: [], live: '', fail: bad ?? '', rev: c.rev + 1 }));
+    })();
   }, []);
-  const fresh = useCallback(() => setChat({ on: true, thread: null, said: [], busy: false, rev: 0 }), []);
+  const fresh = useCallback(() => setChat({ on: true, thread: null, said: [], busy: false, rev: 0, live: '', fail: '' }), []);
   const closeChat = useCallback(() => setChat((c) => ({ ...c, on: false })), []);
 
   // 中身が変わったときだけ作り直す（毎描画で新しい object を配らない）

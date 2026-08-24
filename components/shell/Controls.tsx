@@ -59,7 +59,13 @@ export function Seg({ options, value, onPick }:
  * 押した瞬間（5%）だけ。モデルと深さは**別々の操作**で、行の右に縦に積む。
  */
 
-/** モデル ── 押すと名前だけの板が出る。**Thinking 版は並べない**（それは深さのほう） */
+/**
+ * モデル ── 押すと名前だけの板が出る。**Thinking 版は並べない**（それは深さのほう）。
+ *
+ * **選べる先が1つなら、押せる顔をしない。** いまは全部同じモデルで走っているので、
+ * 出るのは素の名前だけ（会社の切り替えを素の文字にしたのと同じ理由）。
+ * 切り替えが本当に効くようになったら、ここが自然にプルダウンに戻る。
+ */
 export function ModelInline({ value, models }: { value: string; models: readonly string[] }) {
   const [v, setV] = useState(value);
   const [open, setOpen] = useState(false);
@@ -73,6 +79,15 @@ export function ModelInline({ value, models }: { value: string; models: readonly
     document.addEventListener('keydown', esc, true);
     return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', esc, true); };
   }, [open]);
+
+  if (models.length < 2) {
+    return (
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 8px',
+        color: '#C4C4C4', fontSize: 12.5, whiteSpace: 'nowrap',
+      }}>{v}</span>
+    );
+  }
 
   return (
     <span ref={box} onClick={(e) => e.stopPropagation()} style={{ position: 'relative', display: 'inline-flex' }}>

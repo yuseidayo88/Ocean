@@ -4,9 +4,6 @@
  * ゼロ状態の読み書き。**画面はここを通して store だけを読む** — ダミーは無い。
  * 読みは失敗しても画面を壊さない（空を返す）。書きは失敗を言う。
  */
-import { hasKey, providerFor } from '@/lib/ai';
-import { FakeProvider } from '@/lib/ai/fake';
-import { CONSTITUTION } from '@/lib/exec/constitution';
 import { store, type ChatMsg, type ChatThread, type LiveWork, type Note, type SkillRow } from '@/lib/store';
 import { sayError } from '@/lib/errors';
 
@@ -72,55 +69,3 @@ export async function companyName(): Promise<string> {
   try { return await store().companyName(); } catch { return 'あなたの会社'; }
 }
 
-/**
- * チャットに書くと、統括AIが返す（fast の1往復・道具なし）。
- * 鍵が無い環境は FakeProvider が**仮の返事だと名乗って**返す — 偽の会話を作らない。
- * 返事の生成に失敗しても、書いた発言は消えない（先に保存する）。
- */
-export async function sendChat(
-  threadId: string | null, text: string,
-): Promise<{ ok: boolean; threadId?: string; message?: string }> {
-  const body = text.trim();
-  if (!body) return { ok: false, message: '書いてから送ってください' };
-  try {
-    const s = store();
-    const id = await s.addChat(threadId, 'user', body);
-
-    // 会社のいまを1枚に畳んで渡す（Work をまたいだ相談に答えるため）
-    const works = await s.listWorks().catch(() => [] as LiveWork[]);
-    const lines = works.length
-      ? works.map((w) => {
-          const at = w.phases.find((p) => p.state === 'active' || p.state === 'review');
-          return `- ${w.title}（${w.status === 'paused' ? '停止中' : at ? `フェーズ${at.seq}: ${at.name}` : w.status}）`;
-        })
-      : ['- まだ Work はありません'];
-    // 会社の記憶: 決めたこと（決定の台帳から最新5件）。相談は過去の決定の上に載る
-    const decided = (await s.listDecisions().catch(() => []))
-      .filter((d) => d.status === 'decided' && d.chosen).slice(0, 5);
-    if (decided.length) {
-      lines.push('', '決めたこと:');
-      for (const d of decided) lines.push(`- ${d.question} → ${d.chosen}`);
-    }
-    const snapshot = lines.join('\n');
-
-    const { messages } = (await s.getThread(id)) ?? { messages: [] };
-    const history = messages.slice(-10).map((m) => ({
-      role: (m.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
-      content: m.body,
-    }));
-
-    const provider = hasKey('fast') ? providerFor('fast') : new FakeProvider();
-    let out = '';
-    for await (const c of provider.stream({
-      tier: 'fast', effort: 'low', maxTokens: 1000,
-      system: `${CONSTITUTION}\n\nいまの会社:\n${snapshot}\n\nあなたは社長との相談に日本語で短く答える。分からないことは分からないと言う。`,
-      messages: history,
-    })) {
-      if (c.type === 'text') out += c.text;
-    }
-    if (out.trim()) await s.addChat(id, 'executive', out.trim());
-    return { ok: true, threadId: id };
-  } catch (e) {
-    return { ok: false, message: sayError(e, '送れませんでした') };
-  }
-}
