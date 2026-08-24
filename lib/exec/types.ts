@@ -32,3 +32,38 @@ export type Plan = {
 export type Draft =
   | { kind: 'need_end'; body: string; options: Option[] }
   | { kind: 'draft'; container: Container; questions: Question[]; hires: Hire[]; plan: Plan };
+
+/* ══════════════ 入口（Case B / D）══════════════ */
+
+/**
+ * 条件は**構造で持つ**（→ 01-data-model.md 入口）。
+ * 自由記述にすると、条件を1つ変えて候補を出し直せなくなる。
+ */
+export type Conditions = {
+  hoursPerWeek?: number | null;
+  budgetJpy?: number | null;
+  strengths: string[];
+  avoid: string[];
+  deadline?: string | null;
+};
+
+/** fit も構造（3スコア）。画面では棒で並べる — 文章で「相性が良いです」と書かない */
+export type Fit = { speed: number; cost: number; strength: number };
+
+export type CandidateDraft = {
+  name: string; summary: string;
+  why: string[];
+  fit: Fit; recommended: boolean;
+  notChosenWhy?: string;
+};
+
+/** 診断の数字の帯1つ。missing = 測れていない（それ自体が診断） */
+export type Fact = { label: string; value: string; note?: string; missing?: boolean };
+
+/** 見つかったこと1件。**必ず「次に何をするか（Work）」まで持つ** */
+export type Finding = {
+  severity: '重い' | '中くらい' | '軽い';
+  title: string; why: string;
+  evidence: string[];
+  work: { title: string; goal: string; weeks: number };
+};

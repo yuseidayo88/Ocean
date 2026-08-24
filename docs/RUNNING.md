@@ -104,6 +104,8 @@ psql "$DATABASE_URL" -f supabase/migrations/0015_once_only.sql
 psql "$DATABASE_URL" -f supabase/migrations/0016_fk_indexes.sql
 psql "$DATABASE_URL" -f supabase/migrations/0017_skills_learned.sql
 psql "$DATABASE_URL" -f supabase/migrations/0018_run_model.sql
+psql "$DATABASE_URL" -f supabase/migrations/0019_entry_columns.sql
+psql "$DATABASE_URL" -f supabase/migrations/0020_candidate_why.sql
 ```
 
 `0003` は RLS と、不変条件をデータベース側で守るためのトリガを入れます。

@@ -121,6 +121,49 @@ const sk = await text();
 ok('標準スキルが見えている', sk.includes('標準') && sk.includes('調査のまとめ方'), sk.slice(0, 80));
 ok('スキルが実行で読まれた（used_count）', /\d+回/.test(sk), sk.match(/[^\n]*回[^\n]*/)?.[0]);
 
+// ⑤'' 入口 Case B — 条件を集める → 候補3つ → 選んで Work 化
+await send('Page.navigate', { url: `${BASE}/discovery` }); await wait(2200);
+await ev(`(() => { const t = document.querySelector('textarea');
+  Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(t, '使えるのは週10時間です');
+  t.dispatchEvent(new Event('input', { bubbles: true })); t.focus(); })()`);
+await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+const askB = await until((b) => b.includes('やりたくないこと'), 15, 800);
+ok('条件が板で聞かれる（Case B）', askB.includes('やりたくないこと') && askB.includes('週10時間'), askB.slice(0, 80));
+await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('在庫を持つ'))?.click()`);
+const cands = await until((b) => b.includes('おすすめ'), 15, 800);
+ok('候補が3つ出て推しが立つ', cands.includes('おすすめ') && cands.includes('教材') && cands.includes('在庫を持つ'),
+   cands.slice(0, 100));
+await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('この案ではじめる'))?.click()`);
+const planB = await until((b) => b.includes('承認して始める'), 15, 800);
+ok('候補から Work の計画に入った', planB.includes('承認して始める') && /\/plan$/.test(await ev('location.pathname')),
+   await ev('location.pathname'));
+
+// ⑤''' 入口 Case D — 取り込む → 診断 → 見つかったことから Work 化
+await send('Page.navigate', { url: `${BASE}/import` }); await wait(2200);
+const say = async (msg) => {
+  await ev(`(() => { const t = document.querySelector('textarea');
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(t, ${JSON.stringify(msg)});
+    t.dispatchEvent(new Event('input', { bubbles: true })); t.focus(); })()`);
+  await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+  await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+  await wait(1200);
+};
+await say('月の売上は412,000円。1回3,500円のレッスンを月8回で売っている。');
+await say('nihongo-lesson.jp');
+const srcs = await until((b) => b.includes('1 / 2 完了'), 10, 800);
+ok('取り込みが保存される（完了と待機）', srcs.includes('書いて渡した') && srcs.includes('待機'), srcs.slice(0, 100));
+await ev(`[...document.querySelectorAll('button')].find(b => b.innerText === '診断する')?.click()`);
+const diag = await until((b) => b.includes('いちばん効く'), 15, 800);
+ok('診断が数字と見つかったことを出す',
+   diag.includes('継続率を測れていない') && diag.includes('412,000') && diag.includes('nihongo-lesson.jp'),
+   diag.slice(0, 120));
+ok('診断が Work の提案まで持つ', diag.includes('Work「継続率を見えるようにする」'), diag.slice(0, 120));
+await ev(`[...document.querySelectorAll('button')].find(b => b.innerText === 'いちばん上から始める')?.click()`);
+const planD = await until((b) => b.includes('承認して始める'), 15, 800);
+ok('診断から Work の計画に入った', planD.includes('承認して始める') && /\/plan$/.test(await ev('location.pathname')),
+   await ev('location.pathname'));
+
 // ⑥ 埋まった状態のレイアウト。ダミーを消したので、**ここでしか測れない**
 //    （ホーム4ビューは Work が動いてはじめて絵になる）
 const { scan } = await import('./_probe.mjs');

@@ -1,131 +1,166 @@
 'use client';
 
-import { Go as Link } from '@/components/ui/Go';
-
-import { useOpen } from '@/lib/use-open';
-import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
-
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import type { Route } from 'next';
+import { useOpen, useParam } from '@/lib/use-open';
+import { Centre, Composer, Pane, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { pressable } from '@/lib/a11y';
+import { findingToWork, profileGet } from '@/app/actions/entry';
+import type { Profile } from '@/lib/store';
 import { AMBER_T, BLUE, COMPOSER_H, HAIR, MUTE, RED_T, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
 /**
- * ⓪-d 診断結果。**診断は必ず「次に何をするか（Work）」まで持つ。**
- * 見つけたことを並べて終わりにしない。数はラベル（小）→数字（大）→補足。
+ * ⓪-d 診断結果（Case D）。中身は**統括AIが出した実物**（`diagnoses`）。
+ * **診断は必ず「次に何をするか（Work）」まで持つ** — 見つけたことを並べて終わりにしない。
+ * 「この Work を立てる」で Case A と同じ道（計画→承認）に入る。
  */
-
-const FACTS: [string, string, string, string?][] = [
-  ['月の売上', '¥412,000', '12ヶ月で +8%'],
-  ['生徒数', '23人', '新規 4 / 解約 3'],
-  ['継続率', '—', '測れていません', RED_T],
-  ['サイト来訪', '1,840', '月 · 申込 12'],
-];
-
-const FINDINGS: [string, string, string, string][] = [
-  ['重い', '継続率を測れていない',   '解約の記録がどこにも残っていない',          'Work「継続率を見えるようにする」'],
-  ['重い', '申込までの導線が長い',   'サイト来訪1,840に対して申込12（0.65%）',    'Work「申込フォームの作り直し」'],
-  ['中くらい', '単価が競合より低い', '1回¥3,500。同条件の競合は¥4,200〜',         'Work「価格の見直し」'],
-  ['軽い', 'SNSが更新されていない',  '最終投稿 3ヶ月前',                          'Work「SNS運用の立ち上げ」'],
-];
 
 const WEIGHT: Record<string, string> = { '重い': RED_T, '中くらい': AMBER_T, '軽い': MUTE };
 
-export default function DiagnosisPage() {
-  // 右は閉じた状態から始まる。見つかったことの1行を押すと開く
+function Diagnosis() {
+  const router = useRouter();
+  const [pid] = useParam('p', '');
   const [open, setOpen] = useOpen();
+  const [p, setP] = useState<Profile | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [fail, setFail] = useState('');
+
+  useEffect(() => {
+    if (!pid) { router.replace('/import' as Route); return; }
+    let on = true;
+    profileGet(pid).then((x) => {
+      if (!on) return;
+      // 診断がまだなら取り込みへ（空の診断画面を見せない）
+      if (!x || !x.diagnosis) { router.replace((x ? `/import?p=${pid}` : '/import') as Route); return; }
+      setP(x);
+    });
+    return () => { on = false; };
+  }, [pid, router]);
+
+  const dg = p?.diagnosis;
+  if (!p || !dg) return <Centre><TopBar title="診断結果" /><div style={{ flex: 1 }} /></Centre>;
+
+  const start = async (index: number) => {
+    setBusy(true); setFail('');
+    const r = await findingToWork(p.id, index);
+    if (r.ok) { router.push(`/work/${r.id}/plan` as Route); return; }
+    setBusy(false);
+    setFail(r.need === 'end' ? `統括AIが聞いています — ${r.body}` : r.message);
+  };
+
+  const selIdx = Math.max(dg.findings.findIndex((f) => f.title === open), 0);
+  const sel = open ? dg.findings[selIdx] : undefined;
+  const top = dg.findings[0];
+
   return (
     <>
       <Centre>
-        <TopBar title="診断結果" onPanel={() => setOpen(FINDINGS[0][1])} panelOn={!!open} />
+        <TopBar crumb={p.name} title="診断結果" onPanel={() => setOpen(dg.findings[0].title)} panelOn={!!open} />
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: `20px 26px ${COMPOSER_H}px`, display: 'flex', flexDirection: 'column', gap: 28 }}>
-          <span style={{ fontSize: 15, lineHeight: '25px', maxWidth: 720 }}>
-            いちばん効くのは、<b>継続率を測れていないこと。</b>ここが見えないと、他の改善の効果も測れません。
-          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ fontSize: 15, lineHeight: '25px', maxWidth: 720 }}>
+              いちばん効くのは、<b>{top.title}。</b>{top.why}
+            </span>
+            {!dg.real && (
+              <span style={{ color: T5, fontSize: 12 }}>
+                これは仮の診断です。モデルの鍵がまだ入っていないので、統括AIは考えていません
+              </span>
+            )}
+            {fail && <span style={{ color: RED_T, fontSize: 12.5 }}>{fail}</span>}
+          </div>
 
           {/* ラベル（小）→ 数字（大）→ 補足。説明文は置かない */}
+          {dg.facts.length > 0 && (
           <div style={{ display: 'flex', gap: 26 }}>
-            {FACTS.map(([k, v, sub, c], i) => (
-              <div key={k} style={{
+            {dg.facts.map((f, i) => (
+              <div key={f.label} style={{
                 flex: 1, display: 'flex', flexDirection: 'column', gap: 4,
-                borderRight: i === FACTS.length - 1 ? undefined : `1px solid ${HAIR}`,
+                borderRight: i === dg.facts.length - 1 ? undefined : `1px solid ${HAIR}`,
               }}>
-                <span style={{ color: T4, fontSize: 12 }}>{k}</span>
-                <span style={{ fontSize: 24, lineHeight: '30px', color: c ?? T1 }} className="tnum">{v}</span>
-                <span style={{ color: c ?? T5, fontSize: 11 }}>{sub}</span>
+                <span style={{ color: T4, fontSize: 12 }}>{f.label}</span>
+                <span style={{ fontSize: 24, lineHeight: '30px', color: f.missing ? RED_T : T1 }} className="tnum">{f.value}</span>
+                {f.note && <span style={{ color: f.missing ? RED_T : T5, fontSize: 11 }}>{f.note}</span>}
               </div>
             ))}
           </div>
+          )}
 
           <div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, paddingBottom: 6 }}>
               <span style={{ color: T3 }}>見つかったこと</span>
-              <span style={{ color: T5, fontSize: 12 }} className="tnum">· {FINDINGS.length}</span>
+              <span style={{ color: T5, fontSize: 12 }} className="tnum">· {dg.findings.length}</span>
               <div style={{ flex: 1 }} />
               <span style={{ color: T5, fontSize: 12 }}>効きそうな順</span>
             </div>
-            {FINDINGS.map(([w, title, why, next], i) => (
-              <div key={title} className="row" {...pressable(() => setOpen(title))} style={{
+            {dg.findings.map((f, i) => (
+              <div key={f.title} className="row" {...pressable(() => setOpen(f.title))} style={{
                 display: 'flex', alignItems: 'center', gap: 14, padding: '13px 0',
-                borderBottom: i === FINDINGS.length - 1 ? undefined : `1px solid ${HAIR}`,
+                borderBottom: i === dg.findings.length - 1 ? undefined : `1px solid ${HAIR}`,
               }}>
-                <span style={{ width: 3, height: 30, borderRadius: 2, background: WEIGHT[w], flexShrink: 0 }} />
+                <span style={{ width: 3, height: 30, borderRadius: 2, background: WEIGHT[f.severity] ?? MUTE, flexShrink: 0 }} />
                 <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>
-                  <span style={{ color: T5, fontSize: 11.5 }}>{why}</span>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.title}</span>
+                  {/* 本物の文は長い。切らずに折り返す */}
+                  <span style={{ color: T5, fontSize: 11.5, lineHeight: '17px' }}>{f.why}</span>
                 </div>
                 <div style={{ flex: 1 }} />
-                <span style={{ width: 56, textAlign: 'right', color: WEIGHT[w], fontSize: 11.5 }}>{w}</span>
-                <span style={{ width: 220, textAlign: 'right', color: T4, fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {next}
+                <span style={{ width: 56, flexShrink: 0, textAlign: 'right', color: WEIGHT[f.severity] ?? MUTE, fontSize: 11.5 }}>{f.severity}</span>
+                <span style={{ width: 220, flexShrink: 0, textAlign: 'right', color: T4, fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  Work「{f.work.title}」
                 </span>
               </div>
             ))}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <span style={{ color: T3, fontSize: 13 }}>上の3つから Work を立てます</span>
+            <span style={{ color: T3, fontSize: 13 }}>1件ずつ Work にします</span>
             <div style={{ flex: 1 }} />
-            <Link href="/work/w-japanese/plan" className="solid" style={{
+            <button onClick={() => start(0)} disabled={busy} className="solid" style={{
               display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px',
-              borderRadius: 8, background: BLUE, color: '#fff',
-            }}>この3つを始める</Link>
+              borderRadius: 8, background: BLUE, color: '#fff', opacity: busy ? 0.6 : 1,
+            }}>{busy ? '計画を引いています…' : 'いちばん上から始める'}</button>
           </div>
         </div>
         <Composer placeholder="診断について統括AIに聞く" />
       </Centre>
 
-      {open && (
-      <Pane onClose={() => setOpen(null)} width={420} icon="dec" title="継続率を測れていない">
+      {open && sel && (
+      <Pane onClose={() => setOpen(null)} width={420} icon="dec" title={sel.title}>
         <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', padding: '10px 18px 0' }}>
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 9px', borderRadius: 6,
-            background: 'rgba(217,48,37,0.18)', color: RED_T, fontSize: 12,
-          }}>重い</span>
+          <span style={{ color: WEIGHT[sel.severity] ?? MUTE, fontSize: 12 }}>{sel.severity}</span>
         </div>
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '8px 18px 0' }}>
-          <span style={{ fontSize: 15, display: 'block' }}>継続率を測れていない</span>
-          <p style={{ color: T2, fontSize: 13, lineHeight: '21px', margin: '12px 0 0' }}>
-            解約がいつ・なぜ起きたかの記録がありません。いまの「新規4・解約3」は月次の差分から逆算した数字で、
-            誰がいつ辞めたかは分かりません。
-          </p>
+        <div key={sel.title} className="swap" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '8px 18px 0' }}>
+          <span style={{ fontSize: 15, display: 'block' }}>{sel.title}</span>
+          <p style={{ color: T2, fontSize: 13, lineHeight: '21px', margin: '12px 0 0' }}>{sel.why}</p>
 
-          <PaneHead>根拠</PaneHead>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-            {['2025年の売上.xlsx に解約日の列がない',
-              'サイトに解約フォームがなく、メール対応',
-              'Analytics に会員IDが渡っていない'].map((t) => (
-              <span key={t} style={{ color: T2, fontSize: 12.5, lineHeight: '20px' }}>・{t}</span>
-            ))}
-          </div>
+          {sel.evidence.length > 0 && <>
+            <PaneHead>根拠</PaneHead>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+              {sel.evidence.map((t) => (
+                <span key={t} style={{ color: T2, fontSize: 12.5, lineHeight: '20px' }}>・{t}</span>
+              ))}
+            </div>
+          </>}
 
           <PaneHead>提案する Work</PaneHead>
-          {/* ここは押せるもの（下の「この Work を立てる」の対象）なので面を持てる */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5, padding: '14px 16px', borderRadius: 10, background: '#131313' }}>
-            <span style={{ fontSize: 14 }}>継続率を見えるようにする</span>
-            <span style={{ color: T5, fontSize: 12 }}>3フェーズ · およそ3週 · AI社員2人</span>
+            <span style={{ fontSize: 14 }}>{sel.work.title}</span>
+            <span style={{ color: T5, fontSize: 12 }}>{sel.work.goal} · およそ{sel.work.weeks}週</span>
           </div>
         </div>
-        <PaneFooter primary="この Work を立てる" secondary="あとで" reverse />
+        <div style={{ flexShrink: 0, display: 'flex', padding: 16, borderTop: `1px solid ${HAIR}` }}>
+          <div style={{ flex: 1 }} />
+          <button onClick={() => start(selIdx)} disabled={busy} className="solid" style={{
+            display: 'inline-flex', alignItems: 'center', height: 38, padding: '0 20px',
+            borderRadius: 8, background: BLUE, color: '#fff', opacity: busy ? 0.6 : 1,
+          }}>{busy ? '計画を引いています…' : 'この Work を立てる'}</button>
+        </div>
       </Pane>
       )}
     </>
   );
+}
+
+export default function DiagnosisPage() {
+  return <Suspense fallback={null}><Diagnosis /></Suspense>;
 }

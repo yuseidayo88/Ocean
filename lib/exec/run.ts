@@ -18,7 +18,8 @@ import { AppError } from '@/lib/errors';
 
 /** キーが無ければ決め打ちのプロバイダ。**考えていないので、画面に必ずそう出す** */
 export function pickProvider(): { p: ModelProvider; real: boolean } {
-  if (!hasKey()) return { p: new FakeProvider(), real: false };
+  // 統括AIは deep で走るので、見る鍵も deep の通り道のもの
+  if (!hasKey('deep')) return { p: new FakeProvider(), real: false };
   return { p: providerFor('deep'), real: true };
 }
 

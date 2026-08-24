@@ -39,6 +39,18 @@ export class FakeProvider implements ModelProvider {
       return;
     }
 
+    // ══ 入口 Case B — 条件を集めて候補を出す ══
+    if (want.has('propose_candidates')) {
+      yield* fakeDiscover(input);
+      return;
+    }
+
+    // ══ 入口 Case D — 取り込んだものから診断する ══
+    if (want.has('report_diagnosis')) {
+      yield* fakeDiagnose(input);
+      return;
+    }
+
     if (want.has('decide_container')) {
       yield tool('decide_container', container(goal));
     }
@@ -229,6 +241,129 @@ function plan(goal: string) {
   };
 }
 
+
+/**
+ * 入口 Case B（決め打ち）。**本物と同じ道具・同じ順**で返す —
+ * set_conditions で構造に写し、条件が2つ未満なら ask、そろっていれば propose_candidates。
+ * 言われたことの読み取りは素朴な正規表現（考えていない。だから画面に「仮」と出る）。
+ */
+async function* fakeDiscover(input: RunInput): AsyncIterable<Chunk> {
+  const text = lastText(input);
+  const said = text.match(/社長が言ったこと:\n([\s\S]*?)(?:\n\n|$)/)?.[1]?.trim() ?? '';
+  const force = text.includes('もう候補を出して');
+  let cur: Record<string, unknown> = {};
+  try { cur = JSON.parse(text.match(/いまの条件（構造）:\n(\{[\s\S]*?\})\n\n/)?.[1] ?? '{}'); } catch { /* 空のまま */ }
+
+  // 言われたことを構造に写す（分かった項目だけ）
+  const put: Record<string, unknown> = {};
+  const hours = said.match(/週\s*〜?~?(\d+)\s*時間/)?.[1];
+  if (hours) put.hours_per_week = Number(hours);
+  const man = said.match(/〜?~?(\d+)\s*万円/)?.[1];
+  if (man) put.budget_jpy = Number(man) * 10000;
+  const strong = said.match(/(?:得意|強み)[はがの: ：]*\s*([^\n]+)/)?.[1];
+  if (strong) put.strengths = strong.split(/[・、,\s]+/).filter(Boolean).slice(0, 3);
+  // 板からの答えは「質問 → 答え」の形で来る。質問文を条件に混ぜない
+  const arrow = said.match(/(.+?)\s*→\s*(.+)/);
+  if (arrow && /やりたくない/.test(arrow[1])) {
+    put.avoid = [arrow[2].trim()];
+  } else if (!arrow) {
+    const no = said.match(/(?:やりたくない|避けたい)(?:こと)?[はの: ：]*\s*([^\n]+)/)?.[1];
+    if (no) put.avoid = no.split(/[・、,\s]+/).filter(Boolean).slice(0, 3);
+  }
+  if (Object.keys(put).length) yield tool('set_conditions', put);
+
+  const merged = { ...cur, ...put } as {
+    hours_per_week?: number; budget_jpy?: number; strengths?: string[]; avoid?: string[]; deadline?: string;
+  };
+  const filled =
+    Number(merged.hours_per_week != null) + Number(merged.budget_jpy != null)
+    + Number(!!merged.strengths?.length) + Number(!!merged.avoid?.length) + Number(!!merged.deadline);
+
+  if (!force && filled < 2) {
+    yield tool('ask', { questions: [{
+      body: 'やりたくないことはありますか。',
+      why: '外す条件が1つあると、候補の幅がぐっと絞れます。',
+      options: [
+        { label: '在庫を持つ', description: '仕入れと保管が要る案を外します', recommended: true },
+        { label: '人前に出る', description: '営業や撮影が要る案を外します' },
+        { label: '夜間の対応', description: '時差のある顧客を外します' },
+      ],
+    }] });
+    yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
+    return;
+  }
+
+  const s = merged.strengths?.[0] ?? '得意なこと';
+  yield tool('propose_candidates', { candidates: [
+    {
+      name: `${s}を生かしたオンラインサービス`.slice(0, 20),
+      summary: `${s}の経験がそのまま差になります。在庫を持たず、週${merged.hours_per_week ?? 10}時間から始められます。`,
+      why: [
+        `${s}の経験が、そのまま他社との差になります`,
+        '在庫を持たないので、外したときの損が小さい',
+        '週の時間内で、最初の形まで2ヶ月の見込み',
+      ],
+      fit: { speed: 86, cost: 92, strength: 94 }, recommended: true,
+    },
+    {
+      name: `${s}の教材・テンプレ販売`.slice(0, 20),
+      summary: '作れば売れ続けますが、最初の1本を作り切るまでが長い。',
+      why: [], fit: { speed: 42, cost: 88, strength: 70 }, recommended: false,
+      not_chosen_why: '最初の1本が長く、途中で判断材料が出ない',
+    },
+    {
+      name: `企業むけ ${s}の研修`.slice(0, 20),
+      summary: '単価は高いが、営業に人前へ出る時間が要ります。',
+      why: [], fit: { speed: 64, cost: 76, strength: 48 }, recommended: false,
+      not_chosen_why: merged.avoid?.length ? `「${merged.avoid[0]}」を外したいという条件に合わない` : '営業の時間が条件に合わない',
+    },
+  ] });
+  yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
+}
+
+/**
+ * 入口 Case D（決め打ち）。材料の名前を根拠に挙げ、
+ * **測れていない数字は missing で出す**（本物に求めるのと同じ正直さ）。
+ */
+async function* fakeDiagnose(input: RunInput): AsyncIterable<Chunk> {
+  const text = lastText(input);
+  const locators = [...text.matchAll(/### 材料\d+ — (.+?)（/g)].map((m) => m[1]);
+  const first = locators[0] ?? '取り込んだもの';
+  const site = locators.find((l) => /^https?:\/\//.test(l) || /\./.test(l));
+
+  const name = site
+    ? site.replace(/^https?:\/\//, '').replace(/\/.*$/, '').slice(0, 20)
+    : 'わたしの事業';
+  yield tool('describe_business', { name, stage: '立ち上げ期' });
+
+  const sales = text.match(/売上[^0-9]{0,6}([\d,]{3,})/)?.[1];
+  const price = text.match(/(?:価格|単価|1回)[^0-9]{0,6}¥?([\d,]{3,})/)?.[1];
+  yield tool('report_facts', { facts: [
+    sales
+      ? { label: '月の売上', value: `¥${sales}`, note: `${first} から` }
+      : { label: '月の売上', value: '—', note: '読み取れていません', missing: true },
+    price
+      ? { label: '価格', value: `¥${price}`, note: `${first} から` }
+      : { label: '価格', value: '—', note: '読み取れていません', missing: true },
+    { label: '継続率', value: '—', note: '測れていません', missing: true },
+  ] });
+
+  yield tool('report_diagnosis', { findings: [
+    {
+      severity: '重い', title: '継続率を測れていない',
+      why: '解約がいつ・なぜ起きたかの記録が、渡された材料のどこにも無い。',
+      evidence: [`${first} に解約・継続の記録が無い`],
+      work: { title: '継続率を見えるようにする', goal: '誰がいつ辞めたかが毎月1枚で分かる', weeks: 3 },
+    },
+    {
+      severity: '中くらい', title: '申込までの導線が測れていない',
+      why: '来訪から申込までのどこで落ちているかが数字で追えない。',
+      evidence: locators.length > 1 ? [`${locators[1]} に計測の記述が無い`] : [`${first} に計測の記述が無い`],
+      work: { title: '申込導線の計測と改善', goal: '来訪→申込の落ちる場所が数字で分かり、1つ直せている', weeks: 4 },
+    },
+  ] });
+  yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
+}
 
 /** 次のフェーズのタスク（決め打ち）。フェーズ名で中身を変える */
 function nextTasks(phase: string) {

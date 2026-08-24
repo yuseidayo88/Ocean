@@ -1,9 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { AGENT_COLOR, type EmployeeColor } from '@/lib/view/model';
-import { colorFor } from './memory';
+import { colorFor, sortCands } from './memory';
 import { BUILTIN_SKILLS } from '@/lib/roster/skills';
 import { AppError } from '@/lib/errors';
-import { STALL_MS, type ChatMsg, type ChatThread, type DraftWork, type LiveDecision, type LiveWork, type Note, type RunStep, type SkillRow, type Store } from './types';
+import { STALL_MS, type ChatMsg, type ChatThread, type Discovery, type DraftWork, type LiveDecision, type LiveWork, type Note, type Profile, type RunStep, type SkillRow, type Store } from './types';
 
 /**
  * 本番の保存先。行は全部 RLS（`account_id = private.current_account_id()`）で絞られる。
@@ -943,6 +943,152 @@ export const supabaseStore: Store = {
       }
     }
     return closed;
+  },
+
+  /* ══════════════ 入口（Case B / D）══════════════ */
+
+  async createDiscovery() {
+    const c = await db();
+    const { data, error } = await c.from('discovery_sessions').insert({}).select('id').single();
+    if (error || !data) throw new AppError('unknown', error?.message ?? 'discovery_sessions insert failed');
+    return data.id as string;
+  },
+
+  async getDiscovery(id) {
+    const c = await db();
+    const { data: s } = await c.from('discovery_sessions')
+      .select('id, status, constraints, is_real').eq('id', id).maybeSingle();
+    if (!s) return null;
+    const { data: rows } = await c.from('discovery_candidates')
+      .select('id, name, summary, fit, why, recommended, not_chosen_why, adopted_work_id, created_at')
+      .eq('session_id', id).order('created_at', { ascending: false }).limit(30);
+    // **最新の束だけ。** 1回の提案は1文で入るので created_at が同着 — 先頭と同じ時刻の行が今の束
+    const latest = rows?.length ? rows.filter((r) => r.created_at === rows[0].created_at) : [];
+    const raw = (s.constraints ?? {}) as Record<string, unknown>;
+    const fitOf = (f: unknown, k: string) =>
+      Math.max(0, Math.min(100, Number((f as Record<string, unknown>)?.[k] ?? 0) || 0));
+    return {
+      id: s.id as string,
+      status: s.status as Discovery['status'],
+      real: !!s.is_real,
+      conditions: {
+        hoursPerWeek: raw.hours_per_week == null ? null : Number(raw.hours_per_week),
+        budgetJpy: raw.budget_jpy == null ? null : Number(raw.budget_jpy),
+        strengths: Array.isArray(raw.strengths) ? raw.strengths.map(String) : [],
+        avoid: Array.isArray(raw.avoid) ? raw.avoid.map(String) : [],
+        deadline: raw.deadline == null ? null : String(raw.deadline),
+      },
+      candidates: sortCands(latest.map((r) => ({
+        id: r.id as string, name: r.name as string, summary: r.summary as string,
+        why: Array.isArray(r.why) ? r.why.map(String) : [],
+        fit: { speed: fitOf(r.fit, 'speed'), cost: fitOf(r.fit, 'cost'), strength: fitOf(r.fit, 'strength') },
+        recommended: !!r.recommended,
+        notChosenWhy: (r.not_chosen_why ?? undefined) as string | undefined,
+        adoptedWorkId: (r.adopted_work_id ?? undefined) as string | undefined,
+      }))),
+    };
+  },
+
+  async setConditions(id, x, real) {
+    const c = await db();
+    const { error } = await c.from('discovery_sessions').update({
+      constraints: {
+        hours_per_week: x.hoursPerWeek ?? null,
+        budget_jpy: x.budgetJpy ?? null,
+        strengths: x.strengths, avoid: x.avoid,
+        deadline: x.deadline ?? null,
+      },
+      is_real: real,
+    }).eq('id', id);
+    if (error) throw new AppError('unknown', error.message);
+  },
+
+  async setCandidates(id, cands) {
+    const c = await db();
+    // 1文で入れる（束の created_at が同着になる — getDiscovery が「最新の束」を切り出す鍵）。
+    // **前の束は消さない**（不変条件 9。delete は DB 側でも revoke 済み）
+    const { error } = await c.from('discovery_candidates').insert(cands.map((x) => ({
+      session_id: id, name: x.name, summary: x.summary, why: x.why,
+      fit: x.fit, recommended: x.recommended, not_chosen_why: x.notChosenWhy ?? null,
+    })));
+    if (error) throw new AppError('unknown', error.message);
+    const { error: e2 } = await c.from('discovery_sessions').update({ status: 'proposed' }).eq('id', id);
+    if (e2) throw new AppError('unknown', e2.message);
+  },
+
+  async adoptCandidate(sessionId, candidateId, workId) {
+    const c = await db();
+    const { error } = await c.from('discovery_candidates')
+      .update({ adopted_work_id: workId }).eq('id', candidateId).eq('session_id', sessionId);
+    if (error) throw new AppError('unknown', error.message);
+    const { error: e2 } = await c.from('discovery_sessions').update({ status: 'adopted' }).eq('id', sessionId);
+    if (e2) throw new AppError('unknown', e2.message);
+  },
+
+  async createProfile(name) {
+    const c = await db();
+    const { data, error } = await c.from('business_profiles').insert({ name }).select('id').single();
+    if (error || !data) throw new AppError('unknown', error?.message ?? 'business_profiles insert failed');
+    return data.id as string;
+  },
+
+  async getProfile(id) {
+    const c = await db();
+    const { data: p } = await c.from('business_profiles')
+      .select('id, name, url, stage').eq('id', id).maybeSingle();
+    if (!p) return null;
+    const { data: src } = await c.from('imported_sources')
+      .select('id, kind, locator, status, summary')
+      .eq('business_profile_id', id).order('created_at', { ascending: true });
+    const { data: dg } = await c.from('diagnoses')
+      .select('facts, findings, is_real, created_at')
+      .eq('business_profile_id', id).order('created_at', { ascending: false }).limit(1).maybeSingle();
+    return {
+      id: p.id as string, name: p.name as string,
+      url: (p.url ?? undefined) as string | undefined,
+      stage: (p.stage ?? undefined) as string | undefined,
+      sources: (src ?? []).map((s) => ({
+        id: s.id as string,
+        kind: s.kind as Profile['sources'][number]['kind'],
+        locator: s.locator as string,
+        status: s.status as Profile['sources'][number]['status'],
+        summary: (s.summary ?? undefined) as string | undefined,
+      })),
+      diagnosis: dg ? {
+        facts: (dg.facts ?? []) as NonNullable<Profile['diagnosis']>['facts'],
+        findings: (dg.findings ?? []) as NonNullable<Profile['diagnosis']>['findings'],
+        real: !!dg.is_real,
+        at: dg.created_at as string,
+      } : undefined,
+    };
+  },
+
+  async addSource(profileId, s) {
+    const c = await db();
+    const { data, error } = await c.from('imported_sources').insert({
+      business_profile_id: profileId, kind: s.kind, locator: s.locator,
+      status: s.status, summary: s.summary ?? null,
+    }).select('id').single();
+    if (error || !data) throw new AppError('unknown', error?.message ?? 'imported_sources insert failed');
+    return data.id as string;
+  },
+
+  async setProfileMeta(id, m) {
+    const c = await db();
+    const patch: Record<string, string> = {};
+    if (m.name) patch.name = m.name;
+    if (m.stage) patch.stage = m.stage;
+    if (!Object.keys(patch).length) return;
+    const { error } = await c.from('business_profiles').update(patch).eq('id', id);
+    if (error) throw new AppError('unknown', error.message);
+  },
+
+  async saveDiagnosis(profileId, d) {
+    const c = await db();
+    const { error } = await c.from('diagnoses').insert({
+      business_profile_id: profileId, facts: d.facts, findings: d.findings, is_real: d.real,
+    });
+    if (error) throw new AppError('unknown', error.message);
   },
 };
 

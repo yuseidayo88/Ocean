@@ -1,7 +1,7 @@
 import { AGENT_COLOR, type EmployeeColor } from '@/lib/view/model';
 import { BUILTIN_SKILLS } from '@/lib/roster/skills';
 import { AppError } from '@/lib/errors';
-import { STALL_MS, type ChatMsg, type ChatThread, type DraftWork, type LiveDecision, type LiveEmployee, type LiveWork, type Note, type RunStep, type SkillRow, type Store } from './types';
+import { STALL_MS, type ChatMsg, type ChatThread, type Discovery, type DraftWork, type LiveDecision, type LiveEmployee, type LiveWork, type Note, type Profile, type RunStep, type SkillRow, type Store } from './types';
 
 /**
  * メモリの保存先。**Supabase に出られない環境（デモ・この開発環境）用。**
@@ -456,6 +456,93 @@ export const memoryStore: Store = {
     }
     return closed;
   },
+
+  /* ══════════════ 入口（Case B / D）══════════════ */
+
+  async createDiscovery() {
+    const id = `ds-${Date.now().toString(36)}-${++n}`;
+    disc.set(id, {
+      id, status: 'collecting',
+      conditions: { strengths: [], avoid: [] },
+      candidates: [], past: [], seq: 0, real: true,
+    });
+    return id;
+  },
+
+  async getDiscovery(id) {
+    const d = disc.get(id);
+    if (!d) return null;
+    return {
+      id: d.id, status: d.status, real: d.real,
+      conditions: { ...d.conditions, strengths: [...d.conditions.strengths], avoid: [...d.conditions.avoid] },
+      candidates: sortCands(d.candidates).map((c) => ({ ...c })),
+    };
+  },
+
+  async setConditions(id, c, real) {
+    const d = disc.get(id);
+    if (!d) return;
+    d.conditions = c;
+    d.real = real;
+  },
+
+  async setCandidates(id, cands) {
+    const d = disc.get(id);
+    if (!d) return;
+    // 出し直しでも前の束は消さない（不変条件 9）。画面が読むのは最新の束だけ
+    d.past.push(...d.candidates);
+    d.candidates = cands.map((c) => ({ ...c, id: `${id}-c${++d.seq}` }));
+    d.status = 'proposed';
+  },
+
+  async adoptCandidate(sessionId, candidateId, workId) {
+    const d = disc.get(sessionId);
+    if (!d) return;
+    const c = d.candidates.find((x) => x.id === candidateId);
+    if (c) c.adoptedWorkId = workId;
+    d.status = 'adopted';
+  },
+
+  async createProfile(name) {
+    const id = `bp-${Date.now().toString(36)}-${++n}`;
+    profiles.set(id, { id, name, sources: [], seq: 0 });
+    return id;
+  },
+
+  async getProfile(id) {
+    const p = profiles.get(id);
+    if (!p) return null;
+    return {
+      id: p.id, name: p.name, url: p.url, stage: p.stage,
+      sources: p.sources.map((s) => ({ ...s })),
+      diagnosis: p.diagnosis
+        ? { facts: p.diagnosis.facts.map((f) => ({ ...f })),
+            findings: p.diagnosis.findings.map((f) => ({ ...f, evidence: [...f.evidence], work: { ...f.work } })),
+            real: p.diagnosis.real, at: p.diagnosis.at }
+        : undefined,
+    };
+  },
+
+  async addSource(profileId, s) {
+    const p = profiles.get(profileId);
+    if (!p) throw new AppError('not_found', `profile ${profileId} not found`, undefined, 'その取り込みは見つかりませんでした');
+    const id = `${profileId}-s${++p.seq}`;
+    p.sources.push({ id, kind: s.kind, locator: s.locator, summary: s.summary, status: s.status });
+    return id;
+  },
+
+  async setProfileMeta(id, m) {
+    const p = profiles.get(id);
+    if (!p) return;
+    if (m.name) p.name = m.name;
+    if (m.stage) p.stage = m.stage;
+  },
+
+  async saveDiagnosis(profileId, d) {
+    const p = profiles.get(profileId);
+    if (!p) return;
+    p.diagnosis = { facts: d.facts, findings: d.findings, real: d.real, at: new Date().toISOString() };
+  },
 };
 
 /** run と通知の置き場（メモリ版だけの裏方） */
@@ -481,6 +568,24 @@ const morningDays = (g2.__morning ??= new Set<string>());
 const g3 = globalThis as unknown as { __decs?: LiveDecision[]; __staff?: LiveEmployee[] };
 const decisions = (g3.__decs ??= []);
 const staff = (g3.__staff ??= []);
+
+/**
+ * 入口（Case B / D）の置き場。
+ * past — 出し直す前の候補の束。**候補は消さない**（不変条件 9）を双子でも守る。
+ * 画面が読むのは最新の束（candidates）だけ、というのも Supabase 版と同じ。
+ */
+type DiscRow = Discovery & { past: Discovery['candidates']; seq: number };
+type ProfRow = Profile & { seq: number };
+const g4 = globalThis as unknown as { __disc?: Map<string, DiscRow>; __profiles?: Map<string, ProfRow> };
+const disc = (g4.__disc ??= new Map<string, DiscRow>());
+const profiles = (g4.__profiles ??= new Map<string, ProfRow>());
+
+/** 候補の並びは双子で同じに — 推し → 相性の高い順 → 名前（挿入順に頼らない） */
+export const sortCands = <T extends { recommended: boolean; fit: { strength: number }; name: string }>(xs: T[]): T[] =>
+  [...xs].sort((a, b) =>
+    Number(b.recommended) - Number(a.recommended)
+    || b.fit.strength - a.fit.strength
+    || a.name.localeCompare(b.name, 'ja'));
 
 function findTask(taskId: string) {
   for (const d of bag.values()) {

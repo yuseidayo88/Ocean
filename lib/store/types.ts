@@ -1,4 +1,4 @@
-import type { Container, Hire, Plan, Question } from '@/lib/exec/types';
+import type { CandidateDraft, Conditions, Container, Fact, Finding, Hire, Plan, Question } from '@/lib/exec/types';
 
 /** 承認を待っている Work 1件ぶん。画面（計画の承認）が読むのはこれだけ */
 export type DraftWork = {
@@ -242,6 +242,31 @@ export interface Store {
   /** 最近の歩み（オフィスのログ）。誰が・何をしたか、新しい順 */
   recentSteps(limit: number): Promise<{ at?: string; who: string; what: string }[]>;
 
+  /* ══════════════ 入口（Case B / D）══════════════ */
+
+  /** 探索を1つ始める（collecting）。返り値は id */
+  createDiscovery(): Promise<string>;
+  getDiscovery(id: string): Promise<Discovery | null>;
+  /** 条件を丸ごと置き換える（統括AIが写した構造）。real も一緒に記録する */
+  setConditions(id: string, c: Conditions, real: boolean): Promise<void>;
+  /**
+   * 候補の束を書く（status → proposed）。**前の束は消さない**（不変条件 9 —
+   * 候補は消せない。DBの delete も revoke 済み）。画面が読むのは最新の1束
+   */
+  setCandidates(id: string, cands: CandidateDraft[]): Promise<void>;
+  /** 候補を採用する（status → adopted、候補に Work を記す）。選ばなかった候補は残る */
+  adoptCandidate(sessionId: string, candidateId: string, workId: string): Promise<void>;
+
+  /** 既存事業のプロフィールを作る。返り値は id */
+  createProfile(name: string): Promise<string>;
+  getProfile(id: string): Promise<Profile | null>;
+  /** 取り込んだものを1件足す。返り値は id */
+  addSource(profileId: string, s: { kind: SourceRow['kind']; locator: string; summary?: string; status: SourceRow['status'] }): Promise<string>;
+  /** 統括AIが読み取った名前・段階を写す */
+  setProfileMeta(id: string, m: { name?: string; stage?: string }): Promise<void>;
+  /** 診断を書く（1回ぶん）。画面が読むのは最新の1件 */
+  saveDiagnosis(profileId: string, d: { facts: Fact[]; findings: Finding[]; real: boolean }): Promise<void>;
+
   /* ══════════════ 朝の報告 ══════════════ */
 
   /**
@@ -252,6 +277,35 @@ export interface Store {
    */
   morningBrief(day: string): Promise<boolean>;
 }
+
+/* ══════════════ 入口（Case B / D）══════════════ */
+
+/** 探索の1回。条件は構造で、候補は**採用しなかったものも残す** */
+export type Discovery = {
+  id: string;
+  status: 'collecting' | 'proposed' | 'adopted' | 'abandoned';
+  conditions: Conditions;
+  /** 最新の1束（3つ）。前の束もDBには残るが、画面が読むのはこれ */
+  candidates: (CandidateDraft & { id: string; adoptedWorkId?: string })[];
+  /** 本物のモデルが出したか。仮なら画面にそう出す */
+  real: boolean;
+};
+
+/** 取り込んだもの1件 */
+export type SourceRow = {
+  id: string;
+  kind: 'site' | 'doc' | 'sheet' | 'analytics' | 'social';
+  locator: string;
+  status: 'queued' | 'reading' | 'done' | 'failed';
+  summary?: string;
+};
+
+/** 既存事業のプロフィール（診断つき）。取り込みと診断の画面が読む */
+export type Profile = {
+  id: string; name: string; url?: string; stage?: string;
+  sources: SourceRow[];
+  diagnosis?: { facts: Fact[]; findings: Finding[]; real: boolean; at?: string };
+};
 
 export type LiveEmployee = {
   id: string; definitionId: string; name: string; color: string;
