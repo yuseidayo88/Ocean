@@ -38,36 +38,67 @@ export function Card({ card, live, threadId, onSend }:
 /* ══════════════ 質問（選択肢） ══════════════ */
 
 /**
- * 聞かれたことに答える。**選ぶとそのまま会話が続く**（ChatGPT / Claude と同じ）。
- * 答えは「質問 → 答え」の形で送るので、統括AIが何に答えたか取り違えない。
+ * 聞かれたことに答える。**最後まで答えてから、まとめて1通で送る。**
+ *
+ * 1問ずつ送ると、途中の答えだけで統括AIが走り出してしまう
+ * （2問目を聞いておきながら、1問目の答えで候補を出す、が起きる）。
+ * 溜めておいて、**最後の1問に答えた瞬間だけ**会話に流す。
+ *
+ * 答え終わった質問は**緑のチェックつきの行**で上に残り、押せば戻って選び直せる
+ * （送る前なら、何度でも直せる）。
  */
 function AskCard({ card, live, onSend }:
   { card: Extract<ChatCard, { kind: 'ask' }>; live: boolean; onSend: (t: string) => void }) {
+  const qs = card.questions;
+  const [answers, setAnswers] = useState<(string | undefined)[]>(() => qs.map(() => undefined));
   const [at, setAt] = useState(0);
-  const [done, setDone] = useState<string[]>([]);
-  const q = card.questions[at];
+  const [sent, setSent] = useState(false);
+
+  const q = qs[at];
   if (!q) return null;
-  const answered = done[at];
+  const on = live && !sent;
+
   const pick = (label: string) => {
-    setDone((xs) => { const n = [...xs]; n[at] = label; return n; });
-    // まだ聞かれていることが残っていれば次へ、無ければ送る
-    if (at + 1 < card.questions.length) setAt(at + 1);
-    onSend(`${q.body} → ${label}`);
+    const next = [...answers];
+    next[at] = label;
+    setAnswers(next);
+    // **全部そろったら、そこで初めて送る**（1通にまとめる）
+    const missing = next.findIndex((a) => a === undefined);
+    if (missing < 0) {
+      setSent(true);
+      onSend(qs.map((x, i) => `${x.body} → ${next[i]}`).join('\n'));
+      return;
+    }
+    setAt(missing);
   };
-  const on = live && !answered;
 
   return (
     <div style={WRAP}>
       <div style={HEAD}>
         <span style={{ flex: 1 }}>{q.why}</span>
-        {card.questions.length > 1 && (
-          <span style={{ color: T5, fontSize: 11 }} className="tnum">{at + 1} / {card.questions.length}</span>
+        {qs.length > 1 && (
+          <span style={{ color: T5, fontSize: 11 }} className="tnum">{at + 1} / {qs.length}</span>
         )}
       </div>
       <div style={{ padding: '8px 16px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {/* 答え終わったもの。**押せば戻って選び直せる**（送る前なら何度でも） */}
+        {qs.map((x, i) => (i === at || answers[i] === undefined ? null : (
+          <button key={`done-${i}`} disabled={!on} onClick={() => setAt(i)} className={on ? 'row' : undefined}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 9, width: '100%', textAlign: 'left',
+              padding: '6px 4px', borderRadius: 7, cursor: on ? 'pointer' : 'default',
+            }}>
+            <Icon name="check" color={GREEN_T} size={12} width={2.4} />
+            <span style={{ color: T5, fontSize: 11.5, flexShrink: 0 }}>{x.body}</span>
+            <span style={{ color: T2, fontSize: 12, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {answers[i]}
+            </span>
+          </button>
+        )))}
+
         <span style={{ color: T1, fontSize: 14, paddingBottom: 2 }}>{q.body}</span>
         {q.options.map((o, i) => {
-          const chosen = answered === o.label;
+          const chosen = answers[at] === o.label;
           return (
             <button key={o.label} disabled={!on} onClick={() => pick(o.label)} className={on ? 'card' : undefined}
               style={{
@@ -91,7 +122,13 @@ function AskCard({ card, live, onSend }:
           );
         })}
         {/* **自由に書く道を必ず残す。** 選択肢に無いことは入力欄にそのまま書けばいい */}
-        {on && <span style={{ color: T5, fontSize: 11.5, paddingTop: 2 }}>選ばずに、下に自分の言葉で書いても構いません</span>}
+        {on && (
+          <span style={{ color: T5, fontSize: 11.5, paddingTop: 2 }}>
+            {qs.length > 1
+              ? `選ばずに、下に自分の言葉で書いても構いません（${qs.length}問めまで答えると送ります）`
+              : '選ばずに、下に自分の言葉で書いても構いません'}
+          </span>
+        )}
       </div>
     </div>
   );

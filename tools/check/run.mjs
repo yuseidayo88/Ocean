@@ -21,7 +21,8 @@ ws.on('message', (d) => {
 });
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const ev = async (e) => (await send('Runtime.evaluate', { expression: e, returnByValue: true, awaitPromise: true }))?.result?.value;
-const text = () => ev('document.body.innerText');
+// 遷移の途中は評価が空で返る。**落とさない**（until が undefined を触って死ぬ）
+const text = async () => (await ev('document.body.innerText')) ?? '';
 const until = async (test, tries = 40, step = 1200) => {
   for (let i = 0; i < tries; i++) { const b = await text(); if (test(b)) return b; await wait(step); }
   return await text();
@@ -148,14 +149,27 @@ ok('「まだ決まっていない」がチャットで始まる',
    askInChat.includes('週にどれくらい使えますか') && /^\/chat\//.test(await ev('location.pathname')),
    await ev('location.pathname'));
 const threadB = await ev('location.pathname');
-// 選択肢を押すと、そのまま会話が続く
+/**
+ * **最後の質問まで答えてから、1通で送る。**
+ * 1問めを押した時点では会話に流れない（統括AIが途中の答えだけで走り出さない）。
+ */
+const replies = () => ev(`(document.body.innerText.match(/（仮の返事）/g) ?? []).length`);
+const before1 = await replies();
 await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('週10時間'))?.click()`);
-await until((b) => b.includes('もう1つ条件'), 20, 800);
-await say('得意は日本語教育です。');
-const cands = await until((b) => b.includes('おすすめ'), 20, 800);
+await wait(1800);
+const mid = await text();
+ok('1問めでは送らず、2問めを出す',
+   mid.includes('やりたくないこと') && (await replies()) === before1,
+   `返事 ${before1} → ${await replies()}`);
+// 2問め（最後）に答えると、2問ぶんまとめて送られる
+await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('在庫を持つ'))?.click()`);
+// **候補カードだけが持つ言葉で待つ。** 「おすすめ」は質問の選択肢にも出るので当てにならない
+const cands = await until((b) => b.includes('条件に合う道'), 20, 800);
 ok('条件が2つそろうと、候補のカードが会話に出る',
-   cands.includes('おすすめ') && cands.includes('教材販売') && cands.includes('推さない理由'),
+   cands.includes('条件に合う道') && cands.includes('教材販売') && cands.includes('推さない理由'),
    cands.slice(-160));
+ok('2問ぶんの答えが両方とどいた（時間と避けるが条件に入る）',
+   cands.includes('週10時間') && cands.includes('在庫を持つ'), cands.slice(-200));
 ok('候補のカードは会話の中（別の画面に飛ばない）', (await ev('location.pathname')) === threadB, await ev('location.pathname'));
 await ev(`[...document.querySelectorAll('button')].find(b => b.innerText === 'この案にする')?.click()`);
 const planB = await until((b) => b.includes('承認して始める'), 20, 800);

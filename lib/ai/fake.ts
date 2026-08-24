@@ -302,15 +302,26 @@ async function* fakeChat(input: RunInput): AsyncIterable<Chunk> {
   try { cur = JSON.parse(already ?? '{}'); } catch { /* 空のまま */ }
   if (/まだ決まって|決まっていません/.test(said) && !Object.keys(cond).length) {
     yield { type: 'text', text: '（仮の返事）先に条件だけ教えてください。全部でなくて構いません。2つそろったら、候補を3つ出します。' };
-    yield tool('ask', { questions: [{
-      body: '週にどれくらい使えますか。',
-      why: '使える時間で、選べる道がだいぶ変わります。',
-      options: [
-        { label: '週5時間まで', description: '本業のすきま。小さく始める案になります', recommended: true },
-        { label: '週10時間', description: '平日夜と週末。ふつうの立ち上げができます' },
-        { label: '週20時間以上', description: 'ほぼ専念。重い案も選べます' },
-      ],
-    }] });
+    yield tool('ask', { questions: [
+      {
+        body: '週にどれくらい使えますか。',
+        why: '使える時間で、選べる道がだいぶ変わります。',
+        options: [
+          { label: '週5時間まで', description: '本業のすきま。小さく始める案になります', recommended: true },
+          { label: '週10時間', description: '平日夜と週末。ふつうの立ち上げができます' },
+          { label: '週20時間以上', description: 'ほぼ専念。重い案も選べます' },
+        ],
+      },
+      {
+        body: 'やりたくないことはありますか。',
+        why: '外す条件が1つあると、候補の幅がぐっと絞れます。',
+        options: [
+          { label: '在庫を持つ', description: '仕入れと保管が要る案を外します', recommended: true },
+          { label: '人前に出る', description: '営業や撮影が要る案を外します' },
+          { label: '夜間の対応', description: '時差のある顧客を外します' },
+        ],
+      },
+    ] });
     yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
     return;
   }
@@ -357,9 +368,17 @@ function condFrom(said: string): Record<string, unknown> {
   if (man) put.budget_jpy = Number(man) * 10000;
   const strong = said.match(/(?:得意|強み)[はがの: ：]*\s*([^\n。．]+)/)?.[1];
   if (strong) put.strengths = words(strong);
-  const arrow = said.match(/(.+?)\s*→\s*(.+)/);
-  if (arrow && /やりたくない/.test(arrow[1])) put.avoid = [arrow[2].trim()];
-  else if (!arrow) {
+  /**
+   * 板は**最後まで答えてから1通で送る**ので、「質問 → 答え」が何行も来る。
+   * 1行目だけ見ると、2問目の答えを落とす。
+   */
+  const arrows = [...said.matchAll(/^(.+?)\s*→\s*(.+)$/gm)];
+  if (arrows.length) {
+    for (const [, ask, ans] of arrows) {
+      if (/やりたくない|避けたい/.test(ask)) put.avoid = [ans.trim()];
+      if (/得意|強み/.test(ask)) put.strengths = words(ans);
+    }
+  } else {
     const no = said.match(/(?:やりたくない|避けたい)(?:こと)?[はの: ：]*\s*([^\n。．]+)/)?.[1];
     if (no) put.avoid = words(no);
   }
@@ -368,21 +387,24 @@ function condFrom(said: string): Record<string, unknown> {
 
 /** 候補3つ（チャットと Case B で同じものを返す） */
 function fakeCands(merged: Record<string, unknown>) {
-  const s = (merged.strengths as string[] | undefined)?.[0] ?? '得意なこと';
+  const strong = (merged.strengths as string[] | undefined)?.[0];
+  // **得意を聞けていないなら、名乗らない**（「得意なことのオンライン講座」は名前ではない）
+  const of = strong ? `${strong}の` : '';
   const hours = merged.hours_per_week ?? 10;
   const avoid = merged.avoid as string[] | undefined;
+  const edge = strong ? `${strong}の経験がそのまま差になります。` : '小さく始めて、続けながら形にできます。';
   return [
-    { name: `${s}のオンライン講座`.slice(0, 20),
-      summary: `${s}の経験がそのまま差になります。在庫を持たず、週${hours}時間から始められます。`,
-      why: [`${s}の経験が、そのまま他社との差になります`,
+    { name: `${of}オンライン講座`.slice(0, 20),
+      summary: `${edge}在庫を持たず、週${hours}時間から始められます。`,
+      why: [strong ? `${strong}の経験が、そのまま他社との差になります` : '小さく始められて、途中でやめても損が小さい',
             '在庫を持たないので、外したときの損が小さい',
             '週の時間内で、最初の形まで2ヶ月の見込み'],
       fit: { speed: 86, cost: 92, strength: 94 }, recommended: true },
-    { name: `${s}の教材販売`.slice(0, 20),
+    { name: `${of}教材販売`.slice(0, 20),
       summary: '作れば売れ続けますが、最初の1本を作り切るまでが長い。',
       why: [], fit: { speed: 42, cost: 88, strength: 70 }, recommended: false,
       not_chosen_why: '最初の1本が長く、途中で判断材料が出ない' },
-    { name: `企業むけ ${s}研修`.slice(0, 20),
+    { name: `企業むけ ${of}研修`.slice(0, 20),
       summary: '単価は高いが、営業に人前へ出る時間が要ります。',
       why: [], fit: { speed: 64, cost: 76, strength: 48 }, recommended: false,
       not_chosen_why: avoid?.length ? `「${avoid[0]}」を外したいという条件に合わない` : '営業の時間が条件に合わない' },
