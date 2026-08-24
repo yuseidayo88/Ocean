@@ -40,6 +40,13 @@ export type Draft =
  * 自由記述にすると、条件を1つ変えて候補を出し直せなくなる。
  */
 export type Conditions = {
+  /**
+   * **何の分野か。** これが分からないまま候補を出すと
+   * 「小さな実用品の販売所」「受注型テンプレート制作」のように、
+   * **何に関するものか誰にも分からない案**になる（実際そうなった）。
+   * 興味のある分野・やってみたい業種・扱いたいもの。
+   */
+  interests: string[];
   hoursPerWeek?: number | null;
   budgetJpy?: number | null;
   strengths: string[];
@@ -52,6 +59,8 @@ export type Fit = { speed: number; cost: number; strength: number };
 
 export type CandidateDraft = {
   name: string; summary: string;
+  /** **何ができたら完了か。** 候補の時点で決めておく（あとで聞き返さない） */
+  ending: string;
   why: string[];
   fit: Fit; recommended: boolean;
   notChosenWhy?: string;

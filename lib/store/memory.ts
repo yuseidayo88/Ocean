@@ -486,7 +486,7 @@ export const memoryStore: Store = {
     const id = `ds-${Date.now().toString(36)}-${++n}`;
     disc.set(id, {
       id, status: 'collecting',
-      conditions: { strengths: [], avoid: [] },
+      conditions: { interests: [], strengths: [], avoid: [] },
       candidates: [], past: [], seq: 0, real: true,
     });
     return id;
@@ -497,7 +497,8 @@ export const memoryStore: Store = {
     if (!d) return null;
     return {
       id: d.id, status: d.status, real: d.real,
-      conditions: { ...d.conditions, strengths: [...d.conditions.strengths], avoid: [...d.conditions.avoid] },
+      conditions: { ...d.conditions, interests: [...d.conditions.interests],
+                    strengths: [...d.conditions.strengths], avoid: [...d.conditions.avoid] },
       candidates: sortCands(d.candidates).map((c) => ({ ...c })),
     };
   },

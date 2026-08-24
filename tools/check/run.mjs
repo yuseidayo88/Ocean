@@ -144,9 +144,10 @@ ok('スキルが実行で読まれた（used_count）', /\d+回/.test(sk), sk.ma
 // ⑤'' 入口 Case B — **チャットの中で**条件を集めて候補3つ
 await send('Page.navigate', { url: `${BASE}/start` }); await wait(2200);
 await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('まだ決まっていない'))?.click()`);
-const askInChat = await until((b) => b.includes('週にどれくらい使えますか'), 20, 800);
-ok('「まだ決まっていない」がチャットで始まる',
-   askInChat.includes('週にどれくらい使えますか') && /^\/chat\//.test(await ev('location.pathname')),
+/** **いちばん先に聞くのは分野。** 何の話かが決まらないと、案が「何かの販売所」になる */
+const askInChat = await until((b) => b.includes('どの分野に興味がありますか'), 20, 800);
+ok('「まだ決まっていない」は、まず分野から聞く',
+   askInChat.includes('どの分野に興味がありますか') && /^\/chat\//.test(await ev('location.pathname')),
    await ev('location.pathname'));
 const threadB = await ev('location.pathname');
 /**
@@ -155,21 +156,29 @@ const threadB = await ev('location.pathname');
  */
 const replies = () => ev(`(document.body.innerText.match(/（仮の返事）/g) ?? []).length`);
 const before1 = await replies();
-await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('週10時間'))?.click()`);
-await wait(1800);
+await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('学び・教える'))?.click()`);
+await wait(1500);
 const mid = await text();
 ok('1問めでは送らず、2問めを出す',
-   mid.includes('やりたくないこと') && (await replies()) === before1,
+   mid.includes('週にどれくらい使えますか') && (await replies()) === before1,
    `返事 ${before1} → ${await replies()}`);
-// 2問め（最後）に答えると、2問ぶんまとめて送られる
+await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('週10時間'))?.click()`);
+await wait(1200);
+// 3問め（最後）に答えると、3問ぶんまとめて送られる
 await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('在庫を持つ'))?.click()`);
 // **候補カードだけが持つ言葉で待つ。** 「おすすめ」は質問の選択肢にも出るので当てにならない
 const cands = await until((b) => b.includes('条件に合う道'), 20, 800);
-ok('条件が2つそろうと、候補のカードが会話に出る',
+ok('分野と条件がそろうと、候補のカードが会話に出る',
    cands.includes('条件に合う道') && cands.includes('教材販売') && cands.includes('推さない理由'),
    cands.slice(-160));
-ok('2問ぶんの答えが両方とどいた（時間と避けるが条件に入る）',
-   cands.includes('週10時間') && cands.includes('在庫を持つ'), cands.slice(-200));
+ok('3問ぶんの答えが全部とどいた（分野・時間・避けるが条件に入る）',
+   cands.includes('学び・教える') && cands.includes('週10時間') && cands.includes('在庫を持つ'),
+   cands.slice(-240));
+// **候補は分野の名前を持つ**（「オンライン講座」だけにしない）
+ok('候補の名前に分野が入っている', cands.includes('学び・教えるのオンライン講座'), cands.slice(-240));
+// **完了の定義は候補が持っている**（採用したあとに聞き返さない）
+ok('候補が「何ができたら完了か」を出している', cands.includes('完了') && cands.includes('受け終わっている'),
+   cands.slice(-240));
 ok('候補のカードは会話の中（別の画面に飛ばない）', (await ev('location.pathname')) === threadB, await ev('location.pathname'));
 /**
  * **いちばん下の発言が入力欄の裏に潜らない。**

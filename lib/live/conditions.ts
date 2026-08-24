@@ -12,6 +12,8 @@ import type { Conditions } from '@/lib/exec/types';
  */
 export function conditionChips(c: Conditions): [string, string][] {
   const out: [string, string][] = [];
+  // **分野がいちばん上。** 何の話かが決まらないと、ほかの条件は意味を持たない
+  if (c.interests?.length) out.push(['分野', c.interests.join(' · ')]);
   if (c.hoursPerWeek != null) out.push(['使える時間', `週${c.hoursPerWeek}時間`]);
   if (c.budgetJpy != null) out.push(['元手', `〜${Math.round(c.budgetJpy / 10000)}万円`]);
   if (c.strengths.length) out.push(['強み', c.strengths.join(' · ')]);

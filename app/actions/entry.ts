@@ -32,9 +32,14 @@ export async function adoptCandidate(
     if (!d || !c) return { ok: false, need: 'error', message: 'その候補は見つかりませんでした' };
     const goal = [
       `${c.name}を立ち上げたい`,
-      // **終わりを聞き返されたときの答え**（選んだ選択肢がそのまま入る）
-      ending ? `終わり: ${ending}` : '',
+      /**
+       * **終わりは候補が持っている。** 候補を出すときに一緒に書かせてあるので、
+       * 採用したあとに聞き返さない（社長から見ると、選んだのに同じことをもう一度
+       * 聞かれる形になっていた）。`ending` は聞き返したときの答え（保険）。
+       */
+      ending || c.ending ? `終わり: ${ending || c.ending}` : '',
       `背景: ${c.summary}`,
+      d.conditions.interests.length ? `分野: ${d.conditions.interests.join('・')}` : '',
       d.conditions.hoursPerWeek ? `使える時間: 週${d.conditions.hoursPerWeek}時間` : '',
       d.conditions.budgetJpy ? `使えるお金: 〜${Math.round(d.conditions.budgetJpy / 10000)}万円` : '',
       d.conditions.strengths.length ? `得意: ${d.conditions.strengths.join('・')}` : '',

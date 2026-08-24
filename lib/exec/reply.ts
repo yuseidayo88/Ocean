@@ -39,10 +39,20 @@ export async function snapshot(): Promise<string> {
  */
 export type ReplyResult = { ok: true } | { ok: false; message: string; missing?: true };
 
-/** そろっている条件の数（5項目のうち、値が入っているもの） */
+/** そろっている条件の数（値が入っているもの） */
 const filled = (c: Conditions) =>
-  [c.hoursPerWeek, c.budgetJpy, c.strengths.length || null, c.avoid.length || null, c.deadline]
+  [c.interests.length || null, c.hoursPerWeek, c.budgetJpy,
+   c.strengths.length || null, c.avoid.length || null, c.deadline]
     .filter((v) => v !== null && v !== undefined).length;
+
+/**
+ * **候補を出していいか。**
+ * 分野（何の話か）が分からないまま出すと、「小さな実用品の販売所」のように
+ * **何に関するものか誰にも分からない案**になる（実際そうなった）。
+ * だから分野は必須。そのうえで、ほかの条件が2つ以上そろっていること。
+ */
+const canPropose = (c: Conditions | undefined) =>
+  !!c && c.interests.length > 0 && filled(c) >= 3;
 
 /**
  * `onText` は本文が1かたまり届くたびに呼ばれる（流す口のため）。
@@ -85,8 +95,9 @@ export async function replyTo(
         let sid = t.thread.discoveryId ?? state.discoveryId;
         if (!sid) { sid = await s.createDiscovery(); await s.linkThread(id, { discoveryId: sid }); }
         state.discoveryId = sid;
-        const before = state.conditions ?? { strengths: [], avoid: [] };
+        const before: Conditions = state.conditions ?? { interests: [], strengths: [], avoid: [] };
         const merged: Conditions = {
+          interests: out.conditions.interests ?? before.interests,
           hoursPerWeek: out.conditions.hoursPerWeek ?? before.hoursPerWeek ?? null,
           budgetJpy: out.conditions.budgetJpy ?? before.budgetJpy ?? null,
           strengths: out.conditions.strengths ?? before.strengths,
@@ -139,7 +150,7 @@ export async function replyTo(
      * 1回だけ。ここで出なければ、社長の番に戻す。
      */
     if (!card && state.discoveryId && !state.proposed) {
-      const ready = state.conditions ? filled(state.conditions) >= 3 : false;
+      const ready = canPropose(state.conditions);
       onStage?.(ready ? '条件に合う道を組み立てています' : '聞くことをまとめています');
       const more = await chatStep(
         { ...state, needCard: true, push: ready ? 'candidates' : 'ask' },

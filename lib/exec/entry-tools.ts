@@ -19,6 +19,8 @@ export const setConditions: ToolDef = {
   input_schema: {
     type: 'object',
     properties: {
+      interests: { type: 'array', items: { type: 'string' },
+        description: '興味のある分野・やってみたい業種・扱いたいもの。**これが分からないうちは候補を出さない**' },
       hours_per_week: { type: 'number', description: '週に使える時間' },
       budget_jpy: { type: 'number', description: '使えるお金（円）' },
       strengths: { type: 'array', items: { type: 'string' }, description: '得意なこと。短い語で' },
@@ -43,8 +45,9 @@ export const proposeCandidates: ToolDef = {
         items: {
           type: 'object',
           properties: {
-            name: { type: 'string', description: '候補の名前。10〜20文字' },
+            name: { type: 'string', description: '候補の名前。**誰に何を**が分かる具体的なもの（「テンプレート制作」ではなく「飲食店むけのメニュー表テンプレート」）。10〜24文字' },
             summary: { type: 'string', description: 'なぜこの条件に合うか。1〜2文' },
+            ending: { type: 'string', description: '**何ができたら完了か。** 1文で、見れば分かる状態を書く（「最初の1件が売れている」）。社長はこれを見て承認する' },
             why: { type: 'array', items: { type: 'string' }, description: '推す理由（recommended のとき3つ）' },
             fit: {
               type: 'object',
@@ -56,7 +59,7 @@ export const proposeCandidates: ToolDef = {
             recommended: { type: 'boolean' },
             not_chosen_why: { type: 'string', description: '推さない理由。1文' },
           },
-          required: ['name', 'summary', 'fit', 'recommended'],
+          required: ['name', 'summary', 'ending', 'fit', 'recommended'],
         },
       },
     },

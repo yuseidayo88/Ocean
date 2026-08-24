@@ -316,6 +316,16 @@ async function* fakeChat(input: RunInput): AsyncIterable<Chunk> {
   if (/まだ決まって|決まっていません/.test(said) && !Object.keys(cond).length) {
     yield tool('ask', { questions: [
       {
+        // **いちばん先に分野。** これが無いと、何に関する案なのか分からない
+        body: 'どの分野に興味がありますか。',
+        why: '何に関する仕事かが決まらないと、案が「何かの販売所」になってしまいます。',
+        options: [
+          { label: '学び・教える', description: '講座・教材・練習の道具など', recommended: true },
+          { label: '食・飲食', description: 'お店の手伝い、レシピ、food まわりの道具' },
+          { label: '仕事の道具', description: 'テンプレート、業務の型、小さな仕組み' },
+        ],
+      },
+      {
         body: '週にどれくらい使えますか。',
         why: '使える時間で、選べる道がだいぶ変わります。',
         options: [
@@ -392,6 +402,8 @@ function condFrom(said: string): Record<string, unknown> {
   if (man) put.budget_jpy = Number(man) * 10000;
   const strong = said.match(/(?:得意|強み)[はがの: ：]*\s*([^\n。．]+)/)?.[1];
   if (strong) put.strengths = words(strong);
+  const field = said.match(/(?:分野|業種|興味)[はがの: ：]*\s*([^\n。．]+)/)?.[1];
+  if (field) put.interests = words(field);
   /**
    * 板は**最後まで答えてから1通で送る**ので、「質問 → 答え」が何行も来る。
    * 1行目だけ見ると、2問目の答えを落とす。
@@ -401,6 +413,8 @@ function condFrom(said: string): Record<string, unknown> {
     for (const [, ask, ans] of arrows) {
       if (/やりたくない|避けたい/.test(ask)) put.avoid = [ans.trim()];
       if (/得意|強み/.test(ask)) put.strengths = words(ans);
+      // **分野。** これが無いと、何に関する案なのか分からない
+      if (/分野|業種|興味/.test(ask)) put.interests = [ans.trim()];   // 分野は割らない（「学び・教える」で1つ）
     }
   } else {
     const no = said.match(/(?:やりたくない|避けたい)(?:こと)?[はの: ：]*\s*([^\n。．]+)/)?.[1];
@@ -412,24 +426,31 @@ function condFrom(said: string): Record<string, unknown> {
 /** 候補3つ（チャットと Case B で同じものを返す） */
 function fakeCands(merged: Record<string, unknown>) {
   const strong = (merged.strengths as string[] | undefined)?.[0];
-  // **得意を聞けていないなら、名乗らない**（「得意なことのオンライン講座」は名前ではない）
-  const of = strong ? `${strong}の` : '';
+  /**
+   * **分野を名前に入れる。** 分野が無いと「オンライン講座」のように
+   * 何に関する事業か分からない名前になる（本物でも同じことが起きた）。
+   */
+  const field = (merged.interests as string[] | undefined)?.[0] ?? '';
+  const of = field ? `${field}の` : strong ? `${strong}の` : '';
   const hours = merged.hours_per_week ?? 10;
   const avoid = merged.avoid as string[] | undefined;
   const edge = strong ? `${strong}の経験がそのまま差になります。` : '小さく始めて、続けながら形にできます。';
   return [
-    { name: `${of}オンライン講座`.slice(0, 20),
+    { name: `${of}オンライン講座`.slice(0, 24),
       summary: `${edge}在庫を持たず、週${hours}時間から始められます。`,
+      ending: '最初の受講者が1人、最後まで受け終わっている',
       why: [strong ? `${strong}の経験が、そのまま他社との差になります` : '小さく始められて、途中でやめても損が小さい',
             '在庫を持たないので、外したときの損が小さい',
             '週の時間内で、最初の形まで2ヶ月の見込み'],
       fit: { speed: 86, cost: 92, strength: 94 }, recommended: true },
-    { name: `${of}教材販売`.slice(0, 20),
+    { name: `${of}教材販売`.slice(0, 24),
       summary: '作れば売れ続けますが、最初の1本を作り切るまでが長い。',
+      ending: '教材が1本できて、販売ページで買える状態になっている',
       why: [], fit: { speed: 42, cost: 88, strength: 70 }, recommended: false,
       not_chosen_why: '最初の1本が長く、途中で判断材料が出ない' },
-    { name: `企業むけ ${of}研修`.slice(0, 20),
+    { name: `企業むけ ${of}研修`.slice(0, 24),
       summary: '単価は高いが、営業に人前へ出る時間が要ります。',
+      ending: '1社で研修を1回やり終えて、次の相談が来ている',
       why: [], fit: { speed: 64, cost: 76, strength: 48 }, recommended: false,
       not_chosen_why: avoid?.length ? `「${avoid[0]}」を外したいという条件に合わない` : '営業の時間が条件に合わない' },
   ];
@@ -458,6 +479,8 @@ async function* fakeDiscover(input: RunInput): AsyncIterable<Chunk> {
   const words = (s: string) => s.split(/[・、,\sと]+/).map((x) => x.trim()).filter(Boolean).slice(0, 3);
   const strong = said.match(/(?:得意|強み)[はがの: ：]*\s*([^\n。．]+)/)?.[1];
   if (strong) put.strengths = words(strong);
+  const field = said.match(/(?:分野|業種|興味)[はがの: ：]*\s*([^\n。．]+)/)?.[1];
+  if (field) put.interests = words(field);
   // 板からの答えは「質問 → 答え」の形で来る。質問文を条件に混ぜない
   const arrow = said.match(/(.+?)\s*→\s*(.+)/);
   if (arrow && /やりたくない/.test(arrow[1])) {

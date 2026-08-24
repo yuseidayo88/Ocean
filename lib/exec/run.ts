@@ -81,14 +81,55 @@ export async function draftWork(goal: string, ctx = ''): Promise<RunResult> {
       undefined, '統括AIが入れ物を決めませんでした');
   }
 
+  const container = toContainer(c);
+  /**
+   * **計画が空なら、計画だけをもう一度頼む。**
+   *
+   * 1往復で道具を5つ書かせるのは、速さと安さを取ったモデルには重い。
+   * 実際 `decide_container` までは来るのに `draft_plan` が空（フェーズ0・タスク0）で返り、
+   * 「0フェーズで進めます。まず「」から —。」という**壊れた計画案**ができた。
+   * ここでは**道具を1つだけ渡して、必ず使わせる** — 出力が全部その計画に向く。
+   */
+  let plan = toPlan(got.get('draft_plan'));
+  if (!plan.phases.length || !plan.firstPhaseTasks.length) {
+    plan = await drawPlan(p, goal, ctx, container);
+  }
+
   return { real, draft: {
     kind: 'draft',
-    container: toContainer(c),
+    container,
     // **型を被せるだけにしない。** options が落ちた質問は板で落ちる（→ parse.ts）
     questions: toQuestions(got.get('ask')?.questions),
     hires: toHires(got.get('propose_hires')?.hires as Record<string, string>[] | undefined),
-    plan: toPlan(got.get('draft_plan')),
+    plan,
   } };
+}
+
+/** 計画だけをもう一度。**道具は1つ、必ず使わせる** */
+async function drawPlan(p: ModelProvider, goal: string, ctx: string, c: Container): Promise<Plan> {
+  const got = new Map<string, Record<string, unknown>>();
+  for await (const ch of p.stream({
+    tier: 'deep',
+    system: CONSTITUTION,
+    messages: [{
+      role: 'user',
+      content: [
+        ctx, '', `社長のゴール:\n${goal}`, '',
+        `決まっている入れ物: ${c.title}（${c.goal}／およそ${c.weeks}週）`, '',
+        '**この Work の計画を draft_plan で書いてください。**',
+        'フェーズは3〜5個、それぞれ名前・ねらい・週数。',
+        '**直近のフェーズのタスクは必ず2件以上**（first_phase_tasks）。',
+        '社長に聞く関門（gates）は多くても2つ。文章では答えないでください。',
+      ].filter(Boolean).join('\n'),
+    }],
+    tools: [PHASE5_TOOLS.find((t) => t.name === 'draft_plan')!],
+    toolChoice: 'required',
+    maxTokens: 8000,
+    effort: 'high',
+  })) {
+    if (ch.type === 'tool_use') got.set(ch.name, (ch.input ?? {}) as Record<string, unknown>);
+  }
+  return toPlan(got.get('draft_plan'));
 }
 
 const toContainer = (r: Record<string, unknown>): Container => ({
@@ -111,12 +152,15 @@ const toHires = (rows?: Record<string, string>[]): Hire[] =>
 
 const toPlan = (r?: Record<string, unknown>): Plan => ({
   weeks: Number(r?.weeks ?? 0),
-  phases: (r?.phases as Plan['phases']) ?? [],
+  // **名前の無いフェーズを通さない。** 通すと「まず「」から —。」になる
+  phases: ((r?.phases as Record<string, unknown>[]) ?? [])
+    .map((x) => ({ name: String(x?.name ?? ''), goal: String(x?.goal ?? ''), weeks: Number(x?.weeks ?? 0) }))
+    .filter((x) => x.name),
   gates: ((r?.gates as Record<string, string>[]) ?? []).map((g) => ({
     afterPhase: g.after_phase, question: g.question,
   })),
-  firstPhaseTasks: ((r?.first_phase_tasks as Record<string, string>[]) ?? []).map((t) => ({
-    title: t.title, intent: t.intent, ownerHint: t.owner_hint,
-  })),
+  firstPhaseTasks: ((r?.first_phase_tasks as Record<string, string>[]) ?? [])
+    .map((t) => ({ title: String(t?.title ?? ''), intent: String(t?.intent ?? ''), ownerHint: String(t?.owner_hint ?? '') }))
+    .filter((t) => t.title),
   deliverables: (r?.deliverables as string[]) ?? [],
 });

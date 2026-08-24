@@ -322,6 +322,13 @@ function CandidatesCard({ id, live, threadId }: { id: string; live: boolean; thr
                 {pick && <Icon name="chev" color={T5} size={12} />}
               </div>
               <span style={{ color: T2, fontSize: 12.5, lineHeight: '20px' }}>{c.summary}</span>
+              {/* **何ができたら完了か。** 選ぶ前に読める（あとで聞き返さない） */}
+              {c.ending && (
+                <span style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                  <span style={{ color: T5, fontSize: 10.5, flexShrink: 0 }}>完了</span>
+                  <span style={{ color: T3, fontSize: 12, lineHeight: '18px' }}>{c.ending}</span>
+                </span>
+              )}
               <div style={{ display: 'flex', gap: 16 }}>
                 {AXES.map(([label, key]) => (
                   <span key={key} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>

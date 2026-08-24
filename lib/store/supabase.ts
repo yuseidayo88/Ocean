@@ -995,7 +995,7 @@ export const supabaseStore: Store = {
       .select('id, status, constraints, is_real').eq('id', id).maybeSingle();
     if (!s) return null;
     const { data: rows } = await c.from('discovery_candidates')
-      .select('id, name, summary, fit, why, recommended, not_chosen_why, adopted_work_id, created_at')
+      .select('id, name, summary, ending, fit, why, recommended, not_chosen_why, adopted_work_id, created_at')
       .eq('session_id', id).order('created_at', { ascending: false }).limit(30);
     // **最新の束だけ。** 1回の提案は1文で入るので created_at が同着 — 先頭と同じ時刻の行が今の束
     const latest = rows?.length ? rows.filter((r) => r.created_at === rows[0].created_at) : [];
@@ -1007,6 +1007,7 @@ export const supabaseStore: Store = {
       status: s.status as Discovery['status'],
       real: !!s.is_real,
       conditions: {
+        interests: Array.isArray(raw.interests) ? raw.interests.map(String) : [],
         hoursPerWeek: raw.hours_per_week == null ? null : Number(raw.hours_per_week),
         budgetJpy: raw.budget_jpy == null ? null : Number(raw.budget_jpy),
         strengths: Array.isArray(raw.strengths) ? raw.strengths.map(String) : [],
@@ -1015,6 +1016,7 @@ export const supabaseStore: Store = {
       },
       candidates: sortCands(latest.map((r) => ({
         id: r.id as string, name: r.name as string, summary: r.summary as string,
+        ending: (r.ending ?? '') as string,
         why: Array.isArray(r.why) ? r.why.map(String) : [],
         fit: { speed: fitOf(r.fit, 'speed'), cost: fitOf(r.fit, 'cost'), strength: fitOf(r.fit, 'strength') },
         recommended: !!r.recommended,
@@ -1028,6 +1030,7 @@ export const supabaseStore: Store = {
     const c = await db();
     const { error } = await c.from('discovery_sessions').update({
       constraints: {
+        interests: x.interests,
         hours_per_week: x.hoursPerWeek ?? null,
         budget_jpy: x.budgetJpy ?? null,
         strengths: x.strengths, avoid: x.avoid,
@@ -1043,7 +1046,7 @@ export const supabaseStore: Store = {
     // 1文で入れる（束の created_at が同着になる — getDiscovery が「最新の束」を切り出す鍵）。
     // **前の束は消さない**（不変条件 9。delete は DB 側でも revoke 済み）
     const { error } = await c.from('discovery_candidates').insert(cands.map((x) => ({
-      session_id: id, name: x.name, summary: x.summary, why: x.why,
+      session_id: id, name: x.name, summary: x.summary, ending: x.ending, why: x.why,
       fit: x.fit, recommended: x.recommended, not_chosen_why: x.notChosenWhy ?? null,
     })));
     if (error) throw new AppError('unknown', error.message);

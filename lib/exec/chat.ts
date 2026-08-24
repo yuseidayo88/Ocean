@@ -89,11 +89,20 @@ const GUIDE = `
 
 ## 道具を使う場面
 1. **やりたいことがある**（終わりの言える仕事） → まとまったら propose_work
-2. **何をやるか決めたい・迷っている** → **まず聞く。** set_conditions で言われた条件を
-   構造に写しつつ、足りないことは **ask** で聞く
-   （使える時間 / 使えるお金 / 得意なこと / やりたくないこと / いつまでに / 好きな領域）。
-   **条件が3つそろうまで候補を出さない。** 何も知らないまま出した候補は、社長の話ではない。
-   そろったら propose_candidates で候補を3つ。
+2. **何をやるか決めたい・迷っている** → **まず聞く。**
+
+   **いちばん先に聞くのは「どの分野か」です。**
+   何に関する仕事かが分からないまま候補を出すと、「小さな実用品の販売所」
+   「受注型テンプレート制作」のように、**何の話か誰にも分からない案**になります。
+   分野は**選択肢（食 / 健康 / 学び / お金 / 仕事の道具 / 趣味 …）＋ 自由入力**で聞く。
+
+   分野が分かったら、そのうえで 使える時間 / 使えるお金 / 得意なこと /
+   やりたくないこと / いつまでに を set_conditions に写しながら ask で聞く。
+
+   **分野が空のあいだは、絶対に候補を出さない。**
+   分野 ＋ ほかに2つそろったら propose_candidates で候補を3つ。
+   候補は**その分野の具体的な事業**にする — 「テンプレート制作」ではなく
+   「飲食店むけのメニュー表テンプレート」のように、**誰に何を**が分かる名前にする。
    ただし「もういいから出して」と言われたら、**足りない分は仮に置いて出す**
    （仮に置いたことは summary に書く）
 3. **すでに事業がある**（サイト・資料・数字を渡された） → remember_material で覚える。
@@ -151,6 +160,7 @@ export async function chatStep(state: ChatState, history: Msg[], opts: ChatOpts 
   ];
   if (state.hasWork) lines.push('**この会話ではもう Work を作りました。** propose_work は呼ばないでください。');
   if (state.conditions) lines.push(`集まっている条件:\n${JSON.stringify({
+    interests: state.conditions.interests,
     hours_per_week: state.conditions.hoursPerWeek ?? null,
     budget_jpy: state.conditions.budgetJpy ?? null,
     strengths: state.conditions.strengths,
@@ -163,8 +173,12 @@ export async function chatStep(state: ChatState, history: Msg[], opts: ChatOpts 
       + '足りない条件があっても、仮に置いて出します（仮に置いたことは summary に書く）。');
   }
   if (state.push === 'ask') {
+    const noField = !state.conditions?.interests.length;
     lines.push('**この往復では ask を呼んで、押すだけで答えられる質問を2〜4問してください。**'
-      + 'まだ条件が足りないので、候補は出しません。');
+      + (noField
+          ? '**まず「どの分野か」を聞いてください**（選択肢 ＋ 自由入力）。'
+            + '分野が分からないうちは候補を出しません。'
+          : 'まだ条件が足りないので、候補は出しません。'));
   }
   if (state.materials.length) lines.push(`取り込んだ材料: ${state.materials.join(' / ')}`);
   if (state.diagnosed) lines.push('診断はもう出しました。');
@@ -201,6 +215,7 @@ export async function chatStep(state: ChatState, history: Msg[], opts: ChatOpts 
 
   const cRaw = got.get('set_conditions') ?? {};
   const conditions: Partial<Conditions> = {};
+  if (Array.isArray(cRaw.interests) && cRaw.interests.length) conditions.interests = cRaw.interests.map(String);
   const hours = finite(cRaw.hours_per_week);
   if (hours !== undefined) conditions.hoursPerWeek = hours;
   const budget = finite(cRaw.budget_jpy);
@@ -212,6 +227,7 @@ export async function chatStep(state: ChatState, history: Msg[], opts: ChatOpts 
   const candidates = ((got.get('propose_candidates')?.candidates as Record<string, unknown>[]) ?? [])
     .map((x): CandidateDraft => ({
       name: String(x.name ?? ''), summary: String(x.summary ?? ''),
+      ending: String(x.ending ?? ''),
       why: Array.isArray(x.why) ? x.why.map(String) : [],
       fit: {
         speed: score((x.fit as Record<string, unknown>)?.speed),
