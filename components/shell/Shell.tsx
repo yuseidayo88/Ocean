@@ -3,7 +3,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { morning } from '@/app/actions/run';
-import { companyName } from '@/app/actions/live';
 import { chatSay } from '@/app/actions/chat';
 import { streamReply } from '@/lib/chat/stream';
 import { SHELL_MIN, T2 } from '@/lib/design/tokens';
@@ -32,6 +31,8 @@ export type Chat = {
 };
 
 type Shell = {
+  /** 会社の名前。**サーバーが最初から渡す**（開くたびに取りに行かない） */
+  company: string;
   rail: boolean; setRail: (v: boolean) => void;
   chat: Chat;
   /** 入力欄から送る。会話が閉じていれば開く */
@@ -50,6 +51,7 @@ type Shell = {
 };
 
 const Ctx = createContext<Shell>({
+  company: 'あなたの会社',
   rail: true, setRail: () => {},
   chat: { on: false, thread: null, said: [], busy: false, rev: 0, live: '', stage: '', fail: '' },
   say: () => {}, fresh: () => {}, closeChat: () => {},
@@ -57,7 +59,8 @@ const Ctx = createContext<Shell>({
 });
 export const useShell = () => useContext(Ctx);
 
-export function Shell({ children }: { children: React.ReactNode }) {
+export function Shell({ children, company = 'あなたの会社' }:
+  { children: React.ReactNode; company?: string }) {
   const [rail, setRail] = useState(true);
   const [chat, setChat] = useState<Chat>({ on: false, thread: null, said: [], busy: false, rev: 0, live: '', stage: '', fail: '' });
   // say はどの描画からでも呼ばれるので、最新の chat は ref で読む（依存を増やさない）
@@ -84,6 +87,16 @@ export function Shell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const d = new Date();
     const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    /**
+     * **その日いちど頼んだら、もう頼まない。**
+     * 中身はストアが日付で止めているので二重には出ないが、
+     * **開くたびにサーバーへ往復していた**（画面を開くたびに1本ぶん遅くなる）。
+     * 覚えられない browser では、これまでどおり毎回頼む（報告が消えるよりいい）。
+     */
+    try {
+      if (sessionStorage.getItem('onefound.morning') === day) return;
+      sessionStorage.setItem('onefound.morning', day);
+    } catch { /* 覚えられないときは、そのまま頼む */ }
     void morning(day);
   }, []);
 
@@ -125,8 +138,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   // 中身が変わったときだけ作り直す（毎描画で新しい object を配らない）
   const value = useMemo(
-    () => ({ rail, setRail, chat, say, fresh, closeChat, find, setFind, note, say5 }),
-    [rail, chat, say, fresh, closeChat, find, note, say5]);
+    () => ({ company, rail, setRail, chat, say, fresh, closeChat, find, setFind, note, say5 }),
+    [company, rail, chat, say, fresh, closeChat, find, note, say5]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
@@ -170,8 +183,7 @@ export const isBlank = (p: string) => EMPTY_ROUTES.some((r) => p === r || p.star
  * この器をボタンに戻す（ポリシー28本は無変更のまま入る設計）。
  */
 export function CompanyPicker() {
-  const [company, setCompany] = useState('あなたの会社');
-  useEffect(() => { companyName().then(setCompany); }, []);
+  const { company } = useShell();
   const path = usePathname();
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', height: 26, color: T2 }}>

@@ -13,7 +13,7 @@ import { AGENT_COLOR, EFFORT_WORDS, EXEC, MODELS } from '@/lib/view/model';
 import { MODEL_LABEL } from '@/lib/ai/tiers';
 import { pressable } from '@/lib/a11y';
 import { hire, listEmployees } from '@/app/actions/run';
-import { learningsGet, learningsSet, skillsList, skillToggle } from '@/app/actions/live';
+import { learningsGet, learningsSet, skillToggle, teamData } from '@/app/actions/live';
 import { ROSTER, definitionOf, slugOf, type Definition } from '@/lib/roster';
 import type { LiveEmployee, SkillRow } from '@/lib/store';
 import { useShell } from '@/components/shell/Shell';
@@ -80,8 +80,8 @@ export default function TeamPage() {
   const [skills, setSkills] = useState<SkillRow[]>([]);
   useEffect(() => {
     let on = true;
-    listEmployees().then((s) => { if (on) setStaff(s); });
-    skillsList().then((s) => { if (on) setSkills(s); });
+    // **1回で取る。** 在籍とスキルは一緒に出るものなので、別々に往復しない
+    teamData().then((d) => { if (on) { setStaff(d.staff); setSkills(d.skills); } });
     return () => { on = false; };
   }, []);
 

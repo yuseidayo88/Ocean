@@ -832,7 +832,18 @@ function ToMenu({ label }: { label: string }) {
   const box = useRef<HTMLSpanElement>(null);
   const router = useRouter();
 
-  useEffect(() => { chatTargets().then(setWorks); }, []);
+  /**
+   * **開いたときに取りに行く。**
+   * 前は全画面で、開いてもいないのに Work の一覧を1本ぶん取っていた
+   * （入力欄はどの画面にもあるので、**画面を開くたびに必ず1往復**）。
+   * 中身が要るのは板を開いた瞬間だけ。
+   */
+  const got = useRef(false);
+  useEffect(() => {
+    if (!open || got.current) return;
+    got.current = true;
+    chatTargets().then(setWorks);
+  }, [open]);
   useEffect(() => {
     if (!open) return;
     const away = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };

@@ -4,7 +4,7 @@
  * ゼロ状態の読み書き。**画面はここを通して store だけを読む** — ダミーは無い。
  * 読みは失敗しても画面を壊さない（空を返す）。書きは失敗を言う。
  */
-import { store, type ChatMsg, type ChatThread, type LiveWork, type Note, type SkillRow } from '@/lib/store';
+import { store, type ChatMsg, type ChatThread, type LiveEmployee, type LiveWork, type Note, type SkillRow } from '@/lib/store';
 import { sayError } from '@/lib/errors';
 
 export async function worksList(): Promise<LiveWork[]> {
@@ -55,17 +55,30 @@ export async function learningsSet(employeeId: string, lines: string[]): Promise
 }
 
 /** レールが読む3つ（チャット履歴・未読の数・在籍の数）。画面を移るたびに呼ばれるので安く */
-export async function railData(): Promise<{ threads: ChatThread[]; unread: number; staff: number }> {
+/**
+ * 器がいちばん最初に要るもの。**1回で全部取る。**
+ *
+ * 前は レール（3本）と 会社名 が別々のサーバーアクションで、**画面を開くたびに
+ * 往復が2回**あった。器の中身は1つのまとまりなので、1回で返す。
+ */
+export type RailData = { threads: ChatThread[]; unread: number; staff: number; company: string };
+
+/** メンバーの画面が要るもの。**1回で取る**（在籍とスキルは一緒に出る） */
+export async function teamData(): Promise<{ staff: LiveEmployee[]; skills: SkillRow[] }> {
   try {
     const s = store();
-    const [threads, notes, staff] = await Promise.all([
-      s.listThreads(), s.listNotes(), s.listEmployees(),
-    ]);
-    return { threads, unread: notes.filter((n) => !n.read).length, staff: staff.length };
-  } catch { return { threads: [], unread: 0, staff: 0 }; }
+    const [staff, skills] = await Promise.all([s.listEmployees(), s.listSkills()]);
+    return { staff, skills };
+  } catch { return { staff: [], skills: [] }; }
 }
 
-export async function companyName(): Promise<string> {
-  try { return await store().companyName(); } catch { return 'あなたの会社'; }
+export async function railData(): Promise<RailData> {
+  try {
+    const s = store();
+    const [threads, notes, staff, company] = await Promise.all([
+      s.listThreads(), s.listNotes(), s.listEmployees(), s.companyName(),
+    ]);
+    return { threads, unread: notes.filter((n) => !n.read).length, staff: staff.length, company };
+  } catch { return { threads: [], unread: 0, staff: 0, company: 'あなたの会社' }; }
 }
 

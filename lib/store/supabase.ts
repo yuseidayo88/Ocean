@@ -732,11 +732,14 @@ export const supabaseStore: Store = {
 
   async getThread(id) {
     const c = await db();
-    const { data: t } = await c.from('chat_threads')
-      .select('id, title, work_id, discovery_id, profile_id, last_message_at').eq('id', id).maybeSingle();
+    // **2本を同時に投げる。** 順に待つと、遠いDBでは往復が2回ぶん積み上がる
+    const [{ data: t }, { data: m }] = await Promise.all([
+      c.from('chat_threads')
+        .select('id, title, work_id, discovery_id, profile_id, last_message_at').eq('id', id).maybeSingle(),
+      c.from('chat_messages')
+        .select('role, body, refs, created_at').eq('thread_id', id).order('created_at'),
+    ]);
     if (!t) return null;
-    const { data: m } = await c.from('chat_messages')
-      .select('role, body, refs, created_at').eq('thread_id', id).order('created_at');
     return {
       thread: {
         id: t.id as string, title: t.title as string,

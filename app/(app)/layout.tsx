@@ -2,6 +2,7 @@ import { Rail } from '@/components/shell/Rail';
 import { Shell, ShellBox } from '@/components/shell/Shell';
 import { ChatPane } from '@/components/shell/ChatPane';
 import { Find, Note } from '@/components/shell/Find';
+import { railData } from '@/app/actions/live';
 
 /**
  * **統括AIの返事を待てる長さにする。**
@@ -12,12 +13,19 @@ import { Find, Note } from '@/components/shell/Find';
  */
 export const maxDuration = 300;
 
-/** 3ペイン。左＝ナビ＋チャット履歴、中＝主役、右＝閉じた状態から始まるパネル */
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+/**
+ * 3ペイン。左＝ナビ＋チャット履歴、中＝主役、右＝閉じた状態から始まるパネル。
+ *
+ * **器の中身は、画面と一緒に届く。** 前はレールも会社名も、器が立ち上がってから
+ * クライアントが取りに行っていたので、**開くたびに往復が2回**あり、
+ * その間レールは空だった（そのぶん「読み込みが遅い」に見える）。
+ */
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const rail = await railData();
   return (
-    <Shell>
+    <Shell company={rail.company}>
       <ShellBox>
-        <Rail />
+        <Rail initial={rail} />
         {children}
         {/* 統括AIとの会話。**どの画面からでも開く**ので、ここに1つだけ置く */}
         <ChatPane />

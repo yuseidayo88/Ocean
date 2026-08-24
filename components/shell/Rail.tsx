@@ -3,10 +3,10 @@
 import { Go as Link } from '@/components/ui/Go';
 import type { Route } from 'next';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Icon, Dot, type IconName } from '@/components/ui/Icon';
 import { ME } from '@/lib/view/model';
-import { railData } from '@/app/actions/live';
+import { railData, type RailData } from '@/app/actions/live';
 import { getWork } from '@/app/actions/work';
 import type { ChatThread } from '@/lib/store';
 import { isBlank, useShell } from '@/components/shell/Shell';
@@ -71,12 +71,12 @@ function PopRow({ label, right, on, color, onClick }: {
 
 const Hair = () => <div style={{ height: 1, margin: '5px 8px', background: RULE }} />;
 
-export function Rail({ empty }: { empty?: boolean } = {}) {
+export function Rail({ initial }: { initial: RailData }) {
   const path = usePathname();
   const { rail, setRail, setFind } = useShell();
   const [account, setAccount] = useState(false);
   const router = useRouter();
-  const blank = empty ?? isBlank(path);
+  const blank = isBlank(path);
 
   const active = (href: string) => path === href || path.startsWith(href + '/');
 
@@ -84,10 +84,17 @@ export function Rail({ empty }: { empty?: boolean } = {}) {
    * レールの中身は store から。**画面を移るたびに読み直す**（安い3クエリ）。
    * 通知の点は未読の数、メンバーは在籍の数。無いものは出さない。
    */
-  const [threads, setThreads] = useState<ChatThread[]>([]);
-  const [unread, setUnread] = useState(0);
-  const [staff, setStaff] = useState(0);
+  /**
+   * **最初のぶんはサーバーが持ってくる**（`initial`）。器と一緒に届くので、
+   * 開いた瞬間からレールが埋まっている。読み直すのは**画面を移ったときだけ** —
+   * 開いた直後にもう1回取りに行かない（同じものを2回取っていた）。
+   */
+  const [threads, setThreads] = useState<ChatThread[]>(initial.threads);
+  const [unread, setUnread] = useState(initial.unread);
+  const [staff, setStaff] = useState(initial.staff);
+  const first = useRef(true);
   useEffect(() => {
+    if (first.current) { first.current = false; return; }
     let on = true;
     railData().then((r) => { if (on) { setThreads(r.threads); setUnread(r.unread); setStaff(r.staff); } });
     return () => { on = false; };
