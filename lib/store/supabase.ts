@@ -311,16 +311,24 @@ export const supabaseStore: Store = {
 
   async startRun(taskId) {
     const c = await db();
+    // **取り合いはこの1文で決める。** queued → running に置き換えられた者だけが走る。
+    // 「running が居ないか見てから走る」だけだと、タブが2つ開いていると両方すり抜けて
+    // 同じタスクが二度走る（成果物も記帳も二重になる）
     const { data: t } = await c.from('tasks')
-      .select('id, assignee_employee_id').eq('id', taskId).maybeSingle();
-    if (!t) throw new AppError('not_found', `task ${taskId} not found`);
+      .update({ status: 'running' })
+      .eq('id', taskId).eq('status', 'queued')
+      .select('id, assignee_employee_id').maybeSingle();
+    if (!t) throw new AppError('conflict', `task ${taskId} is not queued`);
 
     const { data: run, error } = await c.from('runs')
       .insert({ task_id: taskId, employee_id: t.assignee_employee_id, status: 'running', tier: 'standard', started_at: new Date().toISOString() })
       .select('id').single();
-    if (error || !run) throw new AppError('unknown', error?.message ?? 'runs insert failed');
+    if (error || !run) {
+      // 取ったのに走れない — 取りっぱなしにしない
+      await c.from('tasks').update({ status: 'queued' }).eq('id', taskId).eq('status', 'running');
+      throw new AppError('unknown', error?.message ?? 'runs insert failed');
+    }
 
-    await c.from('tasks').update({ status: 'running' }).eq('id', taskId);
     if (t.assignee_employee_id) {
       await c.from('employees').update({ status: 'running' }).eq('id', t.assignee_employee_id);
     }
@@ -347,7 +355,7 @@ export const supabaseStore: Store = {
     if (error) throw new AppError('unknown', error.message);
 
     if (run) {
-      // 失敗は blocked（→ 04-state-machines。再試行の组み立ては統括AIの仕事）
+      // 失敗は blocked（→ 04-state-machines。再試行の組み立ては統括AIの仕事）
       await c.from('tasks').update({ status: r.status === 'done' ? 'done' : 'blocked' }).eq('id', run.task_id);
       if (run.employee_id) await c.from('employees').update({ status: 'idle' }).eq('id', run.employee_id);
     }
@@ -437,8 +445,11 @@ export const supabaseStore: Store = {
 
   async setDelStatus(delId, status) {
     const c = await db();
-    const { error } = await c.from('deliverables').update({ status }).eq('id', delId);
+    // review のものだけ動かす。二度押し・同時押しの2回目は「動かなかった」が返る
+    const { data, error } = await c.from('deliverables')
+      .update({ status }).eq('id', delId).eq('status', 'review').select('id');
     if (error) throw new AppError('unknown', error.message);
+    return (data?.length ?? 0) > 0;
   },
 
   async addFixTask(workId, src, note) {
@@ -477,10 +488,11 @@ export const supabaseStore: Store = {
     const { data: d } = await c.from('decisions')
       .select('id, task_id, status').eq('id', decisionId).maybeSingle();
     if (!d || d.status !== 'open') return;
-    const { error } = await c.from('decisions')
+    const { data: won, error } = await c.from('decisions')
       .update({ status: 'decided', chosen_option_key: chosen, decided_at: new Date().toISOString() })
-      .eq('id', decisionId);
+      .eq('id', decisionId).eq('status', 'open').select('id');
     if (error) throw new AppError('unknown', error.message);
+    if (!won?.length) return; // 同時に決めた — 先に決まったほうが正
     if (d.task_id) {
       await c.from('tasks').update({ status: 'queued' }).eq('id', d.task_id).eq('status', 'needs_decision');
     }
@@ -512,7 +524,11 @@ export const supabaseStore: Store = {
       .select('id, seq, name, status').eq('work_id', workId).order('seq');
     const at = ph?.find((p) => p.status === 'review');
     if (!at) return null;
-    await c.from('phases').update({ status: 'done', done_at: new Date().toISOString() }).eq('id', at.id);
+    // review のものだけ閉じられる。承認を二度押しても、次のタスクは1回だけ積まれる
+    const { data: won } = await c.from('phases')
+      .update({ status: 'done', done_at: new Date().toISOString() })
+      .eq('id', at.id).eq('status', 'review').select('id');
+    if (!won?.length) return null;
 
     const next = ph?.find((p) => p.status === 'planned');
     if (!next) {
@@ -554,6 +570,12 @@ export const supabaseStore: Store = {
       definition_id: definitionId, definition_version: 1, display_name: displayName,
       color_token: colorFor(definitionId, 0) satisfies EmployeeColor, status: 'idle',
     }).select('id').single();
+    if (error?.code === '23505') {
+      // 同時に採用した（0015 の一意 index が2人目を止めた）。先に入ったほうを返す
+      const { data: again } = await c.from('employees')
+        .select('id').eq('definition_id', definitionId).neq('status', 'retired').limit(1).maybeSingle();
+      if (again) return again.id as string;
+    }
     if (error || !row) throw new AppError('unknown', error?.message ?? 'employees insert failed');
     await c.from('notifications').insert({ kind: '要確認', body: `${displayName} を採用しました`, subject_type: 'employee', subject_id: row.id });
     return row.id as string;
@@ -590,9 +612,11 @@ export const supabaseStore: Store = {
     }));
   },
 
-  async morningBrief() {
+  async morningBrief(day) {
     const c = await db();
-    const today = new Date().toISOString().slice(0, 10);
+    // 「その日」は**社長の朝**で数える（器が自分の日付を渡してくる）。
+    // UTC で数えると、日本の朝9時まで「きのう」のままになる
+    const today = /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : new Date().toISOString().slice(0, 10);
     const key = `morning-${today}`;
     // きょうのぶんが既にあれば書かない
     const { data: had } = await c.from('notifications').select('id').eq('group_key', key).limit(1).maybeSingle();
@@ -616,9 +640,12 @@ export const supabaseStore: Store = {
     if (open) parts.push(`判断待ちが ${open}件`);
     if (stop) parts.push(`止まっている Work が ${stop}件`);
     const { error } = await c.from('notifications').insert({
-      kind: del || ran ? '要確認' : open ? '判断待ち' : 'エラー',
+      // いちばん強い用件で名乗る — 判断待ち（あなたが決める）＞ 要確認 ＞ エラー
+      kind: open ? '判断待ち' : del || ran ? '要確認' : 'エラー',
       body: `朝の報告 — ${parts.join('、')}`, group_key: key,
     });
+    // 同時に開いたタブが2つあっても、0015 の一意 index が2通目を止める
+    if (error?.code === '23505') return false;
     if (error) throw new AppError('unknown', error.message);
     return true;
   },
@@ -637,12 +664,16 @@ export const supabaseStore: Store = {
     for (const p of ph ?? []) {
       const { data: mine } = await c.from('tasks').select('status').eq('phase_id', p.id);
       if (mine?.length && mine.every((t) => t.status === 'done' || t.status === 'cancelled')) {
-        await c.from('phases').update({ status: 'review' }).eq('id', p.id);
-        await c.from('notifications').insert({
-          kind: '判断待ち', subject_type: 'phase', subject_id: p.id,
-          body: `フェーズ「${p.name}」が終わりました。見て、次に進めてください`,
-        });
-        closed = true;
+        // active のものだけ畳む。ポンプが2か所から来ても、通知は畳めた側の1通だけ
+        const { data: flipped } = await c.from('phases')
+          .update({ status: 'review' }).eq('id', p.id).eq('status', 'active').select('id');
+        if (flipped?.length) {
+          await c.from('notifications').insert({
+            kind: '判断待ち', subject_type: 'phase', subject_id: p.id,
+            body: `フェーズ「${p.name}」が終わりました。見て、次に進めてください`,
+          });
+          closed = true;
+        }
       }
     }
     return closed;

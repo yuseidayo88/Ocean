@@ -6,6 +6,7 @@ export type FailureKind =
   | 'not_found'
   | 'rate_limited'   // 枠に当たって止まった（トークンを画面に出すのはここだけ）
   | 'upstream'       // モデル側の失敗
+  | 'conflict'       // 同時に動いた（もう一方が先に取った。失敗ではない）
   | 'unknown'
 
 export class AppError extends Error {
@@ -22,7 +23,7 @@ export class AppError extends Error {
 }
 
 export const HTTP_STATUS: Record<FailureKind, number> = {
-  unauthorized: 401, not_found: 404, rate_limited: 429, upstream: 502, unknown: 500,
+  unauthorized: 401, not_found: 404, rate_limited: 429, upstream: 502, conflict: 409, unknown: 500,
 }
 
 /** 社長に見せる1行。**中身は出さない**（Postgres のエラー文をそのまま出さない） */
@@ -31,6 +32,7 @@ const SAY: Record<FailureKind, string> = {
   not_found: '見つかりませんでした',
   rate_limited: '枠に当たって止まりました',
   upstream: '統括AIが応えませんでした',
+  conflict: 'すでに動いています',
   unknown: 'うまくいきませんでした',
 }
 

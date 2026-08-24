@@ -100,6 +100,7 @@ psql "$DATABASE_URL" -f supabase/migrations/0011_phase_review.sql
 psql "$DATABASE_URL" -f supabase/migrations/0012_run_path.sql
 psql "$DATABASE_URL" -f supabase/migrations/0013_decisions_no_delete.sql
 psql "$DATABASE_URL" -f supabase/migrations/0014_run_ledger.sql
+psql "$DATABASE_URL" -f supabase/migrations/0015_once_only.sql
 ```
 
 `0003` は RLS と、不変条件をデータベース側で守るためのトリガを入れます。
@@ -163,6 +164,9 @@ RLS の with check は `account_id = private.current_account_id()` のままな�
 | 退会したらデータも消える | トリガ `users_drop_empty_account` |
 | 会社をまたいで見えない | 全27表の RLS（実測） |
 | `account_id` を書き忘れられない | 22表の既定値 `private.current_account_id()`（0007） |
+| 朝の報告は1日1通 | 一意 index `notifications_morning_daily`（0015）。開いているタブが2つでも2通目は止まる（探針で実証） |
+| 在籍は定義ごとに1人 | 一意 index `employees_one_per_definition`（0015）。「採用する」を同時に押しても調査担当は2人にならない（探針で実証） |
+| 同じタスクは同時に1回しか走らない | `startRun` の atomic claim — queued → running に**置き換えられた者だけ**が走る（負けたポンプは conflict で静かに引く） |
 | 質問はスレッドに属する | `questions.thread_id` NOT NULL（Work のスレッドを先に作る） |
 | 承認と引き直しは必ず台帳に残る | トリガ `works_audit`（0008）。アプリは `audit_events` に書けない |
 | 質問とタスクの並びが決まる | `seq`（0009）。`created_at` は同じ insert 文で同着になる |

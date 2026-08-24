@@ -166,8 +166,10 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
     }
     return { ok: true, deliverable: wrote };
   } catch (e) {
+    // 途中で落ちても、そこまでに使ったぶんは正直に記帳する（0 にしない）
     await s.finishRun(runId, {
-      status: 'failed', tokensIn: usage.in, tokensOut: usage.out, costCents: 0, error: say(e),
+      status: 'failed', tokensIn: usage.in, tokensOut: usage.out,
+      costCents: Math.round(billedCostUsd('standard', usage.in, usage.out) * 100), error: say(e),
     }).catch(() => {});
     await s.addNotification({
       kind: 'エラー', body: `${task.title} — 途中で止まりました`, subjectType: 'task', subjectId: taskId,

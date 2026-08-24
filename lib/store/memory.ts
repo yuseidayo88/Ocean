@@ -90,6 +90,8 @@ export const memoryStore: Store = {
 
   async startRun(taskId) {
     const { live, task } = findTask(taskId);
+    // supabase 側と同じ取り決め: queued を取れた者だけが走る
+    if (task.state !== 'queued') throw new AppError('conflict', `task ${taskId} is not queued`);
     task.state = 'running';
     const runId = `run-${taskId}`;
     runs.set(runId, { taskId, workId: live.id, steps: [] });
@@ -223,8 +225,13 @@ export const memoryStore: Store = {
   async setDelStatus(delId, status) {
     for (const d of bag.values()) {
       const del = d.live?.dels?.find((x) => x.id === delId);
-      if (del) { del.state = status === 'approved' ? '承認済' : '差し戻し'; return; }
+      if (del) {
+        if (del.state !== '要確認') return false; // review のものだけ動く（二度押しは何もしない）
+        del.state = status === 'approved' ? '承認済' : '差し戻し';
+        return true;
+      }
     }
+    return false;
   },
 
   async addFixTask(workId, src, note) {

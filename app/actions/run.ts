@@ -2,6 +2,7 @@
 
 import { runTask, type RunOutcome } from '@/lib/run/worker';
 import { store, type LiveDecision, type LiveDeliverable, type LiveEmployee, type RunStep } from '@/lib/store';
+import { AppError } from '@/lib/errors';
 import { draftNextTasks } from '@/lib/exec/next';
 import { sayError } from '@/lib/errors';
 
@@ -42,6 +43,8 @@ export async function pumpWork(workId: string): Promise<PumpResult> {
     await s.closePhaseIfDone(workId).catch(() => {});
     return { ran: true, taskId: next.taskId, outcome };
   } catch (e) {
+    // 取り合いに負けただけなら何も起きていない（もう一方のポンプが走らせている）
+    if (e instanceof AppError && e.kind === 'conflict') return { ran: false };
     return { ran: true, taskId: '', outcome: { ok: false, error: sayError(e, '実行が止まりました') } };
   }
 }
@@ -59,7 +62,7 @@ export async function listDels(): Promise<(LiveDeliverable & { workId: string; w
   try { return await store().listDels(); } catch { return []; }
 }
 
-/** 承認する。状態が 承認済 になるだけ — 大げさなことは起きない */
+/** 承認する。状態が 承認済 になるだけ — 大げさなことは起きない（二度押しは何もしない） */
 export async function approveDel(delId: string): Promise<void> {
   await store().setDelStatus(delId, 'approved');
 }
@@ -74,7 +77,9 @@ export async function sendBackDel(
   const text = note.trim();
   if (!text) return { ok: false, message: '直したいところを書いてください' };
   try {
-    await store().setDelStatus(delId, 'rejected');
+    // 差し戻せた1回だけが直しタスクを積む（二度押し・同時押しで2つ積まれない）
+    const flipped = await store().setDelStatus(delId, 'rejected');
+    if (!flipped) return { ok: false, message: 'この成果物はもう片づいています' };
     await store().addFixTask(workId, src, text);
     return { ok: true };
   } catch (e) {
@@ -177,6 +182,6 @@ export async function billing(): Promise<{
  * 器（Shell）が開いたときに1回だけ呼ぶ。重複はストア側が日付で止める。
  * 失敗しても画面は困らない（報告は義務ではない）ので、黙って false。
  */
-export async function morning(): Promise<boolean> {
-  try { return await store().morningBrief(); } catch { return false; }
+export async function morning(day: string): Promise<boolean> {
+  try { return await store().morningBrief(day); } catch { return false; }
 }

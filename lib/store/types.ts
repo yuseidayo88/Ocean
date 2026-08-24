@@ -74,7 +74,11 @@ export interface Store {
    * （0012 の引き金）。書けるのは、歩みと成果物と状態だけ。
    */
 
-  /** タスクを走らせはじめる。task→running / 社員→running / runs に1行 */
+  /**
+   * タスクを走らせはじめる。task→running / 社員→running / runs に1行。
+   * **取り合いはここで決める** — queued の1行を running に置き換えられた者だけが走る。
+   * 置き換えられなければ conflict（別のポンプが先に取った。失敗ではない）
+   */
   startRun(taskId: string): Promise<string>;
   /** 1歩を記録する。進捗はここから導出される */
   addStep(runId: string, step: { seq: number; kind: RunStep['kind']; tool?: string; summary?: string; progress?: number }): Promise<void>;
@@ -98,8 +102,12 @@ export interface Store {
 
   /** 会社の成果物ぜんぶ（新しい順）。成果物画面が読む */
   listDels(): Promise<(LiveDeliverable & { workId: string; workTitle: string })[]>;
-  /** 社長のレビュー。approved = 承認済 / rejected = 差し戻し */
-  setDelStatus(delId: string, status: 'approved' | 'rejected'): Promise<void>;
+  /**
+   * 社長のレビュー。approved = 承認済 / rejected = 差し戻し。
+   * **review のものだけ動く**（二度押し・同時押しで直しタスクが2つ積まれない）。
+   * 動かせたら true
+   */
+  setDelStatus(delId: string, status: 'approved' | 'rejected'): Promise<boolean>;
   /** 差し戻しの直しタスク。同じ担当に、社長の言葉つきで積む（ポンプが走らせる） */
   addFixTask(workId: string, src: { taskId?: string; title: string }, note: string): Promise<void>;
   /**
@@ -151,9 +159,10 @@ export interface Store {
   /**
    * 統括AIの朝の報告。**その日はじめて開いたとき、動きがあった朝だけ**1通。
    * チャットボットとの違いはここ — 聞かれる前に、会社のほうから言う。
-   * 書いたら true（同じ日に二度書かない）
+   * 書いたら true（同じ日に二度書かない。一意性は 0015 の index がDB側でも守る）。
+   * day は**社長の側の日付**（YYYY-MM-DD）。「その日」は社長の朝で数える — UTC ではない
    */
-  morningBrief(): Promise<boolean>;
+  morningBrief(day: string): Promise<boolean>;
 }
 
 export type LiveEmployee = {

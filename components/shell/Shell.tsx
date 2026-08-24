@@ -64,9 +64,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
   /**
    * 朝の報告。**開いた側から統括AIが言う**（チャットボットは聞かれるまで黙っている —
    * ここが違い）。器が開いたとき1回だけ呼ぶ。その日すでに書いたかはストアが判定する。
+   * 日付は**この画面の側**で作る — 「その日の朝」は社長のいる場所の朝で、サーバーの UTC ではない。
    * 結果は待たない — 報告は通知の画面に落ちるので、ここで画面を止める理由が無い。
    */
-  useEffect(() => { void morning(); }, []);
+  useEffect(() => {
+    const d = new Date();
+    const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    void morning(day);
+  }, []);
 
   /**
    * **器の口は識別を変えない。** ここは全画面が読む context なので、
