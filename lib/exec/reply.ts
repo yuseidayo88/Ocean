@@ -60,6 +60,7 @@ const canPropose = (c: Conditions | undefined) =>
  */
 export async function replyTo(
   id: string, onText?: (t: string) => void, onStage?: (s: string) => void,
+  onThink?: (t: string) => void,
 ): Promise<ReplyResult> {
   const s = store();
   try {
@@ -79,6 +80,13 @@ export async function replyTo(
       diagnosed: !!prof?.diagnosis,
       company: await snapshot(),
       needCard: !!last && last.role === 'user' && isOpener(last.body),
+      /**
+       * **スレッドが知っていることを、最初から持たせる。**
+       * 前は conditions を書いた往復の中でしか入らず、モデルが文章だけ返した往復の
+       * あとは「続きの仕掛け」が丸ごと眠っていた（→ 会話が止まって見えた）。
+       */
+      discoveryId: t.thread.discoveryId,
+      profileId: t.thread.profileId,
     };
 
     const history = t.messages.slice(-10).map((m) => ({
@@ -136,28 +144,48 @@ export async function replyTo(
       return card;
     };
 
-    const out = await chatStep(state, history, { onText, onStage });
-    const card = await absorb(out);
+    const out = await chatStep(state, history, { onText, onStage, onThink });
+    let card = await absorb(out);
+    let saidSoFar = out.text;
 
     /**
-     * **止まらない。**
+     * **会話を止めない**（探索中のスレッドの決めごと）。
      *
-     * 条件を書き留めただけで往復が終わると、画面には短い返事が1つ残るだけで
-     * 何も進まない（実際「3案まだですか」と催促されて、はじめて出た）。
-     * 道具は使ったのに**カードが1枚も出なかった**なら、それは話が途中で止まった往復。
-     * そのまま**もう1回だけ**走らせる — 条件が足りなければ質問、そろっていれば候補になる。
+     * 「まだ決まっていない」の会話では、統括AIの番は**必ず次の一手（カード）で終わる** —
+     * 質問か、候補か。文章だけで終わると、社長は何を押せばいいのか分からず、
+     * 会話がそこで死ぬ（実際「3案まだですか」と催促されて、はじめて動いた）。
      *
-     * 1回だけ。ここで出なければ、社長の番に戻す。
+     * だから足りないぶんを**道具を1つに絞った往復**で補う（絞れば必ずその形になる）:
+     *   1. 社長の答え（「質問 → 答え」）が来たのに条件に写っていない → **写す**（record）
+     *   2. まだカードが無い → 条件がそろっていれば**候補**、足りなければ**質問**
+     * 最大3往復（写す＋出す＋保険1回）。fast の浅い往復なので、体感は1呼吸。
      */
-    if (!card && state.discoveryId && !state.proposed) {
-      const ready = canPropose(state.conditions);
-      onStage?.(ready ? '条件に合う道を組み立てています' : '聞くことをまとめています');
-      const more = await chatStep(
-        { ...state, needCard: true, push: ready ? 'candidates' : 'ask' },
-        [...history, { role: 'assistant', content: out.text || '（承知しました）' }],
-        { onText, onStage },
-      );
-      await absorb(more);
+    if (state.discoveryId && !state.proposed) {
+      const answered = !!last && last.role === 'user' && /→/.test(last.body);
+
+      // 1. 答えが届いたのに、条件に写っていない
+      if (answered && !Object.keys(out.conditions).length && !card) {
+        onStage?.('答えを書き留めています');
+        const rec = await chatStep(
+          { ...state, push: 'record' },
+          [...history, ...(saidSoFar ? [{ role: 'assistant' as const, content: saidSoFar }] : [])],
+          { onText: undefined, onStage, onThink },   // 写すだけの往復の本文は画面に流さない
+        );
+        card = (await absorb(rec)) ?? card;
+      }
+
+      // 2. まだ次の一手が出ていない → 候補か質問を、道具を絞って必ず出す
+      for (let i = 0; !card && i < 2; i++) {
+        const ready = canPropose(state.conditions);
+        onStage?.(ready ? '条件に合う道を組み立てています' : '聞くことをまとめています');
+        const more = await chatStep(
+          { ...state, needCard: true, push: ready ? 'candidates' : 'ask' },
+          [...history, ...(saidSoFar ? [{ role: 'assistant' as const, content: saidSoFar }] : [])],
+          { onText, onStage, onThink },
+        );
+        card = await absorb(more);
+        saidSoFar = saidSoFar || more.text;
+      }
     }
 
     return { ok: true };

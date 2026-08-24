@@ -88,6 +88,8 @@ export function ChatView({ id, first }: { id: string; first: FirstLoad }) {
   const [live, setLive] = useState('');
   /** **いま何をしているか**（「〇〇しています」）。返している間ずっと出す */
   const [stage, setStage] = useState('');
+  /** 考えている中身の断片（開示するモデルのときだけ）。無ければ出さない */
+  const [thought, setThought] = useState('');
   const [fail, setFail] = useState('');
   const gone = first.gone;
   /** この会話が宛てている先（入力欄のラベル）。Work に紐づいていればその名前 */
@@ -114,18 +116,23 @@ export function ChatView({ id, first }: { id: string; first: FirstLoad }) {
    * （止める道は作らない。返事は数行なので、止めるより読み終わるほうが早い）
    */
   const reply = useCallback(async (tid: string) => {
-    setWait(true); setFail(''); setLive(''); setStage('会話を読んでいます');
+    setWait(true); setFail(''); setLive(''); setStage('会話を読んでいます'); setThought('');
     let got = '';
+    let think = '';
     const bad = await streamReply(tid, (t) => {
       got += t;
       if (!got.trim()) return;
       setLive(got); setStage('書いています');
-    }, setStage);
+    }, setStage, (th) => {
+      // 断片をつないで、**最新のひとかたまり**だけ見せる（行が変わったら前を捨てる）
+      think = (think + th).split('\n').filter(Boolean).pop() ?? '';
+      setThought(think.slice(-80));
+    });
     if (bad) setFail(bad);
     // **読み直してから**流れていた文を下ろす（本文が一瞬消えるのを避ける）
     const r = await threadGet(tid);
     if (r) apply(r);
-    setLive(''); setStage(''); setPending(null); setWait(false);
+    setLive(''); setStage(''); setThought(''); setPending(null); setWait(false);
   }, [apply]);
 
   /**
@@ -246,10 +253,17 @@ export function ChatView({ id, first }: { id: string; first: FirstLoad }) {
         }}>
           <div style={{
             width: '100%', maxWidth: 748, display: 'flex', alignItems: 'center', gap: 9,
-            padding: '0 2px',
+            padding: '0 2px', minWidth: 0,
           }}>
             <Orb color={EXEC} size={20} seed={7} />
-            <span className="sh" style={{ fontSize: 12.5 }}>{stage || '考えています'}</span>
+            <span className="sh" style={{ fontSize: 12.5, flexShrink: 0 }}>{stage || '考えています'}</span>
+            {/* 思考の断片（開示するモデルのときだけ）。1行・薄く・流れない */}
+            {thought && (
+              <span style={{
+                color: T5, fontSize: 11.5, minWidth: 0, overflow: 'hidden',
+                textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>{thought}</span>
+            )}
           </div>
         </div>
       )}

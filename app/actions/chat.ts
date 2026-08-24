@@ -52,7 +52,21 @@ export async function chatStart(entry: Entry, text?: string): Promise<SendResult
   const first = entry === 'goal' ? (text ?? '').trim() : OPENER[entry];
   if (!first) return { ok: false, message: 'やりたいことを書いてください' };
   // **返事は待たない。** 会話の画面が開いてから取りに行く
-  return chatSay(null, first, TITLE[entry]);
+  const r = await chatSay(null, first, TITLE[entry]);
+  /**
+   * 「まだ決まっていない」は、**この時点で探索の器を作って結びつける。**
+   * 前は最初の往復が条件を書いたときに作られていたので、モデルが文章だけ返すと
+   * 器が無いままになり、「会話を止めない」仕掛け（→ `lib/exec/reply.ts`）が眠っていた。
+   * 器はここで必ずできるので、探索の会話は**最初から最後まで**その保証の中にいる。
+   */
+  if (r.ok && entry === 'discovery') {
+    try {
+      const s = store();
+      const sid = await s.createDiscovery();
+      await s.linkThread(r.threadId, { discoveryId: sid });
+    } catch { /* 器が作れなくても会話は始まる（前と同じ、遅れて作られる道が残る） */ }
+  }
+  return r;
 }
 
 /**

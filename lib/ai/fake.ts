@@ -47,6 +47,29 @@ export class FakeProvider implements ModelProvider {
       return;
     }
 
+    // ══ 道具を1つに絞られた往復（続きの仕掛け → lib/exec/reply.ts）══
+    // 絞られているときは**必ずその道具**を使う（本物は toolChoice: required で同じ振る舞い）
+    if (input.tools?.length === 1) {
+      const only = input.tools[0].name;
+      const said = lastText(input);
+      const cur = readCur(input.system ?? '');
+      if (only === 'set_conditions') {
+        yield tool('set_conditions', condFrom(said));
+        yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
+        return;
+      }
+      if (only === 'ask') {
+        yield tool('ask', { questions: askSet(cur) });
+        yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
+        return;
+      }
+      if (only === 'propose_candidates') {
+        yield tool('propose_candidates', { candidates: fakeCands({ ...cur, ...condFrom(said) }) });
+        yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
+        return;
+      }
+    }
+
     // ══ チャット（道具を全部持っている）══ 先に見る
     if (want.has('propose_work')) {
       yield* fakeChat(input);
@@ -307,52 +330,18 @@ async function* fakeChat(input: RunInput): AsyncIterable<Chunk> {
   let cur: Record<string, unknown> = {};
   try { cur = JSON.parse(already ?? '{}'); } catch { /* 空のまま */ }
 
-  // 「いま候補を出してください」と言われた往復（止まらない仕掛けの2回め）
-  if (sys.includes('propose_candidates を呼び')) {
-    yield tool('propose_candidates', { candidates: fakeCands({ ...cur, ...cond }) });
-    yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
-    return;
-  }
   if (/まだ決まって|決まっていません/.test(said) && !Object.keys(cond).length) {
-    yield tool('ask', { questions: [
-      {
-        // **いちばん先に分野。** これが無いと、何に関する案なのか分からない
-        body: 'どの分野に興味がありますか。',
-        why: '何に関する仕事かが決まらないと、案が「何かの販売所」になってしまいます。',
-        options: [
-          { label: '学び・教える', description: '講座・教材・練習の道具など', recommended: true },
-          { label: '食・飲食', description: 'お店の手伝い、レシピ、food まわりの道具' },
-          { label: '仕事の道具', description: 'テンプレート、業務の型、小さな仕組み' },
-        ],
-      },
-      {
-        body: '週にどれくらい使えますか。',
-        why: '使える時間で、選べる道がだいぶ変わります。',
-        options: [
-          { label: '週5時間まで', description: '本業のすきま。小さく始める案になります', recommended: true },
-          { label: '週10時間', description: '平日夜と週末。ふつうの立ち上げができます' },
-          { label: '週20時間以上', description: 'ほぼ専念。重い案も選べます' },
-        ],
-      },
-      {
-        body: 'やりたくないことはありますか。',
-        why: '外す条件が1つあると、候補の幅がぐっと絞れます。',
-        options: [
-          { label: '在庫を持つ', description: '仕入れと保管が要る案を外します', recommended: true },
-          { label: '人前に出る', description: '営業や撮影が要る案を外します' },
-          { label: '夜間の対応', description: '時差のある顧客を外します' },
-        ],
-      },
-    ] });
+    yield tool('ask', { questions: askSet(cur) });
     yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
     return;
   }
+  /**
+   * 条件が読み取れた往復は**書くだけで止まる** — 本物のモデルが実際そうだった
+   * （条件を写して満足し、候補が出ない）。その形をここでも通すので、
+   * **続きの仕掛け**（→ `lib/exec/reply.ts`）が必ず検査に載る。
+   */
   if (Object.keys(cond).length) {
     yield tool('set_conditions', cond);
-    const merged = { ...cur, ...cond } as Record<string, unknown>;
-    const filled = ['hours_per_week', 'budget_jpy', 'strengths', 'avoid', 'deadline']
-      .filter((k) => merged[k] != null && (!Array.isArray(merged[k]) || (merged[k] as unknown[]).length)).length;
-    if (filled >= 2) yield tool('propose_candidates', { candidates: fakeCands(merged) });
     yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
     return;
   }
@@ -421,6 +410,67 @@ function condFrom(said: string): Record<string, unknown> {
     if (no) put.avoid = words(no);
   }
   return put;
+}
+
+
+/** 前置きの「集まっている条件」を読む（fakeChat と絞られた往復で同じ読み方） */
+function readCur(sys: string): Record<string, unknown> {
+  const raw = sys.match(/集まっている条件:\n(\{[\s\S]*?\})/)?.[1];
+  try { return JSON.parse(raw ?? '{}'); } catch { return {}; }
+}
+
+/**
+ * 探索の質問（決め打ち）。**やさしいものから、知らないものだけ**聞く。
+ * 分野は**最後**で、選択肢は「よくある例」— 本命は自由入力
+ * （分野は無数にあるので、一覧から選ばせる形にしない → GUIDE と同じ方針）。
+ */
+function askSet(cur: Record<string, unknown>) {
+  const qs = [];
+  if (cur.hours_per_week == null) {
+    qs.push({
+      body: '週にどれくらい使えますか。',
+      why: '使える時間で、選べる道がだいぶ変わります。',
+      options: [
+        { label: '週5時間まで', description: '本業のすきま。小さく始める案になります', recommended: true },
+        { label: '週10時間', description: '平日夜と週末。ふつうの立ち上げができます' },
+        { label: '週20時間以上', description: 'ほぼ専念。重い案も選べます' },
+      ],
+    });
+  }
+  if (!Array.isArray(cur.avoid) || !cur.avoid.length) {
+    qs.push({
+      body: 'やりたくないことはありますか。',
+      why: '外す条件が1つあると、候補の幅がぐっと絞れます。',
+      options: [
+        { label: '在庫を持つ', description: '仕入れと保管が要る案を外します', recommended: true },
+        { label: '人前に出る', description: '営業や撮影が要る案を外します' },
+        { label: '夜間の対応', description: '時差のある顧客を外します' },
+      ],
+    });
+  }
+  if (!Array.isArray(cur.interests) || !cur.interests.length) {
+    qs.push({
+      body: '興味のある分野はありますか。近いものが無ければ、自分の言葉で書いてください。',
+      why: '何に関する仕事かが決まると、案が具体的になります。',
+      options: [
+        { label: '学び・教える', description: '講座・教材・練習の道具など', recommended: true },
+        { label: '食・飲食', description: 'お店の手伝い、レシピ、食まわりの道具' },
+        { label: '仕事の道具', description: 'テンプレート、業務の型、小さな仕組み' },
+      ],
+    });
+  }
+  // ぜんぶ知っているのに聞けと言われた（起きないはずだが、空の板を出さない）
+  if (!qs.length) {
+    qs.push({
+      body: 'ほかに、決めておきたいことはありますか。',
+      why: '無ければ、このまま候補を出します。',
+      options: [
+        { label: '特にない', description: 'このまま候補を出してもらう', recommended: true },
+        { label: 'いつまでにやるか', description: '期限を決めてから選ぶ' },
+      ],
+    });
+  }
+  return qs;
 }
 
 /** 候補3つ（チャットと Case B で同じものを返す） */

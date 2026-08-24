@@ -61,6 +61,12 @@ export type Chunk =
    * 名前が分かるのは引数より**ずっと早い**ので、待っているあいだの表示に使える。
    */
   | { type: 'tool_begin'; name: string }
+  /**
+   * **考えている中身**（モデルが思考を開示するときだけ流れてくる）。
+   * 画面の「考えています」を、実際の思考の断片に差し替えるためのもの。
+   * 出さないモデルも多い（OpenAI 系は非公開）— 無いときは無いまま。
+   */
+  | { type: 'think'; text: string }
   | { type: 'tool_use'; id: string; name: string; input: unknown }
   | { type: 'done'; usage: Usage; stopReason: string | null }
 

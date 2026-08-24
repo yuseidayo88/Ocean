@@ -3,6 +3,7 @@ import { Shell, ShellBox } from '@/components/shell/Shell';
 import { ChatPane } from '@/components/shell/ChatPane';
 import { Find, Note } from '@/components/shell/Find';
 import { railData } from '@/app/actions/live';
+import { storeWarning } from '@/lib/store';
 
 /**
  * **統括AIの返事を待てる長さにする。**
@@ -25,7 +26,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <Shell company={rail.company}>
       <ShellBox>
-        <Rail initial={rail} />
+        <Rail initial={rail} warn={storeWarning()} />
         {children}
         {/* 統括AIとの会話。**どの画面からでも開く**ので、ここに1つだけ置く */}
         <ChatPane />

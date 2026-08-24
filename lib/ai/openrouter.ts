@@ -83,6 +83,9 @@ export class OpenRouterProvider implements ModelProvider {
 
     for await (const ev of s) {
       const d = ev.choices?.[0]
+      // 思考の断片（OpenRouter の unified reasoning）。**開示するモデルのときだけ**届く
+      const think = (d?.delta as { reasoning?: string } | undefined)?.reasoning
+      if (think) yield { type: 'think', text: think }
       if (d?.delta?.content) yield { type: 'text', text: d.delta.content }
 
       // 道具の引数は少しずつ届く。番号ごとに繋いで、最後にまとめて出す。

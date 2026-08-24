@@ -17,6 +17,7 @@ import { threadGet } from '@/app/actions/live';
  */
 export async function streamReply(
   threadId: string, onText: (chunk: string) => void, onStage?: (stage: string) => void,
+  onThink?: (chunk: string) => void,
 ): Promise<string | null> {
   let fail: string | null = null;
   let reached = false;        // 流す道が本当に応えたか（応えなければ落とす）
@@ -40,9 +41,10 @@ export async function streamReply(
           if (!row.trim()) continue;
           try {
             const m = JSON.parse(row) as
-              { s?: string; t?: string; done?: boolean; err?: string; fallback?: boolean };
+              { s?: string; t?: string; th?: string; done?: boolean; err?: string; fallback?: boolean };
             if (m.fallback) { drop = true; break; }
             if (m.s) { reached = true; onStage?.(m.s); }
+            if (m.th) { reached = true; onThink?.(m.th); }
             if (m.t) { reached = true; onText(m.t); }
             if (m.done) reached = true;
             if (m.err) { reached = true; fail = m.err; }

@@ -62,9 +62,10 @@ export type ChatState = {
   needCard?: boolean;
   /**
    * **次にやることが決まっている**とき（→ `lib/exec/reply.ts` の「止まらない」）。
-   * `ask` ＝ もっと聞く / `candidates` ＝ 候補を3つ出す。
+   * `record` ＝ 届いた答えを条件に写す / `ask` ＝ もっと聞く / `candidates` ＝ 候補を3つ。
+   * push のある往復は**その道具だけを渡して、必ず使わせる** — 出ないことがない。
    */
-  push?: 'ask' | 'candidates';
+  push?: 'record' | 'ask' | 'candidates';
   /** 続きの往復のために持ち回る（同じスレッドの探索・事業） */
   discoveryId?: string;
   profileId?: string;
@@ -84,27 +85,29 @@ const GUIDE = `
 聞き方の決まり:
 - **押すだけで答えられる形にする。** 1問は1行で読めて、選択肢は3〜4個
 - 選択肢には必ず1行の説明を付け、推すものを1つ決める
-- 序盤ほど**やさしい質問をたくさん**。いきなり核心を1問だけ聞かない
-- 1度に 2〜4問。**答えが返ってきたら、必要ならまた聞いてよい**
+- どの質問にも**自由入力の行**が自動で付く。選択肢で言い尽くせない質問
+  （得意なこと・興味など）は、選択肢を「よくある例」にして自由入力に任せてよい
+- 1度に 2〜4問。**答えが返ってきたら、次の一手を出す**（質問の続き or 候補）
+- **もう分かっていることを聞き直さない**（下の「集まっている条件」を見る）
+- 答えは「質問 → 答え」の形で届く。**全部 set_conditions に写してから**次へ進む
 
 ## 道具を使う場面
-1. **やりたいことがある**（終わりの言える仕事） → まとまったら propose_work
-2. **何をやるか決めたい・迷っている** → **まず聞く。**
-
-   **いちばん先に聞くのは「どの分野か」です。**
-   何に関する仕事かが分からないまま候補を出すと、「小さな実用品の販売所」
-   「受注型テンプレート制作」のように、**何の話か誰にも分からない案**になります。
-   分野は**選択肢（食 / 健康 / 学び / お金 / 仕事の道具 / 趣味 …）＋ 自由入力**で聞く。
-
-   分野が分かったら、そのうえで 使える時間 / 使えるお金 / 得意なこと /
-   やりたくないこと / いつまでに を set_conditions に写しながら ask で聞く。
-
-   **分野が空のあいだは、絶対に候補を出さない。**
-   分野 ＋ ほかに2つそろったら propose_candidates で候補を3つ。
+1. **やりたいことがある・案を持って来た** → その案を捨てて別の話をしない。
+   - 形が1つに絞れているなら、確かめの ask（誰に / 何を / いつまで）→ propose_work
+   - 方向が複数あり得るなら、**その案のバリエーションを3つ** propose_candidates で出す
+     （ゼロから別業種を出さない。社長の案を軸に、狭め方・売り方の違う3つ）
+2. **何をやるか決めたい・迷っている** → **まず、やさしい質問から。**
+   1巡目は**誰でも押すだけで答えられること**: 使える時間 / 使えるお金 /
+   やりたくないこと / これまでの経験・得意なこと（これは自由入力が主役）。
+   **分野を最初に選択肢で聞かない** — 分野は無数にあり、一覧から選ばせるのは無理がある。
+   2巡目で方向を聞くときは、**1巡目の答えから導いた、その人に合わせた選択肢**にする
+   （例: 得意が「英語」なら 英語を教える / 英語で書く / 英語の道具を作る ＋ 自由入力）。
+   聞きながら set_conditions に写す。分野・方向は interests に入れる
+   （社長の言葉から明らかなら、聞かずに推定して写してよい）。
+   **分野・方向 ＋ ほかに2つ**そろったら propose_candidates で候補を3つ。
    候補は**その分野の具体的な事業**にする — 「テンプレート制作」ではなく
-   「飲食店むけのメニュー表テンプレート」のように、**誰に何を**が分かる名前にする。
-   ただし「もういいから出して」と言われたら、**足りない分は仮に置いて出す**
-   （仮に置いたことは summary に書く）
+   「飲食店むけのメニュー表テンプレート」のように、**誰に何を**が分かる名前。
+   「もういいから出して」と言われたら、足りない分は仮に置いて出す（summary にそう書く）
 3. **すでに事業がある**（サイト・資料・数字を渡された） → remember_material で覚える。
    そろったら describe_business → report_facts → report_diagnosis
 
@@ -124,6 +127,8 @@ export type ChatOpts = {
   onText?: (chunk: string) => void;
   /** **いま何をしているか**が変わるたびに呼ばれる（画面にそのまま出る日本語） */
   onStage?: (stage: string) => void;
+  /** 思考の断片（開示するモデルのときだけ）。画面の「考えています」に流す */
+  onThink?: (chunk: string) => void;
   signal?: AbortSignal;
 };
 
@@ -168,16 +173,21 @@ export async function chatStep(state: ChatState, history: Msg[], opts: ChatOpts 
     deadline: state.conditions.deadline ?? null,
   })}`);
   if (state.proposed) lines.push('候補はもう出しました。選び直したいと言われたら出し直してください。');
+  if (state.push === 'record') {
+    lines.push('**直前の社長の答え（「質問 → 答え」の行）を、set_conditions に全部写してください。**'
+      + '分野・方向にあたる答えは interests に。この往復は写すだけです。');
+  }
   if (state.push === 'candidates') {
     lines.push('**条件はもう十分そろっています。この往復で propose_candidates を呼び、候補を3つ出してください。**'
-      + '足りない条件があっても、仮に置いて出します（仮に置いたことは summary に書く）。');
+      + '足りない条件があっても、仮に置いて出します（仮に置いたことは summary に書く）。'
+      + '候補の名前は、集まった条件の分野・得意を使って**誰に何を**が分かる形に。');
   }
   if (state.push === 'ask') {
     const noField = !state.conditions?.interests.length;
     lines.push('**この往復では ask を呼んで、押すだけで答えられる質問を2〜4問してください。**'
       + (noField
-          ? '**まず「どの分野か」を聞いてください**（選択肢 ＋ 自由入力）。'
-            + '分野が分からないうちは候補を出しません。'
+          ? '時間・お金・避けたいこと・得意なことのうち、まだ聞けていないものを。'
+            + '方向を聞くときは、**これまでの答えから導いた選択肢**＋自由入力で（一般的な分野一覧を出さない）。'
           : 'まだ条件が足りないので、候補は出しません。'));
   }
   if (state.materials.length) lines.push(`取り込んだ材料: ${state.materials.join(' / ')}`);
@@ -191,17 +201,29 @@ export async function chatStep(state: ChatState, history: Msg[], opts: ChatOpts 
   // 前置きは2度めの往復（本文だけ書いてもらう）でも同じものを使う
   const sys = `${CONSTITUTION}\n${GUIDE}\n\n${lines.join('\n\n')}`;
 
+  /**
+   * **push のある往復は、その道具しか渡さない。**
+   * 「必ず使え」と書くだけでは守られない（required でも別の道具に逃げる）。
+   * 道具が1つなら、出力は必ずその形になる — 「続きが出ない」が構造的に起きない。
+   */
+  const TOOLS = [ask, setConditions, proposeCandidates, rememberMaterial, describeBusiness, reportFacts, reportDiagnosis, proposeWork];
+  const tools = state.push === 'record' ? [setConditions]
+    : state.push === 'ask' ? [ask]
+    : state.push === 'candidates' ? [proposeCandidates]
+    : TOOLS;
+
   for await (const c of p.stream({
     tier: 'fast',
     system: sys,
     messages: history,
-    tools: [ask, setConditions, proposeCandidates, rememberMaterial, describeBusiness, reportFacts, reportDiagnosis, proposeWork],
+    tools,
     maxTokens: 8000,
     effort: 'low',
-    ...(state.needCard ? { toolChoice: 'required' as const } : {}),
+    ...(state.needCard || state.push ? { toolChoice: 'required' as const } : {}),
     signal: opts.signal,
   })) {
     if (c.type === 'text') { text += c.text; opts.onText?.(c.text); }
+    if (c.type === 'think') opts.onThink?.(c.text);
     if (c.type === 'tool_begin' && STAGE[c.name]) opts.onStage?.(STAGE[c.name]);
     if (c.type === 'tool_use') {
       const input = (c.input ?? {}) as Record<string, unknown>;
@@ -292,7 +314,8 @@ export async function chatStep(state: ChatState, history: Msg[], opts: ChatOpts 
    * 「（返事がありませんでした）」だけが並んだ）。
    * だから**足りないときは、もう一度だけ短く書いてもらう** — 道具は渡さないので必ず文が来る。
    */
-  if (!out.text && cards.length) {
+  // 写すだけの往復（record）は黙ってよい — 続きの往復が言葉を持つ
+  if (!out.text && cards.length && state.push !== 'record') {
     opts.onStage?.('言葉にしています');
     out.text = await prose(p, sys, history, cards, opts);
   }

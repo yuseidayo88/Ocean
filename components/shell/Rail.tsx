@@ -10,7 +10,7 @@ import { railData, type RailData } from '@/app/actions/live';
 import { getWork } from '@/app/actions/work';
 import type { ChatThread } from '@/lib/store';
 import { isBlank, useShell } from '@/components/shell/Shell';
-import { AMBER, DIM, EASE, EASE_FAST, FAINT, GREEN, LINE, RAIL, RAIL_W, RULE, SUNK, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
+import { AMBER, DIM, EASE, EASE_FAST, FAINT, GREEN, LINE, RAIL, RAIL_W, RED_T, RULE, SUNK, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
 /** レールに出すチャットの数。これを超えたら「すべて見る」を出す */
 const SHOWN = 6;
 
@@ -71,7 +71,7 @@ function PopRow({ label, right, on, color, onClick }: {
 
 const Hair = () => <div style={{ height: 1, margin: '5px 8px', background: RULE }} />;
 
-export function Rail({ initial }: { initial: RailData }) {
+export function Rail({ initial, warn }: { initial: RailData; warn?: string | null }) {
   const path = usePathname();
   const { rail, setRail, setFind } = useShell();
   const [account, setAccount] = useState(false);
@@ -228,6 +228,16 @@ export function Rail({ initial }: { initial: RailData }) {
       </div>
 
       <div style={{ flex: 1 }} />
+
+      {/**
+        * 保存先が無い（設定漏れ）。**黙ってデータを失わせない** — 会話が消える理由を
+        * 画面が先に言う（→ `lib/store/index.ts` の storeWarning）。赤＝止まっている。
+        */}
+      {warn && (
+        <span style={{ padding: '6px 10px 10px', color: RED_T, fontSize: 11.5, lineHeight: '17px' }}>
+          {warn}
+        </span>
+      )}
 
       {/* 下は「わたし」 */}
       <button onClick={() => setAccount(!account)} className={account ? 'hit' : 'row'} style={{
