@@ -158,6 +158,7 @@ export function Composer({ placeholder, mode = NEW_CHAT, effort = '自動', abov
   const [tall, setTall] = useState(false);
   const box = useRef<HTMLTextAreaElement>(null);
   const band = useRef<HTMLDivElement>(null);
+  const pick = useRef<HTMLInputElement>(null);
   const { chat: talk, say, say5 } = useShell();
 
   // 帯の高さを測って返す（質問の板が出入りするたびに変わる）
@@ -174,6 +175,28 @@ export function Composer({ placeholder, mode = NEW_CHAT, effort = '自動', abov
    * 読む目と書く手を同じ場所に置く（→ components/shell/ChatPane.tsx）。
    */
   if (talk.on && !inPane && !local) return null;
+
+  /**
+   * 添えられたファイルを会話に渡す。**1枚ずつ、中身ごと。**
+   * 長いものは頭だけ（依頼文が膨らむと、その往復ぶん全部が高くなる）。
+   */
+  const take = async (list: FileList | null) => {
+    const files = [...(list ?? [])];
+    if (!files.length) return;
+    const CAP = 6000;
+    for (const f of files) {
+      if (!/\.(md|markdown|txt|csv|json)$/i.test(f.name)) {
+        say5(`${f.name} はまだ読めません。いまは .md .txt .csv .json だけ`);
+        continue;
+      }
+      let body = '';
+      try { body = await f.text(); } catch { say5(`${f.name} を読めませんでした`); continue; }
+      const cut = body.length > CAP;
+      const text = [`資料を渡します: ${f.name}`, '', body.slice(0, CAP), cut ? '…（ここまで）' : '']
+        .filter(Boolean).join('\n');
+      if (onSend) onSend(text); else say(text);
+    }
+  };
 
   const send = () => {
     const t = box.current;
@@ -228,7 +251,14 @@ export function Composer({ placeholder, mode = NEW_CHAT, effort = '自動', abov
         // 高さを測るときの計算を、この器の中だけで済ませる
         contain: 'layout',
       }}>
-        <button onClick={() => say5('資料を添えられるのは Phase 8 から')} className="icob"
+        {/**
+          * 資料を添える。**文字のファイルはその場で読んで、会話に渡す**
+          * （`/import` を畳んだので、材料の入口はここしか無い）。
+          * 読めない形式は**読めないと言う** — 添えたのに何も起きない、を作らない。
+          */}
+        <input ref={pick} type="file" multiple hidden accept=".md,.txt,.csv,.json,.markdown"
+          onChange={(e) => { take(e.target.files); e.target.value = ''; }} />
+        <button onClick={() => pick.current?.click()} className="icob"
           aria-label="資料を添える" style={{
             width: 28, height: 28, flexShrink: 0, borderRadius: 999,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',

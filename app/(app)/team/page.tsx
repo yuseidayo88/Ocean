@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import { useOpen } from '@/lib/use-open';
+import { Go as Link } from '@/components/ui/Go';
 import { Centre, Composer, Pane, Section, TopBar } from '@/components/shell/Chrome';
 import { EffortInline, ModelInline, Toggle } from '@/components/shell/Controls';
 import { BLUE, COMPOSER_H, DIM, EDGE, GREEN, GREEN_T, HAIR, MUTE, RULE, SEAM, T2, T3, T4, T5 } from '@/lib/design/tokens';
@@ -305,11 +306,13 @@ function SettingsPane({ who, l, skills, onToggle, onHire, onClose }: {
         )}
         {cand && <span style={{ color: T2, fontSize: 13.5, lineHeight: '22px' }}>{l.lead}</span>}
 
+        {/* 追加は**本物の行き先**へ（スキル画面に読み込みの口がある）。押して何も起きない板を出さない */}
         {!cand && <Section label={who === 'all' ? '会社ぜんぶのスキル' : 'スキル'} right={
-          <button onClick={() => say5('スキルの追加はスキル画面から。読み込みの口は次のフェーズで繋がります')}
-            className="btn" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: T4, fontSize: 12 }}>
+          <Link href="/skills" className="btn" style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5, color: T4, fontSize: 12,
+          }}>
             <Icon name="plus" color={T4} size={12} />追加
-          </button>
+          </Link>
         }>
           {list.length === 0 && (
             <span style={{ display: 'block', padding: '10px 0', color: T5, fontSize: 12.5 }}>
@@ -380,7 +383,7 @@ function SettingsPane({ who, l, skills, onToggle, onHire, onClose }: {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 2 }}>
             <span style={{ color: T3 }}>この社員を一時停止する</span>
             <div style={{ flex: 1 }} />
-            <button onClick={() => say5('一時停止は次のフェーズで繋がります')} className="btn" style={{
+            <button onClick={() => say5('一時停止はまだ作っていません')} className="btn" style={{
               display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px',
               borderRadius: 8, border: `1px solid ${EDGE}`, color: T3, fontSize: 12,
             }}>一時停止</button>
