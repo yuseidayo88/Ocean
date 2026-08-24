@@ -247,8 +247,8 @@ export const supabaseStore: Store = {
     const [{ data: ph }, { data: tk }, { data: dl }] = await Promise.all([
       c.from('phases').select('id, seq, name, goal, status').eq('work_id', id).order('seq'),
       c.from('tasks').select('id, phase_id, seq, title, intent, status, progress, assignee_employee_id, owner_hint').eq('work_id', id).order('seq'),
-      c.from('deliverables').select('id, task_id, title, kind, status, preview, body, produced_by_employee_id, created_at')
-        .eq('work_id', id).order('created_at', { ascending: false }),
+      c.from('deliverables').select('id, task_id, title, kind, status, version, preview, body, produced_by_employee_id, created_at')
+        .eq('work_id', id).neq('status', 'superseded').order('created_at', { ascending: false }),
     ]);
 
     /**
@@ -297,6 +297,7 @@ export const supabaseStore: Store = {
         body: (d.body ?? undefined) as string | undefined,
         by: d.produced_by_employee_id ? em.get(d.produced_by_employee_id as string)?.display_name : undefined,
         taskId: (d.task_id ?? undefined) as string | undefined,
+        version: (d.version ?? 1) as number,
       })),
       crew: [...em.values()].map((e) => ({
         id: e.id, name: e.display_name,
@@ -352,7 +353,7 @@ export const supabaseStore: Store = {
     const { error } = await c.from('runs').update({
       status: r.status, ended_at: new Date().toISOString(),
       tokens_in: r.tokensIn, tokens_out: r.tokensOut, cost_cents: r.costCents,
-      error: r.error ?? null,
+      error: r.error ?? null, model: r.model ?? null,
     }).eq('id', runId);
     if (error) throw new AppError('unknown', error.message);
 
@@ -367,11 +368,27 @@ export const supabaseStore: Store = {
     const c = await db();
     // preview は本文の書き出し（見出し行を飛ばして90文字）
     const preview = d.body.replace(/^#.*\n/, '').replace(/[#*|>`-]/g, '').trim().slice(0, 90);
-    const { error } = await c.from('deliverables').insert({
+
+    /**
+     * 版の配線。**同じ Work で同じタイトル**なら同じ lineage の新しい版にする
+     * （直しの成果物が v2 になる）。前の版は superseded — 一覧からは隠れ、
+     * 器（lineage_id / version / superseded）は 0001 のスキーマが最初から持っていた。
+     */
+    const { data: prev } = await c.from('deliverables')
+      .select('id, lineage_id, version').eq('work_id', d.workId).eq('title', d.title)
+      .neq('status', 'superseded')
+      .order('version', { ascending: false }).limit(1).maybeSingle();
+
+    const { data: row, error } = await c.from('deliverables').insert({
       work_id: d.workId, task_id: d.taskId, title: d.title, kind: d.kind,
       status: 'review', preview, body: d.body, produced_by_employee_id: d.employeeId ?? null,
-    });
-    if (error) throw new AppError('unknown', error.message);
+      ...(prev ? { lineage_id: prev.lineage_id, version: (prev.version as number) + 1 } : {}),
+    }).select('id').single();
+    if (error || !row) throw new AppError('unknown', error?.message ?? 'deliverables insert failed');
+    if (prev) {
+      await c.from('deliverables').update({ status: 'superseded' })
+        .eq('lineage_id', prev.lineage_id).neq('id', row.id);
+    }
   },
 
   async addNotification(n) {
@@ -475,7 +492,8 @@ export const supabaseStore: Store = {
   async listDels() {
     const c = await db();
     const { data } = await c.from('deliverables')
-      .select('id, work_id, task_id, title, kind, status, preview, body, produced_by_employee_id, created_at, works(title)')
+      .select('id, work_id, task_id, title, kind, status, version, preview, body, produced_by_employee_id, created_at, works(title)')
+      .neq('status', 'superseded')
       .order('created_at', { ascending: false }).limit(60);
     const ids = [...new Set((data ?? []).map((d) => d.produced_by_employee_id).filter(Boolean))] as string[];
     const { data: em } = ids.length
@@ -492,6 +510,7 @@ export const supabaseStore: Store = {
       taskId: (d.task_id ?? undefined) as string | undefined,
       workId: d.work_id as string,
       workTitle: ((d.works as { title?: string } | null)?.title ?? '') as string,
+      version: (d.version ?? 1) as number,
     }));
   },
 

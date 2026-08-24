@@ -1,4 +1,4 @@
-import { hasKey, providerFor, billedCostUsd, type ModelProvider, type Msg } from '@/lib/ai';
+import { hasKey, providerFor, billedCostUsd, modelFor, type ModelProvider, type Msg } from '@/lib/ai';
 import { FakeProvider } from '@/lib/ai/fake';
 import { personaOf } from '@/lib/roster';
 import { store, type LiveWork } from '@/lib/store';
@@ -60,6 +60,17 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
     ? (await s.learnings(task.ownerId).catch(() => [])).slice(-10)
     : [];
 
+  /**
+   * 会社の記憶。**承認された成果物の索引**（全 Work・最新5件）を渡す —
+   * 別の Work で決まったこと・作られたものを、二度調べ直さないため。
+   * 本文は渡さない（読むべきものはタイトルで分かる。トークンを太らせない）。
+   */
+  const memory = (await s.listDels().catch(() => []))
+    .filter((x) => x.state === '承認済').slice(0, 5);
+
+  /** どのモデルで走るか（ガバナンスの記録。鍵の無い環境は fake） */
+  const usedModel = hasKey() ? modelFor('standard') : 'fake';
+
   const runId = await s.startRun(taskId);
   await s.addDecisionRefs(runId, decided.map((d) => d.id)).catch(() => {});
   let seq = 0;
@@ -110,6 +121,13 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
         ...(lessons.length
           ? ['', 'これまでの学び（自分のメモ。同じ判断を繰り返さない）:',
              ...lessons.map((l) => `- ${l}`)]
+          : []),
+        ...(memory.length
+          ? ['', '会社でこれまでに承認された成果物（重複して作らない。要るなら前提として使う）:',
+             ...memory.map((x) => `- ${x.title}（${x.workTitle}）`)]
+          : []),
+        ...(/ を直す$/.test(task.title)
+          ? ['', `成果物のタイトルは「${task.title.replace(/ を直す$/, '')}」のまま出す（直した新しい版になる）`]
           : []),
         '',
         `あなたのタスク: ${task.title}`,
@@ -168,7 +186,7 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
 
     if (decision) {
       // 判断で止まる。失敗ではないので run は done、タスクは needs_decision
-      await s.finishRun(runId, { status: 'done', tokensIn: usage.in, tokensOut: usage.out, costCents });
+      await s.finishRun(runId, { status: 'done', tokensIn: usage.in, tokensOut: usage.out, costCents, model: usedModel });
       await s.markDecision(taskId, decision);
       return { ok: 'decision', question: decision.question };
     }
@@ -176,7 +194,7 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
     if (!wrote && !finished) {
       // 道具を1つも使わなかった＝弱いモデルが文章で答えた等。正直に失敗
       await s.finishRun(runId, {
-        status: 'failed', tokensIn: usage.in, tokensOut: usage.out, costCents,
+        status: 'failed', tokensIn: usage.in, tokensOut: usage.out, costCents, model: usedModel,
         error: '成果物が書かれませんでした',
       });
       await s.addNotification({
@@ -186,7 +204,7 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
       return { ok: false, error: '成果物が書かれませんでした' };
     }
 
-    await s.finishRun(runId, { status: 'done', tokensIn: usage.in, tokensOut: usage.out, costCents });
+    await s.finishRun(runId, { status: 'done', tokensIn: usage.in, tokensOut: usage.out, costCents, model: usedModel });
     if (wrote) {
       /**
        * **統括AIのレビュー**（Phase 8）。成果物を fast の目で1度見て、
@@ -204,7 +222,8 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
     // 途中で落ちても、そこまでに使ったぶんは正直に記帳する（0 にしない）
     await s.finishRun(runId, {
       status: 'failed', tokensIn: usage.in, tokensOut: usage.out,
-      costCents: Math.round(billedCostUsd('standard', usage.in, usage.out) * 100), error: say(e),
+      costCents: Math.round(billedCostUsd('standard', usage.in, usage.out) * 100),
+      model: hasKey() ? modelFor('standard') : 'fake', error: say(e),
     }).catch(() => {});
     await s.addNotification({
       kind: 'エラー', body: `${task.title} — 途中で止まりました`, subjectType: 'task', subjectId: taskId,

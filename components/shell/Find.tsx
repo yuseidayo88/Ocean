@@ -34,6 +34,9 @@ const PAGES: Hit[] = [
   { id: 'p-dec', icon: 'dec', label: '決定事項', sub: '', href: '/decisions', kind: '行き先' },
   { id: 'p-skills', icon: 'bolt', label: 'スキル', sub: 'SKILL.md の管理', href: '/skills', kind: '行き先' },
   { id: 'p-hire', icon: 'plus', label: '採用', sub: '候補を見る', href: '/hire', kind: '行き先' },
+  { id: 'p-gates', icon: 'dec', label: '判断待ちを見る', sub: 'あなたが決めるものだけ', href: '/decisions', kind: '行き先' },
+  { id: 'p-review', icon: 'deliv', label: '要確認の成果物', sub: 'あなたが見るものだけ', href: '/deliverables', kind: '行き先' },
+  { id: 'p-billing', icon: 'bars', label: '請求とプラン', sub: '', href: '/billing', kind: '行き先' },
 ];
 
 /** 中身は store から。**開いたときに1回だけ**取りに行く（打つたびには行かない） */
@@ -55,7 +58,7 @@ async function fetchAll(): Promise<Hit[]> {
 }
 
 export function Find() {
-  const { find, setFind } = useShell();
+  const { find, setFind, say } = useShell();
   const [q, setQ] = useState('');
   const [at, setAt] = useState(0);
   const box = useRef<HTMLInputElement>(null);
@@ -72,7 +75,16 @@ export function Find() {
   const hits = useMemo(() => {
     const k = q.trim().toLowerCase();
     if (!k) return [];
-    return pool.filter((h) => (h.label + h.sub + h.kind).toLowerCase().includes(k)).slice(0, 12);
+    const found = pool.filter((h) => (h.label + h.sub + h.kind).toLowerCase().includes(k)).slice(0, 11);
+    /**
+     * ⌘K は検索だけでなく**会社への口**。書いたものが名前に当たらなくても、
+     * そのまま統括AIに頼める（会話が開いて、本当に返ってくる）。
+     * いちばん下に1行だけ — 検索の結果と取り違えないように、種類は「頼む」。
+     */
+    return [...found, {
+      id: 'cmd-ask', icon: 'chat' as IconName, label: `統括AIに頼む「${q.trim().slice(0, 40)}」`,
+      sub: '会話が開きます', href: '/home' as Route, kind: '頼む',
+    }];
   }, [q, pool]);
 
   /**
@@ -94,7 +106,11 @@ export function Find() {
 
   if (!find) return null;
 
-  const go = (h: Hit) => { setFind(false); router.push(h.href); };
+  const go = (h: Hit) => {
+    setFind(false);
+    if (h.id === 'cmd-ask') { say(q.trim()); return; } // 頼みごとは会話へ（画面は移らない）
+    router.push(h.href);
+  };
 
   return (
     <>

@@ -44,6 +44,8 @@ export type LiveWork = {
 export type LiveDeliverable = {
   id: string; title: string; kind: string; state: string;
   preview?: string; body?: string; by?: string; when?: string; taskId?: string;
+  /** 版。同じ Work で同じタイトルの成果物は同じ lineage の新しい版になり、前の版は隠れる */
+  version?: number;
 };
 
 /** 通知1件。通知の画面（片づける場所）が読む */
@@ -127,7 +129,9 @@ export interface Store {
   /** 1歩を記録する。進捗はここから導出される */
   addStep(runId: string, step: { seq: number; kind: RunStep['kind']; tool?: string; summary?: string; progress?: number }): Promise<void>;
   /** 実行を閉じる。done なら task→done・進捗100。失敗なら task→blocked に落とす */
-  finishRun(runId: string, r: { status: 'done' | 'failed'; tokensIn: number; tokensOut: number; costCents: number; error?: string }): Promise<void>;
+  finishRun(runId: string, r: { status: 'done' | 'failed'; tokensIn: number; tokensOut: number; costCents: number; error?: string;
+    /** 実際に使ったモデルの slug（ガバナンスの記録。鍵の無い環境は 'fake'） */
+    model?: string }): Promise<void>;
   /** 成果物を書く。preview は本文の書き出し */
   addDeliverable(d: { workId: string; taskId: string; employeeId?: string; title: string; kind: string; body: string }): Promise<void>;
   /** 通知を立てる（判断待ち / 要確認 / エラー） */

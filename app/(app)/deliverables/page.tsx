@@ -96,7 +96,11 @@ export default function DeliverablesPage() {
               }}>
                 <Thumb d={d} />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</span>
+                  <span style={{ display: 'flex', alignItems: 'baseline', gap: 7, minWidth: 0 }}>
+                    <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</span>
+                    {/* 版。直しの成果物は同じ題の新しい版になる（v1 は言わない — 版が増えてから意味を持つ） */}
+                    {(d.version ?? 1) > 1 && <span style={{ color: T5, fontSize: 11, flexShrink: 0 }} className="tnum">v{d.version}</span>}
+                  </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ color: T5 }}>{d.by ?? 'AI社員'}</span>
                     <div style={{ flex: 1 }} />
@@ -125,7 +129,7 @@ export default function DeliverablesPage() {
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 20px' }}>
           <span style={{ fontSize: 16, display: 'block' }}>{top.title}</span>
           <span style={{ color: T5, fontSize: 12, display: 'block', paddingTop: 5 }}>
-            {top.by ?? 'AI社員'} · {top.workTitle}
+            {top.by ?? 'AI社員'} · {top.workTitle}{(top.version ?? 1) > 1 ? ` · v${top.version}` : ''}
           </span>
           <pre style={{
             margin: '16px 0 0', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',

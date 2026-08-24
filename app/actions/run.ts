@@ -81,9 +81,19 @@ export async function sendBackDel(
   if (!text) return { ok: false, message: '直したいところを書いてください' };
   try {
     // 差し戻せた1回だけが直しタスクを積む（二度押し・同時押しで2つ積まれない）
-    const flipped = await store().setDelStatus(delId, 'rejected');
+    const s = store();
+    const flipped = await s.setDelStatus(delId, 'rejected');
     if (!flipped) return { ok: false, message: 'この成果物はもう片づいています' };
-    await store().addFixTask(workId, src, text);
+    await s.addFixTask(workId, src, text);
+    /**
+     * 指摘は担当の**学び**にも残す（Agent Memory）。直しタスクは1回で消えるが、
+     * 「社長がどこを直させたか」は次の仕事でも効く。失敗しても差し戻しは倒さない。
+     */
+    if (src.taskId) {
+      const work = await s.getWork(workId).catch(() => null);
+      const ownerId = work?.tasks.find((t) => t.id === src.taskId)?.ownerId;
+      if (ownerId) await s.addLearnings(ownerId, [`社長からの差し戻し（${src.title}）: ${text.slice(0, 40)}`]).catch(() => {});
+    }
     return { ok: true };
   } catch (e) {
     return { ok: false, message: sayError(e, '差し戻せませんでした') };

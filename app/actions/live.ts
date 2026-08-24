@@ -88,12 +88,20 @@ export async function sendChat(
 
     // 会社のいまを1枚に畳んで渡す（Work をまたいだ相談に答えるため）
     const works = await s.listWorks().catch(() => [] as LiveWork[]);
-    const snapshot = works.length
+    const lines = works.length
       ? works.map((w) => {
           const at = w.phases.find((p) => p.state === 'active' || p.state === 'review');
           return `- ${w.title}（${w.status === 'paused' ? '停止中' : at ? `フェーズ${at.seq}: ${at.name}` : w.status}）`;
-        }).join('\n')
-      : '- まだ Work はありません';
+        })
+      : ['- まだ Work はありません'];
+    // 会社の記憶: 決めたこと（決定の台帳から最新5件）。相談は過去の決定の上に載る
+    const decided = (await s.listDecisions().catch(() => []))
+      .filter((d) => d.status === 'decided' && d.chosen).slice(0, 5);
+    if (decided.length) {
+      lines.push('', '決めたこと:');
+      for (const d of decided) lines.push(`- ${d.question} → ${d.chosen}`);
+    }
+    const snapshot = lines.join('\n');
 
     const { messages } = (await s.getThread(id)) ?? { messages: [] };
     const history = messages.slice(-10).map((m) => ({

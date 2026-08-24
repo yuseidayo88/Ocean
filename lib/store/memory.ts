@@ -133,6 +133,7 @@ export const memoryStore: Store = {
     const r = runs.get(runId);
     if (!r) return;
     r.status = res.status;
+    r.model = res.model;
     if (res.status === 'failed') r.fails = (r.fails ?? 0) + 1;
     const { task } = findTask(r.taskId);
     if (res.status === 'done') { task.state = 'done'; task.progress = 100; }
@@ -141,10 +142,17 @@ export const memoryStore: Store = {
 
   async addDeliverable(d) {
     const { live } = findTask(d.taskId);
-    (live.dels ??= []).unshift({
-      id: `del-${live.dels.length + 1}-${d.taskId}`, title: d.title, kind: d.kind,
+    live.dels ??= [];
+    // 版の配線（supabase 版と同じ取り決め）: 同じ Work で同じタイトルなら新しい版。
+    // メモリ版は旧版を持たない（見えるのは最新版だけ、という同じ見え方になる）
+    const prevAt = live.dels.findIndex((x) => x.title === d.title);
+    const version = prevAt >= 0 ? (live.dels[prevAt].version ?? 1) + 1 : 1;
+    if (prevAt >= 0) live.dels.splice(prevAt, 1);
+    live.dels.unshift({
+      id: `del-${Date.now().toString(36)}-${d.taskId}`, title: d.title, kind: d.kind,
       state: '要確認', preview: d.body.replace(/^#.*\n/, '').slice(0, 90), body: d.body,
       by: live.tasks.find((t) => t.id === d.taskId)?.owner, when: 'たった今', taskId: d.taskId,
+      version,
     });
   },
 
@@ -451,7 +459,7 @@ export const memoryStore: Store = {
 /** run と通知の置き場（メモリ版だけの裏方） */
 const g2 = globalThis as unknown as {
   __runs?: Map<string, { taskId: string; workId: string; steps: RunStep[];
-    status?: 'running' | 'done' | 'failed'; startedAt?: string; fails?: number }>;
+    status?: 'running' | 'done' | 'failed'; startedAt?: string; fails?: number; model?: string }>;
   __notes?: { kind: string; body: string; at?: string; subjectType?: string; subjectId?: string }[];
   __notesRead?: Set<number>;
   __threads?: ChatThread[];

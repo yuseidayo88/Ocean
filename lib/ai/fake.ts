@@ -100,7 +100,8 @@ async function* fakeRun(input: RunInput): AsyncIterable<Chunk> {
     await wait(900);
   }
   yield tool('write_deliverable', {
-    title: task.slice(0, 18), kind: 'report',
+    // 直しのタスクは**元のタイトルのまま**出す（同じ lineage の新しい版になる）
+    title: (task.match(/(.+) を直す$/)?.[1] ?? task).slice(0, 18), kind: 'report',
     body: [
       `# ${task}`,
       '',
