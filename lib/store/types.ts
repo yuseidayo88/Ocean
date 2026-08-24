@@ -57,10 +57,15 @@ export type Note = {
 export type ChatThread = { id: string; title: string; workId?: string; lastAt?: string };
 export type ChatMsg = { role: 'user' | 'executive'; body: string; at?: string };
 
-/** スキル（SKILL.md）1枚。employee_id が無ければ会社ぜんぶのスキル */
+/**
+ * スキル（SKILL.md）1枚。employee_id が無ければ会社ぜんぶのスキル。
+ * source: builtin＝元々の機能（見える・消せない・切れる）/ user＝社長が読み込んだ /
+ * learned＝**社員が仕事から書き溜めた学び**（1人1枚。設定ペインに出す）
+ */
 export type SkillRow = {
   id: string; name: string; filename: string; on: boolean;
   scope: 'company' | 'employee'; used: number;
+  source: 'builtin' | 'user' | 'learned';
   /** SKILL.md の中身。一覧では読まないこともある */
   body?: string;
 };
@@ -206,11 +211,26 @@ export interface Store {
   getThread(id: string): Promise<{ thread: ChatThread; messages: ChatMsg[] } | null>;
   /** 発言を書く。threadId が null なら新しいスレッドを作る。返り値はスレッド id */
   addChat(threadId: string | null, role: 'user' | 'executive', body: string, title?: string): Promise<string>;
-  /** スキル（SKILL.md）の一覧・有効の切り替え・追加・削除 */
+  /**
+   * スキル（SKILL.md）の一覧・有効の切り替え・追加・削除。
+   * **1枚も無ければ標準スキル（builtin）を播く** — 元々の機能なので、どの会社にも最初からある
+   */
   listSkills(): Promise<SkillRow[]>;
   setSkill(id: string, on: boolean): Promise<void>;
   addSkill(s: { name: string; filename: string; body: string }): Promise<void>;
+  /** 消せるのは user のものだけ（標準は切れるが消せない。学びは setLearnings で） */
   removeSkill(id: string): Promise<void>;
+  /** 読んだ印。実行の依頼文に載せたスキルの used_count を1つ進める */
+  bumpSkillUse(ids: string[]): Promise<void>;
+
+  /* ══════════════ 学び（使うたびに賢くなる。ただしルールには自動で書かない）══════════════ */
+
+  /** その社員の学び（1行ずつ・古い順）。実行の依頼文と設定ペインが読む */
+  learnings(employeeId: string): Promise<string[]>;
+  /** 実行の終わりに追記する。**上限30行** — あふれたら古いものから落とす */
+  addLearnings(employeeId: string, lines: string[]): Promise<void>;
+  /** 社長が消す・直す（丸ごと置き換え。空にしたら行ごと消える） */
+  setLearnings(employeeId: string, lines: string[]): Promise<void>;
   /** 会社の名前（パンくずの根）。登録時はメールが入っている */
   companyName(): Promise<string>;
   /** 最近の歩み（オフィスのログ）。誰が・何をしたか、新しい順 */

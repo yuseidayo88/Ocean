@@ -115,6 +115,8 @@ async function* fakeRun(input: RunInput): AsyncIterable<Chunk> {
     ].join('\n'),
   });
   await wait(400);
+  // 学びの道も通す（本物と同じ道具・同じ順。E2E が「学びが残ること」を確かめられる）
+  yield tool('note_learning', { lesson: '数字は事実・推計・要確認の3束に分けてから出す' });
   yield tool('finish', { summary: `${task} を終えた。成果物1件、要確認1件` });
   yield { type: 'done', usage: { ...EMPTY_USAGE }, stopReason: 'tool_use' };
 }

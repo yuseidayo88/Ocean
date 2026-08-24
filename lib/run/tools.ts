@@ -6,7 +6,7 @@ import type { ToolDef } from '@/lib/ai';
  * **文章で返させない。** 統括AI（Phase 5）と同じ作法 — 画面に出すもの・DBに残るものは
  * 全部 `tool_use` で受け取る。自由文だと、パースに失敗したとき「なんとなく動いていない」になる。
  *
- * 道具は4つだけ。**少ないほど、弱いモデルでも間違えない**（テストは無料の Ox Alpha で走る）。
+ * 道具は5つだけ。**少ないほど、弱いモデルでも間違えない**（テストは無料の Ox Alpha で走る）。
  */
 
 /** いま何をしているか。デスクの工程の行と、タスクの進捗の出どころ */
@@ -85,4 +85,25 @@ export const finish: ToolDef = {
   },
 };
 
-export const RUN_TOOLS: ToolDef[] = [logStep, writeDeliverable, askDecision, finish];
+/**
+ * 学び。**使うたびに賢くなる**ための口 — ただしルールには自動で書かない
+ * （ルールは毎回効く制約。勝手に増えると社長が知らないうちに社員が変わる）。
+ * ここに書いたものは社員のメモ（learnings.md）に溜まり、次の実行の依頼文に載る。
+ * 社長には設定ペインで見え、消せる。
+ */
+export const noteLearning: ToolDef = {
+  name: 'note_learning',
+  description:
+    'このタスクで学んだ、**次も効くこと**があれば1行で書き残す（任意。無ければ呼ばない）。'
+    + '「この会社の価格表記は税込みで統一」のような、次の仕事で同じ判断を繰り返さないための粒。'
+    + '作業の記録ではない — それは log_step に書く。',
+  input_schema: {
+    type: 'object',
+    properties: {
+      lesson: { type: 'string', description: '10〜40文字の1行。次の自分への申し送り' },
+    },
+    required: ['lesson'],
+  },
+};
+
+export const RUN_TOOLS: ToolDef[] = [logStep, writeDeliverable, askDecision, noteLearning, finish];

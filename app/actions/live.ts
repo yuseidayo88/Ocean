@@ -48,6 +48,15 @@ export async function skillRemove(id: string): Promise<void> {
   try { await store().removeSkill(id); } catch { /* 消えなかったら残るだけ */ }
 }
 
+/** その社員の学び（設定ペインが読む・社長が消す） */
+export async function learningsGet(employeeId: string): Promise<string[]> {
+  try { return await store().learnings(employeeId); } catch { return []; }
+}
+
+export async function learningsSet(employeeId: string, lines: string[]): Promise<void> {
+  try { await store().setLearnings(employeeId, lines); } catch { /* 消えなかったら残るだけ */ }
+}
+
 /** レールが読む3つ（チャット履歴・未読の数・在籍の数）。画面を移るたびに呼ばれるので安く */
 export async function railData(): Promise<{ threads: ChatThread[]; unread: number; staff: number }> {
   try {

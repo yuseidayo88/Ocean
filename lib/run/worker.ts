@@ -42,6 +42,24 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
   const decided = (await s.listDecisions(work.id).catch(() => []))
     .filter((d) => d.status === 'decided' && d.chosen);
 
+  /**
+   * スキル＝**必要なときだけ読む手順書。** 1タスク=1往復なので「途中で取りに行く」は
+   * できない — 有効な会社スキルから、このタスクに関わりそうなものを最大2枚だけ載せる
+   * （関わりの判定は名前と説明の語の重なり。載せたら used_count を進める＝読んだ印）。
+   */
+  const allSkills = (await s.listSkills().catch(() => []))
+    .filter((x) => x.on && x.scope === 'company' && x.source !== 'learned' && x.body);
+  const hint = `${task.title} ${task.intent}`;
+  const scored = allSkills
+    .map((x) => ({ x, hit: [...`${x.name}`].filter((ch) => hint.includes(ch)).length }))
+    .sort((a, b) => b.hit - a.hit);
+  const skills = (allSkills.length <= 2 ? allSkills : scored.slice(0, 2).map((v) => v.x));
+
+  /** 学び＝この社員が仕事から書き溜めたメモ。最新10行だけ載せる */
+  const lessons = task.ownerId
+    ? (await s.learnings(task.ownerId).catch(() => [])).slice(-10)
+    : [];
+
   const runId = await s.startRun(taskId);
   await s.addDecisionRefs(runId, decided.map((d) => d.id)).catch(() => {});
   let seq = 0;
@@ -50,6 +68,7 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
   let bodyText = '';
   let decision: { question: string; why: string; options: unknown[] } | undefined;
   let finished = false;
+  const learned: string[] = [];
 
   try {
     /**
@@ -67,7 +86,8 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
       '1. log_step で作業の区切りを3〜6回記録する（progress は正直に）',
       '2. write_deliverable で成果物を1つ書く',
       '3. 事業の判断（価格・対象など）に当たったら ask_decision で止まる',
-      '4. 最後に finish。**文章では答えない** — すべて道具で',
+      '4. 次も効く学びがあれば note_learning で1行だけ書き残す（任意）',
+      '5. 最後に finish。**文章では答えない** — すべて道具で',
     ].join('\n');
 
     const messages: Msg[] = [{
@@ -82,6 +102,14 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
         ...(prior.length
           ? ['', 'ここまでの成果物（参考にする）:',
              ...prior.map((d) => `--- ${d.title} ---\n${(d.body ?? d.preview ?? '').slice(0, 3000)}`)]
+          : []),
+        ...(skills.length
+          ? ['', 'スキル（この会社の手順書。これに沿って進める）:',
+             ...skills.map((x) => `--- ${x.name} ---\n${(x.body ?? '').slice(0, 2000)}`)]
+          : []),
+        ...(lessons.length
+          ? ['', 'これまでの学び（自分のメモ。同じ判断を繰り返さない）:',
+             ...lessons.map((l) => `- ${l}`)]
           : []),
         '',
         `あなたのタスク: ${task.title}`,
@@ -117,6 +145,9 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
             why: String(a.why ?? ''),
             options: Array.isArray(a.options) ? a.options : [],
           };
+        } else if (c.name === 'note_learning') {
+          const lesson = String(a.lesson ?? '').trim();
+          if (lesson) learned.push(lesson.slice(0, 60));
         } else if (c.name === 'finish') {
           finished = true;
           await s.addStep(runId, {
@@ -130,6 +161,10 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
     }
 
     const costCents = Math.round(billedCostUsd('standard', usage.in, usage.out) * 100);
+
+    // 読んだスキルと書いた学びを残す（失敗しても実行は倒さない）
+    if (skills.length) await s.bumpSkillUse(skills.map((x) => x.id)).catch(() => {});
+    if (learned.length && task.ownerId) await s.addLearnings(task.ownerId, learned).catch(() => {});
 
     if (decision) {
       // 判断で止まる。失敗ではないので run は done、タスクは needs_decision

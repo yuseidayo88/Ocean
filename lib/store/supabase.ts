@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { AGENT_COLOR, type EmployeeColor } from '@/lib/view/model';
 import { colorFor } from './memory';
+import { BUILTIN_SKILLS } from '@/lib/roster/skills';
 import { AppError } from '@/lib/errors';
 import { STALL_MS, type ChatMsg, type ChatThread, type DraftWork, type LiveDecision, type LiveWork, type Note, type RunStep, type SkillRow, type Store } from './types';
 
@@ -745,13 +746,23 @@ export const supabaseStore: Store = {
 
   async listSkills() {
     const c = await db();
-    const { data } = await c.from('agent_skills')
-      .select('id, name, filename, enabled, employee_id, used_count, body').order('created_at');
+    const sel = 'id, name, filename, enabled, employee_id, used_count, source, body';
+    let { data } = await c.from('agent_skills').select(sel).order('created_at');
+    // 1枚も無ければ標準スキルを播く（元々の機能）。同時に開いた2つのタブは
+    // 0017 の一意 index が2度目を止める → 弾かれたら読み直すだけ
+    if (!data?.length) {
+      await c.from('agent_skills').insert(BUILTIN_SKILLS.map((b) => ({
+        name: b.name, filename: b.filename, description: b.description, body: b.body,
+        source: 'builtin', enabled: true,
+      })));
+      ({ data } = await c.from('agent_skills').select(sel).order('created_at'));
+    }
     return (data ?? []).map((x): SkillRow => ({
       id: x.id as string, name: x.name as string, filename: x.filename as string,
       on: x.enabled as boolean,
       scope: x.employee_id ? 'employee' : 'company',
       used: (x.used_count ?? 0) as number,
+      source: (x.source ?? 'user') as SkillRow['source'],
       body: (x.body ?? undefined) as string | undefined,
     }));
   },
@@ -771,6 +782,55 @@ export const supabaseStore: Store = {
   async removeSkill(id) {
     const c = await db();
     await c.from('agent_skills').delete().eq('id', id).eq('source', 'user');
+  },
+
+  async bumpSkillUse(ids) {
+    const c = await db();
+    for (const id of ids) {
+      const { data } = await c.from('agent_skills').select('used_count').eq('id', id).maybeSingle();
+      if (data) await c.from('agent_skills').update({ used_count: (data.used_count ?? 0) + 1 }).eq('id', id);
+    }
+  },
+
+  /* ══════════════ 学び ══════════════ */
+
+  async learnings(employeeId) {
+    const c = await db();
+    const { data } = await c.from('agent_skills')
+      .select('body').eq('employee_id', employeeId).eq('source', 'learned').maybeSingle();
+    return ((data?.body as string | undefined) ?? '').split('\n').map((l) => l.trim()).filter(Boolean);
+  },
+
+  async addLearnings(employeeId, lines) {
+    const add = lines.map((l) => l.trim()).filter(Boolean);
+    if (!add.length) return;
+    const c = await db();
+    const cur = await supabaseStore.learnings(employeeId);
+    const next = [...cur, ...add].slice(-30); // 上限30行。あふれたら古いものから
+    const { data: row } = await c.from('agent_skills')
+      .select('id').eq('employee_id', employeeId).eq('source', 'learned').maybeSingle();
+    if (row) {
+      await c.from('agent_skills').update({ body: next.join('\n') }).eq('id', row.id);
+    } else {
+      // 同時に2つの実行が閉じても、0017 の一意 index が2枚目を止める
+      const { error } = await c.from('agent_skills').insert({
+        employee_id: employeeId, name: '学び', filename: 'learnings.md',
+        description: '仕事のなかで書き溜めたメモ。次の実行の依頼文に載る',
+        body: next.join('\n'), source: 'learned', enabled: true,
+      });
+      if (error && error.code !== '23505') throw new AppError('unknown', error.message);
+      if (error?.code === '23505') await supabaseStore.addLearnings(employeeId, add);
+    }
+  },
+
+  async setLearnings(employeeId, lines) {
+    const c = await db();
+    const next = lines.map((l) => l.trim()).filter(Boolean);
+    const { data: row } = await c.from('agent_skills')
+      .select('id').eq('employee_id', employeeId).eq('source', 'learned').maybeSingle();
+    if (!row) return;
+    if (next.length) await c.from('agent_skills').update({ body: next.join('\n') }).eq('id', row.id);
+    else await c.from('agent_skills').delete().eq('id', row.id).eq('source', 'learned');
   },
 
   async companyName() {

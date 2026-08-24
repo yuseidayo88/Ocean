@@ -108,6 +108,19 @@ ok('フェーズが 2 に進んだ', /フェーズ\n2 \/ /.test(next), next.matc
 const done2 = await until((b) => b.includes('フェーズ「戦略」が終わりました'), 40);
 ok('戦略フェーズも走って終わった', done2.includes('フェーズ「戦略」が終わりました'), done2.slice(0, 80));
 
+// ⑤' 学びの輪（note_learning → 社員のメモ → 設定ペイン）と標準スキル
+await send('Page.navigate', { url: `${BASE}/team` }); await wait(2200);
+const team = await text();
+ok('承認で採用した社員がメンバーに並ぶ', team.includes('調査担当'), team.slice(0, 80));
+await ev(`[...document.querySelectorAll('.row')].find(r => r.innerText.includes('調査担当'))?.click()`);
+const paneB = await until((b) => b.includes('学び'), 10, 800);
+ok('社員の学びが設定ペインに残った', paneB.includes('数字は事実・推計・要確認の3束に分けてから出す'), paneB.slice(0, 120));
+
+await send('Page.navigate', { url: `${BASE}/skills` }); await wait(2200);
+const sk = await text();
+ok('標準スキルが見えている', sk.includes('標準') && sk.includes('調査のまとめ方'), sk.slice(0, 80));
+ok('スキルが実行で読まれた（used_count）', /\d+回/.test(sk), sk.match(/[^\n]*回[^\n]*/)?.[0]);
+
 // ⑥ 埋まった状態のレイアウト。ダミーを消したので、**ここでしか測れない**
 //    （ホーム4ビューは Work が動いてはじめて絵になる）
 const { scan } = await import('./_probe.mjs');

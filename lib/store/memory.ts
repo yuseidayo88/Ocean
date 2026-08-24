@@ -1,4 +1,5 @@
 import { AGENT_COLOR, type EmployeeColor } from '@/lib/view/model';
+import { BUILTIN_SKILLS } from '@/lib/roster/skills';
 import { AppError } from '@/lib/errors';
 import { STALL_MS, type ChatMsg, type ChatThread, type DraftWork, type LiveDecision, type LiveEmployee, type LiveWork, type Note, type RunStep, type SkillRow, type Store } from './types';
 
@@ -23,8 +24,13 @@ const WHEEL: EmployeeColor[] = ['cyan', 'purple', 'indigo', 'green'];
 export const colorFor = (definitionId: string, i: number): EmployeeColor =>
   WHEEL[(definitionId.length + i) % WHEEL.length];
 
-/** 承認したあとの姿を、控えから組み立てる（Supabase 版の SELECT と同じ形） */
-function live(d: DraftWork): LiveWork {
+/**
+ * 承認したあとの姿を、控えから組み立てる（Supabase 版の SELECT と同じ形）。
+ * `ids` は 定義 → 在籍の社員 id。**crew もタスクの担当も本物の在籍を指す**
+ * （前は Work ごとの合成 id で、在籍（staff）と食い違っていた —
+ *  学びが「書いた人」と「見る人」で別の id になる穴）。
+ */
+function live(d: DraftWork, ids: Map<string, string>): LiveWork {
   return {
     id: d.id, title: d.title, goal: d.goal, status: 'active',
     phases: d.plan.phases.map((p, i) => ({
@@ -41,12 +47,13 @@ function live(d: DraftWork): LiveWork {
         state: 'queued', progress: 0,
         owner: hire?.displayName ?? t.ownerHint,
         ownerSlug: hire?.definitionId,
-        ownerId: hire ? `${d.id}-e${d.hires.indexOf(hire) + 1}` : undefined,
+        ownerId: hire ? ids.get(hire.definitionId) : undefined,
       };
     }),
     dels: [],
     crew: d.hires.map((h, i) => ({
-      id: `${d.id}-e${i + 1}`, name: h.displayName, color: AGENT_COLOR[colorFor(h.definitionId, i)],
+      id: ids.get(h.definitionId) ?? `${d.id}-e${i + 1}`,
+      name: h.displayName, color: AGENT_COLOR[colorFor(h.definitionId, i)],
     })),
     startedAt: new Date().toISOString(),
   };
@@ -72,7 +79,19 @@ export const memoryStore: Store = {
     const d = bag.get(id);
     if (!d) throw new AppError('not_found', `work ${id} not found`, undefined, 'その計画は見つかりませんでした');
     if (d.approved) return;                      // 二度押しは何もしない
-    bag.set(id, { ...d, approved: true, live: live(d) });
+    // 提案した社員を採用する（Supabase 版と同じ: 定義で引き当てて使い回す。通知は出さない）
+    const ids = new Map<string, string>();
+    d.hires.forEach((h, i) => {
+      let e = staff.find((x) => x.definitionId === h.definitionId && x.state !== 'retired');
+      if (!e) {
+        e = { id: `emp-${staff.length + 1}`, definitionId: h.definitionId, name: h.displayName,
+              color: AGENT_COLOR[colorFor(h.definitionId, i)], state: 'idle',
+              hiredAt: new Date().toISOString() };
+        staff.push(e);
+      }
+      ids.set(h.definitionId, e.id);
+    });
+    bag.set(id, { ...d, approved: true, live: live(d, ids) });
   },
 
   async revise(id, next) {
@@ -260,7 +279,16 @@ export const memoryStore: Store = {
     return id;
   },
 
-  async listSkills() { return [...skills]; },
+  async listSkills() {
+    // 1枚も無ければ標準スキルを播く（元々の機能。どの会社にも最初からある）
+    if (skills.length === 0) {
+      for (const b of BUILTIN_SKILLS) {
+        skills.push({ id: `sk-${skills.length + 1}`, name: b.name, filename: b.filename,
+                      on: true, scope: 'company', used: 0, source: 'builtin', body: b.body });
+      }
+    }
+    return [...skills];
+  },
 
   async setSkill(id, on) {
     const sk = skills.find((x) => x.id === id);
@@ -269,12 +297,34 @@ export const memoryStore: Store = {
 
   async addSkill(x) {
     skills.push({ id: `sk-${skills.length + 1}`, name: x.name, filename: x.filename,
-                  on: true, scope: 'company', used: 0, body: x.body });
+                  on: true, scope: 'company', used: 0, source: 'user', body: x.body });
   },
 
   async removeSkill(id) {
-    const i = skills.findIndex((x) => x.id === id);
+    const i = skills.findIndex((x) => x.id === id && x.source === 'user');
     if (i >= 0) skills.splice(i, 1);
+  },
+
+  async bumpSkillUse(ids) {
+    for (const sk of skills) if (ids.includes(sk.id)) sk.used += 1;
+  },
+
+  /* ══════════════ 学び ══════════════ */
+
+  async learnings(employeeId) {
+    return [...(learned.get(employeeId) ?? [])];
+  },
+
+  async addLearnings(employeeId, lines) {
+    const cur = learned.get(employeeId) ?? [];
+    const next = [...cur, ...lines.map((l) => l.trim()).filter(Boolean)];
+    learned.set(employeeId, next.slice(-30)); // 上限30行。あふれたら古いものから
+  },
+
+  async setLearnings(employeeId, lines) {
+    const next = lines.map((l) => l.trim()).filter(Boolean);
+    if (next.length) learned.set(employeeId, next);
+    else learned.delete(employeeId);
   },
 
   async companyName() { return 'あなたの会社'; },
@@ -407,6 +457,7 @@ const g2 = globalThis as unknown as {
   __threads?: ChatThread[];
   __msgs?: Map<string, ChatMsg[]>;
   __skills?: SkillRow[];
+  __learned?: Map<string, string[]>;
   __morning?: Set<string>;
 };
 const runs = (g2.__runs ??= new Map());
@@ -415,6 +466,7 @@ const notesRead = (g2.__notesRead ??= new Set<number>());
 const threads = (g2.__threads ??= []);
 const msgs = (g2.__msgs ??= new Map<string, ChatMsg[]>());
 const skills = (g2.__skills ??= []);
+const learned = (g2.__learned ??= new Map<string, string[]>());
 const morningDays = (g2.__morning ??= new Set<string>());
 const g3 = globalThis as unknown as { __decs?: LiveDecision[]; __staff?: LiveEmployee[] };
 const decisions = (g3.__decs ??= []);

@@ -57,7 +57,8 @@ export default function SkillsPage() {
   const reload = useCallback(() => { skillsList().then(setRows); }, []);
   useEffect(reload, [reload]);
 
-  const all = rows ?? [];
+  // 学びは社員のメモなので、ここには並べない（見る場所はメンバーの設定ペイン）
+  const all = (rows ?? []).filter((x) => x.source !== 'learned');
   const pick = useRef<HTMLInputElement>(null);
   /** ファイルを選ぶ窓を開く。**押す口は3つ**（見出しの ⬆ / 点線の枠 / 落とす）ので1か所にまとめる */
   const choose = useCallback(() => pick.current?.click(), []);
@@ -97,9 +98,10 @@ export default function SkillsPage() {
             <input ref={pick} type="file" accept=".md" multiple hidden
                    onChange={(e) => { read(e.target.files); e.target.value = ''; }} />
 
+            {/* 標準スキルが播かれるので、空になるのはぜんぶ無効にして消したときだけ */}
             {rows !== null && all.length === 0 && (
               <span style={{ display: 'block', padding: '14px 0 4px', color: T5, fontSize: 12.5 }}>
-                まだありません。スキル＝**必要なときだけ**読む手順書。読み込むと、AI社員が仕事のなかで使います
+                まだありません。スキル＝必要なときだけ読む手順書。読み込むと、AI社員が仕事のなかで使います
               </span>
             )}
             {all.map((s, i) => (
@@ -108,8 +110,12 @@ export default function SkillsPage() {
                 borderBottom: i === all.length - 1 ? undefined : `1px solid ${HAIR}`,
               }}>
                 <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <span style={{ color: s.on ? T1 : T4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {s.name}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ color: s.on ? T1 : T4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {s.name}
+                    </span>
+                    {/* 元々の機能としてのスキル。**見えるが、消せない**（切るのはできる） */}
+                    {s.source === 'builtin' && <span style={{ color: T5, fontSize: 10.5, flexShrink: 0 }}>標準</span>}
                   </span>
                   <span style={{ color: T5, fontSize: 11, fontFamily: 'ui-monospace, monospace' }}>{s.filename}</span>
                 </div>
@@ -120,10 +126,13 @@ export default function SkillsPage() {
                 <span {...pressable(() => toggle(s))} onClick={(e) => { e.stopPropagation(); toggle(s); }}>
                   <Toggle on={s.on} />
                 </span>
-                <button className="icob" title="削除" style={{ display: 'inline-flex', padding: 3 }}
-                  onClick={(e) => { e.stopPropagation(); remove(s); }}>
-                  <Icon name="trash" color={DIM} size={14} />
-                </button>
+                {/* ゴミ箱は自分で読み込んだものだけ。標準スキルは消せない */}
+                {s.source === 'user' && (
+                  <button className="icob" title="削除" style={{ display: 'inline-flex', padding: 3 }}
+                    onClick={(e) => { e.stopPropagation(); remove(s); }}>
+                    <Icon name="trash" color={DIM} size={14} />
+                  </button>
+                )}
               </div>
             ))}
 

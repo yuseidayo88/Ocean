@@ -6,13 +6,13 @@ import { useOpen } from '@/lib/use-open';
 import { Go as Link } from '@/components/ui/Go';
 import { Centre, Composer, Pane, Section, TopBar } from '@/components/shell/Chrome';
 import { EffortInline, ModelInline, Toggle } from '@/components/shell/Controls';
-import { COMPOSER_H, EDGE, GREEN, GREEN_T, HAIR, MUTE, RAIL, RULE, SEAM, T2, T3, T4, T5 } from '@/lib/design/tokens';
+import { COMPOSER_H, DIM, EDGE, GREEN, GREEN_T, HAIR, MUTE, RAIL, RULE, SEAM, T2, T3, T4, T5 } from '@/lib/design/tokens';
 import { Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
 import { EFFORT_WORDS, EXEC, MODELS } from '@/lib/view/model';
 import { pressable } from '@/lib/a11y';
 import { listEmployees } from '@/app/actions/run';
-import { skillsList, skillToggle } from '@/app/actions/live';
+import { learningsGet, learningsSet, skillsList, skillToggle } from '@/app/actions/live';
 import { definitionOf } from '@/lib/roster';
 import type { LiveEmployee, SkillRow } from '@/lib/store';
 import { useShell } from '@/components/shell/Shell';
@@ -276,6 +276,10 @@ function SettingsPane({ who, l, skills, onToggle, onClose }: {
           ))}
         </Section>
 
+        {/* 学び＝この社員が仕事から書き溜めたメモ。**次の実行の依頼文に載る**。
+            ルールにするかは社長が決める（自動では昇格しない） */}
+        {who === 'employee' && <Learnings employeeId={l.id} />}
+
         {/* ルール＝毎回効く制約。定義の Critical Rules は消せない */}
         {who === 'employee' && l.rules.length > 0 && (
           <Section label="ルール">
@@ -327,5 +331,47 @@ function SettingsPane({ who, l, skills, onToggle, onClose }: {
         )}
       </div>
     </Pane>
+  );
+}
+
+/**
+ * 学び。実行の終わりに社員が note_learning で書き溜めたもの（最大30行）。
+ * **見える・消せる** — 見えないところで社員が変わっていかないための欄。
+ * ルールへの昇格は自動でしない（ルールは毎回効く制約。増やすのは社長の判断）。
+ */
+function Learnings({ employeeId }: { employeeId: string }) {
+  const [lines, setLines] = useState<string[] | null>(null);
+  useEffect(() => {
+    let on = true;
+    learningsGet(employeeId).then((ls) => { if (on) setLines(ls); });
+    return () => { on = false; };
+  }, [employeeId]);
+
+  const drop = async (i: number) => {
+    const next = (lines ?? []).filter((_, k) => k !== i);
+    setLines(next);
+    await learningsSet(employeeId, next);
+  };
+
+  if (!lines || lines.length === 0) return null; // まだ無いなら節ごと出さない
+  return (
+    <Section label="学び">
+      {lines.map((r, i) => (
+        <div key={`${i}-${r}`} style={{
+          display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0',
+          borderBottom: i === lines.length - 1 ? undefined : `1px solid ${HAIR}`,
+        }}>
+          <span style={{ color: T2, fontSize: 12.5, lineHeight: '19px' }}>{r}</span>
+          <div style={{ flex: 1 }} />
+          <button className="icob" title="この学びを消す" style={{ display: 'inline-flex', padding: 3, flexShrink: 0 }}
+            onClick={() => drop(i)}>
+            <Icon name="close" color={DIM} size={12} />
+          </button>
+        </div>
+      ))}
+      <span style={{ display: 'block', paddingTop: 8, color: T5, fontSize: 11.5 }}>
+        仕事の終わりに社員が書き溜めます。次の実行の依頼文に載る — 合わないものは消してください
+      </span>
+    </Section>
   );
 }
