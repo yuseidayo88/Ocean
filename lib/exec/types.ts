@@ -66,4 +66,9 @@ export type Finding = {
   title: string; why: string;
   evidence: string[];
   work: { title: string; goal: string; weeks: number };
+  /**
+   * もう Work にしたなら、その id。**候補の `adopted_work_id` と同じ役目** —
+   * これが無いと、戻って押すたびに同じ Work が何本でも立つ（入口2つで守りが食い違う）
+   */
+  workId?: string;
 };

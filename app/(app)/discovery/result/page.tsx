@@ -8,6 +8,7 @@ import { useOpen, useParam } from '@/lib/use-open';
 import { Centre, Composer, Pane, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Icon } from '@/components/ui/Icon';
 import { pressable } from '@/lib/a11y';
+import { conditionChips } from '@/lib/live/conditions';
 import { discoveryGet, adoptCandidate } from '@/app/actions/entry';
 import type { Discovery } from '@/lib/store';
 import { BLUE, COMPOSER_H, EDGE, GREEN, GREEN_T, HAIR, RED_T, SUNK, T2, T3, T4, T5 } from '@/lib/design/tokens';
@@ -20,17 +21,6 @@ import { BLUE, COMPOSER_H, EDGE, GREEN, GREEN_T, HAIR, RED_T, SUNK, T2, T3, T4, 
 const AXES: [string, keyof Discovery['candidates'][number]['fit']][] = [
   ['立ち上がりの速さ', 'speed'], ['初期費用の低さ', 'cost'], ['強みとの相性', 'strength'],
 ];
-
-function chipsOf(d: Discovery): [string, string][] {
-  const c = d.conditions;
-  const out: [string, string][] = [];
-  if (c.hoursPerWeek != null) out.push(['使える時間', `週${c.hoursPerWeek}時間`]);
-  if (c.budgetJpy != null) out.push(['元手', `〜${Math.round(c.budgetJpy / 10000)}万円`]);
-  if (c.strengths.length) out.push(['強み', c.strengths.join(' · ')]);
-  if (c.avoid.length) out.push(['避ける', c.avoid.join(' · ')]);
-  if (c.deadline) out.push(['期限', c.deadline]);
-  return out;
-}
 
 function Result() {
   const router = useRouter();
@@ -74,7 +64,7 @@ function Result() {
           flexShrink: 0, display: 'flex', alignItems: 'center', gap: 18,
           padding: '0 26px', height: 44, borderBottom: `1px solid ${HAIR}`,
         }}>
-          {chipsOf(d).map(([k, v]) => (
+          {conditionChips(d.conditions).map(([k, v]) => (
             <span key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
               <Icon name="check" color={GREEN_T} size={11} width={2.4} />
               <span style={{ color: T5, fontSize: 11 }}>{k}</span>
@@ -82,7 +72,9 @@ function Result() {
             </span>
           ))}
           <div style={{ flex: 1 }} />
-          <Link href={`/discovery?s=${d.id}` as Route} className="lnk" style={{ color: T4, fontSize: 12 }}>条件を変える</Link>
+          {/* **`edit=1` を付ける。** 付けないと、向こうの「候補が出ていれば結果へ」に
+              その場で跳ね返されて、条件を直す道が塞がる（押しても何も起きない） */}
+          <Link href={`/discovery?s=${d.id}&edit=1` as Route} className="lnk" style={{ color: T4, fontSize: 12 }}>条件を変える</Link>
         </div>
 
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: `20px 26px ${COMPOSER_H}px` }}>

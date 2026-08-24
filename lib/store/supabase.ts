@@ -1090,6 +1090,23 @@ export const supabaseStore: Store = {
     });
     if (error) throw new AppError('unknown', error.message);
   },
+
+  async linkFinding(profileId, index, workId) {
+    const c = await db();
+    // 最新の診断（画面が読んでいるもの）の findings に書き戻す
+    const { data } = await c.from('diagnoses')
+      .select('id, findings').eq('business_profile_id', profileId)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle();
+    if (!data) return false;
+    const findings = (data.findings ?? []) as NonNullable<Profile['diagnosis']>['findings'];
+    const f = findings[index];
+    if (!f) return false;
+    if (f.workId) return false; // もう立っている（二度目は立てない）
+    findings[index] = { ...f, workId };
+    const { error } = await c.from('diagnoses').update({ findings }).eq('id', data.id);
+    if (error) throw new AppError('unknown', error.message);
+    return true;
+  },
 };
 
 

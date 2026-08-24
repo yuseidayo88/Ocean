@@ -24,17 +24,24 @@ export async function discoveryStep(
 ): Promise<DiscoverResult> {
   try {
     const s = store();
-    const id = sessionId ?? await s.createDiscovery();
-    const cur = (await s.getDiscovery(id))?.conditions ?? { strengths: [], avoid: [] };
-    const out = await discoverStep(cur, text.trim(), force);
+    /**
+     * **URL の `?s=` を信じない。** 消えた探索（デモはサーバー入れ替えで消える／
+     * 他人の id）に書きにいくと、memory は無言 return・supabase は0行更新や FK 違反で、
+     * **deep の1往復ぶんを払ってから**入力が消える。無ければ作り直す
+     */
+    let id = sessionId ?? '';
+    let cur = id ? await s.getDiscovery(id) : null;
+    if (!cur) { id = await s.createDiscovery(); cur = await s.getDiscovery(id); }
+    const before = cur?.conditions ?? { strengths: [], avoid: [] };
+    const out = await discoverStep(before, text.trim(), force);
 
     // 統括AIが写した差分を、いまの条件に重ねる（言っていない項目は前のまま）
     const merged: Conditions = {
-      hoursPerWeek: out.conditions.hoursPerWeek ?? cur.hoursPerWeek ?? null,
-      budgetJpy: out.conditions.budgetJpy ?? cur.budgetJpy ?? null,
-      strengths: out.conditions.strengths ?? cur.strengths,
-      avoid: out.conditions.avoid ?? cur.avoid,
-      deadline: out.conditions.deadline ?? cur.deadline ?? null,
+      hoursPerWeek: out.conditions.hoursPerWeek ?? before.hoursPerWeek ?? null,
+      budgetJpy: out.conditions.budgetJpy ?? before.budgetJpy ?? null,
+      strengths: out.conditions.strengths ?? before.strengths,
+      avoid: out.conditions.avoid ?? before.avoid,
+      deadline: out.conditions.deadline ?? before.deadline ?? null,
     };
     await s.setConditions(id, merged, out.real);
 
@@ -92,7 +99,10 @@ export async function importAdd(
   if (!locator) return { ok: false, message: '取り込むものを教えてください' };
   try {
     const s = store();
-    const id = profileId ?? await s.createProfile('わたしの事業');
+    // `?p=` も信じない（`?s=` と同じ理由）。消えていたら作り直す
+    let id = profileId ?? '';
+    if (id && !(await s.getProfile(id))) id = '';
+    if (!id) id = await s.createProfile('わたしの事業');
     await s.addSource(id, {
       kind: src.kind, locator,
       summary: src.summary?.slice(0, 4000) || undefined,
@@ -132,13 +142,17 @@ export async function findingToWork(profileId: string, index: number): Promise<S
     const p = await s.getProfile(profileId);
     const f = p?.diagnosis?.findings[index];
     if (!p || !f) return { ok: false, need: 'error', message: 'その診断は見つかりませんでした' };
+    // もう立てたものは二度立てない（候補の adopted_work_id と同じ守り）
+    if (f.workId) return { ok: true, id: f.workId, real: p.diagnosis?.real ?? true };
     const goal = [
       `${f.work.title}をやりたい`,
       `終わり: ${f.work.goal}`,
       `背景: ${p.name} の診断で「${f.title}」（${f.why}）`,
       ...(f.evidence.length ? [`根拠: ${f.evidence.join(' / ')}`] : []),
     ].join('\n');
-    return await startWork(goal);
+    const r = await startWork(goal);
+    if (r.ok) await s.linkFinding(profileId, index, r.id);
+    return r;
   } catch (e) {
     return { ok: false, need: 'error', message: sayError(e, 'Work を立てられませんでした') };
   }

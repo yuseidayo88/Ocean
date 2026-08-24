@@ -9,7 +9,7 @@ import { Icon, type IconName } from '@/components/ui/Icon';
 import { pressable } from '@/lib/a11y';
 import { importAdd, profileGet, runDiagnosis } from '@/app/actions/entry';
 import type { Profile, SourceRow } from '@/lib/store';
-import { BLUE, BLUE_T, COMPOSER_H, DIM, GREEN, HAIR, MUTE, RED_T, RULE, SUNK, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
+import { BLUE, BLUE_T, COMPOSER_H, DIM, HAIR, RED_T, RULE, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
 /**
  * ⓪-c 事業の取り込み（Case D）。**取り込んだものは本当に保存される**（`imported_sources`）。
  *
@@ -46,12 +46,30 @@ function Import() {
   const reload = useCallback((id: string) => { profileGet(id).then(setP); }, []);
   useEffect(() => { if (pid) reload(pid); }, [pid, reload]);
 
-  const add = async (src: { locator: string; kind: 'site' | 'doc' | 'sheet'; summary?: string }) => {
+  /**
+   * **同時に足しても、事業は1つ。**
+   * 2枚まとめて落とすと `add` が同時に走り、どちらも「まだ事業が無い」を見て
+   * 別々の事業を作ってしまう（資料が2つに散る）。**1本の列に並べて**、
+   * 先頭が作った id を ref で次に渡す（state の反映を待たない）。
+   */
+  const pidRef = useRef(pid);
+  useEffect(() => { if (pid) pidRef.current = pid; }, [pid]);
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
+
+  const add = (src: { locator: string; kind: 'site' | 'doc' | 'sheet'; summary?: string }) => {
     setFail('');
-    const r = await importAdd(pid || null, src);
-    if (!r.ok) { setFail(r.message); return; }
-    if (!pid) setPid(r.id);
-    reload(r.id);
+    queue.current = queue.current.then(async () => {
+      const r = await importAdd(pidRef.current || null, src);
+      if (!r.ok) { setFail(r.message); return; }
+      pidRef.current = r.id;
+      setPid(r.id);
+      reload(r.id);
+    /**
+     * **列を詰まらせない。** catch が無いと、1回の失敗で列が拒否済みのまま残り、
+     * 以後どの資料も `.then` が呼ばれずに黙って捨てられる（開き直すまで死ぬ）
+     */
+    }).catch(() => { setFail('取り込めませんでした。もう一度お試しください'); });
+    return queue.current;
   };
 
   const readFiles = (files: FileList | null) => {
@@ -111,8 +129,9 @@ function Import() {
               background: over ? 'rgba(26,115,232,0.06)' : undefined,
               transition: 'border-color .14s ease, background-color .14s ease',
             }}>
+            {/* URL と数字の入れ方は入力欄の placeholder が言っている。ここで言い直さない */}
             <Icon name="upload" color={over ? BLUE_T : T4} size={19} />
-            <span style={{ color: T4, fontSize: 12.5 }}>資料をここへ。サイトのURLと数字は下の入力欄から</span>
+            <span style={{ color: T4, fontSize: 12.5 }}>資料をここへ</span>
             <span style={{ color: DIM, fontSize: 11 }}>.md · .txt · .csv</span>
           </button>
           <input ref={pick} type="file" accept=".md,.txt,.csv,.tsv" multiple hidden
@@ -127,39 +146,34 @@ function Import() {
               <span style={{ color: T5, fontSize: 12 }} className="tnum">· {sources.length}</span>
             </div>
             {/* 1件1行。種類は右に列として並べ、進み具合は棒で見せる */}
-            {sources.map((s, i) => {
-              const pct = s.status === 'done' ? 100 : 0;
-              return (
-                <div key={s.id} className="row" {...pressable(() => setOpen(s.id))} style={{
-                  display: 'flex', alignItems: 'center', gap: 14, height: 43,
-                  borderBottom: i === sources.length - 1 ? undefined : `1px solid ${HAIR}`,
-                }}>
-                  <Icon name={ICON_OF[s.kind]} color={s.status === 'queued' ? `${DIM}` : T4} size={15} />
-                  <span style={{
-                    flex: 1, minWidth: 0, color: s.status === 'queued' ? T4 : T1,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>{s.locator}</span>
-                  <span style={{ width: 140, flexShrink: 0, color: T5, fontSize: 11 }}>
-                    {KIND_JA[s.kind]}{s.summary ? ` · ${s.summary.length.toLocaleString()}字` : ''}
-                  </span>
-                  <span style={{ width: 66, flexShrink: 0, height: 4, borderRadius: 2, background: SUNK, overflow: 'hidden' }}>
-                    <span style={{ display: 'block', width: `${pct}%`, height: '100%', background: s.status === 'done' ? GREEN : MUTE }} />
-                  </span>
-                  <span style={{
-                    width: 44, flexShrink: 0, textAlign: 'right', fontSize: 12,
-                    color: s.status === 'failed' ? RED_T : s.status === 'done' ? T4 : T5,
-                  }}>{STATE_JA[s.status]}</span>
-                </div>
-              );
-            })}
+            {/* **進捗の棒は置かない。** 0か100しか取らないので進捗ではないし、
+                右の状態の語とまったく同じことを言っている（二度言い） */}
+            {sources.map((s, i) => (
+              <div key={s.id} className="row" {...pressable(() => setOpen(s.id))} style={{
+                display: 'flex', alignItems: 'center', gap: 14, height: 43,
+                borderBottom: i === sources.length - 1 ? undefined : `1px solid ${HAIR}`,
+              }}>
+                <Icon name={ICON_OF[s.kind]} color={s.status === 'queued' ? `${DIM}` : T4} size={15} />
+                <span style={{
+                  flex: 1, minWidth: 0, color: s.status === 'queued' ? T4 : T1,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>{s.locator}</span>
+                <span style={{ width: 160, flexShrink: 0, color: T5, fontSize: 11 }}>
+                  {KIND_JA[s.kind]}{s.summary ? ` · ${s.summary.length.toLocaleString()}字` : ''}
+                </span>
+                <span style={{
+                  width: 44, flexShrink: 0, textAlign: 'right', fontSize: 12,
+                  color: s.status === 'failed' ? RED_T : s.status === 'done' ? T4 : T5,
+                }}>{STATE_JA[s.status]}</span>
+              </div>
+            ))}
           </div>
           )}
 
           {sources.length > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            {busy
-              ? <ExecStatus state="thinking" />
-              : <span style={{ color: T5, fontSize: 12.5 }}>そろったら診断します。あとから足すこともできます</span>}
+            {/* ボタンが言っていることを文章で言い直さない */}
+            {busy && <ExecStatus state="thinking" />}
             <div style={{ flex: 1 }} />
             <button onClick={diagnose} disabled={busy} className="solid" style={{
               display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px',

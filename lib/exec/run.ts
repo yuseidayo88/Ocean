@@ -2,7 +2,8 @@ import { hasKey, providerFor, type Msg, type ModelProvider } from '@/lib/ai';
 import { FakeProvider } from '@/lib/ai/fake';
 import { CONSTITUTION } from './constitution';
 import { PHASE5_TOOLS } from './tools';
-import type { Container, Draft, Hire, Plan, Question } from './types';
+import { checkStop, toOptions, toQuestions } from './parse';
+import type { Container, Draft, Hire, Plan } from './types';
 import { AppError } from '@/lib/errors';
 
 /**
@@ -61,14 +62,7 @@ export async function draftWork(goal: string, ctx = ''): Promise<RunResult> {
    * 枠に当たって切れたのか、断られたのかが分からないまま
    * 「統括AIが入れ物を決めませんでした」だけが出ていた。
    */
-  if (stop === 'max_tokens' || stop === 'length') {
-    throw new AppError('upstream', `stopped at max_tokens (tools: ${[...got.keys()].join(',')})`,
-      undefined, '計画が長すぎて途中で切れました。ゴールを短く書き直してみてください');
-  }
-  if (stop === 'refusal') {
-    throw new AppError('upstream', 'model refused',
-      undefined, '統括AIがこの依頼には応えられませんでした');
-  }
+  checkStop(stop, got.keys(), '計画が長すぎて途中で切れました。ゴールを短く書き直してみてください');
 
   // 終わりが言えないときは、入れ物に入れずにここで止まる
   const end = got.get('ask_end');
@@ -76,7 +70,7 @@ export async function draftWork(goal: string, ctx = ''): Promise<RunResult> {
     return { real, draft: {
       kind: 'need_end',
       body: String(end.body ?? '何ができたら終わりですか。'),
-      options: (end.options as Draft extends never ? never : { label: string; description: string }[]) ?? [],
+      options: toOptions(end.options),
     } };
   }
 
@@ -89,7 +83,8 @@ export async function draftWork(goal: string, ctx = ''): Promise<RunResult> {
   return { real, draft: {
     kind: 'draft',
     container: toContainer(c),
-    questions: (got.get('ask')?.questions as Question[]) ?? [],
+    // **型を被せるだけにしない。** options が落ちた質問は板で落ちる（→ parse.ts）
+    questions: toQuestions(got.get('ask')?.questions),
     hires: toHires(got.get('propose_hires')?.hires as Record<string, string>[] | undefined),
     plan: toPlan(got.get('draft_plan')),
   } };

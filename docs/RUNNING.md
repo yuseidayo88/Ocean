@@ -106,6 +106,7 @@ psql "$DATABASE_URL" -f supabase/migrations/0017_skills_learned.sql
 psql "$DATABASE_URL" -f supabase/migrations/0018_run_model.sql
 psql "$DATABASE_URL" -f supabase/migrations/0019_entry_columns.sql
 psql "$DATABASE_URL" -f supabase/migrations/0020_candidate_why.sql
+psql "$DATABASE_URL" -f supabase/migrations/0021_discovery_no_delete.sql
 ```
 
 `0003` は RLS と、不変条件をデータベース側で守るためのトリガを入れます。
@@ -164,7 +165,7 @@ RLS の with check は `account_id = private.current_account_id()` のままな�
 | 進捗は導出値。直接書けない | トリガ `tasks_progress_is_derived`<br>（列単位の revoke は表単位の権限があると効かない） |
 | 残高は台帳の合計 | 関数 `account_balance_cents` |
 | 実行の原価は必ず記帳される | トリガ `run_ledger`（0014）。アプリは `token_ledger` に書けない（残高の偽造を防ぐ）。実測 500 − 48 = 452 |
-| 候補は消さない | `revoke delete`（rule だと cascade が壊れて退会できなくなる） |
+| 候補は消さない | `revoke delete`（rule だと cascade が壊れて退会できなくなる）。**親も塞ぐ**（0021）— `discovery_candidates` だけ revoke しても、`discovery_sessions` の DELETE が残っていれば cascade で候補ごと消せた（実測: authenticated に DELETE あり・FK は cascade）|
 | **決定も消さない** | `revoke delete`（0013）。追記のみの引き金は UPDATE しか見ておらず、DELETE が素通りだった |
 | 退会したらデータも消える | トリガ `users_drop_empty_account` |
 | 会社をまたいで見えない | 全27表の RLS（実測） |

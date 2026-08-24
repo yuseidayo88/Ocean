@@ -543,6 +543,14 @@ export const memoryStore: Store = {
     if (!p) return;
     p.diagnosis = { facts: d.facts, findings: d.findings, real: d.real, at: new Date().toISOString() };
   },
+
+  async linkFinding(profileId, index, workId) {
+    const f = profiles.get(profileId)?.diagnosis?.findings[index];
+    if (!f) return false;
+    if (f.workId) return false; // もう立っている（二度目は立てない）
+    f.workId = workId;
+    return true;
+  },
 };
 
 /** run と通知の置き場（メモリ版だけの裏方） */

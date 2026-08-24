@@ -1,0 +1,19 @@
+-- 不変条件 9 の抜け道を塞ぐ（0013 が decisions でやったのと同じ形）。
+--
+-- 0003 は `revoke delete on discovery_candidates` で「候補は消せない」を表したが、
+-- **親の discovery_sessions には DELETE が残っていた**。
+-- discovery_candidates.session_id は on delete cascade（0002）なので、
+--   delete from discovery_sessions where id = <自分の探索>
+-- の1本で、採用しなかった候補ごと全部消える。
+--
+-- 実測（2026-08-24）:
+--   authenticated の権限  discovery_sessions   = DELETE,INSERT,SELECT,UPDATE,…
+--                        discovery_candidates = INSERT,SELECT,UPDATE,…（DELETE 無し）
+--   FK の confdeltype     = 'c'（cascade）
+--
+-- アプリは探索を消す道を持たない（やめるときは status='abandoned'）。
+-- 親を消せることに、「選ばなかった道を消す」以外の意味は無い。
+--
+-- 退会は壊れない: accounts からの cascade は表の所有者として走るので、
+-- ロールへの revoke は効かない（0003 の注釈と同じ理由）。
+revoke delete on discovery_sessions from authenticated, anon;

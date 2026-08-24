@@ -3,19 +3,25 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Route } from 'next';
+import { Go as Link } from '@/components/ui/Go';
 import { useOpen, useParam } from '@/lib/use-open';
 import { Centre, Composer, Pane, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { pressable } from '@/lib/a11y';
 import { findingToWork, profileGet } from '@/app/actions/entry';
 import type { Profile } from '@/lib/store';
-import { AMBER_T, BLUE, COMPOSER_H, HAIR, MUTE, RED_T, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
+import { BLUE, COMPOSER_H, EDGE, HAIR, MUTE, RED_T, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
 /**
  * ⓪-d 診断結果（Case D）。中身は**統括AIが出した実物**（`diagnoses`）。
  * **診断は必ず「次に何をするか（Work）」まで持つ** — 見つけたことを並べて終わりにしない。
  * 「この Work を立てる」で Case A と同じ道（計画→承認）に入る。
  */
 
-const WEIGHT: Record<string, string> = { '重い': RED_T, '中くらい': AMBER_T, '軽い': MUTE };
+/**
+ * **重さは明るさで言う。色は使わない。**
+ * 赤＝止まっている・遅れている / 橙＝あなたが決める・見る の2つしか意味を持たないので、
+ * 診断の重さはどちらでもない（測れていないことも、停止ではない）。
+ */
+const WEIGHT: Record<string, string> = { '重い': T2, '中くらい': T4, '軽い': MUTE };
 
 function Diagnosis() {
   const router = useRouter();
@@ -51,6 +57,8 @@ function Diagnosis() {
   const selIdx = Math.max(dg.findings.findIndex((f) => f.title === open), 0);
   const sel = open ? dg.findings[selIdx] : undefined;
   const top = dg.findings[0];
+  /** まだ Work になっていない先頭。全部立て終わっていれば -1 */
+  const next = dg.findings.findIndex((f) => !f.workId);
 
   return (
     <>
@@ -78,8 +86,9 @@ function Diagnosis() {
                 borderRight: i === dg.facts.length - 1 ? undefined : `1px solid ${HAIR}`,
               }}>
                 <span style={{ color: T4, fontSize: 12 }}>{f.label}</span>
-                <span style={{ fontSize: 24, lineHeight: '30px', color: f.missing ? RED_T : T1 }} className="tnum">{f.value}</span>
-                {f.note && <span style={{ color: f.missing ? RED_T : T5, fontSize: 11 }}>{f.note}</span>}
+                {/* 測れていない数字は「—」そのものが答え。赤にしない（停止ではない） */}
+                <span style={{ fontSize: 24, lineHeight: '30px', color: f.missing ? T4 : T1 }} className="tnum">{f.value}</span>
+                {f.note && <span style={{ color: T5, fontSize: 11 }}>{f.note}</span>}
               </div>
             ))}
           </div>
@@ -93,11 +102,11 @@ function Diagnosis() {
               <span style={{ color: T5, fontSize: 12 }}>効きそうな順</span>
             </div>
             {dg.findings.map((f, i) => (
+              /* 色帯は置かない — 右端の語とまったく同じ事実で、二度言いになる */
               <div key={f.title} className="row" {...pressable(() => setOpen(f.title))} style={{
                 display: 'flex', alignItems: 'center', gap: 14, padding: '13px 0',
                 borderBottom: i === dg.findings.length - 1 ? undefined : `1px solid ${HAIR}`,
               }}>
-                <span style={{ width: 3, height: 30, borderRadius: 2, background: WEIGHT[f.severity] ?? MUTE, flexShrink: 0 }} />
                 <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.title}</span>
                   {/* 本物の文は長い。切らずに折り返す */}
@@ -106,20 +115,24 @@ function Diagnosis() {
                 <div style={{ flex: 1 }} />
                 <span style={{ width: 56, flexShrink: 0, textAlign: 'right', color: WEIGHT[f.severity] ?? MUTE, fontSize: 11.5 }}>{f.severity}</span>
                 <span style={{ width: 220, flexShrink: 0, textAlign: 'right', color: T4, fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  Work「{f.work.title}」
+                  {/* もう立てたものは、そう出す（無いものは無いと出す、の裏返し） */}
+                  {f.workId ? 'Work にした' : `Work「${f.work.title}」`}
                 </span>
               </div>
             ))}
           </div>
 
+          {/* まだ Work になっていないものが残っているときだけ、先頭を勧める */}
+          {next >= 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <span style={{ color: T3, fontSize: 13 }}>1件ずつ Work にします</span>
             <div style={{ flex: 1 }} />
-            <button onClick={() => start(0)} disabled={busy} className="solid" style={{
+            <button onClick={() => start(next)} disabled={busy} className="solid" style={{
               display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px',
               borderRadius: 8, background: BLUE, color: '#fff', opacity: busy ? 0.6 : 1,
             }}>{busy ? '計画を引いています…' : 'いちばん上から始める'}</button>
           </div>
+          )}
         </div>
         <Composer placeholder="診断について統括AIに聞く" />
       </Centre>
@@ -150,10 +163,18 @@ function Diagnosis() {
         </div>
         <div style={{ flexShrink: 0, display: 'flex', padding: 16, borderTop: `1px solid ${HAIR}` }}>
           <div style={{ flex: 1 }} />
-          <button onClick={() => start(selIdx)} disabled={busy} className="solid" style={{
-            display: 'inline-flex', alignItems: 'center', height: 38, padding: '0 20px',
-            borderRadius: 8, background: BLUE, color: '#fff', opacity: busy ? 0.6 : 1,
-          }}>{busy ? '計画を引いています…' : 'この Work を立てる'}</button>
+          {/* **もう立てたなら、立て直させない。** 行き先はその Work の計画へ */}
+          {sel.workId ? (
+            <Link href={`/work/${sel.workId}` as Route} className="btn" style={{
+              display: 'inline-flex', alignItems: 'center', height: 38, padding: '0 20px',
+              borderRadius: 8, border: `1px solid ${EDGE}`, color: T2,
+            }}>Work を見る</Link>
+          ) : (
+            <button onClick={() => start(selIdx)} disabled={busy} className="solid" style={{
+              display: 'inline-flex', alignItems: 'center', height: 38, padding: '0 20px',
+              borderRadius: 8, background: BLUE, color: '#fff', opacity: busy ? 0.6 : 1,
+            }}>{busy ? '計画を引いています…' : 'この Work を立てる'}</button>
+          )}
         </div>
       </Pane>
       )}

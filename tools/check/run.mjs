@@ -134,6 +134,18 @@ await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.include
 const cands = await until((b) => b.includes('おすすめ'), 15, 800);
 ok('候補が3つ出て推しが立つ', cands.includes('おすすめ') && cands.includes('教材') && cands.includes('在庫を持つ'),
    cands.slice(0, 100));
+
+// **「条件を変える」が跳ね返らない。** 候補が出たあと条件を直す道が塞がっていた
+const resultUrl = await ev('location.href');
+await ev(`[...document.querySelectorAll('a')].find(a => a.innerText === '条件を変える')?.click()`);
+// 集めた条件（チップ）は読み戻しなので、それが出るまで待つ
+const backToCond = await until((b) => b.includes('週10時間'), 12, 600);
+ok('条件を変える で条件の画面に留まる',
+   backToCond.includes('先に条件だけ') && backToCond.includes('週10時間')
+     && /^\/discovery\?/.test(await ev('location.pathname + location.search')),
+   `${await ev('location.pathname + location.search')} ${backToCond.slice(0, 40)}`);
+await send('Page.navigate', { url: resultUrl }); await wait(2000);
+
 await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('この案ではじめる'))?.click()`);
 const planB = await until((b) => b.includes('承認して始める'), 15, 800);
 ok('候補から Work の計画に入った', planB.includes('承認して始める') && /\/plan$/.test(await ev('location.pathname')),
@@ -141,28 +153,46 @@ ok('候補から Work の計画に入った', planB.includes('承認して始め
 
 // ⑤''' 入口 Case D — 取り込む → 診断 → 見つかったことから Work 化
 await send('Page.navigate', { url: `${BASE}/import` }); await wait(2200);
-const say = async (msg) => {
+const say = async (msg, after = 1200) => {
   await ev(`(() => { const t = document.querySelector('textarea');
     Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(t, ${JSON.stringify(msg)});
     t.dispatchEvent(new Event('input', { bubbles: true })); t.focus(); })()`);
   await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
   await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
-  await wait(1200);
+  if (after) await wait(after);
 };
 await say('月の売上は412,000円。1回3,500円のレッスンを月8回で売っている。');
 await say('nihongo-lesson.jp');
 const srcs = await until((b) => b.includes('1 / 2 完了'), 10, 800);
 ok('取り込みが保存される（完了と待機）', srcs.includes('書いて渡した') && srcs.includes('待機'), srcs.slice(0, 100));
+
+// **待たずに2件足す。** 事業がまだ無い状態で同時に走ると、別々の事業が2つできて
+// 資料が散る（実際そうなっていた）。1本の列に並べたので、4件が1つの事業に載る
+await say('生徒は23人。新規4・解約3。', 0);
+await say('サイトの来訪は月1,840、申込12。', 0);
+const race = await until((b) => /[23] \/ 4 完了/.test(b), 12, 800);
+ok('同時に足しても事業は1つ（4件が1つに載る）', /[23] \/ 4 完了/.test(race), race.match(/\d \/ \d 完了/)?.[0] ?? race.slice(0, 60));
 await ev(`[...document.querySelectorAll('button')].find(b => b.innerText === '診断する')?.click()`);
 const diag = await until((b) => b.includes('いちばん効く'), 15, 800);
 ok('診断が数字と見つかったことを出す',
    diag.includes('継続率を測れていない') && diag.includes('412,000') && diag.includes('nihongo-lesson.jp'),
    diag.slice(0, 120));
 ok('診断が Work の提案まで持つ', diag.includes('Work「継続率を見えるようにする」'), diag.slice(0, 120));
+const diagUrl = await ev('location.href');
 await ev(`[...document.querySelectorAll('button')].find(b => b.innerText === 'いちばん上から始める')?.click()`);
 const planD = await until((b) => b.includes('承認して始める'), 15, 800);
 ok('診断から Work の計画に入った', planD.includes('承認して始める') && /\/plan$/.test(await ev('location.pathname')),
    await ev('location.pathname'));
+
+// **戻って押しても、同じ Work は二度立たない。** 候補側の adopted_work_id と同じ守り
+await send('Page.navigate', { url: diagUrl });
+const again = await until((b) => b.includes('Work にした'), 12, 800);
+ok('立てた診断は「Work にした」に変わる', again.includes('Work にした'), again.slice(0, 120));
+await ev(`[...document.querySelectorAll('.row')].find(r => r.innerText.includes('継続率'))?.click()`);
+await wait(700);
+const dpane2 = await ev(`document.querySelector('aside')?.innerText ?? ''`);
+ok('もう立てたものは「Work を見る」になる',
+   dpane2.includes('Work を見る') && !dpane2.includes('この Work を立てる'), dpane2.slice(-80));
 
 // ⑥ 埋まった状態のレイアウト。ダミーを消したので、**ここでしか測れない**
 //    （ホーム4ビューは Work が動いてはじめて絵になる）

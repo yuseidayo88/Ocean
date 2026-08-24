@@ -3,6 +3,7 @@ import { AppError } from '@/lib/errors';
 import { CONSTITUTION } from './constitution';
 import { pickProvider } from './run';
 import { ask } from './tools';
+import { checkStop, finite, score, toQuestions } from './parse';
 import { describeBusiness, proposeCandidates, reportDiagnosis, reportFacts, setConditions } from './entry-tools';
 import type { CandidateDraft, Conditions, Fact, Finding, Question } from './types';
 
@@ -63,20 +64,24 @@ export async function discoverStep(
     system: CONSTITUTION + '\n' + DISCOVER_GUIDE,
     messages,
     tools: [setConditions, ask, proposeCandidates],
-    maxTokens: 8000,
+    /**
+     * 候補3つ（それぞれ理由3行）と質問を1往復で書かせる。**8,000 では切れる** —
+     * 切れると道具が1つも届かず、無言の空振りになる（→ 下の checkStop）。
+     */
+    maxTokens: 16000,
     effort: 'high',
   })) {
     if (c.type === 'tool_use') got.set(c.name, (c.input ?? {}) as Record<string, unknown>);
     if (c.type === 'done') stop = c.stopReason;
   }
-  if (stop === 'refusal') {
-    throw new AppError('upstream', 'model refused', undefined, '統括AIがこの依頼には応えられませんでした');
-  }
+  checkStop(stop, got.keys(), '統括AIの返事が長すぎて途中で切れました。条件を短く書いてみてください');
 
   const cRaw = got.get('set_conditions') ?? {};
   const conditions: Partial<Conditions> = {};
-  if (cRaw.hours_per_week != null) conditions.hoursPerWeek = Number(cRaw.hours_per_week);
-  if (cRaw.budget_jpy != null) conditions.budgetJpy = Number(cRaw.budget_jpy);
+  const hours = finite(cRaw.hours_per_week);
+  if (hours !== undefined) conditions.hoursPerWeek = hours;
+  const budget = finite(cRaw.budget_jpy);
+  if (budget !== undefined) conditions.budgetJpy = budget;
   if (Array.isArray(cRaw.strengths) && cRaw.strengths.length) conditions.strengths = cRaw.strengths.map(String);
   if (Array.isArray(cRaw.avoid) && cRaw.avoid.length) conditions.avoid = cRaw.avoid.map(String);
   if (cRaw.deadline != null && cRaw.deadline !== '') conditions.deadline = String(cRaw.deadline);
@@ -86,24 +91,29 @@ export async function discoverStep(
       name: String(x.name ?? ''), summary: String(x.summary ?? ''),
       why: Array.isArray(x.why) ? x.why.map(String) : [],
       fit: {
-        speed: num((x.fit as Record<string, unknown>)?.speed),
-        cost: num((x.fit as Record<string, unknown>)?.cost),
-        strength: num((x.fit as Record<string, unknown>)?.strength),
+        speed: score((x.fit as Record<string, unknown>)?.speed),
+        cost: score((x.fit as Record<string, unknown>)?.cost),
+        strength: score((x.fit as Record<string, unknown>)?.strength),
       },
       recommended: !!x.recommended,
       notChosenWhy: x.not_chosen_why ? String(x.not_chosen_why) : undefined,
     }))
     .filter((x) => x.name);
 
-  return {
-    real, conditions,
-    // 候補が出たら、質問は出さない（両方来ても候補が勝つ — 板と結果画面を同時に出さない）
-    questions: cands.length ? [] : ((got.get('ask')?.questions as Question[]) ?? []),
-    candidates: cands,
-  };
-}
+  // 候補が出たら、質問は出さない（両方来ても候補が勝つ — 板と結果画面を同時に出さない）
+  const questions = cands.length ? [] : toQuestions(got.get('ask')?.questions);
 
-const num = (v: unknown) => Math.max(0, Math.min(100, Number(v ?? 0) || 0));
+  /**
+   * **黙って何も起きない、を作らない。** 条件も質問も候補も無い往復は、
+   * 社長から見れば「押したのに画面が変わらない」でしかない。
+   */
+  if (!cands.length && !questions.length && !Object.keys(conditions).length) {
+    throw new AppError('upstream', `no tools (stop=${stop}, tools: ${[...got.keys()].join(',') || 'なし'})`,
+      undefined, '統括AIが応えませんでした。もう一度お試しください');
+  }
+
+  return { real, conditions, questions, candidates: cands };
+}
 
 /* ══════════════ Case D — 取り込んだものから診断する ══════════════ */
 
@@ -142,15 +152,14 @@ export async function diagnoseRun(
       content: `取り込んだ材料:\n\n${material}\n\n道具を順に呼んでください。文章では答えないでください。`,
     }],
     tools: [describeBusiness, reportFacts, reportDiagnosis],
-    maxTokens: 8000,
+    // 数字の帯と見つかったこと（根拠と提案 Work つき）を1往復で。切れたら下で言う
+    maxTokens: 16000,
     effort: 'high',
   })) {
     if (c.type === 'tool_use') got.set(c.name, (c.input ?? {}) as Record<string, unknown>);
     if (c.type === 'done') stop = c.stopReason;
   }
-  if (stop === 'refusal') {
-    throw new AppError('upstream', 'model refused', undefined, '統括AIがこの依頼には応えられませんでした');
-  }
+  checkStop(stop, got.keys(), '診断が長すぎて途中で切れました。材料を減らしてお試しください');
 
   const findings = ((got.get('report_diagnosis')?.findings as Record<string, unknown>[]) ?? [])
     .map((f): Finding => ({

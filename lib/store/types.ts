@@ -266,6 +266,12 @@ export interface Store {
   setProfileMeta(id: string, m: { name?: string; stage?: string }): Promise<void>;
   /** 診断を書く（1回ぶん）。画面が読むのは最新の1件 */
   saveDiagnosis(profileId: string, d: { facts: Fact[]; findings: Finding[]; real: boolean }): Promise<void>;
+  /**
+   * 見つかったことが Work になった、を書き戻す（候補の `adopted_work_id` と同じ役目）。
+   * **もう立てたなら二度目は立てない** — 戻って押しても同じ Work が増えない。
+   * 書けたら true（すでに別の Work が刺さっていたら false）
+   */
+  linkFinding(profileId: string, index: number, workId: string): Promise<boolean>;
 
   /* ══════════════ 朝の報告 ══════════════ */
 
