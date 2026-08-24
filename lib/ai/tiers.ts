@@ -16,14 +16,14 @@ export interface TierSpec {
   vendor: Vendor
   /**
    * モデルの名前。**vendor によって書き方が違う。**
-   *   openrouter → `<提供元>/<モデル>`（例 `anthropic/claude-opus-5`）
-   *   anthropic / openai → そのまま（例 `claude-opus-5`）
+   *   openrouter → `<提供元>/<モデル>`（例 `openai/gpt-5.6-luna`）
+   *   anthropic / openai → そのまま（例 `gpt-5.6-luna`）
    */
   model: string
   /**
-   * **Anthropic 直**につないだときの名前。OpenRouter が使えないときの逃げ道。
-   * `vendor: 'openai'` に切り替えるなら、この表ごと OpenAI のモデル名に書き換えること
-   * （`direct` は Anthropic の名前しか持っていない）。
+   * **その提供元に直接つないだときの名前。** OpenRouter が使えないときの逃げ道で、
+   * `vendor` を `openai` / `anthropic` に書き換えたときに使われる。
+   * いまは3階層とも OpenAI なので、逃げ道も `openai`（`lib/ai/openai.ts`）。
    */
   direct: string
   /** 100万トークンあたりの単価（USD）。原価の計算に使う。**画面には出さない** */
@@ -32,51 +32,60 @@ export interface TierSpec {
 }
 
 /**
- * **単価は Anthropic 直の定価。** OpenRouter は推論に上乗せしないが、
- * クレジット購入時に手数料がかかる（BYOK なら当面ゼロ）。
- * ここは原価の見積もりに使うだけなので、定価で持つ。
+ * **通り道は OpenRouter、モデルは GPT-5.6 Luna**（2026-08-24 に社長が決めた）。
+ * 理由は速さ — 「latency-sensitive な用途向けの速い・安いモデル」として出ている。
+ *
+ * **3階層とも同じモデルにしてある。** これは階層の設計を捨てたのではなく、
+ * 「**深さ＝thinking の量。モデルは変わらない**」（→ CLAUDE.md）を素直に表した形。
+ * 違いは `reasoning_effort` で付く（fast/standard は low、統括AIの計画は high）。
+ * 階層ごとに別のモデルを当てたくなったら、この表を書き換えるだけで戻せる。
+ *
+ * **単価は OpenRouter の実測値**（2026-08-24 に `GET /api/v1/models` で確認）。
+ * 27万トークンを超えると $0.4 / $1.8 に上がるが、こちらの依頼文はその桁に届かない
+ * （いちばん長い統括AIの計画でも 16,000）ので、平の単価だけを持つ。
  */
 export const TIER_TABLE: Record<Tier, TierSpec> = {
-  // 軽い作業を速く。出力は「指示」ではなく「データ」を書かせる
+  // 軽い作業を速く（チャットの返事・成果物への一言）
   fast: {
-    vendor: 'openrouter', model: 'anthropic/claude-haiku-4.5', direct: 'claude-haiku-4-5',
-    inPerMTok: 1, outPerMTok: 5,
+    vendor: 'openrouter', model: 'openai/gpt-5.6-luna', direct: 'gpt-5.6-luna',
+    inPerMTok: 0.2, outPerMTok: 1.2,
   },
-  // ふだんの仕事
+  // ふだんの仕事（AI社員の実行）
   standard: {
-    vendor: 'openrouter', model: 'anthropic/claude-sonnet-5', direct: 'claude-sonnet-5',
-    inPerMTok: 3, outPerMTok: 15,
+    vendor: 'openrouter', model: 'openai/gpt-5.6-luna', direct: 'gpt-5.6-luna',
+    inPerMTok: 0.2, outPerMTok: 1.2,
   },
   // むずかしい判断。統括AI（計画・判断・会話）は常にここ
   deep: {
-    vendor: 'openrouter', model: 'anthropic/claude-opus-5', direct: 'claude-opus-5',
-    inPerMTok: 5, outPerMTok: 25,
+    vendor: 'openrouter', model: 'openai/gpt-5.6-luna', direct: 'gpt-5.6-luna',
+    inPerMTok: 0.2, outPerMTok: 1.2,
   },
 }
 
 /**
- * **試すあいだ、ただで動かすためのモデル。**
+ * **ただで動かしたいときのモデル**（既定では使わない）。
  *
  * `stealth/ox-alpha`（Ox Alpha）— $0/M・道具（tools）対応・100万トークン。
- * 稼働 99.99%（実測 2026-08-24）。統括AIは1往復で道具を5つ呼ぶので、
- * **tools 対応であることが絶対条件**。無料モデルの多くは非対応で、そこで落ちる。
+ * 統括AIは1往復で道具を5つ呼ぶので、**tools 対応であることが絶対条件**。
+ * 無料モデルの多くは非対応で、そこで落ちる。
  *
- * **本番では使わない。** `stealth/` は前触れなく消える枠なので、
- * `APP_ENV=production`（Cloudflare の本番。`wrangler.jsonc`）では表のモデルに戻る。
- * env で明示すれば、そちらが常に勝つ。
+ * **既定から外した**（2026-08-24）。前は「本番以外は自動でこれ」だったので、
+ * 表を書き換えても本番以外には効かず、**社長が選んだモデルで動いていなかった**。
+ * ただで回したいときだけ `OPENROUTER_FREE_TEST=1` で明示的に呼ぶ。
+ * `stealth/` は前触れなく消える枠なので、本番では使わない（下で弾く）。
  */
 export const TEST_MODEL = 'stealth/ox-alpha'
 
 /**
  * その階層で実際に呼ぶモデルを決める。順番は
  *   ① env の指定（`OPENROUTER_MODEL_DEEP` など）
- *   ② 本番でなければ**ただのモデル**
- *   ③ 表のモデル（有料）
+ *   ② `OPENROUTER_FREE_TEST=1` かつ本番でなければ**ただのモデル**
+ *   ③ 表のモデル（既定）
  */
 export function modelFor(tier: Tier): string {
   const named = process.env[`OPENROUTER_MODEL_${tier.toUpperCase()}`]
   if (named) return named
-  if (process.env.APP_ENV !== 'production') return TEST_MODEL
+  if (process.env.OPENROUTER_FREE_TEST === '1' && process.env.APP_ENV !== 'production') return TEST_MODEL
   return TIER_TABLE[tier].model
 }
 

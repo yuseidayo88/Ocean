@@ -74,8 +74,7 @@ npx wrangler dev --local --env preview   # workerd（本番と同じ形）
   "ok": true,
   "runtime": "Cloudflare-Workers",
   "supabase": true,
-  "models": { "anthropic": false, "openai": false },
-  "tiers": { "fast": "claude-haiku-4-5-20251001", "standard": "claude-sonnet-5", "deep": "claude-opus-5" }
+  "model": true
 }
 ```
 
@@ -196,25 +195,28 @@ RLS の with check は `account_id = private.current_account_id()` のままな�
 `GET https://openrouter.ai/api/v1/models` でモデルの slug
 （`anthropic/claude-opus-5` の綴り）／ プロンプトキャッシュの透過 ／ `usage` の中身。
 
-### 試すあいだは、ただで動く
+### どのモデルで動くか
 
 **鍵を入れるだけでいい。** `OPENROUTER_API_KEY` があれば、
-**本番以外では自動で無料のモデル**（`stealth/ox-alpha` — Ox Alpha）を使う。
-残高が 0 でも動く。切り替えは `modelFor()`（`lib/ai/tiers.ts`）の3段:
+**どこでも表のモデル**（`TIER_TABLE` — いまは3階層とも `openai/gpt-5.6-luna`）で動く。
+切り替えは `modelFor()`（`lib/ai/tiers.ts`）の3段:
 
 | 順 | 何を見るか | いつ使われるか |
 |---|---|---|
 | ① | `OPENROUTER_MODEL_DEEP` / `_STANDARD` / `_FAST` | 明示したとき。**常に最優先** |
-| ② | `TEST_MODEL`（`stealth/ox-alpha`） | `APP_ENV` が `production` でないとき |
-| ③ | `TIER_TABLE` のモデル（Claude・有料） | 本番（`wrangler.jsonc` が `APP_ENV=production` を入れる） |
+| ② | `TEST_MODEL`（`stealth/ox-alpha`） | `OPENROUTER_FREE_TEST=1` かつ本番でないとき |
+| ③ | `TIER_TABLE` のモデル | **既定**（本番も、それ以外も） |
 
-Ox Alpha を選んだ理由（実測 2026-08-24）— **$0/M** ／ **tools 対応**
+**②は既定から外した**（2026-08-24）。前は「本番以外は自動で Ox Alpha」だったので、
+表を書き換えても本番以外には効かず、**社長が選んだモデルで動いていなかった**。
+ただで回したいときだけ `OPENROUTER_FREE_TEST=1` を明示する。
+
+Ox Alpha の実測（2026-08-24）— **$0/M** ／ **tools 対応**
 （統括AIは1往復で道具を5つ呼ぶので**これが絶対条件**。無料モデルの多くは非対応で落ちる）
 ／ 100万トークン ／ 稼働 99.99%。**`stealth/` は前触れなく消える枠**なので本番では使わない。
-
-**遅い。** p50 5秒・p90 35秒・p99 96秒（Stealth プロバイダの実測）。
-`app/(app)/layout.tsx` の `maxDuration = 300` はこのため。
-無料モデルは賢さが足りず「統括AIが入れ物を決めませんでした」で止まることもある。
+そして**遅い** — p50 5秒・p90 35秒・p99 96秒。これが既定から外した直接の理由。
+`app/(app)/layout.tsx` の `maxDuration = 300` はこの名残（Luna でも上限は据え置く）。
+無料モデルは賢さも足りず「統括AIが入れ物を決めませんでした」で止まることがある。
 それは**モデルの限界で、コードの穴ではない**（配線の確認までが無料枠の仕事）。
 
 無料モデルは https://openrouter.ai/settings/privacy で

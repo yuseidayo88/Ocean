@@ -277,7 +277,7 @@ Anthropic 直に戻したので、Managed Agents はまた選べます。それ�
 | | 前 | いま |
 |---|---|---|
 | 通り道 | Anthropic 直 ＋ OpenAI 直 | **OpenRouter**（`lib/ai/openrouter.ts`） |
-| モデルの名前 | `claude-opus-5` | `anthropic/claude-opus-5`（`TIER_TABLE.model`） |
+| モデルの名前 | `claude-opus-5` | `openai/gpt-5.6-luna`（`TIER_TABLE.model`。2026-08-24 に変更 → 下の判断ログ） |
 | 直つなぎ | 既定 | **残してある**（`TIER_TABLE.direct` と `vendor` の書き換えだけで戻る） |
 | 鍵 | `ANTHROPIC_API_KEY` | `OPENROUTER_API_KEY` |
 
@@ -291,8 +291,8 @@ Anthropic 直に戻したので、Managed Agents はまた選べます。それ�
    → **`provider` の指定でルーティングを固定する**（`only` / `order`）。
    固定しないまま公開しない。**Phase 11（課金と公開）までに決める。**
 2. **ガードレールの不揃い。** モデルごとに断る基準が違うと挙動が揃わない。
-   → いまは3階層とも Anthropic のモデルなので当面ずれない。
-   安いモデルに替えるときに、あらためて考える。
+   → いまは3階層とも同じモデル（GPT-5.6 Luna）なのでずれない。
+   階層ごとに別のモデルを当てるときに、あらためて考える。
 3. **キャッシュとエラー形式。** 上の表の「間に1枚入る」はそのまま残る。
    Anthropic 直のときに書いていた `cache_control` は、いまの実装では渡していない。
 
@@ -301,14 +301,34 @@ Anthropic 直に戻したので、Managed Agents はまた選べます。それ�
 **`openrouter.ai` に出られない**（egress で塞がれている）ので、
 ドキュメントに当たれていない。鍵が入ったら**最初にこの3つ**を確かめる。
 
-1. **モデルの slug。** `anthropic/claude-opus-5` / `anthropic/claude-sonnet-5` /
-   `anthropic/claude-haiku-4.5` の綴り → `GET /api/v1/models` で一覧が取れる
+1. ~~**モデルの slug。**~~ → **確かめた**（2026-08-24）。`GET /api/v1/models` に
+   `openai/gpt-5.6-luna` が実在し、**tools 対応**（統括AIは1往復で道具を5つ呼ぶので絶対条件）／
+   コンテキスト 105万 ／ `reasoning_effort` は max・xhigh・high・medium・low・none の6段
 2. **プロンプトキャッシュが透過するか。** 透過するなら `cache_control` の渡し方
 3. **`usage` に何が入るか。** キャッシュの読み書き量が取れないと、原価が読めない
 
-**単価（`TIER_TABLE`）は Anthropic 直の定価のまま**にしてある。
+**単価（`TIER_TABLE`）は OpenRouter の実測値**（$0.2 / $1.2 per M。2026-08-24 に一覧で確認）。
+27万トークンを超えると $0.4 / $1.8 に上がるが、こちらの依頼文はその桁に届かない。
 OpenRouter は推論に上乗せしないが、クレジット購入時に 5.5%、BYOK は
 月100万リクエストまで無料・超過分5%。**原価を出すときは手数料を別に足す。**
+
+### 判断ログ（2026-08-24）— モデルを GPT-5.6 Luna にした
+
+**社長の判断: 返事が遅いので、モデルを OpenAI: GPT-5.6 Luna に変える。**
+
+遅さの正体は**モデルではなく `modelFor()` の既定**だった。
+「本番以外は自動で無料の Ox Alpha」になっていたので、表を書き換えても本番以外には効かず、
+**社長が選んだモデルで動いていなかった**（Ox Alpha の実測は p50 5秒・p90 35秒・p99 96秒）。
+
+- `TIER_TABLE` の3階層とも `openai/gpt-5.6-luna`。単価も実測値に差し替えた
+- **無料のテストモデルは既定から外し**、`OPENROUTER_FREE_TEST=1` のときだけにした
+- **3階層が同じモデルなのは、階層の設計を捨てたのではない。**
+  「深さ＝thinking の量。モデルは変わらない」を素直に表した形で、
+  違いは `reasoning_effort` で付く（fast / standard は low、統括AIの計画は high）
+- 引き受けた宿題: **統括AIの計画（deep）も Luna になった。**
+  Luna は速さと安さのモデルなので、計画の質は前より落ちうる。
+  質が要るなら `openai/gpt-5.6-luna-pro`（同じ単価・`reasoning.mode=pro`）に
+  deep だけ差し替えられる — 表の1行で戻せる
 
 ## 1 Work あたりの原価
 
