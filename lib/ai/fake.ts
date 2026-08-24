@@ -260,15 +260,18 @@ async function* fakeDiscover(input: RunInput): AsyncIterable<Chunk> {
   if (hours) put.hours_per_week = Number(hours);
   const man = said.match(/〜?~?(\d+)\s*万円/)?.[1];
   if (man) put.budget_jpy = Number(man) * 10000;
-  const strong = said.match(/(?:得意|強み)[はがの: ：]*\s*([^\n]+)/)?.[1];
-  if (strong) put.strengths = strong.split(/[・、,\s]+/).filter(Boolean).slice(0, 3);
+  // **文の終わりで止める。** `[^\n]+` だと次の文まで飲み込んで、
+  // 「得意 = 日本語教育と韓国語。元手は50万円まで。」が条件になる（実際そうなった）
+  const words = (s: string) => s.split(/[・、,\sと]+/).map((x) => x.trim()).filter(Boolean).slice(0, 3);
+  const strong = said.match(/(?:得意|強み)[はがの: ：]*\s*([^\n。．]+)/)?.[1];
+  if (strong) put.strengths = words(strong);
   // 板からの答えは「質問 → 答え」の形で来る。質問文を条件に混ぜない
   const arrow = said.match(/(.+?)\s*→\s*(.+)/);
   if (arrow && /やりたくない/.test(arrow[1])) {
     put.avoid = [arrow[2].trim()];
   } else if (!arrow) {
-    const no = said.match(/(?:やりたくない|避けたい)(?:こと)?[はの: ：]*\s*([^\n]+)/)?.[1];
-    if (no) put.avoid = no.split(/[・、,\s]+/).filter(Boolean).slice(0, 3);
+    const no = said.match(/(?:やりたくない|避けたい)(?:こと)?[はの: ：]*\s*([^\n。．]+)/)?.[1];
+    if (no) put.avoid = words(no);
   }
   if (Object.keys(put).length) yield tool('set_conditions', put);
 
@@ -296,7 +299,7 @@ async function* fakeDiscover(input: RunInput): AsyncIterable<Chunk> {
   const s = merged.strengths?.[0] ?? '得意なこと';
   yield tool('propose_candidates', { candidates: [
     {
-      name: `${s}を生かしたオンラインサービス`.slice(0, 20),
+      name: `${s}のオンライン講座`.slice(0, 20),
       summary: `${s}の経験がそのまま差になります。在庫を持たず、週${merged.hours_per_week ?? 10}時間から始められます。`,
       why: [
         `${s}の経験が、そのまま他社との差になります`,
@@ -306,13 +309,13 @@ async function* fakeDiscover(input: RunInput): AsyncIterable<Chunk> {
       fit: { speed: 86, cost: 92, strength: 94 }, recommended: true,
     },
     {
-      name: `${s}の教材・テンプレ販売`.slice(0, 20),
+      name: `${s}の教材販売`.slice(0, 20),
       summary: '作れば売れ続けますが、最初の1本を作り切るまでが長い。',
       why: [], fit: { speed: 42, cost: 88, strength: 70 }, recommended: false,
       not_chosen_why: '最初の1本が長く、途中で判断材料が出ない',
     },
     {
-      name: `企業むけ ${s}の研修`.slice(0, 20),
+      name: `企業むけ ${s}研修`.slice(0, 20),
       summary: '単価は高いが、営業に人前へ出る時間が要ります。',
       why: [], fit: { speed: 64, cost: 76, strength: 48 }, recommended: false,
       not_chosen_why: merged.avoid?.length ? `「${merged.avoid[0]}」を外したいという条件に合わない` : '営業の時間が条件に合わない',

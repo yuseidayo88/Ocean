@@ -29,6 +29,16 @@ const until = async (test, tries = 40, step = 1200) => {
 let bad = 0;
 const ok = (name, pass, saw = '') => { console.log(`${pass ? '✓' : '✗'} ${name}${pass ? '' : `  ← ${String(saw).slice(0, 90)}`}`); if (!pass) bad++; };
 
+/** 入力欄に書いて送る。`after=0` で返りを待たない（同時操作を試すとき） */
+const say = async (msg, after = 1200) => {
+  await ev(`(() => { const t = document.querySelector('textarea');
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(t, ${JSON.stringify(msg)});
+    t.dispatchEvent(new Event('input', { bubbles: true })); t.focus(); })()`);
+  await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+  await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+  if (after) await wait(after);
+};
+
 await send('Runtime.enable'); await send('Page.enable');
 await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
 
@@ -122,6 +132,15 @@ ok('標準スキルが見えている', sk.includes('標準') && sk.includes('�
 ok('スキルが実行で読まれた（used_count）', /\d+回/.test(sk), sk.match(/[^\n]*回[^\n]*/)?.[0]);
 
 // ⑤'' 入口 Case B — 条件を集める → 候補3つ → 選んで Work 化
+// **まず1通で条件が2つ以上そろう道**を通す（ここだけ穴が残っていた —
+// setSid の URL 書き戻しが router.push を潰して「考えています」で永久に止まっていた）
+await send('Page.navigate', { url: `${BASE}/discovery` }); await wait(2200);
+await say('使えるのは週10時間です。得意は日本語教育。元手は50万円まで。');
+const oneShot = await until((b) => b.includes('おすすめ'), 15, 800);
+ok('1通で条件がそろえば、そのまま候補へ',
+   oneShot.includes('おすすめ') && /\/discovery\/result/.test(await ev('location.pathname')),
+   await ev('location.pathname'));
+
 await send('Page.navigate', { url: `${BASE}/discovery` }); await wait(2200);
 await ev(`(() => { const t = document.querySelector('textarea');
   Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(t, '使えるのは週10時間です');
@@ -153,14 +172,6 @@ ok('候補から Work の計画に入った', planB.includes('承認して始め
 
 // ⑤''' 入口 Case D — 取り込む → 診断 → 見つかったことから Work 化
 await send('Page.navigate', { url: `${BASE}/import` }); await wait(2200);
-const say = async (msg, after = 1200) => {
-  await ev(`(() => { const t = document.querySelector('textarea');
-    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(t, ${JSON.stringify(msg)});
-    t.dispatchEvent(new Event('input', { bubbles: true })); t.focus(); })()`);
-  await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
-  await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
-  if (after) await wait(after);
-};
 await say('月の売上は412,000円。1回3,500円のレッスンを月8回で売っている。');
 await say('nihongo-lesson.jp');
 const srcs = await until((b) => b.includes('1 / 2 完了'), 10, 800);

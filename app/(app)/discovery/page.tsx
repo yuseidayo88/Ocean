@@ -76,9 +76,15 @@ function Discovery() {
       .finally(() => { running.current = false; });
     if (!r.ok) { setBusy(false); setFail(r.message); return; }
     sidRef.current = r.id;
+    /**
+     * **移るときは、この画面の URL を書かない。**
+     * `setSid` は「描き終わってから `history.replaceState`」で URL を書く（→ `useParam`）。
+     * これを `router.push` の前に置くと、**遷移したあとに書き戻して行き先を潰す** —
+     * 最初の1通で条件が2つそろうと、「考えています」のまま二度と進まなくなっていた。
+     */
+    if (r.kind === 'proposed') { router.push(`/discovery/result?s=${r.id}` as Route); return; }
     if (!sid) setSid(r.id);
     setFake(!r.real);
-    if (r.kind === 'proposed') { router.push(`/discovery/result?s=${r.id}` as Route); return; }
     setCond(r.conditions);
     setQs(r.questions); setQi(0);
     setBusy(false);
