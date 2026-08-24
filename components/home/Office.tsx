@@ -4,7 +4,7 @@ import { useRef } from 'react';
 import { Orb } from '@/components/ui/Orb';
 import { AMBER, AMBER_T, EASE, EXEC, FAINT, RED, T1, T2, T3, T5, WELL } from '@/lib/design/tokens';
 import { useSize } from '@/lib/use-size';
-import { AGENT_COLOR, WORKS, employee } from '@/lib/dummy';
+import type { Work } from '@/lib/view/model';
 
 /**
  * オフィス＝1枚の絵だけ。
@@ -84,7 +84,7 @@ function Star({ color, on }: { color: string; on: boolean }) {
   );
 }
 
-export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) => void }) {
+export function Office({ works: given, lit, onHover }: { works: Work[]; lit?: string; onHover?: (id: string) => void }) {
   const box = useRef<HTMLDivElement>(null);
   const { w: OW, h: OH } = useSize(box);
   const CX = OW / 2, CY = OH / 2;
@@ -100,26 +100,28 @@ export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) 
     return `M ${x0} ${y0} A ${rx} ${ry} 0 ${p1 - p0 > 50 ? 1 : 0} 1 ${x1} ${y1}`;
   };
 
-  /** 判断待ちの Work をいちばん内側へ。あとは Work の並びのまま */
-  const works = [...WORKS].sort((a, b) => Number(!!b.gate) - Number(!!a.gate));
+  /** 判断待ちの Work をいちばん内側へ。あとは Work の並びのまま。輪は3本まで（外は畳む） */
+  const works = [...given].sort((a, b) => Number(!!b.gate) - Number(!!a.gate)).slice(0, 3);
 
   const rings: React.ReactNode[] = [];
   const orbits: React.ReactNode[] = [];
   const labels: React.ReactNode[] = [];
-  const people: { x: number; y: number; id: string; gate: boolean; phase: string; in: string }[] = [];
+  const people: { x: number; y: number; id: string; gate: boolean; phase: string; in: string;
+                  name: string; color: string; run: boolean }[] = [];
 
   works.forEach((w, i) => {
     const [rx, ry] = RINGS[i];
     const R = w.ring;
-    const lead = Math.max(...R.crew.map((c) => c.at));
+    const lead = R.crew.length ? Math.max(...R.crew.map((c) => c.at)) : -1;
     const phase = w.phases[w.phaseIndex - 1]?.name ?? '';
     /**
      * **輪は 0% から今の割合まで引かれる。** 進み具合そのものが動きになる。
      * 位置（%）を時間に写すので、引き継ぎの矢羽根も社員も、
      * 弧がそこに届いた瞬間に出る（あとから足したように見えない）。
      */
-    const at = (pct: number) => (0.06 + i * 0.05 + (pct / R.tip) * SWEEP).toFixed(3);
-    const span = (a: number, b: number) => (((b - a) / R.tip) * SWEEP).toFixed(3);
+    const tipSafe = Math.max(R.tip, 1);
+    const at = (pct: number) => (0.06 + i * 0.05 + (pct / tipSafe) * SWEEP).toFixed(3);
+    const span = (a: number, b: number) => (((b - a) / tipSafe) * SWEEP).toFixed(3);
 
     const parts: React.ReactNode[] = [
       <ellipse key="e" cx={CX} cy={CY} rx={rx} ry={ry} fill="none" stroke="#1B1B1B" strokeWidth={1} />,
@@ -128,7 +130,7 @@ export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) 
     ];
     let from = 0;
     R.segs.forEach((sg, k) => {
-      const col = AGENT_COLOR[employee(sg.owner).color];
+      const col = sg.color;
       parts.push(<path key={`a${k}`} d={arc(rx, ry, from, sg.to)} fill="none" stroke={col}
                        strokeWidth={2.6} strokeLinecap="round" opacity={0.95}
                        pathLength={1} strokeDasharray={1}
@@ -148,10 +150,10 @@ export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) 
       }
       from = sg.to;
     });
-    /* 先端の尾。**動いているものにだけ引く** */
-    const tipCol = AGENT_COLOR[employee(R.segs[R.segs.length - 1].owner).color];
-    ([[1.6, 2.6, 0.9], [4, 2, 0.5], [6.8, 1.5, 0.26]] as const).forEach(([back, r, o], k) => {
-      const [x, y] = on(rx, ry, R.tip - back);
+    /* 先端の尾。**動いているものにだけ引く**（弧の無い輪＝まだ始まっていない輪には引かない） */
+    const tipCol = R.segs.length ? R.segs[R.segs.length - 1].color : '#3A3A3A';
+    if (R.tip > 0) ([[1.6, 2.6, 0.9], [4, 2, 0.5], [6.8, 1.5, 0.26]] as const).forEach(([back, r, o], k) => {
+      const [x, y] = on(rx, ry, Math.max(R.tip - back, 0));
       parts.push(<circle key={`t${k}`} cx={x} cy={y} r={r} fill={tipCol} opacity={o}
                          style={{ animation: `flowfade ${DOT} ${at(R.tip)}s backwards` }} />);
     });
@@ -213,7 +215,8 @@ export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) 
 
     R.crew.forEach((c) => {
       const [x, y] = on(rx, ry, c.at);
-      people.push({ x, y, id: c.id, gate: !!c.gate, phase: c.at === lead ? phase : '', in: at(c.at) });
+      people.push({ x, y, id: c.id, gate: !!c.gate, phase: c.at === lead ? phase : '', in: at(c.at),
+                    name: c.name, color: c.color, run: !!c.run });
     });
   });
 
@@ -255,9 +258,8 @@ export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) 
         * **動いている人は、その線の上を自分の色の粒が統括AIへ流れる。**
         * 止まっている人の線には何も流れない（演出ではなく、そのままの事実）。
         */}
-      {people.map(({ x, y, id }) => {
+      {people.map(({ x, y, id, run, color }) => {
         const dx = x - CX, dy = y - CY, len = Math.hypot(dx, dy);
-        const run = employee(id).state === '実行中';
         const w = r2(len - 50);
         return (
           <div key={`l-${id}-${x}`} style={{
@@ -269,7 +271,7 @@ export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) 
             {run && SEND.map(([dur, delay], k) => (
               <span key={k} style={{
                 position: 'absolute', left: w - 3, top: -3, width: 7, height: 7, borderRadius: 999,
-                background: `radial-gradient(circle, #FFFFFF 0%, ${AGENT_COLOR[employee(id).color]} 34%, transparent 70%)`,
+                background: `radial-gradient(circle, #FFFFFF 0%, ${color} 34%, transparent 70%)`,
                 ['--len' as string]: `${-w}px`,
                 animation: `travel ${dur}s linear ${(delay + Number(SWEEP)).toFixed(2)}s infinite`,
               }} />
@@ -307,8 +309,7 @@ export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) 
         <span style={{ whiteSpace: 'nowrap', fontSize: 13 }}>統括AI</span>
       </div>
 
-      {people.map(({ x, y, id, gate, phase, in: show }, i) => {
-        const e = employee(id);
+      {people.map(({ x, y, id, gate, phase, in: show, name, color }, i) => {
         return (
           /* **ゆらぎは中の層に掛ける。** 外側に掛けると transform が上書きされて
              真ん中合わせ（translate -50%）が消え、球が輪から半個ぶんずれる。
@@ -325,10 +326,10 @@ export function Office({ lit, onHover }: { lit?: string; onHover?: (id: string) 
               animation: `drift 6.5s ease-in-out ${(i * 1.4).toFixed(1)}s infinite`,
             }}>
               <span style={{ position: 'relative', display: 'flex' }}>
-                <Star color={AGENT_COLOR[e.color]} on={lit === id} />
-                <Orb color={AGENT_COLOR[e.color]} size={ORB} seed={e.name.length * 7 + 3} />
+                <Star color={color} on={lit === id} />
+                <Orb color={color} size={ORB} seed={name.length * 7 + 3} />
               </span>
-                <span style={{ color: lit === id ? `${T1}` : gate ? AMBER_T : T2, fontSize: 11.5 }}>{e.name}</span>
+                <span style={{ color: lit === id ? `${T1}` : gate ? AMBER_T : T2, fontSize: 11.5 }}>{name}</span>
               {phase && <span style={{ color: T5, fontSize: 10 }}>{phase}</span>}
             </span>
           </div>

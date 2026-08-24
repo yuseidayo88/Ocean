@@ -20,7 +20,12 @@ export type LiveWork = {
   id: string;
   title: string; goal: string;
   status: 'plan_review' | 'active' | 'paused' | 'done' | 'archived';
-  phases: { id: string; seq: number; name: string; goal: string; state: 'planned' | 'active' | 'review' | 'done' | 'skipped' }[];
+  phases: {
+    id: string; seq: number; name: string; goal: string;
+    state: 'planned' | 'active' | 'review' | 'done' | 'skipped';
+    /** 計画の週数（`plan_draft` から）。無い計画には無い — でっち上げない */
+    weeks?: number;
+  }[];
   tasks: {
     id: string; phaseId: string; title: string; intent: string; state: string;
     owner?: string;
@@ -39,6 +44,25 @@ export type LiveWork = {
 export type LiveDeliverable = {
   id: string; title: string; kind: string; state: string;
   preview?: string; body?: string; by?: string; when?: string; taskId?: string;
+};
+
+/** 通知1件。通知の画面（片づける場所）が読む */
+export type Note = {
+  id: string; kind: string; body: string;
+  at?: string; read?: boolean;
+  subjectType?: string; subjectId?: string;
+};
+
+/** チャットのスレッドと発言。会話は**ここに一本化**する（Work は会話を持たない） */
+export type ChatThread = { id: string; title: string; workId?: string; lastAt?: string };
+export type ChatMsg = { role: 'user' | 'executive'; body: string; at?: string };
+
+/** スキル（SKILL.md）1枚。employee_id が無ければ会社ぜんぶのスキル */
+export type SkillRow = {
+  id: string; name: string; filename: string; on: boolean;
+  scope: 'company' | 'employee'; used: number;
+  /** SKILL.md の中身。一覧では読まないこともある */
+  body?: string;
 };
 
 /** 実行の1歩。デスクの工程の行と、タスクの右ペインに出る */
@@ -168,6 +192,29 @@ export interface Store {
   ledger(): Promise<{ deltaCents: number; reason: string; when?: string }[]>;
   /** 枠に当たって止める。works → paused ＋ エラー通知 */
   pauseWork(workId: string, why: string): Promise<void>;
+
+  /* ══════════════ ゼロ状態（画面はぜんぶここを読む。ダミーは無い）══════════════ */
+
+  /** 会社の Work ぜんぶ（archived 以外・古い順）。ホーム4ビュー・一覧・タスクが読む */
+  listWorks(): Promise<LiveWork[]>;
+  /** 通知（新しい順）。通知の画面が読む */
+  listNotes(): Promise<Note[]>;
+  /** 通知を読んだことにする（開いたとき） */
+  readNote(id: string): Promise<void>;
+  /** チャット履歴（レール下段と会話画面） */
+  listThreads(): Promise<ChatThread[]>;
+  getThread(id: string): Promise<{ thread: ChatThread; messages: ChatMsg[] } | null>;
+  /** 発言を書く。threadId が null なら新しいスレッドを作る。返り値はスレッド id */
+  addChat(threadId: string | null, role: 'user' | 'executive', body: string, title?: string): Promise<string>;
+  /** スキル（SKILL.md）の一覧・有効の切り替え・追加・削除 */
+  listSkills(): Promise<SkillRow[]>;
+  setSkill(id: string, on: boolean): Promise<void>;
+  addSkill(s: { name: string; filename: string; body: string }): Promise<void>;
+  removeSkill(id: string): Promise<void>;
+  /** 会社の名前（パンくずの根）。登録時はメールが入っている */
+  companyName(): Promise<string>;
+  /** 最近の歩み（オフィスのログ）。誰が・何をしたか、新しい順 */
+  recentSteps(limit: number): Promise<{ at?: string; who: string; what: string }[]>;
 
   /* ══════════════ 朝の報告 ══════════════ */
 

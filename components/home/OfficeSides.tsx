@@ -6,10 +6,8 @@ import { openHref } from '@/lib/use-open';
 import { Orb } from '@/components/ui/Orb';
 import { useRail } from '@/lib/use-rail';
 import { AMBER, AMBER_T, DIM, EASE, GREEN, GREEN_T, HAIR, MUTE, RED_T, T2, T3, T4, T5 } from '@/lib/design/tokens';
-import {
-  AGENT_COLOR, EMPLOYEES, EVENTS, EXEC,
-  type Desk, type Employee, type Produce, type State,
-} from '@/lib/dummy';
+import { EXEC, type Event, type Produce } from '@/lib/view/model';
+import type { StaffCard } from '@/lib/live/home';
 
 /**
  * ホームのオフィスの、絵の外にあるもの。
@@ -33,7 +31,7 @@ const Mono = ({ t, c = DIM }: { t: string; c?: string }) => (
 
 // ── 右: 今日の出来事 ─────────────────────────────────────────
 
-export function OfficeLog({ w = 288 }: { w?: number }) {
+export function OfficeLog({ events, w = 288 }: { events: Event[]; w?: number }) {
   return (
     <div style={{
       width: w, flexShrink: 0, display: 'flex', flexDirection: 'column',
@@ -48,10 +46,15 @@ export function OfficeLog({ w = 288 }: { w?: number }) {
       </div>
       <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
         <div className="sy" style={{ position: 'absolute', inset: 0, paddingRight: 8 }}>
-          {EVENTS.map((e, i) => (
+          {events.length === 0 && (
+            <span style={{ display: 'block', paddingTop: 8, color: T5, fontSize: 11.5 }}>
+              まだ何も起きていません
+            </span>
+          )}
+          {events.map((e, i) => (
             <div key={`${e.at}-${i}`} style={{
               display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 0',
-              borderBottom: i === EVENTS.length - 1 ? undefined : '1px solid #131313',
+              borderBottom: i === events.length - 1 ? undefined : '1px solid #131313',
             }}>
               <span style={{ color: DIM, fontSize: 10.5, width: 34, flexShrink: 0, paddingTop: 1 }} className="tnum">{e.at}</span>
               <span style={{ color: T5, fontSize: 11, width: 52, flexShrink: 0, paddingTop: 1 }}>{e.who}</span>
@@ -128,8 +131,7 @@ function Steps({ done, all, color, run, w = 70 }: {
 }
 
 function Card({ who, first, lit, onHover }: {
-  who: { id: string; name: string; state: State; now: string; model: string; effort: number; desk: Desk; color: string };
-  first?: boolean; lit?: boolean; onHover?: (id: string) => void;
+  who: StaffCard; first?: boolean; lit?: boolean; onHover?: (id: string) => void;
 }) {
   const [dot, word] = STATE_C[who.state] ?? STATE_C['実行中'];
   const d = who.desk;
@@ -151,10 +153,6 @@ function Card({ who, first, lit, onHover }: {
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: 14 }}>
         <span style={{ width: 5, height: 5, borderRadius: 9, background: dot, flexShrink: 0 }} />
         <span style={{ color: word, fontSize: 10.5 }}>{who.state}</span>
-        {who.state === '要確認' && (
-          <Link href="/deliverables?open=d-rev" className="hit"
-                style={{ width: 9, height: 11, border: `1px solid ${AMBER}`, borderRadius: 2, flexShrink: 0 }} />
-        )}
         <span style={{ color: T5, fontSize: 10.5, whiteSpace: 'nowrap' }}>·  {who.model} · 深さ {who.effort}</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, height: 17 }}>
@@ -162,12 +160,14 @@ function Card({ who, first, lit, onHover }: {
         <div style={{ flex: 1 }} />
         {d.el && <Mono t={d.el} c={T5} />}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9, height: 14 }}>
-        <Steps done={d.step.done} all={d.step.all} color={who.color} run={who.state === '実行中'} />
-        <span style={{ color: T5, fontSize: 10.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {d.step.done} / {d.step.all} · {d.step.name}
-        </span>
-      </div>
+      {d.step.all > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, height: 14 }}>
+          <Steps done={d.step.done} all={d.step.all} color={who.color} run={who.state === '実行中'} />
+          <span style={{ color: T5, fontSize: 10.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {d.step.done} / {d.step.all} · {d.step.name}
+          </span>
+        </div>
+      )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, height: 13 }}>
         <Meter p={d.produce} color={who.color} />
         <div style={{ flex: 1 }} />
@@ -177,8 +177,20 @@ function Card({ who, first, lit, onHover }: {
   );
 }
 
-export function OfficeTeam({ lit, onHover }: { lit?: string; onHover?: (id: string) => void }) {
+export function OfficeTeam({ staff, works, gates, lit, onHover }: {
+  staff: StaffCard[]; works: number; gates: number;
+  lit?: string; onHover?: (id: string) => void;
+}) {
   const [rail, edge] = useRail<HTMLDivElement>();
+  /** 統括AI のカード。**AI社員ではない**ので staff には入れない */
+  const exec: StaffCard = {
+    id: 'exec', name: EXEC.name, color: EXEC.color,
+    state: works > 0 ? '実行中' : '待機',
+    now: works > 0 ? `Work ${works}件を見ています` : 'ゴールを待っています',
+    model: EXEC.model, effort: EXEC.effort,
+    desk: { el: '', step: { done: 0, all: 0, name: '' },
+            produce: { kind: 'text', cap: gates > 0 ? `あなたの判断待ち ${gates}` : '判断待ちなし' }, wait: gates },
+  };
   return (
     /* **見出しは置かない。** 顔と名前が並んでいれば「AI社員」だと分かるし、
        人数も稼働も1枚ずつのカードが言っている（同じことを2回書かない） */
@@ -188,12 +200,15 @@ export function OfficeTeam({ lit, onHover }: { lit?: string; onHover?: (id: stri
       <div style={{ position: 'relative' }}>
         <div ref={rail} className="sx"
              style={{ display: 'flex', gap: 20, alignItems: 'flex-start', paddingBottom: 6 }}>
-          <Card first who={{ ...EXEC, now: EXEC.now, color: EXEC.color }}
-                lit={lit === EXEC.id} onHover={onHover} />
-          {EMPLOYEES.map((e: Employee) => (
-            <Card key={e.id} who={{ ...e, color: AGENT_COLOR[e.color] }}
-                  lit={lit === e.id} onHover={onHover} />
+          <Card first who={exec} lit={lit === 'exec'} onHover={onHover} />
+          {staff.map((e) => (
+            <Card key={e.id} who={e} lit={lit === e.id} onHover={onHover} />
           ))}
+          {staff.length === 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', paddingLeft: 20, borderLeft: `1px solid ${HAIR}` }}>
+              <span style={{ color: T5, fontSize: 12 }}>AI社員はまだいません。計画を承認すると採用されます</span>
+            </div>
+          )}
         </div>
         {/* 端は黒に溶かす。**本当にまだあるときだけ** */}
         {(['l', 'r'] as const).map((k) => (

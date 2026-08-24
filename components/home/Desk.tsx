@@ -6,7 +6,7 @@ import { pressable } from '@/lib/a11y';
 
 import { Orb } from '@/components/ui/Orb';
 import { Dot, Icon } from '@/components/ui/Icon';
-import { AGENT_COLOR, EMPLOYEES, LANES, employee, type DeskBody } from '@/lib/dummy';
+import type { DeskBody, Lane } from '@/lib/view/model';
 import { AMBER, AMBER_T, COMPOSER_H, DIM, FAINT, GREEN, GREEN_T, HAIR, MUTE, RAIL, RULE, SEAM, SUNK, T2, T3, T4, T5 } from '@/lib/design/tokens';
 /**
  * デスク＝縦長レーンを横に並べる（参考: Emergent / Google AI Studio）。
@@ -101,7 +101,7 @@ function Body({ b }: { b: DeskBody }) {
           <span style={{ color: T5, fontSize: 10 }}>{b.when}</span>
         </div>
       </div>
-      <Link href={openHref('/decisions', 'dec-price')} className="solid" style={{
+      <Link href={'/decisions'} className="solid" style={{
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 32,
         borderRadius: 8, background: AMBER, color: '#fff', fontSize: 12,
       }}>{b.action}</Link>
@@ -109,16 +109,17 @@ function Body({ b }: { b: DeskBody }) {
   );
 }
 
-export function Desk() {
-  const running = LANES.filter((l) => l.state === '実行中').length;
-  const idle = EMPLOYEES.filter((e) => !LANES.some((l) => l.id === e.id));
+export function Desk({ lanes, idle }: {
+  lanes: Lane[]; idle: { id: string; name: string; color: string }[];
+}) {
+  const running = lanes.filter((l) => l.state === '実行中').length;
   /**
    * **1人を選ぶと全画面。** レーンは押せる顔（`hit`）をしていたのに何も起きなかった。
    * 誰を見ているかは URL に持つので、別の画面から「その1人の手もと」へ直接飛べる。
    */
   const [who, setWho] = useParam('who', '');
-  const only = LANES.find((l) => l.id === who) ? who : '';
-  const shown = only ? LANES.filter((l) => l.id === only) : LANES;
+  const only = lanes.find((l) => l.id === who) ? who : '';
+  const shown = only ? lanes.filter((l) => l.id === only) : lanes;
 
   return (
     <div style={{
@@ -142,7 +143,6 @@ export function Desk() {
 
         <div style={{ flex: 1, minHeight: 0, display: 'flex', overflowX: 'auto' }}>
           {shown.map((l, n) => {
-            const e = employee(l.id);
             const wait = l.state === '要確認';
             const last = only ? true : n === shown.length - 1 && idle.length === 0;
             return (
@@ -154,14 +154,14 @@ export function Desk() {
                 padding: '2px 15px 10px 0', marginRight: last ? 0 : 15,
                 borderRight: last ? undefined : `1px solid ${HAIR}`,
               }}>
-                <Link href={openHref('/team', e.id)} onClick={(ev) => ev.stopPropagation()} className="row" style={{
+                <Link href={openHref('/team', l.id)} onClick={(ev) => ev.stopPropagation()} className="row" style={{
                   flexShrink: 0, display: 'flex', alignItems: 'center', gap: 9, borderRadius: 8,
                   padding: '4px 6px', margin: '-4px -6px',
                 }}>
-                  <Orb color={AGENT_COLOR[e.color]} size={30} seed={e.name.length * 7 + 3} dim={wait} />
+                  <Orb color={l.color} size={30} seed={l.name.length * 7 + 3} dim={wait} />
                   <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.name}</span>
-                    <span style={{ color: T5, fontSize: 11, whiteSpace: 'nowrap' }}>{e.role}</span>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.name}</span>
+                    {l.role && <span style={{ color: T5, fontSize: 11, whiteSpace: 'nowrap' }}>{l.role}</span>}
                   </div>
                   <div style={{ flex: 1 }} />
                   {/* 例外だけピル。ふつうの状態は点で足りる */}
@@ -228,6 +228,11 @@ export function Desk() {
           })}
 
           {/* 待機は沈める。枠は付けない。1人だけ見ているときは出さない */}
+          {shown.length === 0 && idle.length === 0 && (
+            <div style={{ flex: 1, display: 'grid', placeItems: 'center' }}>
+              <span style={{ color: T5, fontSize: 13 }}>まだ誰の手もとも動いていません。Work を開くと動きだします</span>
+            </div>
+          )}
           {!only && idle.map((e, n) => (
             <div key={e.id} style={{
               width: LANE_W, flexShrink: 0, boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
@@ -236,7 +241,7 @@ export function Desk() {
               opacity: 0.5,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                <Orb color={AGENT_COLOR[e.color]} size={30} seed={e.name.length * 7 + 3} dim />
+                <Orb color={e.color} size={30} seed={e.name.length * 7 + 3} dim />
                 <span style={{ color: T4 }}>{e.name}</span>
                 <div style={{ flex: 1 }} />
                 <span style={{ color: T5, fontSize: 11 }}>待機</span>

@@ -1,11 +1,11 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { usePathname } from 'next/navigation';
-import { COMPANIES } from '@/lib/dummy';
 import { morning } from '@/app/actions/run';
-import { FAINT, RULE, SHELL_MIN, SUNK, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
+import { companyName, sendChat } from '@/app/actions/live';
+import { FAINT, RULE, SHELL_MIN, SUNK, T1, T2, T3, T4 } from '@/lib/design/tokens';
 /**
  * 器の開け閉め。左レールはレールの中の印で閉じ、閉じたら**端に何も残さない**。
  * 戻り道はトップバーの左端（右ペインと同じ作法）。
@@ -16,9 +16,10 @@ import { FAINT, RULE, SHELL_MIN, SUNK, T1, T2, T3, T4, T5 } from '@/lib/design/t
  * 入力欄に書いて送ると、右ペインがその会話になって開く
  * （参考: ClickUp Brain / Fabric / HoneyBook — 右にAIを出すアプリは
  *  例外なく**入力欄もそのパネルの中**に入れている）。
- * `said` は自分が書いたぶん。**返事は作らない**（統括AIは「考えています」で止まる。会話で答えるのは Phase 7 から）。
+ * `said` は送っている途中のぶん（楽観表示）。**返事は本物** — sendChat が統括AIの
+ * 返事まで書いてから rev を上げ、ペインが読み直す。鍵の無い環境は「仮の返事」と名乗る。
  */
-export type Chat = { on: boolean; thread: string | null; said: string[] };
+export type Chat = { on: boolean; thread: string | null; said: string[]; busy: boolean; rev: number };
 
 type Shell = {
   rail: boolean; setRail: (v: boolean) => void;
@@ -40,7 +41,7 @@ type Shell = {
 
 const Ctx = createContext<Shell>({
   rail: true, setRail: () => {},
-  chat: { on: false, thread: null, said: [] },
+  chat: { on: false, thread: null, said: [], busy: false, rev: 0 },
   say: () => {}, fresh: () => {}, closeChat: () => {},
   find: false, setFind: () => {}, note: null, say5: () => {},
 });
@@ -48,7 +49,10 @@ export const useShell = () => useContext(Ctx);
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const [rail, setRail] = useState(true);
-  const [chat, setChat] = useState<Chat>({ on: false, thread: null, said: [] });
+  const [chat, setChat] = useState<Chat>({ on: false, thread: null, said: [], busy: false, rev: 0 });
+  // say はどの描画からでも呼ばれるので、最新の chat は ref で読む（依存を増やさない）
+  const chatRef = useRef(chat);
+  useEffect(() => { chatRef.current = chat; });
   const [find, setFind] = useState(false);
   const [note, setNote] = useState<string | null>(null);
 
@@ -84,13 +88,20 @@ export function Shell({ children }: { children: React.ReactNode }) {
     window.setTimeout(() => setNote((n) => (n === what ? null : n)), 3200);
   }, []);
 
-  const say = useCallback((text: string, thread?: string | null) =>
-    setChat((c) => ({
-      on: true,
-      thread: c.on ? c.thread : thread ?? null,
-      said: [...(c.on ? c.said : []), text],
-    })), []);
-  const fresh = useCallback(() => setChat({ on: true, thread: null, said: [] }), []);
+  const say = useCallback((text: string, thread?: string | null) => {
+    const cur = chatRef.current;
+    const target = cur.on ? cur.thread : thread ?? null;
+    setChat({ on: true, thread: target, said: [...(cur.on ? cur.said : []), text], busy: true, rev: cur.rev });
+    // 本当に送る。統括AIの返事まで書けたら rev を上げ、ペインが読み直す
+    void sendChat(target, text).then((r) => {
+      setChat((c) => ({
+        ...c, busy: false, said: [],
+        thread: r.ok ? r.threadId ?? c.thread : c.thread,
+        rev: c.rev + 1,
+      }));
+    });
+  }, []);
+  const fresh = useCallback(() => setChat({ on: true, thread: null, said: [], busy: false, rev: 0 }), []);
   const closeChat = useCallback(() => setChat((c) => ({ ...c, on: false })), []);
 
   // 中身が変わったときだけ作り直す（毎描画で新しい object を配らない）
@@ -131,6 +142,8 @@ export const isBlank = (p: string) => EMPTY_ROUTES.some((r) => p === r || p.star
 
 export function CompanyPicker() {
   const [open, setOpen] = useState(false);
+  const [company, setCompany] = useState('あなたの会社');
+  useEffect(() => { companyName().then(setCompany); }, []);
   const path = usePathname();
   // Esc で閉じる（右ペインと同じ作法）
   useEffect(() => {
@@ -140,8 +153,7 @@ export function CompanyPicker() {
     return () => window.removeEventListener('keydown', h);
   }, [open]);
   const blank = isBlank(path);
-  const now = COMPANIES.find((c) => c.current) ?? COMPANIES[0];
-  const name = blank ? 'あなたの会社' : now.name;
+  const name = blank ? 'あなたの会社' : company;
   return (
     <span style={{ position: 'relative', display: 'inline-flex' }}>
       <button onClick={() => setOpen(!open)} className="btn" style={{
@@ -158,16 +170,12 @@ export function CompanyPicker() {
             borderRadius: 11, background: SUNK, border: `1px solid ${FAINT}`,
             boxShadow: '0 18px 44px rgba(0,0,0,0.72)',
           }}>
-            {COMPANIES.map((c) => (
-              <button key={c.id} className={c.current ? 'hit' : 'row'} style={{
-                width: '100%', display: 'flex', alignItems: 'center', gap: 10, height: 32, padding: '0 10px',
-                borderRadius: 7, background: c.current ? `${RULE}` : undefined, textAlign: 'left',
-              }}>
-                <span style={{ color: c.current ? T1 : T2 }}>{c.name}</span>
-                <div style={{ flex: 1 }} />
-                <span style={{ fontSize: 12, color: T5 }}>Work {c.works}</span>
-              </button>
-            ))}
+            <button className="hit" style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 10, height: 32, padding: '0 10px',
+              borderRadius: 7, background: `${RULE}`, textAlign: 'left',
+            }}>
+              <span style={{ color: T1 }}>{company}</span>
+            </button>
             <div style={{ height: 1, margin: '5px 8px', background: RULE }} />
             <button className="row" style={{
               width: '100%', display: 'flex', alignItems: 'center', height: 32, padding: '0 10px',

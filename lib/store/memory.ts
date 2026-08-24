@@ -1,6 +1,6 @@
-import { AGENT_COLOR, type EmployeeColor } from '@/lib/dummy';
+import { AGENT_COLOR, type EmployeeColor } from '@/lib/view/model';
 import { AppError } from '@/lib/errors';
-import { STALL_MS, type DraftWork, type LiveDecision, type LiveEmployee, type LiveWork, type RunStep, type Store } from './types';
+import { STALL_MS, type ChatMsg, type ChatThread, type DraftWork, type LiveDecision, type LiveEmployee, type LiveWork, type Note, type RunStep, type SkillRow, type Store } from './types';
 
 /**
  * メモリの保存先。**Supabase に出られない環境（デモ・この開発環境）用。**
@@ -30,6 +30,7 @@ function live(d: DraftWork): LiveWork {
     phases: d.plan.phases.map((p, i) => ({
       id: `${d.id}-p${i + 1}`, seq: i + 1, name: p.name, goal: p.goal,
       state: i === 0 ? 'active' : 'planned',
+      weeks: p.weeks,
     })),
     // 担当は**統括AIが言った名前で引き当てる**（Supabase 版と同じ規則）。
     // 合わなければ先頭の社員に落とす
@@ -128,7 +129,7 @@ export const memoryStore: Store = {
     });
   },
 
-  async addNotification(n) { notes.push(n); },
+  async addNotification(n) { notes.push({ ...n, at: new Date().toISOString() }); },
 
   async getSteps(taskId) {
     return runs.get(`run-${taskId}`)?.steps ?? [];
@@ -219,7 +220,106 @@ export const memoryStore: Store = {
   async balanceCents() { return null; },
   async ledger() { return []; },
   /** デモ（メモリ）は通知の画面がダミーなので、書いても誰も読めない。正直に何もしない */
-  async morningBrief() { return false; },
+  /* ══════════════ ゼロ状態（画面はぜんぶここを読む）══════════════ */
+
+  async listWorks() {
+    return [...bag.values()].filter((d) => d.live).map((d) => d.live!);
+  },
+
+  async listNotes() {
+    // 新しい順。id は配列の位置（配列は増えるだけなので安定）
+    return notes.map((n, i): Note => ({
+      id: `n-${i}`, kind: n.kind, body: n.body, at: n.at,
+      read: notesRead.has(i), subjectType: n.subjectType, subjectId: n.subjectId,
+    })).reverse();
+  },
+
+  async readNote(id) {
+    const i = Number(id.replace('n-', ''));
+    if (Number.isInteger(i)) notesRead.add(i);
+  },
+
+  async listThreads() { return [...threads].reverse(); },
+
+  async getThread(id) {
+    const thread = threads.find((t) => t.id === id);
+    return thread ? { thread, messages: msgs.get(id) ?? [] } : null;
+  },
+
+  async addChat(threadId, role, body, title) {
+    let id = threadId;
+    if (!id || !threads.some((t) => t.id === id)) {
+      id = `t-${threads.length + 1}`;
+      threads.push({ id, title: (title ?? body).slice(0, 24), lastAt: new Date().toISOString() });
+    }
+    const list = msgs.get(id) ?? [];
+    list.push({ role, body, at: new Date().toISOString() });
+    msgs.set(id, list);
+    const th = threads.find((t) => t.id === id);
+    if (th) th.lastAt = new Date().toISOString();
+    return id;
+  },
+
+  async listSkills() { return [...skills]; },
+
+  async setSkill(id, on) {
+    const sk = skills.find((x) => x.id === id);
+    if (sk) sk.on = on;
+  },
+
+  async addSkill(x) {
+    skills.push({ id: `sk-${skills.length + 1}`, name: x.name, filename: x.filename,
+                  on: true, scope: 'company', used: 0, body: x.body });
+  },
+
+  async removeSkill(id) {
+    const i = skills.findIndex((x) => x.id === id);
+    if (i >= 0) skills.splice(i, 1);
+  },
+
+  async companyName() { return 'あなたの会社'; },
+
+  async recentSteps(limit) {
+    const out: { at?: string; who: string; what: string }[] = [];
+    for (const r of runs.values()) {
+      const owner = (() => { try { return findTask(r.taskId).task.owner; } catch { return undefined; } })();
+      for (const st of r.steps) {
+        if (st.summary) out.push({ at: st.at, who: owner ?? 'AI社員', what: st.summary });
+      }
+    }
+    out.sort((a, b) => (b.at ?? '').localeCompare(a.at ?? ''));
+    return out.slice(0, limit);
+  },
+
+  /**
+   * 朝の報告（メモリ版）。通知の画面が本物になったので、こちらも本当に書く。
+   * サーバーごと消える環境なので「その日」の重複止めはプロセス内の Set で足りる。
+   */
+  async morningBrief(day) {
+    const today = /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : new Date().toISOString().slice(0, 10);
+    if (morningDays.has(today)) return false;
+
+    const since = Date.now() - 24 * 3600 * 1000;
+    const ran = [...runs.values()].filter((r) => r.status === 'done' &&
+      new Date(r.startedAt ?? 0).getTime() >= since).length;
+    const lives = [...bag.values()].map((d) => d.live).filter(Boolean) as LiveWork[];
+    const del = lives.flatMap((w) => w.dels ?? []).filter((x) => x.state === '要確認').length;
+    const open = decisions.filter((x) => x.status === 'open').length;
+    const stop = lives.filter((w) => w.status === 'paused').length;
+    if (ran + del + open + stop === 0) return false; // 動きが無かった朝は黙る
+
+    const parts: string[] = [];
+    if (ran) parts.push(`きのうから実行が ${ran}件 終わりました`);
+    if (del) parts.push(`見てほしい成果物が ${del}件`);
+    if (open) parts.push(`判断待ちが ${open}件`);
+    if (stop) parts.push(`止まっている Work が ${stop}件`);
+    morningDays.add(today);
+    notes.push({
+      kind: open ? '判断待ち' : del || ran ? '要確認' : 'エラー',
+      body: `朝の報告 — ${parts.join('、')}`, at: new Date().toISOString(),
+    });
+    return true;
+  },
 
   async pauseWork(workId, why) {
     const live = [...bag.values()].find((d) => d.live?.id === workId)?.live;
@@ -302,10 +402,20 @@ export const memoryStore: Store = {
 const g2 = globalThis as unknown as {
   __runs?: Map<string, { taskId: string; workId: string; steps: RunStep[];
     status?: 'running' | 'done' | 'failed'; startedAt?: string; fails?: number }>;
-  __notes?: { kind: string; body: string }[];
+  __notes?: { kind: string; body: string; at?: string; subjectType?: string; subjectId?: string }[];
+  __notesRead?: Set<number>;
+  __threads?: ChatThread[];
+  __msgs?: Map<string, ChatMsg[]>;
+  __skills?: SkillRow[];
+  __morning?: Set<string>;
 };
 const runs = (g2.__runs ??= new Map());
 const notes = (g2.__notes ??= []);
+const notesRead = (g2.__notesRead ??= new Set<number>());
+const threads = (g2.__threads ??= []);
+const msgs = (g2.__msgs ??= new Map<string, ChatMsg[]>());
+const skills = (g2.__skills ??= []);
+const morningDays = (g2.__morning ??= new Set<string>());
 const g3 = globalThis as unknown as { __decs?: LiveDecision[]; __staff?: LiveEmployee[] };
 const decisions = (g3.__decs ??= []);
 const staff = (g3.__staff ??= []);

@@ -1,7 +1,10 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useParam } from '@/lib/use-open';
+import { homeData } from '@/app/actions/home';
+import type { HomeData } from '@/lib/live/home';
 import { Composer, Pills, TopBar } from '@/components/shell/Chrome';
 import { Icon } from '@/components/ui/Icon';
 import { COMPOSER_H } from '@/lib/design/tokens';
@@ -27,18 +30,18 @@ const VIEWS = [
  * **絵と一覧は対。** 絵の中の球に指が乗ったら下の一覧の同じ人が明るくなる（その逆も）。
  * 絵そのものは行き先を持たない — 見ている目を別の画面へ飛ばさない。
  */
-function OfficeView() {
+function OfficeView({ data }: { data: HomeData }) {
   const [lit, setLit] = useState('');
   return (
     <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '8px 30px 0' }}>
       <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: 22, alignItems: 'stretch' }}>
         <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
-          <Office lit={lit} onHover={setLit} />
+          <Office works={data.works} lit={lit} onHover={setLit} />
         </div>
-        <OfficeLog />
+        <OfficeLog events={data.events} />
       </div>
       <div style={{ flexShrink: 0, marginBottom: COMPOSER_H }}>
-        <OfficeTeam lit={lit} onHover={setLit} />
+        <OfficeTeam staff={data.staff} works={data.works.length} gates={data.gates} lit={lit} onHover={setLit} />
       </div>
     </div>
   );
@@ -48,13 +51,38 @@ function OfficeView() {
  * ワークフロー。**盤面を箱に収めるのをやめて、中身の領域いっぱいに広げる。**
  * ピルも入力欄もその上に浮く（「入る大きさに縮める」は要らなくなった）。
  */
-function FlowView() {
-  return <div style={{ flex: 1, minHeight: 0, position: 'relative' }}><Flow /></div>;
+function FlowView({ data }: { data: HomeData }) {
+  return <div style={{ flex: 1, minHeight: 0, position: 'relative' }}><Flow map={data.map} /></div>;
 }
 
 function Home() {
   const [view, setView] = useParam('view', 'office');
   const bleed = view === 'flow';
+  const router = useRouter();
+
+  /**
+   * ホームは store から1本で読む（→ homeData）。
+   * **Work が1つも無い会社は、はじめての画面がホーム** — 空の盤面を見せない。
+   */
+  const [data, setData] = useState<HomeData | null>(null);
+  useEffect(() => {
+    let on = true;
+    homeData().then((d) => {
+      if (!on) return;
+      if (d.works.length === 0 && d.staff.length === 0) { router.replace('/start'); return; }
+      setData(d);
+    });
+    return () => { on = false; };
+  }, [router]);
+
+  if (!data) {
+    return (
+      <div style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column', background: '#000' }}>
+        <TopBar title="ホーム" />
+        <div style={{ flex: 1 }} />
+      </div>
+    );
+  }
 
   return (
     <div style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column', background: '#000' }}>
@@ -70,9 +98,11 @@ function Home() {
 
       {/* 切り替えたときは、次の面がふわっと出る（key を変えて描き直す） */}
       <div key={view} className="rise" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-        {view === 'office' ? <OfficeView />
-          : view === 'flow' ? <FlowView />
-          : view === 'desk' ? <Desk /> : <Progress />}
+        {view === 'office' ? <OfficeView data={data} />
+          : view === 'flow' ? <FlowView data={data} />
+          : view === 'desk' ? <Desk lanes={data.lanes} idle={data.idle} />
+          : <Progress works={data.works} ticks={data.ticks} todayX={data.todayX}
+                      done={data.done} gates={data.gates} late={data.late} />}
       </div>
 
       {/* 盤面は中身が入力欄の上に収まっていて潜らない。**黒に溶かすとドットを切るだけ** */}

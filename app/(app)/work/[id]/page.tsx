@@ -8,9 +8,8 @@ import { notFound, useParams } from 'next/navigation';
 import { Centre, Composer, Pane, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Diamond, Dot, Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
-import { WORKS } from '@/lib/dummy';
 import { AMBER_T, BLUE, COMPOSER_H, DIM, FAINT, GREEN, GREEN_T, HAIR, MUTE, RAIL, RED, RED_T, SEAM, SUNK, T1, T2, T3, T4, T5, WELL } from '@/lib/design/tokens';
-import { fromDummy, fromLive, type WorkView } from '@/lib/exec/work-view';
+import { fromLive, type WorkView } from '@/lib/exec/work-view';
 import { getWork } from '@/app/actions/work';
 import { approvePhase, decide, pumpWork, taskDecision, taskSteps } from '@/app/actions/run';
 import type { LiveDecision } from '@/lib/store';
@@ -210,17 +209,14 @@ export default function WorkPage() {
   const [openId, setOpen] = useOpen();
   const pane = openId === 'about';
   const setPane = (v: boolean) => setOpen(v ? 'about' : null);
-  const dummy = WORKS.find((x) => x.id === id);
-  const [w, setW] = useState<WorkView | null>(dummy ? fromDummy(dummy) : null);
+  const [w, setW] = useState<WorkView | null>(null);
   const [gone, setGone] = useState(false);
 
-  // ダミーに無い id は、承認して動きだした本物
   useEffect(() => {
-    if (dummy) return;
     let on = true;
     getWork(id).then((r) => { if (!on) return; if (r) setW(fromLive(r)); else setGone(true); });
     return () => { on = false; };
-  }, [id, dummy]);
+  }, [id]);
 
   /**
    * **画面を開いているあいだ、会社が動く**（Phase 7 のポンプ）。
@@ -231,7 +227,6 @@ export default function WorkPage() {
   const pumping = useRef(false);
   const activeNow = useRef(false);
   useEffect(() => {
-    if (dummy) return;
     const tick = async () => {
       if (document.hidden) return;
       const r = await getWork(id);
@@ -247,7 +242,7 @@ export default function WorkPage() {
     tick();
     const h = window.setInterval(tick, 2500);
     return () => window.clearInterval(h);
-  }, [id, dummy]);
+  }, [id]);
 
   if (gone) notFound();
   // 取りに行っているあいだ。**形だけ出して、数字は出さない**

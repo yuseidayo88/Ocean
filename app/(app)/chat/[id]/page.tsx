@@ -1,40 +1,28 @@
-import { notFound } from 'next/navigation';
-import { Go as Link } from '@/components/ui/Go';
-import { Ask, Composer, TopBar } from '@/components/shell/Chrome';
-import { Orb } from '@/components/ui/Orb';
-import { Dot, Icon } from '@/components/ui/Icon';
-import { CHATS, THREADS, work } from '@/lib/dummy';
-import type { Turn } from '@/lib/dummy';
+'use client';
 
-import { AMBER, AMBER_T, DIM, EXEC, GREEN, HAIR, SUNK, T1, T2, T4, T5 } from '@/lib/design/tokens';
+import { useParams, useRouter } from 'next/navigation';
+import type { Route } from 'next';
+import { Go as Link } from '@/components/ui/Go';
+import { Composer, ExecStatus, TopBar } from '@/components/shell/Chrome';
+import { Orb } from '@/components/ui/Orb';
+import { sendChat, threadGet } from '@/app/actions/live';
+import type { ChatMsg } from '@/lib/store';
+import { useEffect, useState } from 'react';
+
+import { EXEC, T1, T2, T5 } from '@/lib/design/tokens';
 /**
  * チャット＝2ペインの会話（ChatGPT と同じ。右ペインなし）。
  * **会話はここに一本化する。** Work は会話を持たない。
- * 質問は会話に流さず、入力欄の上にくっついた板として出す。
+ *
+ * 返事は本物 — 送ると統括AIが fast の1往復で返す（鍵の無い環境は「仮の返事」と名乗る）。
+ * まだ何も話していなければ、何も無いと出す。
  */
-
-export function generateStaticParams() {
-  return [...THREADS.map((t) => ({ id: t.id })), { id: 'new' }];
-}
 
 const You = ({ children }: { children: React.ReactNode }) => (
   <div style={{ width: '100%', maxWidth: 748, display: 'flex', justifyContent: 'flex-end' }}>
     <span style={{ maxWidth: '78%', padding: '9px 16px', borderRadius: 18, background: '#24354A', color: '#DCE7F5' }}>
       {children}
     </span>
-  </div>
-);
-
-const Exec = ({ thought, children }: { thought?: string; children: React.ReactNode }) => (
-  <div style={{ width: '100%', maxWidth: 748, display: 'flex', flexDirection: 'column', gap: 12 }}>
-    {thought && (
-      <span style={{
-        alignSelf: 'center', display: 'inline-flex', alignItems: 'center', gap: 7, color: T5, fontSize: 12,
-      }}>
-        {thought}<Icon name="chev" color={T5} size={11} />
-      </span>
-    )}
-    {children}
   </div>
 );
 
@@ -52,100 +40,81 @@ function Body({ text }: { text: string }) {
   );
 }
 
-/** 比べるものは棒で。枠で囲わず、行だけ並べる */
-function Bars({ bars }: { bars: NonNullable<Extract<Turn, { who: 'exec' }>['bars']> }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '4px 0 2px' }}>
-      {bars.map((b) => (
-        <div key={b.k} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <span style={{ width: 62, flexShrink: 0, color: b.hi ? T1 : T4 }}>{b.k}</span>
-          <span style={{ width: 66, flexShrink: 0, color: b.hi ? T1 : T4 }} className="tnum">{b.v}</span>
-          <span style={{ flex: 1, minWidth: 0, height: 6, borderRadius: 3, background: SUNK, overflow: 'hidden' }}>
-            <span style={{ display: 'block', width: `${b.pct}%`, height: '100%', background: b.hi ? `${GREEN}` : DIM }} />
-          </span>
-          <span style={{ width: 190, flexShrink: 0, textAlign: 'right', color: b.hi ? T2 : T5, fontSize: 12.5 }}>{b.note}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
+export default function ChatPage() {
+  const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const fresh = id === 'new';
+  const [msgs, setMsgs] = useState<ChatMsg[]>([]);
+  const [title, setTitle] = useState(fresh ? '新しいチャット' : '');
+  const [pending, setPending] = useState<string | null>(null);
+  const [gone, setGone] = useState(false);
 
-/** 順番があるものはヘアラインだけで区切る（枠を付けない） */
-function Steps({ steps }: { steps: [string, string][] }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', padding: '2px 0' }}>
-      {steps.map(([k, v], i) => (
-        <div key={k} style={{
-          display: 'flex', alignItems: 'center', gap: 16, height: 38,
-          borderTop: i ? `1px solid ${HAIR}` : undefined,
-        }}>
-          <span style={{ width: 108, flexShrink: 0, color: T2, fontSize: 13 }}>{k}</span>
-          <span style={{ flex: 1, minWidth: 0, color: T4, fontSize: 13 }}>{v}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
+  useEffect(() => {
+    if (fresh) return;
+    let on = true;
+    threadGet(id).then((r) => {
+      if (!on) return;
+      if (!r) { setGone(true); return; }
+      setMsgs(r.messages);
+      setTitle(r.thread.title);
+    });
+    return () => { on = false; };
+  }, [id, fresh]);
 
-export default async function ChatPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+  /** この画面が書いたものは、この画面の会話として続く（右ペインを開かない） */
+  const send = (text: string) => {
+    setPending(text);
+    void sendChat(fresh ? null : id, text).then((r) => {
+      if (!r.ok || !r.threadId) { setPending(null); return; }
+      if (fresh) { router.replace(`/chat/${r.threadId}` as Route); return; }
+      threadGet(id).then((t) => {
+        setPending(null);
+        if (t) { setMsgs(t.messages); setTitle(t.thread.title); }
+      });
+    });
+  };
 
-  if (id === 'new') {
-    return (
-      <div style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column', background: '#000' }}>
-        <TopBar title="新しいチャット" />
-        <div style={{ flex: 1, display: 'grid', placeItems: 'center' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
-            <Orb color={EXEC} size={72} seed={7} />
-            <span style={{ fontSize: 20 }}>何を相談しますか？</span>
-            <span style={{ color: T5, fontSize: 12.5 }}>待っています</span>
-          </div>
-        </div>
-        <Composer placeholder="統括AIに書く" local />
-      </div>
-    );
-  }
-
-  const th = THREADS.find((t) => t.id === id);
-  if (!th) notFound();
-  const c = CHATS[th.id] ?? { turns: [] };
+  const empty = !pending && msgs.length === 0;
 
   return (
     <div style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column', background: '#000' }}>
-      <TopBar crumb="チャット" title={th.title} right={
-        th.workId
-          ? <Link href={`/work/${th.workId}`} style={{ color: T5, fontSize: 12 }}>{work(th.workId).title}</Link>
-          : undefined
-      } />
+      <TopBar crumb={fresh ? undefined : 'チャット'} title={title || (gone ? '見つかりません' : '…')} />
 
-      <div style={{
-        flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center',
-        gap: 22, padding: '22px 24px 0', overflowY: 'auto',
-      }}>
-        {c.turns.map((t, i) => (
-          t.who === 'you'
-            ? <You key={i}>{t.text}</You>
-            : (
-              <Exec key={i} thought={t.thought}>
-                <Body text={t.lead} />
-                {t.bars && <Bars bars={t.bars} />}
-                {t.steps && <Steps steps={t.steps} />}
-                {t.tail && <Body text={t.tail} />}
-              </Exec>
-            )
-        ))}
-
-        {c.ask && (
-          <div style={{ width: '100%', maxWidth: 748, display: 'flex', alignItems: 'center', gap: 9 }}>
-            <Dot color={AMBER} size={7} />
-            <span style={{ color: AMBER_T, fontSize: 12.5 }}>確認したいことがあります</span>
+      {empty ? (
+        <div style={{ flex: 1, display: 'grid', placeItems: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+            <Orb color={EXEC} size={72} seed={7} />
+            <span style={{ fontSize: 20 }}>{gone ? 'このチャットは見つかりませんでした' : '何を相談しますか？'}</span>
+            {!gone && <span style={{ color: T5, fontSize: 12.5 }}>待っています</span>}
+            {gone && <Link href="/chat/new" style={{ color: T2, fontSize: 13 }}>新しいチャットを始める</Link>}
           </div>
-        )}
-        <div style={{ flex: 1 }} />
-      </div>
+        </div>
+      ) : (
+        <div style={{
+          flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center',
+          gap: 22, padding: '22px 24px 0', overflowY: 'auto',
+        }}>
+          {msgs.map((m, i) => (
+            m.role === 'user'
+              ? <You key={i}>{m.body}</You>
+              : (
+                <div key={i} style={{ width: '100%', maxWidth: 748, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <Body text={m.body} />
+                </div>
+              )
+          ))}
+          {pending && <You>{pending}</You>}
+          {pending && (
+            <div style={{ width: '100%', maxWidth: 748, display: 'flex', alignItems: 'center', gap: 9 }}>
+              <Orb color={EXEC} size={22} seed={7} />
+              <ExecStatus state="thinking" />
+            </div>
+          )}
+          <div style={{ flex: 1 }} />
+        </div>
+      )}
 
-      <Composer placeholder="統括AIに書く" local
-        above={c.ask && <Ask q={c.ask.q} idx={c.ask.idx} total={c.ask.total} free={c.ask.free} options={c.ask.options} />} />
+      <Composer placeholder="統括AIに書く" local onSend={send} busy={pending !== null} />
     </div>
   );
 }

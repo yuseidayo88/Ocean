@@ -10,8 +10,8 @@ import { AMBER, AMBER_T, BLUE, COMPOSER_H, DIM, EDGE, GREEN_T, HAIR, RED_T, SEAM
 import { useShell } from '@/components/shell/Shell';
 import { Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
-import { AGENT_COLOR, WORKS } from '@/lib/dummy';
-import { DUMMY_VIEW, fromDraft, type PlanView } from '@/lib/exec/view';
+import { AGENT_COLOR } from '@/lib/view/model';
+import { fromDraft, type PlanView } from '@/lib/exec/view';
 import { answerQuestion, approveWork, getDraft, reviseWork } from '@/app/actions/work';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -39,8 +39,7 @@ export default function PlanPage() {
   const [openId, setOpen] = useOpen();
   const pane = openId === 'why';
   const setPane = (v: boolean) => setOpen(v ? 'why' : null);
-  const dummy = WORKS.find((x) => x.id === id);
-  const [v, setV] = useState<PlanView | null>(dummy ? DUMMY_VIEW : null);
+  const [v, setV] = useState<PlanView | null>(null);
   const [gone, setGone] = useState(false);
   /** 押しているあいだ。**二度押しさせない**（承認は1回きり） */
   const [busy, setBusy] = useState<'' | 'approve' | 'revise' | 'answer'>('');
@@ -52,20 +51,17 @@ export default function PlanPage() {
   const [at, setAt] = useState(-1);
   const [hideAsk, setHideAsk] = useState(false);
 
-  // ダミーに無い id は、統括AIが立てたばかりの計画
   useEffect(() => {
-    if (dummy) return;
     let live = true;
     getDraft(id).then((d) => { if (!live) return; if (d) setV(fromDraft(d)); else setGone(true); });
     return () => { live = false; };
-  }, [id, dummy]);
+  }, [id]);
 
   /**
    * **承認して始める。** ここで初めて状態が本当に変わる。
    * ダミーの Work は書き込み先が無いので、正直にそう返す。
    */
   const approve = async () => {
-    if (dummy) { say5('ダミーの Work は承認できません。入力欄からゴールを書いてみてください'); return; }
     setBusy('approve'); setErr('');
     const r = await approveWork(id);
     if (!r.ok) { setBusy(''); setErr(r.message); return; }
@@ -74,7 +70,6 @@ export default function PlanPage() {
 
   /** **計画を直す。** 書いたものを統括AIに渡して引き直す */
   const revise = async (text: string) => {
-    if (dummy) { say5('ダミーの Work は直せません。入力欄からゴールを書いてみてください'); return; }
     setBusy('revise'); setErr('');
     const r = await reviseWork(id, text);
     if (!r.ok) { setBusy(''); setErr(r.message); return; }
@@ -88,7 +83,6 @@ export default function PlanPage() {
    * 空文字は「選び直す」。
    */
   const reply = async (i: number, text: string) => {
-    if (dummy) { say5('ダミーの計画には答えられません。入力欄からゴールを書いてみてください'); return; }
     setBusy('answer'); setErr('');
     await answerQuestion(id, i, text);
     const d = await getDraft(id);

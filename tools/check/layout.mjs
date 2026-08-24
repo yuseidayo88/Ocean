@@ -1,40 +1,29 @@
 import { scan } from './_probe.mjs';
 const B = process.env.BASE ?? 'http://localhost:3300';
-const q = (s) => encodeURIComponent(s);
 
 /** 24画面。ペインを持つものは「閉じた URL / 開いた URL」の組で見る */
+/**
+ * ゼロ状態の画面。**ダミーは無い** — 空の会社で、全画面が正直な空状態を出すことを測る。
+ * 埋まった状態（Work が動いたあと）のレイアウトは run.mjs の最後のスイープが測る。
+ */
 const pairs = [
-  ['/tasks',               `${B}/tasks`,               `${B}/tasks?open=tk-price`],
-  ['/tasks?done=1',        `${B}/tasks?done=1`,        `${B}/tasks?done=1&open=tk-market`],
-  ['/deliverables',        `${B}/deliverables`,        `${B}/deliverables?open=d-rev,d-mkt,d-target,d-price,d-persona&at=2`],
-  ['/decisions',           `${B}/decisions`,           `${B}/decisions?open=dec-price`],
-  ['/team',                `${B}/team`,                `${B}/team?open=e-research`],
-  // 統括AI と「全員に効くこと」も、社員と同じ右ペインで開く
-  ['/team?open=exec',      `${B}/team?open=exec`,      `${B}/team?open=exec`],
-  ['/team?open=all',       `${B}/team?open=all`,       `${B}/team?open=all`],
-  ['/hire',                `${B}/hire`,                `${B}/hire?open=c-writer`],
-  ['/skills',              `${B}/skills`,              `${B}/skills?open=${q('competitor-analysis.md')},${q('market-sizing.md')},${q('price-band.md')},${q('source-citation.md')}&at=1`],
-  // 通知は右ペインを持たない（画面そのものが2列）。選び直すと右の中身が入れ替わるので、
-  // 「開/閉」ではなく**状態ごとに1行ずつ**見る
-  ['/inbox',               `${B}/inbox`,               null],
-  ['/inbox?open=i-review', `${B}/inbox?open=i-review`, null],
-  ['/inbox?open=i-blocked',`${B}/inbox?open=i-blocked`,null],
-  ['/work/w-japanese',     `${B}/work/w-japanese`,     `${B}/work/w-japanese?open=about`],
-  ['/work/w-japanese/plan',`${B}/work/w-japanese/plan`,`${B}/work/w-japanese/plan?open=why`],
-  ['/diagnosis',           `${B}/diagnosis`,           `${B}/diagnosis?open=${q('継続率を測れていない')}`],
-  ['/discovery/result',    `${B}/discovery/result`,    `${B}/discovery/result?open=${q('韓国人向け 日本語学習サービス')}`],
-  ['/import',              `${B}/import`,              `${B}/import?open=${q('nihongo-lesson.jp')}`],
-  ['/home',                `${B}/home`,                null],
-  ['/home?view=desk',      `${B}/home?view=desk`,      null],
-  ['/home?view=progress',  `${B}/home?view=progress`,  null],
-  ['/home?view=flow',      `${B}/home?view=flow`,      null],
-  ['/start',               `${B}/start`,               null],
-  ['/discovery',           `${B}/discovery`,           null],
-  ['/work/new',            `${B}/work/new`,            null],
-  ['/chat/t-price',        `${B}/chat/t-price`,        null],
-  ['/chat/t-korea',        `${B}/chat/t-korea`,        null],
-  ['/chat/t-lp',           `${B}/chat/t-lp`,           null],
-  ['/chat/new',            `${B}/chat/new`,            null],
+  ['/start',             `${B}/start`,             null],
+  ['/work/new',          `${B}/work/new`,          null],
+  ['/discovery',         `${B}/discovery`,         null],
+  ['/discovery/result',  `${B}/discovery/result`,  null],
+  ['/import',            `${B}/import`,            null],
+  ['/diagnosis',         `${B}/diagnosis`,         null],
+  ['/tasks',             `${B}/tasks`,             null],
+  ['/inbox',             `${B}/inbox`,             null],
+  ['/team',              `${B}/team`,              `${B}/team?open=exec`],
+  ['/team?open=all',     `${B}/team?open=all`,     `${B}/team?open=all`],
+  ['/deliverables',      `${B}/deliverables`,      null],
+  ['/decisions',         `${B}/decisions`,         null],
+  ['/hire',              `${B}/hire`,              `${B}/hire?open=market-researcher`],
+  ['/skills',            `${B}/skills`,            null],
+  ['/billing',           `${B}/billing`,           null],
+  ['/chat/new',          `${B}/chat/new`,          null],
+  ['/home',              `${B}/home`,              null],
 ];
 for (const [label, closed, open] of pairs) {
   const a = await scan(closed);

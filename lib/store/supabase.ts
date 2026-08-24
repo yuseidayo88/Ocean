@@ -1,8 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
-import { AGENT_COLOR, type EmployeeColor } from '@/lib/dummy';
+import { AGENT_COLOR, type EmployeeColor } from '@/lib/view/model';
 import { colorFor } from './memory';
 import { AppError } from '@/lib/errors';
-import { STALL_MS, type DraftWork, type LiveDecision, type LiveWork, type RunStep, type Store } from './types';
+import { STALL_MS, type ChatMsg, type ChatThread, type DraftWork, type LiveDecision, type LiveWork, type Note, type RunStep, type SkillRow, type Store } from './types';
 
 /**
  * 本番の保存先。行は全部 RLS（`account_id = private.current_account_id()`）で絞られる。
@@ -275,6 +275,7 @@ export const supabaseStore: Store = {
       phases: (ph ?? []).map((p) => ({
         id: p.id as string, seq: p.seq as number, name: p.name as string,
         goal: (p.goal ?? '') as string, state: p.status as LiveWork['phases'][number]['state'],
+        weeks: (w.plan_draft as unknown as DraftBody | null)?.plan?.phases?.[(p.seq as number) - 1]?.weeks,
       })),
       tasks: (tk ?? []).map((t) => ({
         id: t.id as string, phaseId: t.phase_id as string, title: t.title as string,
@@ -659,6 +660,141 @@ export const supabaseStore: Store = {
       .select('delta_cents, reason, created_at').order('created_at', { ascending: false }).limit(60);
     return (data ?? []).map((r) => ({
       deltaCents: r.delta_cents as number, reason: r.reason as string, when: r.created_at as string,
+    }));
+  },
+
+  /* ══════════════ ゼロ状態（画面はぜんぶここを読む）══════════════ */
+
+  async listWorks() {
+    const c = await db();
+    const { data } = await c.from('works')
+      .select('id').neq('status', 'archived').order('created_at');
+    // Work は片手で数えられる想定なので、詳細は getWork を使い回す（形を二重に持たない）
+    const out: LiveWork[] = [];
+    for (const w of data ?? []) {
+      const one = await supabaseStore.getWork(w.id as string);
+      if (one) out.push(one);
+    }
+    return out;
+  },
+
+  async listNotes() {
+    const c = await db();
+    const { data } = await c.from('notifications')
+      .select('id, kind, body, subject_type, subject_id, read_at, created_at')
+      .order('created_at', { ascending: false }).limit(100);
+    return (data ?? []).map((n): Note => ({
+      id: n.id as string, kind: n.kind as string, body: n.body as string,
+      at: n.created_at as string, read: n.read_at != null,
+      subjectType: (n.subject_type ?? undefined) as string | undefined,
+      subjectId: (n.subject_id ?? undefined) as string | undefined,
+    }));
+  },
+
+  async readNote(id) {
+    const c = await db();
+    await c.from('notifications').update({ read_at: new Date().toISOString() })
+      .eq('id', id).is('read_at', null);
+  },
+
+  async listThreads() {
+    const c = await db();
+    const { data } = await c.from('chat_threads')
+      .select('id, title, work_id, last_message_at')
+      .order('last_message_at', { ascending: false }).limit(50);
+    return (data ?? []).map((t): ChatThread => ({
+      id: t.id as string, title: t.title as string,
+      workId: (t.work_id ?? undefined) as string | undefined,
+      lastAt: t.last_message_at as string,
+    }));
+  },
+
+  async getThread(id) {
+    const c = await db();
+    const { data: t } = await c.from('chat_threads')
+      .select('id, title, work_id, last_message_at').eq('id', id).maybeSingle();
+    if (!t) return null;
+    const { data: m } = await c.from('chat_messages')
+      .select('role, body, created_at').eq('thread_id', id).order('created_at');
+    return {
+      thread: {
+        id: t.id as string, title: t.title as string,
+        workId: (t.work_id ?? undefined) as string | undefined,
+        lastAt: t.last_message_at as string,
+      },
+      messages: (m ?? []).map((x): ChatMsg => ({
+        role: x.role as ChatMsg['role'], body: x.body as string, at: x.created_at as string,
+      })),
+    };
+  },
+
+  async addChat(threadId, role, body, title) {
+    const c = await db();
+    let id = threadId;
+    if (!id) {
+      const { data: row, error } = await c.from('chat_threads')
+        .insert({ title: (title ?? body).slice(0, 24) }).select('id').single();
+      if (error || !row) throw new AppError('unknown', error?.message ?? 'thread insert failed');
+      id = row.id as string;
+    }
+    const { error } = await c.from('chat_messages').insert({ thread_id: id, role, body });
+    if (error) throw new AppError('unknown', error.message);
+    await c.from('chat_threads').update({ last_message_at: new Date().toISOString() }).eq('id', id);
+    return id;
+  },
+
+  async listSkills() {
+    const c = await db();
+    const { data } = await c.from('agent_skills')
+      .select('id, name, filename, enabled, employee_id, used_count, body').order('created_at');
+    return (data ?? []).map((x): SkillRow => ({
+      id: x.id as string, name: x.name as string, filename: x.filename as string,
+      on: x.enabled as boolean,
+      scope: x.employee_id ? 'employee' : 'company',
+      used: (x.used_count ?? 0) as number,
+      body: (x.body ?? undefined) as string | undefined,
+    }));
+  },
+
+  async setSkill(id, on) {
+    const c = await db();
+    await c.from('agent_skills').update({ enabled: on }).eq('id', id);
+  },
+
+  async addSkill(x) {
+    const c = await db();
+    const { error } = await c.from('agent_skills')
+      .insert({ name: x.name, filename: x.filename, body: x.body, source: 'user' });
+    if (error) throw new AppError('unknown', error.message);
+  },
+
+  async removeSkill(id) {
+    const c = await db();
+    await c.from('agent_skills').delete().eq('id', id).eq('source', 'user');
+  },
+
+  async companyName() {
+    const c = await db();
+    const { data } = await c.from('accounts').select('name').limit(1).maybeSingle();
+    return (data?.name as string | undefined) ?? 'あなたの会社';
+  },
+
+  async recentSteps(limit) {
+    const c = await db();
+    const { data } = await c.from('run_steps')
+      .select('summary, created_at, runs(employee_id)')
+      .not('summary', 'is', null)
+      .order('created_at', { ascending: false }).limit(limit);
+    const ids = [...new Set((data ?? [])
+      .map((x) => (x.runs as { employee_id?: string } | null)?.employee_id).filter(Boolean))] as string[];
+    const { data: em } = ids.length
+      ? await c.from('employees').select('id, display_name').in('id', ids)
+      : { data: [] as { id: string; display_name: string }[] };
+    const name = new Map((em ?? []).map((e) => [e.id, e.display_name]));
+    return (data ?? []).map((x) => ({
+      at: x.created_at as string,
+      who: name.get((x.runs as { employee_id?: string } | null)?.employee_id ?? '') ?? 'AI社員',
+      what: x.summary as string,
     }));
   },
 

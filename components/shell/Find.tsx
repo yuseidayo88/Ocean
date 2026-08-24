@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import type { Route } from 'next';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { useShell } from '@/components/shell/Shell';
-import { DECISIONS, DELIVERABLES, EMPLOYEES, TASKS, THREADS, WORKS } from '@/lib/dummy';
+import { threadsList, worksList } from '@/app/actions/live';
+import { listDecisions, listDels, listEmployees } from '@/app/actions/run';
 import { openHref } from '@/lib/use-open';
 
 import { AMBER_T, BLUE, DIM, EDGE, FAINT, LINE, RAIL, T1, T2, T4, T5, WELL } from '@/lib/design/tokens';
@@ -35,16 +36,21 @@ const PAGES: Hit[] = [
   { id: 'p-hire', icon: 'plus', label: '採用', sub: '候補を見る', href: '/hire', kind: '行き先' },
 ];
 
-/** 名簿は lib/dummy がひとつの出どころ。画面ごとに書かない */
-function all(): Hit[] {
+/** 中身は store から。**開いたときに1回だけ**取りに行く（打つたびには行かない） */
+async function fetchAll(): Promise<Hit[]> {
+  const [works, dels, decs, staff, threads] = await Promise.all([
+    worksList(), listDels(), listDecisions(), listEmployees(), threadsList(),
+  ]);
   return [
     ...PAGES,
-    ...WORKS.map((w): Hit => ({ id: w.id, icon: 'work', label: w.title, sub: w.goal, href: `/work/${w.id}` as Route, kind: 'Work' })),
-    ...TASKS.map((t): Hit => ({ id: t.id, icon: 'task', label: t.title, sub: `${t.state} · ${t.due}`, href: openHref('/tasks', t.id), kind: 'タスク' })),
-    ...DELIVERABLES.map((d): Hit => ({ id: d.id, icon: 'deliv', label: d.title, sub: `${d.version} · ${d.when}`, href: openHref('/deliverables', d.id), kind: '成果物' })),
-    ...EMPLOYEES.map((e): Hit => ({ id: e.id, icon: 'team', label: e.name, sub: e.en, href: openHref('/team', e.id), kind: 'メンバー' })),
-    ...DECISIONS.map((d): Hit => ({ id: d.id, icon: 'dec', label: d.question, sub: `${d.state} · ${d.when}`, href: openHref('/decisions', d.id), kind: '決定事項' })),
-    ...THREADS.map((t): Hit => ({ id: t.id, icon: 'chat', label: t.title, sub: '', href: `/chat/${t.id}` as Route, kind: 'チャット' })),
+    ...works.map((w): Hit => ({ id: w.id, icon: 'work', label: w.title, sub: w.goal, href: `/work/${w.id}` as Route, kind: 'Work' })),
+    ...works.flatMap((w) => w.tasks.map((t): Hit => ({
+      id: t.id, icon: 'task', label: t.title, sub: w.title, href: `/work/${w.id}` as Route, kind: 'タスク',
+    }))),
+    ...dels.map((d): Hit => ({ id: d.id, icon: 'deliv', label: d.title, sub: d.state, href: openHref('/deliverables', d.id), kind: '成果物' })),
+    ...staff.map((e): Hit => ({ id: e.id, icon: 'team', label: e.name, sub: '', href: openHref('/team', e.id), kind: 'メンバー' })),
+    ...decs.map((d): Hit => ({ id: d.id, icon: 'dec', label: d.question, sub: d.status === 'open' ? '判断待ち' : '決定済', href: openHref('/decisions', d.id), kind: '決定事項' })),
+    ...threads.map((t): Hit => ({ id: t.id, icon: 'chat', label: t.title, sub: '', href: `/chat/${t.id}` as Route, kind: 'チャット' })),
   ];
 }
 
@@ -55,11 +61,19 @@ export function Find() {
   const box = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
+  const [pool, setPool] = useState<Hit[]>(PAGES);
+  useEffect(() => {
+    if (!find) return;
+    let on = true;
+    fetchAll().then((hs) => { if (on) setPool(hs); });
+    return () => { on = false; };
+  }, [find]);
+
   const hits = useMemo(() => {
     const k = q.trim().toLowerCase();
     if (!k) return [];
-    return all().filter((h) => (h.label + h.sub + h.kind).toLowerCase().includes(k)).slice(0, 12);
-  }, [q]);
+    return pool.filter((h) => (h.label + h.sub + h.kind).toLowerCase().includes(k)).slice(0, 12);
+  }, [q, pool]);
 
   /**
    * 書き換えたら選択は先頭に戻し、開いたら空から始める。

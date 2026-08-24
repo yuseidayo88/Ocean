@@ -4,7 +4,7 @@ import { Go as Link } from '@/components/ui/Go';
 import { openHref, useParam } from '@/lib/use-open';
 
 import { Icon } from '@/components/ui/Icon';
-import { AGENT_COLOR, DONE_WORKS, DONE_WORKS_LIST, TICKS, TODAY_X, WORKS, employee, type Phase, type Work } from '@/lib/dummy';
+import type { Phase, Work } from '@/lib/view/model';
 
 import { AMBER, AMBER_T, DIM, FAINT, GREEN_T, HAIR, RED_T, RULE, T1, T3, T4, T5 } from '@/lib/design/tokens';
 /**
@@ -22,7 +22,6 @@ const LABEL = 178, RCOL = 70, RCOL2 = 56, RIGHT = RCOL + RCOL2 + 22;
 const MAXW = 1420;
 /** 帯の高さと、帯どうしのすき間（**隣と地続きに見せない**） */
 const BAR = 46, SPLIT = 4;
-const DPP = 0.28; // 軸1% = 0.28日
 
 function Seg({ p }: { p: Phase }) {
   const base: React.CSSProperties = {
@@ -54,7 +53,8 @@ function Lane({ w, last }: { w: Work; last: boolean }) {
   const late = typeof w.health === 'object';
   const state = late ? `遅れ ${(w.health as { late: number }).late}日` : w.gate ? '判断待ち' : '順調';
   const scol = late ? RED_T : w.gate ? AMBER_T : GREEN_T;
-  const rest = `残り${Math.round((w.phases[w.phases.length - 1].x + w.phases[w.phases.length - 1].w - TODAY_X) * DPP)}日`;
+  // 残りは絵と同じ出どころ（計画の週数）。予定の無い Work には書かない
+  const rest = w.endDate ? `残り${w.restDays}日` : '';
   const nowPhase = w.phases.find((p) => p.state === 'now');
 
   return (
@@ -66,7 +66,8 @@ function Lane({ w, last }: { w: Work; last: boolean }) {
         width: LABEL, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0,
         borderRadius: 7, padding: '6px 8px', margin: '0 -8px',
       }}>
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.title}</span>
+        {/* 本物の Work 名はダミーより長い。**切らずに折り返す**（レーンは高さに余裕がある） */}
+        <span style={{ lineHeight: '19px' }}>{w.title}</span>
         <span style={{ color: T5, fontSize: 11, whiteSpace: 'nowrap' }} className="tnum">
           フェーズ {w.phaseIndex} / {w.phases.length} · {w.progress}%
         </span>
@@ -93,26 +94,23 @@ function Lane({ w, last }: { w: Work; last: boolean }) {
         {/* 下段: ◆のラベルと、担当がいまどこにいるか */}
         <div style={{ position: 'relative', height: 16, marginTop: 15 }}>
           {w.gate && (
-            <Link href={openHref('/decisions', 'dec-price')} className="lnk" style={{
+            <Link href={'/decisions'} className="lnk" style={{
               position: 'absolute', left: `${w.gate.x}%`, top: 0, transform: 'translateX(-100%)',
               paddingRight: 9, color: AMBER_T, fontSize: 11, whiteSpace: 'nowrap',
             }}>{w.gate.label}</Link>
           )}
-          {w.crew.map((c) => {
-            const e = employee(c.id);
-            return (
-              <Link key={c.id} href={openHref('/team', c.id)} className="lnk" style={{
-                position: 'absolute', left: `${c.x}%`, top: 0, transform: 'translateX(-50%)',
-                display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap',
-              }}>
-                <span style={{
-                  width: 8, height: 8, borderRadius: 999, background: AGENT_COLOR[e.color],
-                  opacity: c.dim ? 0.45 : 1,
-                }} />
-                <span style={{ color: c.dim ? T5 : T4, fontSize: 11 }}>{e.name}</span>
-              </Link>
-            );
-          })}
+          {w.crew.map((c) => (
+            <Link key={c.id} href={openHref('/team', c.id)} className="lnk" style={{
+              position: 'absolute', left: `${c.x}%`, top: 0, transform: 'translateX(-50%)',
+              display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap',
+            }}>
+              <span style={{
+                width: 8, height: 8, borderRadius: 999, background: c.color,
+                opacity: c.dim ? 0.45 : 1,
+              }} />
+              <span style={{ color: c.dim ? T5 : T4, fontSize: 11 }}>{c.name}</span>
+            </Link>
+          ))}
         </div>
       </div>
 
@@ -127,11 +125,13 @@ function Lane({ w, last }: { w: Work; last: boolean }) {
   );
 }
 
-export function Progress() {
+export function Progress({ works, ticks, todayX, done: doneList, gates, late }: {
+  works: Work[]; ticks: { x: number; label: string }[]; todayX: number;
+  done: { id: string; title: string; ended: string; phases: number }[];
+  gates: number; late: number;
+}) {
   // 畳みを開いたかどうかは URL に持つ（ホームの他のビューへ行って戻っても同じ）
   const [done, setDone] = useParam('done', '');
-  const late = WORKS.filter((w) => typeof w.health === 'object').length;
-  const gates = WORKS.filter((w) => w.gate).length;
 
   return (
     <div style={{
@@ -141,11 +141,12 @@ export function Progress() {
       {/* 答えを先に。状態の6語の外に新しい言い方を作らない */}
       <div style={{ width: '100%', maxWidth: MAXW, flexShrink: 0, display: 'flex', alignItems: 'baseline', gap: 12 }}>
         <span style={{ fontSize: 15, lineHeight: '25px' }}>
-          {WORKS.length}つの Work のうち <span style={{ color: RED_T }}>{late}つが遅れています。</span>
-          <span style={{ color: AMBER_T }}>判断待ちが {gates}件、要確認が 1件。</span>
+          {works.length}つの Work
+          {late > 0 && <>のうち <span style={{ color: RED_T }}>{late}つが遅れています</span></>}
+          {late === 0 && <>が動いています</>}。
+          {gates > 0 && <span style={{ color: AMBER_T }}>判断待ちが {gates}件。</span>}
         </span>
         <div style={{ flex: 1 }} />
-        <span style={{ color: T5, fontSize: 11 }}>統括AI · 2時間前</span>
       </div>
 
       <div style={{
@@ -154,12 +155,12 @@ export function Progress() {
       }}>
         {/* 目盛りと今日の線 */}
         <div style={{ position: 'absolute', left: LABEL + 16, right: RIGHT, top: 22, bottom: 42, pointerEvents: 'none' }}>
-          {TICKS.slice(1, -1).map((t) => (
+          {ticks.slice(1, -1).map((t) => (
             <div key={t.x} style={{ position: 'absolute', left: `${t.x}%`, top: 0, bottom: 0, width: 1, background: '#131313' }} />
           ))}
-          <div style={{ position: 'absolute', left: `${TODAY_X}%`, top: 0, bottom: 0, width: 1, background: DIM }} />
+          <div style={{ position: 'absolute', left: `${todayX}%`, top: 0, bottom: 0, width: 1, background: DIM }} />
           <div style={{
-            position: 'absolute', left: `${TODAY_X}%`, top: -18, transform: 'translateX(-50%)',
+            position: 'absolute', left: `${todayX}%`, top: -18, transform: 'translateX(-50%)',
             color: T3, fontSize: 11, whiteSpace: 'nowrap',
           }}>今日</div>
         </div>
@@ -167,7 +168,7 @@ export function Progress() {
         <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 16, padding: '0 0 8px' }}>
           <div style={{ width: LABEL, flexShrink: 0 }} />
           <div style={{ flex: 1, position: 'relative', height: 14 }}>
-            {TICKS.map((t) => (
+            {ticks.map((t) => (
               <span key={t.x} style={{
                 position: 'absolute', left: `${t.x}%`, transform: 'translateX(-50%)',
                 color: T5, fontSize: 11, whiteSpace: 'nowrap',
@@ -177,22 +178,24 @@ export function Progress() {
           <span style={{ width: RCOL, flexShrink: 0 }} /><span style={{ width: RCOL2, flexShrink: 0 }} />
         </div>
 
-        {WORKS.map((w, i) => <Lane key={w.id} w={w} last={i === WORKS.length - 1} />)}
+        {works.map((w, i) => <Lane key={w.id} w={w} last={i === works.length - 1} />)}
 
         {/* 完了した Work は下に溜めない。押したときだけ開く */}
+        {doneList.length > 0 && (
         <button onClick={() => setDone(done ? '' : '1')} className="row" style={{
           flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12, width: '100%',
           height: 42, borderRadius: 7, padding: '0 8px', margin: '0 -8px', textAlign: 'left',
         }}>
           <span style={{ color: T4 }}>完了した Work</span>
-          <span style={{ color: T5, fontSize: 12 }} className="tnum">{DONE_WORKS}件</span>
+          <span style={{ color: T5, fontSize: 12 }} className="tnum">{doneList.length}件</span>
           <div style={{ flex: 1 }} />
           <Icon name={done ? 'up' : 'chev'} color={T5} size={13} />
         </button>
+        )}
 
         {done && (
           <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
-            {DONE_WORKS_LIST.map((w) => (
+            {doneList.map((w) => (
               <div key={w.id} style={{
                 display: 'flex', alignItems: 'center', gap: 12, height: 36, padding: '0 8px',
                 borderTop: `1px solid ${HAIR}`,

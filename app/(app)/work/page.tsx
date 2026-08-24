@@ -1,7 +1,11 @@
 import { redirect } from 'next/navigation';
-import { WORKS } from '@/lib/dummy';
+import { store } from '@/lib/store';
 
-/** Work の行き先は、いま見ている Work。一覧はホームの進捗が兼ねる */
-export default function WorkIndex() {
-  redirect(`/work/${WORKS[1].id}`);
+export const dynamic = 'force-dynamic';
+
+/** Work の行き先は、いちばん新しい Work。まだ無ければ、はじめての画面へ */
+export default async function WorkIndex() {
+  const works = await store().listWorks().catch(() => []);
+  if (!works.length) redirect('/start');
+  redirect(`/work/${works[works.length - 1].id}`);
 }

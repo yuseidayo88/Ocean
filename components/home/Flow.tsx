@@ -5,7 +5,7 @@ import { Orb } from '@/components/ui/Orb';
 import { useParam } from '@/lib/use-open';
 import { useSize } from '@/lib/use-size';
 import { AMBER, AMBER_T, CANVAS, COMPOSER_H, EASE, EDGE, FAINT, HAIR, LINE, RAIL, RED_T, SEAM, SUNK, T1, T2, T4, T5, WELL } from '@/lib/design/tokens';
-import { AGENT_COLOR, FLOWMAP, type MapPhase, type MapWork } from '@/lib/dummy';
+import type { MapChip, MapPhase, MapWork } from '@/lib/view/model';
 
 /**
  * ワークフロー＝**地図**。横に区切らない。鎖（Work）を格子の上に置いて、
@@ -129,8 +129,10 @@ function elbow(pts: [number, number][], r = 12) {
   return `${d} L ${last[0]} ${last[1]}`;
 }
 
+type FlowMap = { works: MapWork[]; chips: MapChip[] };
+
 /** 盤面のすべて（ノード・線・ラベル）を一度に組む。ミニマップも同じものから描く */
-function build() {
+function build(FLOWMAP: FlowMap) {
   /** どの要素も **どの鎖のものか**（`of`）を持つ。押したときに残すものが決まる */
   const nodes: { x: number; y: number; w: number; h: number; kind: Kind; tone?: string;
                  title: string; sub: string; pct?: number; crew?: number; col: number; of: string }[] = [];
@@ -296,11 +298,12 @@ function Mark({ status }: { status?: string }) {
  * そのぶん遅れて「ぎこちない」になる（社員の球を入れてから 3,900 節点ある）。
  * 選んでいる鎖（`of`）が変わったときだけ作り直す。
  */
-const Scene = memo(function Scene({ nodes, links, labels, names, endX, endY, lit, pick }: {
+const Scene = memo(function Scene({ nodes, links, labels, names, works, endX, endY, lit, pick }: {
   nodes: ReturnType<typeof build>['nodes'];
   links: ReturnType<typeof build>['links'];
   labels: ReturnType<typeof build>['labels'];
   names: ReturnType<typeof build>['names'];
+  works: MapWork[];
   endX: number; endY: number;
   lit: (of: string | string[]) => boolean;
   pick: (of: string) => void;
@@ -335,7 +338,7 @@ const Scene = memo(function Scene({ nodes, links, labels, names, endX, endY, lit
 
       {/* 社員はいまのフェーズのノードの右に置く（⊕ で足すものではない）。
           **オフィスと同じ粒子のアバター**。ここだけ別の丸を描かない */}
-      {FLOWMAP.works.map((w) => {
+      {works.map((w) => {
         const fs = fold(w.phases);
         const i = fs.findIndex((f) => f.kind === 'now');
         if (i < 0 || !w.crew.length) return null;
@@ -346,7 +349,7 @@ const Scene = memo(function Scene({ nodes, links, labels, names, endX, endY, lit
             opacity: lit(w.id) ? 1 : 0.26, transition: `opacity ${EASE}`, pointerEvents: 'none',
             animation: `flowfade ${IN} ${(0.24 + (w.col + i) * STEP).toFixed(3)}s backwards`,
           }}>
-            <Orb color={AGENT_COLOR[c]} size={CREW} seed={c.length * 7 + 3} />
+            <Orb color={c} size={CREW} seed={c.length * 7 + 3} />
           </span>
         ));
       })}
@@ -375,9 +378,9 @@ const PAD_EDGE = 26;
  */
 const SLACK = 0.45;
 
-export function Flow() {
+export function Flow({ map: given }: { map: FlowMap }) {
   /** 盤面の形はデータで決まる。**描き直すたびに組み直さない**（`Scene` の memo が効かなくなる） */
-  const made = useMemo(() => build(), []);
+  const made = useMemo(() => build(given), [given]);
   const { nodes, links, labels, names } = made;
   const B = useMemo(() => bounds(made), [made]);
   const bw = B.x1 - B.x0, bh = B.y1 - B.y0;
@@ -588,7 +591,7 @@ export function Flow() {
              transform: `translate(${eye.x}px, ${eye.y}px) scale(${eye.z})`,
              transformOrigin: '0 0',
            }}>
-        <Scene nodes={nodes} links={links} labels={labels} names={names}
+        <Scene nodes={nodes} links={links} labels={labels} names={names} works={given.works}
                endX={B.x1 + 24} endY={B.y1 + 24} lit={lit} pick={pick} />
       </div>
 

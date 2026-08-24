@@ -6,7 +6,9 @@ import type { Route } from 'next';
 import { Composer, ExecStatus, Pane } from '@/components/shell/Chrome';
 import { CHAT_W, useShell } from '@/components/shell/Shell';
 import { Orb } from '@/components/ui/Orb';
-import { CHATS, THREADS, WORKS } from '@/lib/dummy';
+import { threadGet, threadsList } from '@/app/actions/live';
+import type { ChatMsg } from '@/lib/store';
+import { useEffect, useState } from 'react';
 
 import { EXEC, T2, T4, T5 } from '@/lib/design/tokens';
 /**
@@ -20,26 +22,53 @@ import { EXEC, T2, T4, T5 } from '@/lib/design/tokens';
  * **右ペインの3つめの形は作らない。** これはパネル（画面そのものの付き添い）の一種で、
  * 見出し ＋ ✕ という作法は変えない。持ち出して読み比べるものではないのでタブにもしない。
  *
- * **返事は作らない。** 書いたものは出るが、統括AIは「考えています」で止まる（会話で答えるのは Phase 7 から）。
+ * **返事は本物。** 送ると統括AIが fast の1往復で返す（→ `sendChat`）。
+ * 鍵の無い環境は「仮の返事」と名乗って返す — 偽の会話を作らない。
  */
-
-/** その画面に紐づいたスレッド。Work の画面ならその Work のスレッド */
-function threadFor(path: string) {
-  const w = WORKS.find((x) => path.startsWith(`/work/${x.id}`));
-  return (w && THREADS.find((t) => t.workId === w.id)?.id) ?? null;
-}
 
 export function ChatPane() {
   const path = usePathname();
   const { chat, closeChat, fresh } = useShell();
+  const [msgs, setMsgs] = useState<ChatMsg[]>([]);
+  const [title, setTitle] = useState('新しいチャット');
+
+  const id = chat.thread;
+  const rev = chat.rev;
+
+  // スレッドが外れたら空に戻す。**描いている途中で直す**（effect にすると1回ずれて見える）
+  const [seen, setSeen] = useState<string | null>(id);
+  if (seen !== id) { setSeen(id); if (!id) { setMsgs([]); setTitle('新しいチャット'); } }
+
+  // スレッドの中身。送るたび（rev）と、スレッドが変わるたびに読み直す
+  useEffect(() => {
+    if (!id) return;
+    let on = true;
+    threadGet(id).then((r) => {
+      if (!on || !r) return;
+      setMsgs(r.messages);
+      setTitle(r.thread.title);
+    });
+    return () => { on = false; };
+  }, [id, rev]);
+
+  // Work の画面で会話を開いたら、その Work のスレッドに寄せる（あれば）
+  useEffect(() => {
+    if (id || !chat.on) return;
+    const m = path.match(/^\/work\/([^/]+)$/);
+    if (!m) return;
+    let on = true;
+    threadsList().then((ts) => {
+      if (!on) return;
+      const t = ts.find((x) => x.workId === m[1]);
+      if (t) threadGet(t.id).then((r) => {
+        if (on && r) { setMsgs(r.messages); setTitle(r.thread.title); }
+      });
+    });
+    return () => { on = false; };
+  }, [id, chat.on, path]);
 
   // チャット画面では会話そのものが主役なので、右に出さない
   if (!chat.on || path.startsWith('/chat')) return null;
-
-  const id = chat.thread ?? threadFor(path);
-  const th = id ? THREADS.find((t) => t.id === id) : undefined;
-  const past = id ? CHATS[id]?.turns ?? [] : [];
-  const title = th?.title ?? '新しいチャット';
 
   return (
     <Pane chat width={CHAT_W} title={title} onClose={closeChat} right={
@@ -61,13 +90,13 @@ export function ChatPane() {
         display: 'flex', flexDirection: 'column', gap: 16,
       }}>
         {/* これまでの会話。**要約しない**（同じスレッドの続きなので、そのまま出す） */}
-        {past.map((t, i) => (
-          t.who === 'you'
-            ? <Said key={i}>{t.text}</Said>
-            : <Exec key={i}>{t.lead.replace(/\*\*/g, '')}</Exec>
+        {msgs.map((m, i) => (
+          m.role === 'user'
+            ? <Said key={i}>{m.body}</Said>
+            : <Exec key={i}>{m.body}</Exec>
         ))}
 
-        {past.length === 0 && chat.said.length === 0 && (
+        {msgs.length === 0 && chat.said.length === 0 && (
           <div style={{
             flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
             justifyContent: 'center', gap: 12,
@@ -77,11 +106,11 @@ export function ChatPane() {
           </div>
         )}
 
-        {/* いま書いたぶん */}
+        {/* いま送っている途中のぶん（楽観表示。書き終わると msgs に入って消える） */}
         {chat.said.map((t, i) => <Said key={`s${i}`}>{t}</Said>)}
 
-        {/* **嘘の返事を出さない。** まだ繋がっていないので、そう見せる */}
-        {chat.said.length > 0 && (
+        {/* 統括AIが本当に書いている（sendChat が返るまで） */}
+        {chat.busy && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, paddingTop: 2 }}>
             <Orb color={EXEC} size={22} seed={7} />
             <ExecStatus state="thinking" />
@@ -105,7 +134,7 @@ const Said = ({ children }: { children: React.ReactNode }) => (
 );
 
 const Exec = ({ children }: { children: React.ReactNode }) => (
-  <span style={{ color: T2, fontSize: 13.5, lineHeight: '22px' }}>{children}</span>
+  <span style={{ color: T2, fontSize: 13.5, lineHeight: '22px', whiteSpace: 'pre-wrap' }}>{children}</span>
 );
 
 const PlusMark = () => (

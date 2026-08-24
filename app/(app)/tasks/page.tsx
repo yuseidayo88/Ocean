@@ -1,45 +1,54 @@
 'use client';
 
 import { Go as Link } from '@/components/ui/Go';
+import type { Route } from 'next';
 import { openHref, useOpen, useParam } from '@/lib/use-open';
 import { Centre, Composer, Pane, PaneFooter, PaneHead, TopBar } from '@/components/shell/Chrome';
 import { Diamond, Icon, type IconName } from '@/components/ui/Icon';
-import { TASKS, TASK_BODY, employee, work, type State, type Task } from '@/lib/dummy';
+import { worksList } from '@/app/actions/live';
+import { taskSteps } from '@/app/actions/run';
+import type { LiveWork, RunStep } from '@/lib/store';
 import { pressable } from '@/lib/a11y';
-import { AMBER, AMBER_T, COMPOSER_H, DIM, GREEN, GREEN_T, HAIR, RULE, SUNK, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
+import { useEffect, useState } from 'react';
+import { AMBER, AMBER_T, COMPOSER_H, DIM, GREEN, HAIR, RED_T, RULE, SUNK, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
 /**
- * タスク＝**いつやるかで束ねる**（参考: Todoist Upcoming / Attio Tasks / Evernote Tasks —
- * どれも一覧ではなく期限の束で並べている）。
+ * タスク＝**状態で束ねる**。
  *
- * 前は1枚の表で、放っておけない順に並べていた。順番は正しかったが、
- * 「いつまでに何をすればいいか」が読み取れなかった（期限の列を目で追う必要があった）。
+ * 設計時は「いつやるか（きょう / あした）」で束ねる案だったが、本物のタスクは
+ * 期限を持たない（統括AIの計画は順序で言う）。**無い日付をでっち上げない** —
+ * 束は「あなたが決める / いま動いている / このあと / 止まっている」の4つ。
  *
- * ・**判断待ちは行から出す。** あなたが決めるものは束の外、いちばん上の帯に置く
- * ・束は きょう / あした / 今週のうち。空の束は出さない
- * ・**完了は下の1行に畳む**（下に溜めない）
+ * ・**判断待ちは束から出す。** あなたが決めるものは束の外、いちばん上の帯に置く
+ * ・空の束は出さない。**完了は下の1行に畳む**（下に溜めない）
  * ・「追加」ボタンは置かない。タスクは統括AIとの会話から作られる
  */
 
-/** ダミーの「きょう」。実データでは new Date() に置き換わる */
-const TODAY = '8月21日', TOMORROW = '8月22日';
+type Row = {
+  id: string; title: string; state: string; progress: number;
+  owner?: string; workId: string; workTitle: string; phase: string; phaseSeq: number;
+};
 
-type Bunch = { key: string; label: string; date?: string; items: Task[] };
+/** 状態の語は6つだけ（→ CLAUDE.md）。DB の値をそこに写す */
+const WORD: Record<string, string> = {
+  queued: '待機', running: '実行中', needs_decision: '判断待ち',
+  blocked: '停止', done: '完了', cancelled: '取消',
+};
 
-/** 期限で束ねる。**空の束は作らない** */
-function bunches(): Bunch[] {
-  const live = TASKS.filter((t) => t.state !== '完了' && t.state !== '判断待ち');
-  const out: Bunch[] = [
-    { key: 'today', label: 'きょう', date: TODAY, items: live.filter((t) => t.due === TODAY) },
-    { key: 'tomorrow', label: 'あした', date: TOMORROW, items: live.filter((t) => t.due === TOMORROW) },
-    { key: 'week', label: '今週のうち', items: live.filter((t) => t.due !== TODAY && t.due !== TOMORROW) },
-  ];
-  return out.filter((b) => b.items.length > 0);
+function flatten(works: LiveWork[]): Row[] {
+  return works.flatMap((w) => {
+    const phase = new Map(w.phases.map((p) => [p.id, p]));
+    return w.tasks.map((t): Row => ({
+      id: t.id, title: t.title, state: t.state, progress: t.progress ?? 0,
+      owner: t.owner, workId: w.id, workTitle: w.title,
+      phase: phase.get(t.phaseId)?.name ?? '', phaseSeq: phase.get(t.phaseId)?.seq ?? 0,
+    }));
+  });
 }
 
-function Mark({ s }: { s: State }) {
-  if (s === '要確認') return <Icon name="deliv" color={AMBER_T} size={13} />;
-  if (s === '実行中') return <span style={{ width: 7, height: 7, borderRadius: 999, background: T4, display: 'inline-block' }} />;
-  if (s === '完了') return <Icon name="check" color={DIM} size={12} width={2} />;
+function Mark({ s }: { s: string }) {
+  if (s === 'running') return <span style={{ width: 7, height: 7, borderRadius: 999, background: GREEN, display: 'inline-block' }} />;
+  if (s === 'done') return <Icon name="check" color={DIM} size={12} width={2} />;
+  if (s === 'blocked' || s === 'failed') return <span style={{ width: 7, height: 7, borderRadius: 999, background: RED_T, display: 'inline-block' }} />;
   return <span style={{ width: 7, height: 7, borderRadius: 999, border: '1px solid #333', display: 'inline-block' }} />;
 }
 
@@ -47,61 +56,89 @@ export default function TasksPage() {
   const [openId, setOpen] = useOpen();
   // 畳んだ完了は URL に持つ（別の画面から戻っても開いたまま）
   const [doneOpen, setDoneOpen] = useParam('done', '');
-  const open = TASKS.find((t) => t.id === openId) ?? null;
+  const [rows, setRows] = useState<Row[] | null>(null);
 
-  const gate = TASKS.find((t) => t.state === '判断待ち') ?? null;
-  const done = TASKS.filter((t) => t.state === '完了');
-  const live = TASKS.filter((t) => t.state !== '完了');
-  const todayRest = live.filter((t) => t.due === TODAY && t.state !== '判断待ち').length;
+  useEffect(() => {
+    let on = true;
+    worksList().then((ws) => { if (on) setRows(flatten(ws)); });
+    return () => { on = false; };
+  }, []);
+
+  const all = rows ?? [];
+  const open = all.find((t) => t.id === openId) ?? null;
+  const gates = all.filter((t) => t.state === 'needs_decision');
+  const running = all.filter((t) => t.state === 'running');
+  const queued = all.filter((t) => t.state === 'queued');
+  const stuck = all.filter((t) => t.state === 'blocked' || t.state === 'failed');
+  const done = all.filter((t) => t.state === 'done');
+  const liveCount = all.length - done.length;
+
+  const bunches: { key: string; label: string; amber?: boolean; items: Row[] }[] = [
+    { key: 'run', label: 'いま動いている', items: running },
+    { key: 'next', label: 'このあと', items: queued },
+    { key: 'stuck', label: '止まっている', items: stuck },
+  ].filter((b) => b.items.length > 0);
 
   return (
     <>
     <Centre>
       <TopBar title="タスク"
-        onPanel={() => setOpen(TASKS[0].id)} panelOn={!!open}
-        right={
-          <span style={{ color: T5, fontSize: 12 }} className="tnum">
-            やること {live.length} · 完了 {done.length}
-          </span>
-        } />
+        onPanel={all.length ? () => setOpen(all[0].id) : undefined} panelOn={!!open}
+        right={all.length > 0
+          ? <span style={{ color: T5, fontSize: 12 }} className="tnum">やること {liveCount} · 完了 {done.length}</span>
+          : undefined} />
 
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: `16px 26px ${COMPOSER_H}px` }}>
-        {/* 答えを先に1行。図はそのあと（進捗の画面と同じ作法） */}
-        <div style={{ fontSize: 16, lineHeight: '26px', paddingBottom: 16 }}>
-          {gate
-            ? <>今日じゅうに<span style={{ color: AMBER_T }}>決めるのが1件</span>。ほかの{todayRest}件は走っています。</>
-            : <>決めるものはありません。{todayRest}件が走っています。</>}
-        </div>
-
-        {/* 判断待ちは束に入れない。あなたが決めるものだけ、面と枠を持つ */}
-        {gate && <GateBand t={gate} on={gate.id === openId} onOpen={() => setOpen(gate.id)} />}
-
-        {bunches().map((b) => (
-          <div key={b.key}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, height: 40, paddingTop: 10 }}>
-              <span style={{ color: b.key === 'today' ? AMBER_T : T3, fontSize: 12 }}>{b.label}</span>
-              {b.date && <span style={{ color: b.key === 'today' ? AMBER_T : T5, fontSize: 12 }}>{b.date}</span>}
-              <span style={{ color: DIM, fontSize: 11 }} className="tnum">{b.items.length}</span>
-            </div>
-            {b.items.map((t) => <Row key={t.id} t={t} on={t.id === openId} onOpen={() => setOpen(t.id)} />)}
+        {rows !== null && all.length === 0 && (
+          <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+            <span style={{ fontSize: 16, color: T2 }}>タスクはまだありません</span>
+            <span style={{ color: T5, fontSize: 13 }}>
+              ゴールを書くと、統括AIが計画してタスクに割ります — <Link href="/start" className="lnk" style={{ color: T3 }}>はじめる ›</Link>
+            </span>
           </div>
-        ))}
+        )}
 
-        {/* 終わったものは下に溜めない。1行に畳んで、押したときだけ開く */}
-        {done.length > 0 && (
-          <div style={{ paddingTop: 22 }}>
-            <div className="row" {...pressable(() => setDoneOpen(doneOpen ? '' : '1'))} style={{
-              display: 'flex', alignItems: 'center', gap: 11, height: 40, padding: '0 12px',
-              borderRadius: 8, background: '#0B0B0B',
-            }}>
-              <Icon name="check" color={DIM} size={13} width={2} />
-              <span style={{ color: T4, fontSize: 12.5 }}>終わったもの</span>
-              <span style={{ color: T5, fontSize: 12 }} className="tnum">{done.length}件</span>
-              <div style={{ flex: 1 }} />
-              <span style={{ color: T5, fontSize: 12 }}>{doneOpen ? '畳む ›' : '開く ›'}</span>
+        {all.length > 0 && (
+          <>
+            {/* 答えを先に1行。図はそのあと（進捗の画面と同じ作法） */}
+            <div style={{ fontSize: 16, lineHeight: '26px', paddingBottom: 16 }}>
+              {gates.length > 0
+                ? <><span style={{ color: AMBER_T }}>決めるのが {gates.length}件</span>。{running.length + queued.length}件は会社の側で進みます。</>
+                : <>決めるものはありません。{running.length + queued.length}件が会社の側で進みます。</>}
             </div>
-            {doneOpen && done.map((t) => <Row key={t.id} t={t} on={t.id === openId} onOpen={() => setOpen(t.id)} />)}
-          </div>
+
+            {/* 判断待ちは束に入れない。あなたが決めるものだけ、面と枠を持つ */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {gates.map((t) => <GateBand key={t.id} t={t} on={t.id === openId} />)}
+            </div>
+
+            {bunches.map((b) => (
+              <div key={b.key}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, height: 40, paddingTop: 10 }}>
+                  <span style={{ color: T3, fontSize: 12 }}>{b.label}</span>
+                  <span style={{ color: DIM, fontSize: 11 }} className="tnum">{b.items.length}</span>
+                </div>
+                {b.items.map((t) => <TaskRow key={t.id} t={t} on={t.id === openId} onOpen={() => setOpen(t.id)} />)}
+              </div>
+            ))}
+
+            {/* 終わったものは下に溜めない。1行に畳んで、押したときだけ開く */}
+            {done.length > 0 && (
+              <div style={{ paddingTop: 22 }}>
+                <div className="row" {...pressable(() => setDoneOpen(doneOpen ? '' : '1'))} style={{
+                  display: 'flex', alignItems: 'center', gap: 11, height: 40, padding: '0 12px',
+                  borderRadius: 8, background: '#0B0B0B',
+                }}>
+                  <Icon name="check" color={DIM} size={13} width={2} />
+                  <span style={{ color: T4, fontSize: 12.5 }}>終わったもの</span>
+                  <span style={{ color: T5, fontSize: 12 }} className="tnum">{done.length}件</span>
+                  <div style={{ flex: 1 }} />
+                  <span style={{ color: T5, fontSize: 12 }}>{doneOpen ? '畳む ›' : '開く ›'}</span>
+                </div>
+                {doneOpen && done.map((t) => <TaskRow key={t.id} t={t} on={t.id === openId} onOpen={() => setOpen(t.id)} />)}
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -117,9 +154,8 @@ export default function TasksPage() {
  * 束の中の1行。**状態の列を置かない**（印がタイトルの前にある）。
  * 事実は右に並べる — 進捗のバー / 担当 / どの Work か。
  */
-function Row({ t, on, onOpen }: { t: Task; on: boolean; onOpen: () => void }) {
-  const fin = t.state === '完了';
-  const who = t.owner === 'me' ? 'あなた' : employee(t.owner).name;
+function TaskRow({ t, on, onOpen }: { t: Row; on: boolean; onOpen: () => void }) {
+  const fin = t.state === 'done';
   return (
     <div className="row" {...pressable(onOpen)} style={{
       display: 'flex', alignItems: 'center', gap: 14, height: 43,
@@ -135,143 +171,98 @@ function Row({ t, on, onOpen }: { t: Task; on: boolean; onOpen: () => void }) {
       <span style={{ width: 74, height: 3, borderRadius: 2, background: SUNK, overflow: 'hidden', flexShrink: 0 }}>
         <span style={{
           display: 'block', width: `${t.progress}%`, height: '100%', borderRadius: 2,
-          background: t.state === '要確認' ? AMBER : fin ? `${RULE}` : T5,
+          background: fin ? `${RULE}` : T5,
         }} />
       </span>
+      <span style={{ width: 76, flexShrink: 0, color: T4, fontSize: 12 }}>{t.owner ?? ''}</span>
       {/* 行は開く、中のリンクは別の画面へ。食い合わないように止める */}
-      {t.owner === 'me'
-        ? <span style={{ width: 76, flexShrink: 0, color: AMBER_T, fontSize: 12 }}>{who}</span>
-        : <Link href={openHref('/team', t.owner)} onClick={(e) => e.stopPropagation()} className="lnk"
-            style={{ width: 76, flexShrink: 0, color: T4, fontSize: 12 }}>{who}</Link>}
-      <Link href={`/work/${t.workId}`} onClick={(e) => e.stopPropagation()} className="lnk" style={{
+      <Link href={`/work/${t.workId}` as Route} onClick={(e) => e.stopPropagation()} className="lnk" style={{
         width: 140, flexShrink: 0, textAlign: 'right', color: fin ? `${DIM}` : T5, fontSize: 12,
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-      }}>{work(t.workId).title}</Link>
+      }}>{t.workTitle}</Link>
     </div>
   );
 }
 
-/** あなたが決めるもの。**束の外に出して、いちばん上に置く** */
-function GateBand({ t, on, onOpen }: { t: Task; on: boolean; onOpen: () => void }) {
+/** あなたが決めるもの。**束の外に出して、いちばん上に置く。** 決める場は Work 画面の右ペイン */
+function GateBand({ t, on }: { t: Row; on: boolean }) {
   return (
-    <div className="row" {...pressable(onOpen)} style={{
+    <Link href={openHref(`/work/${t.workId}`, t.id)} className="row" style={{
       display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 12,
       background: on ? 'rgba(227,116,0,0.10)' : 'rgba(227,116,0,0.055)',
       border: '1px solid rgba(227,116,0,0.42)',
     }}>
       <Diamond size={11} />
       <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-        <span style={{ fontSize: 14.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
-        <span style={{ color: T5, fontSize: 11.5 }}>
-          {work(t.workId).title} · フェーズ{work(t.workId).phaseIndex} · {TASK_BODY.created.replace('前', '')} 待っています
-        </span>
+        <span style={{ fontSize: 14.5, color: T1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
+        <span style={{ color: T5, fontSize: 11.5 }}>{t.workTitle} · フェーズ{t.phaseSeq} · あなたの判断を待っています</span>
       </div>
       <div style={{ flex: 1 }} />
-      <span style={{ color: T4, fontSize: 12, whiteSpace: 'nowrap' }}>
-        {TASK_BODY.rows.map((r) => `${r.k} ${r.v}`).join(' / ')}
-      </span>
-      <Link href={openHref('/inbox', 'i-price')} onClick={(e) => e.stopPropagation()} className="solid" style={{
+      <span className="solid" style={{
         display: 'inline-flex', alignItems: 'center', height: 32, padding: '0 16px',
-        borderRadius: 8, background: AMBER, color: '#fff', flexShrink: 0,
-      }}>決める</Link>
-    </div>
+        borderRadius: 8, background: AMBER, color: '#fff', flexShrink: 0, fontSize: 12.5,
+      }}>決める</span>
+    </Link>
   );
 }
 
-/**
- * 1行を開いた先。**押した行のものを出す。**
- * フィールドとシステムはどの行にもあるが、案の比較は判断待ちの行にしかない。
- */
-function TaskPane({ t, onClose }: { t: Task; onClose: () => void }) {
-  const b = TASK_BODY;
-  const gate = t.state === '判断待ち';
-  const who = t.owner === 'me' ? 'あなた' : employee(t.owner).name;
-  const barColor = gate || t.state === '要確認' ? AMBER : t.state === '完了' ? `${GREEN}` : T4;
-  const fields = [
-    { icon: 'task' as const, label: '期限', value: t.due },
-    { icon: 'check' as const, label: '状態', pill: t.state },
-    { icon: 'bars' as const, label: '進捗', bar: t.progress },
-    { icon: 'team' as const, label: '担当', value: who },
-    { icon: 'work' as const, label: 'Work', value: work(t.workId).title },
-  ];
-  // 値のない行は出さない（「—」で埋めない）
-  const system = [
-    ...(gate ? [{ icon: 'plus' as const, label: '作成', value: b.created }] : []),
-    { icon: 'roadmap' as const, label: 'フェーズ', value: t.phase },
-  ];
+/** 1行を開いた先。フィールドと、実行の歩み（run_steps）。無いものは出さない */
+function TaskPane({ t, onClose }: { t: Row; onClose: () => void }) {
+  const [steps, setSteps] = useState<RunStep[]>([]);
+  useEffect(() => {
+    let on = true;
+    taskSteps(t.id).then((s) => { if (on) setSteps(s); });
+    return () => { on = false; };
+  }, [t.id]);
+
+  const gate = t.state === 'needs_decision';
+  const barColor = gate ? AMBER : t.state === 'done' ? `${GREEN}` : T4;
   return (
     <Pane width={420} onClose={onClose}
-      dot={gate || t.state === '要確認' ? AMBER : t.state === '完了' ? `${GREEN}` : T5}
-      title={t.title}
-      right={gate ? <span style={{ color: T5, fontSize: 11, whiteSpace: 'nowrap' }}>{b.created}に作成</span> : undefined}>
-      {/* 1つのタスクの中の行き先。**開いた文書ではない**ので、タブではなく選ぶ列 */}
-      <div style={{ flexShrink: 0, display: 'flex', gap: 4, padding: '10px 16px 0' }}>
-        {(['概要', '履歴', '資料'] as const).map((label, i) => (
-          <span key={label} className={i === 0 ? 'hit' : 'btn'} style={{
-            display: 'inline-flex', alignItems: 'center', gap: 7, height: 28, padding: '0 11px',
-            borderRadius: 8, background: i === 0 ? `${SUNK}` : undefined, color: i === 0 ? T1 : T4, fontSize: 12.5,
-          }}>
-            <Icon name={i === 0 ? 'home' : i === 1 ? 'history' : 'deliv'} color={i === 0 ? T2 : DIM} size={12} />{label}
-          </span>
-        ))}
-      </div>
-
+      dot={gate ? AMBER : t.state === 'done' ? `${GREEN}` : T5}
+      title={t.title}>
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '14px 18px 20px' }}>
         <PaneHead top>フィールド</PaneHead>
-        {fields.map((f) => (
-          <PaneRow key={f.label} icon={f.icon} label={f.label}>
-            {'pill' in f && f.pill && (
-              gate || f.pill === '要確認' ? (
-                <span style={{
-                  display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 9px', borderRadius: 6,
-                  background: 'rgba(227,116,0,0.18)', color: AMBER_T, fontSize: 12,
-                }}>{f.pill}</span>
-              ) : <span style={{ color: T1, fontSize: 12.5 }}>{f.pill}</span>
-            )}
-            {'bar' in f && f.bar !== undefined && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
-                <span style={{ display: 'block', width: 74, height: 4, borderRadius: 2, background: SUNK }}>
-                  <span style={{ display: 'block', width: `${f.bar}%`, height: '100%', borderRadius: 2, background: barColor }} />
+        <PaneRow icon="check" label="状態">
+          {gate ? (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 9px', borderRadius: 6,
+              background: 'rgba(227,116,0,0.18)', color: AMBER_T, fontSize: 12,
+            }}>判断待ち</span>
+          ) : <span style={{ color: T1, fontSize: 12.5 }}>{WORD[t.state] ?? t.state}</span>}
+        </PaneRow>
+        <PaneRow icon="bars" label="進捗">
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
+            <span style={{ display: 'block', width: 74, height: 4, borderRadius: 2, background: SUNK }}>
+              <span style={{ display: 'block', width: `${t.progress}%`, height: '100%', borderRadius: 2, background: barColor }} />
+            </span>
+            <span style={{ color: T1, fontSize: 12.5 }} className="tnum">{t.progress}%</span>
+          </span>
+        </PaneRow>
+        {t.owner && <PaneRow icon="team" label="担当"><span style={{ color: T1, fontSize: 12.5 }}>{t.owner}</span></PaneRow>}
+        <PaneRow icon="work" label="Work"><span style={{ color: T1, fontSize: 12.5 }}>{t.workTitle}</span></PaneRow>
+        {t.phase && <PaneRow icon="roadmap" label="フェーズ"><span style={{ color: T1, fontSize: 12.5 }}>{t.phase}</span></PaneRow>}
+
+        {steps.length > 0 && <>
+          <PaneHead>歩み</PaneHead>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {steps.map((s, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, height: 32, borderTop: i ? `1px solid ${HAIR}` : undefined }}>
+                <span style={{ width: 5, height: 5, borderRadius: 999, background: T5, flexShrink: 0 }} />
+                <span style={{ flex: 1, minWidth: 0, color: T3, fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {s.summary}
                 </span>
-                <span style={{ color: T1, fontSize: 12.5 }} className="tnum">{f.bar}%</span>
-              </span>
-            )}
-            {'value' in f && f.value && <span style={{ color: T1, fontSize: 12.5 }}>{f.value}</span>}
-          </PaneRow>
-        ))}
-
-        <PaneHead>システム</PaneHead>
-        {system.map((f) => (
-          <PaneRow key={f.label} icon={f.icon} label={f.label}>
-            <span style={{ color: T1, fontSize: 12.5 }}>{f.value}</span>
-          </PaneRow>
-        ))}
-
-        {gate && <>
-        <PaneHead>内容</PaneHead>
-        <span style={{ display: 'block', color: T3, fontSize: 12.5, lineHeight: '21px', padding: '4px 0 16px' }}>
-          {b.lead}
-        </span>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, height: 24 }}>
-          <span style={{ width: 28, color: T5, fontSize: 11 }}>{b.cols[0]}</span>
-          <span style={{ flex: 1, color: T5, fontSize: 11 }}>{b.cols[1]}</span>
-          <span style={{ color: T5, fontSize: 11 }}>{b.cols[2]}</span>
-        </div>
-        {b.rows.map((r) => (
-          <div key={r.k} className="row" style={{
-            display: 'flex', alignItems: 'center', gap: 12, height: 35, padding: '0 9px', margin: '0 -9px',
-            borderRadius: 7, borderTop: `1px solid ${HAIR}`,
-            background: r.on ? 'rgba(30,142,62,0.10)' : undefined,
-          }}>
-            <span style={{ width: 28, color: r.on ? T1 : T4, fontSize: 12.5 }}>{r.k}</span>
-            <span style={{ flex: 1, color: r.on ? T1 : T4, fontSize: 12.5 }} className="tnum">{r.v}</span>
-            <span style={{ color: r.on ? `${GREEN_T}` : T5, fontSize: 12.5 }} className="tnum">{r.pct}</span>
+                {s.progress != null && <span style={{ color: T5, fontSize: 11.5 }} className="tnum">{s.progress}%</span>}
+              </div>
+            ))}
           </div>
-        ))}
         </>}
+        {steps.length === 0 && !gate && (
+          <span style={{ display: 'block', paddingTop: 16, color: T5, fontSize: 12.5 }}>まだ動いていません。</span>
+        )}
       </div>
-      <PaneFooter primary={gate ? '判断する' : '開く'} secondary="表示" />
+      <PaneFooter primary={gate ? '判断する' : 'Work を開く'}
+        primaryHref={gate ? openHref(`/work/${t.workId}`, t.id) : (`/work/${t.workId}` as Route)} />
     </Pane>
   );
 }

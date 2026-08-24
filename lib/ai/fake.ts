@@ -18,6 +18,13 @@ export class FakeProvider implements ModelProvider {
     const goal = lastUser(input);
     const want = new Set((input.tools ?? []).map((t) => t.name));
 
+    // ══ 道具なし＝会話（チャットの返事）══ 偽物であることを必ず言う
+    if (!input.tools?.length) {
+      yield { type: 'text', text: `（仮の返事）「${goal.slice(0, 40)}」を受け取りました。この環境には鍵が無いので、本当の返事は出せません。` };
+      yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'end_turn' };
+      return;
+    }
+
     // ══ AI社員の実行（Phase 7）══ 統括AIの道具が無く log_step があるときはこちら
     if (!want.has('decide_container') && want.has('log_step')) {
       yield* fakeRun(input);

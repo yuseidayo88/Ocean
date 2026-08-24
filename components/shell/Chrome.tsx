@@ -1,11 +1,13 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import type { Route } from 'next';
+import { Go as Link } from '@/components/ui/Go';
 import { useEffect, useRef, useState } from 'react';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { CompanyPicker, useShell } from '@/components/shell/Shell';
 import { AMBER, AMBER_T, BLUE, COMPOSER_H as TOKEN_COMPOSER_H, DIM, EASE, EASE_FAST, EDGE, FAINT, GREEN_T, HAIR, LINE, RAIL, RED_T, RULE, SEAM, SUNK, T1, T2, T3, T4, T5, WELL } from '@/lib/design/tokens';
-import { EFFORT_WORDS } from '@/lib/dummy';
+import { EFFORT_WORDS } from '@/lib/view/model';
 
 /** 入力欄の高さ。**下に貼り付く中身はこのぶん逃がす**（→ lib/design/tokens.ts） */
 export const COMPOSER_H = TOKEN_COMPOSER_H;
@@ -720,22 +722,23 @@ export function PaneError({ what, next, retry = 'もう一度' }: { what: string
   );
 }
 
-/** 右ペインの下に貼り付く行動の行（承認する / 決定する など） */
-export function PaneFooter({ primary, secondary, reverse = false }:
-  { primary: string; secondary?: string; reverse?: boolean }) {
+/** 右ペインの下に貼り付く行動の行（承認する / 決定する など）。行き先があるなら本当に飛ぶ */
+export function PaneFooter({ primary, secondary, reverse = false, primaryHref }:
+  { primary: string; secondary?: string; reverse?: boolean; primaryHref?: Route }) {
   const sec = secondary && (
     <span className="btn" style={{
       display: 'inline-flex', alignItems: 'center', height: 38, padding: '0 16px', borderRadius: 8,
       background: SUNK, border: `1px solid ${EDGE}`, color: T2, whiteSpace: 'nowrap',
     }}>{secondary}</span>
   );
-  const pri = (
-    <span className="solid" style={{
-      flex: reverse ? undefined : 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      height: 38, padding: reverse ? '0 20px' : undefined, borderRadius: 8,
-      background: BLUE, color: '#fff', whiteSpace: 'nowrap',
-    }}>{primary}</span>
-  );
+  const priStyle: React.CSSProperties = {
+    flex: reverse ? undefined : 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    height: 38, padding: reverse ? '0 20px' : undefined, borderRadius: 8,
+    background: BLUE, color: '#fff', whiteSpace: 'nowrap',
+  };
+  const pri = primaryHref
+    ? <Link href={primaryHref} className="solid" style={priStyle}>{primary}</Link>
+    : <span className="solid" style={priStyle}>{primary}</span>;
   return (
     <div style={{ flexShrink: 0, display: 'flex', gap: 10, padding: 16, borderTop: `1px solid ${HAIR}` }}>
       {/* reverse＝「小さい2つ、青が右」（採用・診断） */}

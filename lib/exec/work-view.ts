@@ -1,12 +1,8 @@
-import {
-  AGENT_COLOR, DELIVERABLES, TASKS, WORK_DECISIONS, employee,
-  type Work,
-} from '@/lib/dummy';
 import type { LiveWork } from '@/lib/store/types';
 
 /**
  * Work 画面が読む形。**1つだけ。**
- * ダミー（Phase 4 の静止データ）でも、承認して動きだした本物でも、ここに揃える。
+ * 読むのは store の LiveWork だけ（ダミーは撤去した — ゼロ状態から本物が積み上がる）。
  * 計画の承認（`PlanView`）と同じ作法 — 似た画面を2つ作らないため。
  *
  * **無いものは無いと出す。** 承認した直後の Work には成果物も決定もまだ無い。
@@ -67,37 +63,6 @@ export type WorkView = {
   /** 統括AIがいつ言ったか。まだ言っていないなら undefined */
   leadWhen?: string;
 };
-
-/** Phase 4 のダミー → 画面の形。**見た目は変えない** */
-export function fromDummy(w: Work): WorkView {
-  const late = typeof w.health === 'object' ? w.health.late : undefined;
-  const now = w.phases.find((p) => p.state === 'now');
-  return {
-    title: w.title, goal: w.goal, progress: w.progress, phaseIndex: w.phaseIndex, late,
-    gate: w.gate?.label, rest: `${w.restDays}日`, endDate: w.endDate,
-    phases: w.phases.map((p) => ({
-      name: p.name, state: p.state, done: p.done, all: p.all, from: p.from, to: p.to,
-    })),
-    tasks: TASKS.filter((t) => t.workId === w.id && t.state !== '完了').slice(0, 4).map((t) => ({
-      id: t.id, title: t.title,
-      phase: w.phases.findIndex((p) => p.name === t.phase) + 1,
-      owner: t.owner === 'me' ? 'あなた' : employee(t.owner).name, mine: t.owner === 'me',
-      state: t.state, progress: t.progress,
-    })),
-    dels: DELIVERABLES.filter((d) => d.workId === w.id).slice(0, 4).map((d) => ({
-      id: d.id, title: d.title, byName: employee(d.by).name, when: d.when, state: d.state,
-    })),
-    decs: WORK_DECISIONS[w.id] ?? [],
-    crew: w.crew.map((c) => ({
-      id: c.id, name: employee(c.id).name, color: AGENT_COLOR[employee(c.id).color], dim: c.dim,
-      tasks: TASKS.filter((t) => t.workId === w.id && t.owner === c.id && t.state !== '完了').length,
-    })),
-    lead: w.gate
-      ? `${now?.name ?? ''}フェーズは後半です。${w.gate.label}だけ、判断を待っています。`
-      : `${now?.name ?? ''}フェーズを進めています。`,
-    leadWhen: '2時間前',
-  };
-}
 
 /** 状態の語は6つだけ（→ CLAUDE.md）。DB の値をそこに写す */
 const WORD: Record<string, string> = {

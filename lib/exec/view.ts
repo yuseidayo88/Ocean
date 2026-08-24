@@ -1,4 +1,4 @@
-import type { EmployeeColor } from '@/lib/dummy';
+import type { EmployeeColor } from '@/lib/view/model';
 import type { DraftWork } from '@/lib/store/types';
 
 /**
@@ -105,33 +105,3 @@ export function fromDraft(d: DraftWork): PlanView {
   };
 }
 
-/** Phase 4 のダミー。**中身は変えない**（承認済みの見た目のまま） */
-export const DUMMY_VIEW: PlanView = {
-  title: '日本語学習サービス',
-  goal: '韓国人向けの日本語学習サービスを立ち上げたい',
-  lead: '4フェーズで進めます。まず市場を確かめ、勝てる形が見えてから作りはじめます。',
-  weeks: 10,
-  rows: [
-    { name: '調査', goal: '市場・競合・ターゲットを確かめる', w0: 0, w1: 3, who: '調査担当', weeks: '3週' },
-    { name: '戦略', goal: '収益モデルと価格を決める', w0: 3, w1: 5, who: '戦略担当', weeks: '2週', dec: '価格の方向性' },
-    { name: 'プロダクト', goal: 'MVPの要件を固めて作る', w0: 5, w1: 8, who: '企画担当', weeks: '3週', dec: 'MVPの線引き' },
-    { name: 'ローンチ', goal: '初期ユーザーを集める', w0: 8, w1: 10, who: '担当は未定', weeks: '2週', soft: true },
-  ],
-  hires: [{ name: '調査担当', color: 'cyan' }, { name: '戦略担当', color: 'purple' }, { name: '企画担当', color: 'indigo' }],
-  makes: [
-    ['市場規模レポート', 'フェーズ1'], ['競合分析レポート', 'フェーズ1'], ['ペルソナ仮説', 'フェーズ1'],
-    ['収益モデル比較', 'フェーズ2'], ['MVP要件定義', 'フェーズ3'], ['LPと申込フォーム', 'フェーズ3'],
-  ],
-  real: true,
-  firstTasks: 3,
-  // ダミーの計画は、もう答え終わっている（承認済みの見た目）
-  asks: [],
-  timeNote: '作る前に確かめることに半分を使います。ここで外すと、あとの5週がまるごと無駄になります。',
-  facts: [['韓国の日本語学習者', '約 12万人'], ['あなたが使える時間', '週 10時間'], ['初期の資金', '〜50万円'], ['出典', '3件 ›']],
-  dropped: 'いきなりLPを作る — 誰に何を売るかが決まる前に作ると、ほぼ作り直しになります。フェーズ3に入れました。',
-  why: [
-    '確かめることに半分の時間を使います。作ってから間違いに気づくほうが高くつくからです。',
-    '価格を決めるまでは作りません。作るものが変わるからです。',
-    'ローンチの担当は、プロダクトの形が決まってから決めます。',
-  ],
-};

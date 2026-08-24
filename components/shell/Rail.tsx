@@ -3,11 +3,14 @@
 import { Go as Link } from '@/components/ui/Go';
 import type { Route } from 'next';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Icon, Dot, type IconName } from '@/components/ui/Icon';
-import { ME, THREADS, WORKS } from '@/lib/dummy';
+import { ME } from '@/lib/view/model';
+import { railData } from '@/app/actions/live';
+import { getWork } from '@/app/actions/work';
+import type { ChatThread } from '@/lib/store';
 import { isBlank, useShell } from '@/components/shell/Shell';
-import { AMBER, BLUE, DIM, EASE, EASE_FAST, FAINT, GREEN, LINE, RAIL, RAIL_W, RULE, SUNK, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
+import { AMBER, DIM, EASE, EASE_FAST, FAINT, GREEN, LINE, RAIL, RAIL_W, RULE, SUNK, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
 /** レールに出すチャットの数。これを超えたら「すべて見る」を出す */
 const SHOWN = 6;
 
@@ -76,7 +79,32 @@ export function Rail({ empty }: { empty?: boolean } = {}) {
   const blank = empty ?? isBlank(path);
 
   const active = (href: string) => path === href || path.startsWith(href + '/');
-  const open = WORKS.find((w) => path.startsWith(`/work/${w.id}`));
+
+  /**
+   * レールの中身は store から。**画面を移るたびに読み直す**（安い3クエリ）。
+   * 通知の点は未読の数、メンバーは在籍の数。無いものは出さない。
+   */
+  const [threads, setThreads] = useState<ChatThread[]>([]);
+  const [unread, setUnread] = useState(0);
+  const [staff, setStaff] = useState(0);
+  useEffect(() => {
+    let on = true;
+    railData().then((r) => { if (on) { setThreads(r.threads); setUnread(r.unread); setStaff(r.staff); } });
+    return () => { on = false; };
+  }, [path]);
+
+  // 開いている Work だけ、Work の下にぶら下げる（本物の親子）
+  const workId = path.match(/^\/work\/([^/]+)$/)?.[1];
+  const [open, setOpenWork] = useState<{ id: string; title: string } | null>(null);
+  // Work の画面を出たら、ぶら下がりも消す。**描いている途中で直す**
+  const want = workId && workId !== 'new' ? workId : null;
+  if (!want && open) setOpenWork(null);
+  useEffect(() => {
+    if (!want) return;
+    let on = true;
+    getWork(want).then((w) => { if (on) setOpenWork(w ? { id: want, title: w.title } : null); });
+    return () => { on = false; };
+  }, [want]);
 
   return (
     /**
@@ -123,7 +151,9 @@ export function Rail({ empty }: { empty?: boolean } = {}) {
           <span key={n.href}>
             <NavRow {...n} on={active(n.href) || (blank && n.href === '/home')} dim={blank}
                     live={n.href === '/work' && !blank}
-                    badge={blank ? undefined : n.href === '/inbox' ? '2' : n.href === '/team' ? '4' : undefined}
+                    badge={blank ? undefined
+                      : n.href === '/inbox' && unread ? String(unread)
+                      : n.href === '/team' && staff ? String(staff) : undefined}
                     badgeColor={n.href === '/inbox' ? AMBER : T5} />
             {/* 開いている Work だけ、その下にぶら下げる（本物の親子） */}
             {n.href === '/work' && open && (
@@ -159,7 +189,12 @@ export function Rail({ empty }: { empty?: boolean } = {}) {
           </div>
         ) : (
           <>
-            {THREADS.slice(0, SHOWN).map((t) => {
+            {threads.length === 0 && (
+              <div style={{ padding: '2px 10px 0' }}>
+                <span style={{ color: DIM, fontSize: 12 }}>まだありません</span>
+              </div>
+            )}
+            {threads.slice(0, SHOWN).map((t) => {
               const on = path === `/chat/${t.id}`;
               return (
                 <Link key={t.id} href={`/chat/${t.id}`} className={on ? 'hit' : 'row'} style={{
@@ -170,12 +205,11 @@ export function Rail({ empty }: { empty?: boolean } = {}) {
                   <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {t.title}
                   </span>
-                  {t.unread && <><div style={{ flex: 1 }} /><Dot color={BLUE} size={6} /></>}
                 </Link>
               );
             })}
             {/* レールに入りきらないときだけ出す。行き先のないリンクは置かない */}
-            {THREADS.length > SHOWN && (
+            {threads.length > SHOWN && (
               <div className="row" style={{
                 display: 'flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 8,
               }}>

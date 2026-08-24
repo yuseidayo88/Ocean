@@ -108,6 +108,24 @@ ok('フェーズが 2 に進んだ', /フェーズ\n2 \/ /.test(next), next.matc
 const done2 = await until((b) => b.includes('フェーズ「戦略」が終わりました'), 40);
 ok('戦略フェーズも走って終わった', done2.includes('フェーズ「戦略」が終わりました'), done2.slice(0, 80));
 
+// ⑥ 埋まった状態のレイアウト。ダミーを消したので、**ここでしか測れない**
+//    （ホーム4ビューは Work が動いてはじめて絵になる）
+const { scan } = await import('./_probe.mjs');
+const SWEEP = ['/home', '/home?view=desk', '/home?view=progress', '/home?view=flow',
+               '/tasks', '/team', '/deliverables', '/decisions', '/inbox'];
+let cut = 0;
+for (const u of SWEEP) {
+  const r = await scan(`${BASE}${u}`);
+  const x = r.v;
+  const n = x ? x.ell.length + x.scrollx.length + x.off.length : 1;
+  if (n) {
+    cut += n;
+    const first = x ? (x.ell[0]?.full ?? x.off[0]?.txt ?? x.scrollx[0]?.tag ?? '') : '取得できず';
+    console.log(`  レイアウト ${u}: ${n}件  ${String(first).slice(0, 60)}`);
+  }
+}
+ok('埋まった状態のレイアウト（9画面）', cut === 0, `${cut}件`);
+
 console.log('\nerrs:', errs.length ? errs.slice(0, 3) : 'なし');
 console.log(bad ? `${bad}件` : 'ぜんぶ通った');
 ws.close(); await fetch(`http://127.0.0.1:${PORT}/json/close/${t.id}`);
