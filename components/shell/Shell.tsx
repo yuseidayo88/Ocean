@@ -1,11 +1,10 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Icon } from '@/components/ui/Icon';
 import { usePathname } from 'next/navigation';
 import { morning } from '@/app/actions/run';
 import { companyName, sendChat } from '@/app/actions/live';
-import { FAINT, RULE, SHELL_MIN, SUNK, T1, T2, T3, T4 } from '@/lib/design/tokens';
+import { SHELL_MIN, T2 } from '@/lib/design/tokens';
 /**
  * 器の開け閉め。左レールはレールの中の印で閉じ、閉じたら**端に何も残さない**。
  * 戻り道はトップバーの左端（右ペインと同じ作法）。
@@ -132,58 +131,28 @@ export function ShellBox({ children }: { children: React.ReactNode }) {
 /** 会話のペインの幅 */
 export const CHAT_W = 430;
 
-/**
- * 会社の切り替え。**いま見ているものは全部この会社のもの**なので、
- * パンくずの根に置く（レールの上ではなく）。レールを閉じても消えない。
- */
 /** まだ何もない会社の画面（→ docs/design/01-data-model.md 入口） */
 export const EMPTY_ROUTES = ['/start', '/discovery', '/import', '/diagnosis'];
 export const isBlank = (p: string) => EMPTY_ROUTES.some((r) => p === r || p.startsWith(r + '/'));
 
+/**
+ * パンくずの根。**いま見ているものは全部この会社のもの**なので、行き先の親として置く
+ * （レールの上ではなく。レールを閉じても消えないのも利点）。
+ *
+ * **会社は1つだけ**（2026-08-24 の判断 → `docs/PLAN.md` 見送りの台帳）。
+ * 切り替える先も、増やす道も無いので、**押せる顔をしない** — 素の文字にする。
+ * 前は ⌄ ＋ 一覧 ＋「会社を追加」を出していたが、どれも押しても何も起きなかった。
+ * 「押せる以上、複数社は本物にする」の裏返しで、**本物にしないなら押させない。**
+ * 複数社を入れるときは `memberships` ＋ `current_account_id()` の書き換えと一緒に、
+ * この器をボタンに戻す（ポリシー28本は無変更のまま入る設計）。
+ */
 export function CompanyPicker() {
-  const [open, setOpen] = useState(false);
   const [company, setCompany] = useState('あなたの会社');
   useEffect(() => { companyName().then(setCompany); }, []);
   const path = usePathname();
-  // Esc で閉じる（右ペインと同じ作法）
-  useEffect(() => {
-    if (!open) return;
-    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
-    window.addEventListener('keydown', h);
-    return () => window.removeEventListener('keydown', h);
-  }, [open]);
-  const blank = isBlank(path);
-  const name = blank ? 'あなたの会社' : company;
   return (
-    <span style={{ position: 'relative', display: 'inline-flex' }}>
-      <button onClick={() => setOpen(!open)} className="btn" style={{
-        display: 'inline-flex', alignItems: 'center', gap: 6, height: 26, padding: '0 8px',
-        borderRadius: 7, color: open ? T1 : T2,
-      }}>
-        {name}<Icon name="down" color={open ? T3 : T4} size={12} />
-      </button>
-      {open && (
-        <>
-          <span onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 39 }} />
-          <div className="pop" style={{
-            position: 'absolute', top: 32, left: 0, width: 224, zIndex: 40, boxSizing: 'border-box', padding: 5,
-            borderRadius: 11, background: SUNK, border: `1px solid ${FAINT}`,
-            boxShadow: '0 18px 44px rgba(0,0,0,0.72)',
-          }}>
-            <button className="hit" style={{
-              width: '100%', display: 'flex', alignItems: 'center', gap: 10, height: 32, padding: '0 10px',
-              borderRadius: 7, background: `${RULE}`, textAlign: 'left',
-            }}>
-              <span style={{ color: T1 }}>{company}</span>
-            </button>
-            <div style={{ height: 1, margin: '5px 8px', background: RULE }} />
-            <button className="row" style={{
-              width: '100%', display: 'flex', alignItems: 'center', height: 32, padding: '0 10px',
-              borderRadius: 7, textAlign: 'left',
-            }}><span style={{ color: T3 }}>会社を追加</span></button>
-          </div>
-        </>
-      )}
+    <span style={{ display: 'inline-flex', alignItems: 'center', height: 26, color: T2 }}>
+      {isBlank(path) ? 'あなたの会社' : company}
     </span>
   );
 }
