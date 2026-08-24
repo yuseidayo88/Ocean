@@ -31,6 +31,15 @@ export function providerFor(tier: Tier): ModelProvider {
   return new OpenAIProvider(key)
 }
 
-/** 鍵が1つでも入っているか。**入っていなければ決め打ちのプロバイダに落とす** */
-export const hasKey = () => Boolean(
-  process.env.OPENROUTER_API_KEY || process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY)
+/**
+ * **その階層の通り道の鍵**が入っているか。入っていなければ決め打ちのプロバイダに落とす。
+ * 「どれか1つの鍵」で判定すると、Anthropic の鍵だけある環境で providerFor('standard')
+ * （通り道は OpenRouter）が投げて、fake に落ちずに実行ごと死ぬ。
+ */
+export const hasKey = (tier: Tier = 'standard') => {
+  const { vendor } = TIER_TABLE[tier]
+  return Boolean(
+    vendor === 'openrouter' ? process.env.OPENROUTER_API_KEY
+    : vendor === 'anthropic' ? process.env.ANTHROPIC_API_KEY
+    : process.env.OPENAI_API_KEY)
+}

@@ -109,7 +109,7 @@ export async function sendChat(
       content: m.body,
     }));
 
-    const provider = hasKey() ? providerFor('fast') : new FakeProvider();
+    const provider = hasKey('fast') ? providerFor('fast') : new FakeProvider();
     let out = '';
     for await (const c of provider.stream({
       tier: 'fast', effort: 'low', maxTokens: 1000,

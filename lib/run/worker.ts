@@ -237,7 +237,7 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
  * 深く読むレビュー（差し戻しの提案など）は品質担当の仕事（Phase 10）。
  */
 async function execGlance(title: string, body: string): Promise<string> {
-  if (!hasKey()) return '';
+  if (!hasKey('fast')) return '';
   let out = '';
   for await (const c of providerFor('fast').stream({
     tier: 'fast', effort: 'low', maxTokens: 300,

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import type { Route } from 'next';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { useShell } from '@/components/shell/Shell';
@@ -34,8 +34,6 @@ const PAGES: Hit[] = [
   { id: 'p-dec', icon: 'dec', label: '決定事項', sub: '', href: '/decisions', kind: '行き先' },
   { id: 'p-skills', icon: 'bolt', label: 'スキル', sub: 'SKILL.md の管理', href: '/skills', kind: '行き先' },
   { id: 'p-hire', icon: 'plus', label: '採用', sub: '候補を見る', href: '/hire', kind: '行き先' },
-  { id: 'p-gates', icon: 'dec', label: '判断待ちを見る', sub: 'あなたが決めるものだけ', href: '/decisions', kind: '行き先' },
-  { id: 'p-review', icon: 'deliv', label: '要確認の成果物', sub: 'あなたが見るものだけ', href: '/deliverables', kind: '行き先' },
   { id: 'p-billing', icon: 'bars', label: '請求とプラン', sub: '', href: '/billing', kind: '行き先' },
 ];
 
@@ -63,6 +61,7 @@ export function Find() {
   const [at, setAt] = useState(0);
   const box = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const path = usePathname();
 
   const [pool, setPool] = useState<Hit[]>(PAGES);
   useEffect(() => {
@@ -80,12 +79,14 @@ export function Find() {
      * ⌘K は検索だけでなく**会社への口**。書いたものが名前に当たらなくても、
      * そのまま統括AIに頼める（会話が開いて、本当に返ってくる）。
      * いちばん下に1行だけ — 検索の結果と取り違えないように、種類は「頼む」。
+     * **チャット画面では出さない** — そこは会話そのものが主役で、右ペインは開かない。
      */
+    if (path.startsWith('/chat')) return found;
     return [...found, {
       id: 'cmd-ask', icon: 'chat' as IconName, label: `統括AIに頼む「${q.trim().slice(0, 40)}」`,
-      sub: '会話が開きます', href: '/home' as Route, kind: '頼む',
+      sub: '', href: '/home' as Route, kind: '頼む',
     }];
-  }, [q, pool]);
+  }, [q, pool, path]);
 
   /**
    * 書き換えたら選択は先頭に戻し、開いたら空から始める。

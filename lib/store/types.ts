@@ -46,6 +46,8 @@ export type LiveDeliverable = {
   preview?: string; body?: string; by?: string; when?: string; taskId?: string;
   /** 版。同じ Work で同じタイトルの成果物は同じ lineage の新しい版になり、前の版は隠れる */
   version?: number;
+  /** できた時刻（並びの出どころ。listDels は**新しい順**という契約を双子で守る） */
+  at?: string;
 };
 
 /** 通知1件。通知の画面（片づける場所）が読む */

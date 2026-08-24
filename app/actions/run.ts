@@ -92,7 +92,10 @@ export async function sendBackDel(
     if (src.taskId) {
       const work = await s.getWork(workId).catch(() => null);
       const ownerId = work?.tasks.find((t) => t.id === src.taskId)?.ownerId;
-      if (ownerId) await s.addLearnings(ownerId, [`社長からの差し戻し（${src.title}）: ${text.slice(0, 40)}`]).catch(() => {});
+      // 指摘は複数行で書かれる。**1行に潰してから**残す（学びは1件=1行。改行のまま足すと行数だけ増える）
+      const gist = text.replace(/\s+/g, ' ').trim();
+      const line = gist.length > 60 ? `${gist.slice(0, 60)}…` : gist;
+      if (ownerId) await s.addLearnings(ownerId, [`社長からの差し戻し（${src.title}）: ${line}`]).catch(() => {});
     }
     return { ok: true };
   } catch (e) {

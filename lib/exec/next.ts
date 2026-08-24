@@ -40,7 +40,7 @@ export async function draftNextTasks(
   work: LiveWork, nextPhase: { name: string; goal: string },
   decided: { question: string; chosen?: string }[],
 ): Promise<NextTask[]> {
-  const p = hasKey() ? providerFor('deep') : new FakeProvider();
+  const p = hasKey('deep') ? providerFor('deep') : new FakeProvider();
   const dels = (work.dels ?? []).slice(0, 4);
 
   const messages: Msg[] = [{

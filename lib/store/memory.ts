@@ -407,8 +407,10 @@ export const memoryStore: Store = {
   },
 
   async listDels() {
-    return [...bag.values()].flatMap((d) =>
-      (d.live?.dels ?? []).map((x) => ({ ...x, workId: d.live!.id, workTitle: d.live!.title })));
+    // **新しい順**（types.ts の契約）。Supabase は created_at desc で返すので、双子も同じ順で返す
+    return [...bag.values()]
+      .flatMap((d) => (d.live?.dels ?? []).map((x) => ({ ...x, workId: d.live!.id, workTitle: d.live!.title })))
+      .sort((a, b) => (b.at ?? '').localeCompare(a.at ?? ''));
   },
 
   async setDelStatus(delId, status) {

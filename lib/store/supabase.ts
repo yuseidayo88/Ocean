@@ -511,6 +511,7 @@ export const supabaseStore: Store = {
       workId: d.work_id as string,
       workTitle: ((d.works as { title?: string } | null)?.title ?? '') as string,
       version: (d.version ?? 1) as number,
+      at: d.created_at as string,
     }));
   },
 
