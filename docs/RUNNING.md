@@ -101,6 +101,7 @@ psql "$DATABASE_URL" -f supabase/migrations/0012_run_path.sql
 psql "$DATABASE_URL" -f supabase/migrations/0013_decisions_no_delete.sql
 psql "$DATABASE_URL" -f supabase/migrations/0014_run_ledger.sql
 psql "$DATABASE_URL" -f supabase/migrations/0015_once_only.sql
+psql "$DATABASE_URL" -f supabase/migrations/0016_fk_indexes.sql
 ```
 
 `0003` は RLS と、不変条件をデータベース側で守るためのトリガを入れます。
@@ -167,6 +168,7 @@ RLS の with check は `account_id = private.current_account_id()` のままな�
 | 朝の報告は1日1通 | 一意 index `notifications_morning_daily`（0015）。開いているタブが2つでも2通目は止まる（探針で実証） |
 | 在籍は定義ごとに1人 | 一意 index `employees_one_per_definition`（0015）。「採用する」を同時に押しても調査担当は2人にならない（探針で実証） |
 | 同じタスクは同時に1回しか走らない | `startRun` の atomic claim — queued → running に**置き換えられた者だけ**が走る（負けたポンプは conflict で静かに引く） |
+| 止まった実行は回収される | `reclaimStalled` — 10分を超えた running は失効（サーバーが入れ替わった）。ポンプが先に回収してから次を起こす。はじめてなら積み直してもう一度、二度目は blocked ＋ エラー通知 |
 | 質問はスレッドに属する | `questions.thread_id` NOT NULL（Work のスレッドを先に作る） |
 | 承認と引き直しは必ず台帳に残る | トリガ `works_audit`（0008）。アプリは `audit_events` に書けない |
 | 質問とタスクの並びが決まる | `seq`（0009）。`created_at` は同じ insert 文で同着になる |

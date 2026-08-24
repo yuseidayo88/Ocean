@@ -21,6 +21,9 @@ export type PumpResult =
 export async function pumpWork(workId: string): Promise<PumpResult> {
   try {
     const s = store();
+    // 止まったままの実行があれば先に回収する（無ければ何もしない）。
+    // これが無いと、サーバーが途中で入れ替わったとき running が残り、ポンプが永久に譲り続ける
+    await s.reclaimStalled(workId).catch(() => {});
     const next = await s.nextQueued(workId);
     if (!next) return { ran: false };
     const work = await s.getWork(workId);

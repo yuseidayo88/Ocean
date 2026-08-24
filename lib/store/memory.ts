@@ -1,6 +1,6 @@
 import { AGENT_COLOR, type EmployeeColor } from '@/lib/dummy';
 import { AppError } from '@/lib/errors';
-import type { DraftWork, LiveDecision, LiveEmployee, LiveWork, RunStep, Store } from './types';
+import { STALL_MS, type DraftWork, type LiveDecision, type LiveEmployee, type LiveWork, type RunStep, type Store } from './types';
 
 /**
  * メモリの保存先。**Supabase に出られない環境（デモ・この開発環境）用。**
@@ -94,7 +94,8 @@ export const memoryStore: Store = {
     if (task.state !== 'queued') throw new AppError('conflict', `task ${taskId} is not queued`);
     task.state = 'running';
     const runId = `run-${taskId}`;
-    runs.set(runId, { taskId, workId: live.id, steps: [] });
+    const fails = runs.get(runId)?.fails ?? 0; // 走り直しでも失敗の数は持ち越す
+    runs.set(runId, { taskId, workId: live.id, steps: [], status: 'running', startedAt: new Date().toISOString(), fails });
     return runId;
   },
 
@@ -111,6 +112,8 @@ export const memoryStore: Store = {
   async finishRun(runId, res) {
     const r = runs.get(runId);
     if (!r) return;
+    r.status = res.status;
+    if (res.status === 'failed') r.fails = (r.fails ?? 0) + 1;
     const { task } = findTask(r.taskId);
     if (res.status === 'done') { task.state = 'done'; task.progress = 100; }
     else task.state = 'blocked';
@@ -136,6 +139,34 @@ export const memoryStore: Store = {
     if (!live || live.tasks.some((t) => t.state === 'running')) return null;
     const next = live.tasks.find((t) => t.state === 'queued');
     return next ? { taskId: next.id } : null;
+  },
+
+  async reclaimStalled(workId) {
+    // supabase 側と同じ取り決め（メモリはサーバーごと消えるので、ほぼ形だけの双子）
+    const live = [...bag.values()].find((d) => d.live?.id === workId)?.live;
+    if (!live) return false;
+    const cutoff = Date.now() - STALL_MS;
+    let freed = false;
+    for (const task of live.tasks.filter((t) => t.state === 'running')) {
+      const run = runs.get(`run-${task.id}`);
+      if (run?.status === 'running') {
+        if (new Date(run.startedAt ?? 0).getTime() >= cutoff) continue;
+        run.status = 'failed';
+        run.fails = (run.fails ?? 0) + 1;
+        task.state = run.fails < 2 ? 'queued' : 'blocked';
+      } else if (run?.status === 'done') {
+        task.state = 'done'; task.progress = 100;
+      } else if (run?.status === 'failed') {
+        task.state = 'blocked';
+      } else {
+        task.state = 'queued';
+      }
+      if (task.state === 'blocked') {
+        notes.push({ kind: 'エラー', body: `${task.title} — 実行が途中で途切れました。止めてあります` });
+      }
+      freed = true;
+    }
+    return freed;
   },
 
   async markDecision(taskId, d) {
@@ -269,7 +300,8 @@ export const memoryStore: Store = {
 
 /** run と通知の置き場（メモリ版だけの裏方） */
 const g2 = globalThis as unknown as {
-  __runs?: Map<string, { taskId: string; workId: string; steps: RunStep[] }>;
+  __runs?: Map<string, { taskId: string; workId: string; steps: RunStep[];
+    status?: 'running' | 'done' | 'failed'; startedAt?: string; fails?: number }>;
   __notes?: { kind: string; body: string }[];
 };
 const runs = (g2.__runs ??= new Map());

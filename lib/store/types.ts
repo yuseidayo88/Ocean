@@ -51,6 +51,12 @@ export type RunStep = {
  * 書き込み先。**本番は Supabase、出られない環境ではメモリ。**
  * どちらも同じ形にして、呼ぶ側が分岐しないようにする。
  */
+/**
+ * 実行の失効。器の maxDuration は 300秒なので、10分を超えて running の実行は
+ * もう帰ってこない（サーバーが入れ替わった）。回収しないとポンプが永久に止まる。
+ */
+export const STALL_MS = 10 * 60_000;
+
 export interface Store {
   readonly kind: 'supabase' | 'memory';
   createDraft(d: Omit<DraftWork, 'id' | 'createdAt'>): Promise<string>;
@@ -80,6 +86,15 @@ export interface Store {
    * 置き換えられなければ conflict（別のポンプが先に取った。失敗ではない）
    */
   startRun(taskId: string): Promise<string>;
+  /**
+   * 止まったままの実行を回収する。サーバーが途中で入れ替わると finishRun が呼ばれず、
+   * タスクが running のまま残って**ポンプが永久に止まる**（nextQueued が譲り続ける）。
+   * 始まって10分を超えた running の実行は失効として閉じ、タスクを戻す —
+   * はじめての失敗なら queued（もう一度だけ走る）、二度目は blocked ＋ エラー通知。
+   * 実行は閉じたのにタスクだけ running で残った形（finishRun の途中で落ちた）は、
+   * 実行の結果をタスクに写し終える。何か回収したら true
+   */
+  reclaimStalled(workId: string): Promise<boolean>;
   /** 1歩を記録する。進捗はここから導出される */
   addStep(runId: string, step: { seq: number; kind: RunStep['kind']; tool?: string; summary?: string; progress?: number }): Promise<void>;
   /** 実行を閉じる。done なら task→done・進捗100。失敗なら task→blocked に落とす */

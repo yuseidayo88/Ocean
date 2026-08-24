@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { AGENT_COLOR, type EmployeeColor } from '@/lib/dummy';
 import { colorFor } from './memory';
 import { AppError } from '@/lib/errors';
-import type { DraftWork, LiveDecision, LiveWork, RunStep, Store } from './types';
+import { STALL_MS, type DraftWork, type LiveDecision, type LiveWork, type RunStep, type Store } from './types';
 
 /**
  * 本番の保存先。行は全部 RLS（`account_id = private.current_account_id()`）で絞られる。
@@ -403,6 +403,56 @@ export const supabaseStore: Store = {
       .select('id, status, seq').eq('work_id', workId).in('status', ['queued', 'running']).order('seq');
     if (!tk?.length || tk.some((t) => t.status === 'running')) return null;
     return { taskId: tk[0].id as string };
+  },
+
+  async reclaimStalled(workId) {
+    const c = await db();
+    const { data: stuck } = await c.from('tasks')
+      .select('id, title, assignee_employee_id').eq('work_id', workId).eq('status', 'running');
+    if (!stuck?.length) return false;
+
+    const cutoff = new Date(Date.now() - STALL_MS).toISOString();
+    let freed = false;
+    for (const t of stuck) {
+      const { data: run } = await c.from('runs')
+        .select('id, status, started_at').eq('task_id', t.id)
+        .order('started_at', { ascending: false }).limit(1).maybeSingle();
+
+      let next: 'queued' | 'blocked' | 'done';
+      if (run?.status === 'running') {
+        if ((run.started_at as string) >= cutoff) continue; // まだ生きている（maxDuration は 300秒）
+        // 失効。回収も取り合いになるので、閉じられた者だけが続きをやる
+        const { data: won } = await c.from('runs')
+          .update({ status: 'failed', ended_at: new Date().toISOString(),
+                    error: '途中で途切れました（サーバーが入れ替わった可能性）' })
+          .eq('id', run.id).eq('status', 'running').select('id');
+        if (!won?.length) continue;
+        const { count } = await c.from('runs')
+          .select('id', { count: 'exact', head: true }).eq('task_id', t.id).eq('status', 'failed');
+        next = (count ?? 1) < 2 ? 'queued' : 'blocked'; // もう一度だけ走る。二度目は止める
+      } else if (run?.status === 'done') {
+        next = 'done'; // finishRun の途中で落ちた形。結果をタスクに写し終える
+      } else if (run?.status === 'failed') {
+        next = 'blocked';
+      } else {
+        next = 'queued'; // 実行の1行すら無い（走り出す前に落ちた）。そのまま積み直す
+      }
+
+      const { data: back } = await c.from('tasks')
+        .update({ status: next }).eq('id', t.id).eq('status', 'running').select('id');
+      if (!back?.length) continue;
+      if (next === 'blocked') {
+        await c.from('notifications').insert({
+          kind: 'エラー', subject_type: 'task', subject_id: t.id,
+          body: `${t.title} — 実行が途中で途切れました。止めてあります`,
+        });
+      }
+      if (t.assignee_employee_id) {
+        await c.from('employees').update({ status: 'idle' }).eq('id', t.assignee_employee_id);
+      }
+      freed = true;
+    }
+    return freed;
   },
 
   async markDecision(taskId, d) {
