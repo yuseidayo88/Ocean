@@ -18,6 +18,7 @@ import { replyTo } from '@/lib/exec/reply';
  * **存在しているものを「見つかりません」と言わない。**
  *
  * 形は行区切りの JSON（1行1件）:
+ *   {"s":"…"}          いま何をしているか（「〇〇しています」）
  *   {"t":"…"}          本文のかけら
  *   {"done":true}      書き終わり（画面はここで読み直す）
  *   {"fallback":true}  この道では返せない。画面は別の道で取り直す
@@ -38,7 +39,7 @@ export async function POST(req: Request) {
     async start(c) {
       const line = (o: unknown) => c.enqueue(enc.encode(`${JSON.stringify(o)}\n`));
       try {
-        const r = await replyTo(threadId, (t) => line({ t }));
+        const r = await replyTo(threadId, (t) => line({ t }), (st) => line({ s: st }));
         if (r.ok) line({ done: true });
         else if (r.missing) line({ fallback: true });
         else line({ err: r.message });

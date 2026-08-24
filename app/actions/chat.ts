@@ -1,6 +1,7 @@
 'use server';
 
 import { replyTo } from '@/lib/exec/reply';
+import { OPENER, TITLE, type Entry } from '@/lib/exec/openers';
 import { store } from '@/lib/store';
 import { sayError } from '@/lib/errors';
 import { startWork, type StartResult } from './work';
@@ -12,27 +13,6 @@ import { startWork, type StartResult } from './work';
  * ・統括AIの返事には**カード**が付く（質問 / 候補3つ / 診断 / Work を作る確認）
  * ・**1チャット = 1 Work。** 作る前に必ず社長の確認を挟む
  */
-
-/** 入口の3つ。**どれも新しいチャットになる** */
-export type Entry = 'goal' | 'discovery' | 'import';
-
-/** その入口の最初の一言（社長の側の発言として置く。統括AIが道を見分ける手がかり） */
-const OPENER: Record<Entry, string> = {
-  goal: '',
-  discovery: '何をやればいいか、まだ決まっていません。条件から一緒に決めたいです。',
-  import: 'すでに事業があります。いまの状態を見てもらって、次にやることを決めたいです。',
-};
-
-/**
- * チャットの見出し。**入口から始めたものには短い名前を付ける** —
- * 最初の一言をそのまま見出しにすると、左レールで切れて読めなくなる
- * （レールは 260px。入るのは16文字ほど）。
- */
-const TITLE: Record<Entry, string | undefined> = {
-  goal: undefined,          // 書いたゴールの先頭を使う（store が刻む）
-  discovery: '何をやるか決める',
-  import: '事業を見てもらう',
-};
 
 export type SendResult =
   | { ok: true; threadId: string }

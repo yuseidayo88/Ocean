@@ -15,6 +15,14 @@ export class FakeProvider implements ModelProvider {
   readonly vendor = 'fake';
 
   async *stream(input: RunInput): AsyncIterable<Chunk> {
+    // **本物と同じ順で流す。** 道具は「名前が先、引数があと」で届く
+    for await (const c of this.raw(input)) {
+      if (c.type === 'tool_use') yield { type: 'tool_begin', name: c.name };
+      yield c;
+    }
+  }
+
+  private async *raw(input: RunInput): AsyncIterable<Chunk> {
     const goal = lastUser(input);
     const want = new Set((input.tools ?? []).map((t) => t.name));
 

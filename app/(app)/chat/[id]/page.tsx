@@ -3,7 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import type { Route } from 'next';
 import { Go as Link } from '@/components/ui/Go';
-import { COMPOSER_H, Composer, ExecStatus, NEW_CHAT, TopBar } from '@/components/shell/Chrome';
+import { COMPOSER_H, Composer, NEW_CHAT, TopBar } from '@/components/shell/Chrome';
 import { Card } from '@/components/chat/Cards';
 import { Orb } from '@/components/ui/Orb';
 import { threadGet } from '@/app/actions/live';
@@ -29,7 +29,11 @@ import { EXEC, RED_T, T1, T2, T4, T5 } from '@/lib/design/tokens';
 
 const You = ({ children }: { children: React.ReactNode }) => (
   <div style={{ width: '100%', maxWidth: 748, display: 'flex', justifyContent: 'flex-end' }}>
-    <span style={{ maxWidth: '78%', padding: '9px 16px', borderRadius: 18, background: '#24354A', color: '#DCE7F5' }}>
+    {/* 改行をそのまま出す（答えた条件は「質問 / → 答え」の2行で来る） */}
+    <span style={{
+      maxWidth: '78%', padding: '9px 16px', borderRadius: 18,
+      background: '#24354A', color: '#DCE7F5', whiteSpace: 'pre-wrap', lineHeight: '22px',
+    }}>
       {children}
     </span>
   </div>
@@ -75,6 +79,8 @@ export default function ChatPage() {
   const [wait, setWait] = useState(false);
   /** いま流れてきている本文（書き終わると msgs に入る） */
   const [live, setLive] = useState('');
+  /** **いま何をしているか**（「〇〇しています」）。返している間ずっと出す */
+  const [stage, setStage] = useState('');
   const [fail, setFail] = useState('');
   const [gone, setGone] = useState(false);
   /** この会話が宛てている先（入力欄のラベル）。Work に紐づいていればその名前 */
@@ -101,14 +107,14 @@ export default function ChatPage() {
    * （止める道は作らない。返事は数行なので、止めるより読み終わるほうが早い）
    */
   const reply = useCallback(async (tid: string) => {
-    setWait(true); setFail(''); setLive('');
+    setWait(true); setFail(''); setLive(''); setStage('');
     let got = '';
-    const bad = await streamReply(tid, (t) => { got += t; setLive(got); });
+    const bad = await streamReply(tid, (t) => { got += t; setLive(got); }, setStage);
     if (bad) setFail(bad);
     // **読み直してから**流れていた文を下ろす（本文が一瞬消えるのを避ける）
     const r = await threadGet(tid);
     if (r) apply(r);
-    setLive(''); setPending(null); setWait(false);
+    setLive(''); setStage(''); setPending(null); setWait(false);
   }, [apply]);
 
   useEffect(() => {
@@ -196,19 +202,20 @@ export default function ChatPage() {
           ))}
           {pending && <You>{pending}</You>}
 
-          {/* 流れてきている返事。**1文字目から出す**（考えている印は、まだ何も無いあいだだけ） */}
-          {wait && (live
-            ? (
-              <div style={{ width: '100%', maxWidth: 748 }}>
-                <Body text={live} /><span className="caret" />
-              </div>
-            )
-            : (
-              <div style={{ width: '100%', maxWidth: 748, display: 'flex', alignItems: 'center', gap: 9 }}>
+          {/**
+            * 返している間の姿。**印はずっと出したまま**にして、その下に本文が流れる
+            * （参考: Claude の「〇〇中…」）。何をしているかは道具の名前から来る事実で、
+            * 分からないあいだは「考えています」。
+            */}
+          {wait && (
+            <div style={{ width: '100%', maxWidth: 748, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                 <Orb color={EXEC} size={22} seed={7} />
-                <ExecStatus state="thinking" />
+                <span className="sh" style={{ fontSize: 13 }}>{stage || '考えています'}</span>
               </div>
-            ))}
+              {live && <div><Body text={live} /><span className="caret" /></div>}
+            </div>
+          )}
 
           {/* 倒れたときは、理由と**もう一度**を出す（黙って終わらせない） */}
           {fail && !wait && (

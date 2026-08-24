@@ -73,6 +73,8 @@ export class OpenRouterProvider implements ModelProvider {
               type: 'function' as const,
               function: { name: t.name, description: t.description, parameters: t.input_schema },
             })),
+            // 既定は auto。**必ずカードになる往復だけ** required にする
+            ...(input.toolChoice === 'required' ? { tool_choice: 'required' as const } : {}),
           }
         : {}),
       stream: true,
@@ -83,13 +85,16 @@ export class OpenRouterProvider implements ModelProvider {
       const d = ev.choices?.[0]
       if (d?.delta?.content) yield { type: 'text', text: d.delta.content }
 
-      // 道具の引数は少しずつ届く。番号ごとに繋いで、最後にまとめて出す
+      // 道具の引数は少しずつ届く。番号ごとに繋いで、最後にまとめて出す。
+      // **名前が分かった瞬間だけ先に知らせる**（画面の「いま何をしているか」用）
       for (const t of d?.delta?.tool_calls ?? []) {
         const at = t.index ?? 0
         const cur = calls.get(at) ?? { id: '', name: '', json: '' }
+        const name = t.function?.name ?? cur.name
+        if (name && name !== cur.name) yield { type: 'tool_begin', name }
         calls.set(at, {
           id: t.id ?? cur.id,
-          name: t.function?.name ?? cur.name,
+          name,
           json: cur.json + (t.function?.arguments ?? ''),
         })
       }

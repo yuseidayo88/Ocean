@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import { Go as Link } from '@/components/ui/Go';
 import type { Route } from 'next';
-import { Composer, ExecStatus, Pane } from '@/components/shell/Chrome';
+import { Composer, Pane } from '@/components/shell/Chrome';
 import { CHAT_W, useShell } from '@/components/shell/Shell';
 import { Orb } from '@/components/ui/Orb';
 import { threadGet, threadsList } from '@/app/actions/live';
@@ -119,15 +119,16 @@ export function ChatPane() {
         {/* いま送っている途中のぶん（楽観表示。書き終わると msgs に入って消える） */}
         {chat.said.map((t, i) => <Said key={`s${i}`}>{t}</Said>)}
 
-        {/* 流れてきている返事。**1文字目から出す**（考えている印は、まだ何も無いあいだだけ） */}
-        {chat.busy && (chat.live
-          ? <Exec>{chat.live}<span className="caret" /></Exec>
-          : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, paddingTop: 2 }}>
+        {/* 返している間の姿。**印はずっと出したまま**、その下に本文が流れる */}
+        {chat.busy && (
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 9, paddingTop: 2 }}>
               <Orb color={EXEC} size={22} seed={7} />
-              <ExecStatus state="thinking" />
-            </div>
-          ))}
+              <span className="sh" style={{ fontSize: 12.5 }}>{chat.stage || '考えています'}</span>
+            </span>
+            {chat.live && <Exec>{chat.live}<span className="caret" /></Exec>}
+          </span>
+        )}
 
         {/* 倒れたときは理由を出す（黙って終わらせない） */}
         {!chat.busy && chat.fail && (
@@ -144,7 +145,7 @@ export function ChatPane() {
 const Said = ({ children }: { children: React.ReactNode }) => (
   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
     <span style={{
-      maxWidth: '86%', padding: '8px 13px', borderRadius: 15,
+      maxWidth: '86%', padding: '8px 13px', borderRadius: 15, whiteSpace: 'pre-wrap',
       background: '#24354A', color: '#DCE7F5', fontSize: 13.5, lineHeight: '21px',
     }}>{children}</span>
   </div>

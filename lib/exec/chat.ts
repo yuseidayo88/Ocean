@@ -1,5 +1,5 @@
 import type { ModelProvider, Msg } from '@/lib/ai';
-import { hasKey, providerFor } from '@/lib/ai';
+import { hasKey, modelFor, providerFor } from '@/lib/ai';
 import { FakeProvider } from '@/lib/ai/fake';
 import { AppError } from '@/lib/errors';
 import { CONSTITUTION } from './constitution';
@@ -55,6 +55,11 @@ export type ChatState = {
   diagnosed: boolean;
   /** 会社のいま（Work の一覧など） */
   company: string;
+  /**
+   * **この往復は必ずカードになる**と、こちらが先に知っている（入口の最初の一言）。
+   * 道具を必ず1つ使わせる — 「まだ決まっていない」と言ったのに文章だけが返る、を作らない。
+   */
+  needCard?: boolean;
 };
 
 const GUIDE = `
@@ -62,22 +67,35 @@ const GUIDE = `
 あなたは社長と1対1で話しています。**まず、ふつうに返事をしてください。**
 日本語で短く（1〜4行）。挨拶にも、質問にも、雑談にも、ふつうに答える。
 
-**道具は必要なときだけ**です。呼ばない往復のほうが多くて構いません。
+## 社長に何かを尋ねるときは、必ず ask を使う
+**本文の中で質問を並べない。** 選択肢は画面にカードとして出るので、
+本文は「いくつか教えてください」くらいに留めます。
+「どうしますか？」「どれがいいですか？」「何ができたら終わりですか？」を
+**文章で聞くのは、この製品では間違い**です。**それも ask にします。**
 
-社長が次の3つのどれかで来たときだけ、その道に乗せてください。
+聞き方の決まり:
+- **押すだけで答えられる形にする。** 1問は1行で読めて、選択肢は3〜4個
+- 選択肢には必ず1行の説明を付け、推すものを1つ決める
+- 序盤ほど**やさしい質問をたくさん**。いきなり核心を1問だけ聞かない
+- 1度に 2〜4問。**答えが返ってきたら、必要ならまた聞いてよい**
+
+## 道具を使う場面
 1. **やりたいことがある**（終わりの言える仕事） → まとまったら propose_work
-2. **まだ決まっていない**（何をやるか相談された） → set_conditions で条件を構造に写す
-   （使える時間 / 使えるお金 / 得意なこと / やりたくないこと / いつまでに）。
-   **2つそろったら** propose_candidates で候補を3つ
+2. **何をやるか決めたい・迷っている** → **まず聞く。** set_conditions で言われた条件を
+   構造に写しつつ、足りないことは **ask** で聞く
+   （使える時間 / 使えるお金 / 得意なこと / やりたくないこと / いつまでに / 好きな領域）。
+   **条件が3つそろうまで候補を出さない。** 何も知らないまま出した候補は、社長の話ではない。
+   そろったら propose_candidates で候補を3つ。
+   ただし「もういいから出して」と言われたら、**足りない分は仮に置いて出す**
+   （仮に置いたことは summary に書く）
 3. **すでに事業がある**（サイト・資料・数字を渡された） → remember_material で覚える。
    そろったら describe_business → report_facts → report_diagnosis
 
 ## 守ること
 - **Work は勝手に作らない。** propose_work で提案するだけ。作るのは社長が押したとき
-- 雑談・質問・調べもので済む話に Work は要らない。**要らないときは提案しない**
+- 雑談・調べもので済む話に Work は要らない。**要らないときは提案しない**
 - **この会話でもう Work を作っているなら、propose_work は二度と呼ばない**
-- 聞きたいことがあるときは ask（1度に2〜4問まで）。選択肢には必ず1行の説明を付ける。
-  **本文で選択肢を並べ直さない** — 選択肢はカードとして画面に出ます
+- ask は1度に2〜4問まで
 - 分からないことは分からないと言う。知らない数字を作らない`;
 
 /**
@@ -87,14 +105,42 @@ const GUIDE = `
 export type ChatOpts = {
   /** 本文が1かたまり届くたびに呼ばれる */
   onText?: (chunk: string) => void;
+  /** **いま何をしているか**が変わるたびに呼ばれる（画面にそのまま出る日本語） */
+  onStage?: (stage: string) => void;
   signal?: AbortSignal;
+};
+
+/**
+ * 道具の名前 → **社長に見せる一言**。
+ * Claude の「〇〇中…」と同じ考え方で、**起きている事実だけ**を書く。
+ * 知らない道具が来たら黙る（作り話をしない）。
+ */
+const STAGE: Record<string, string> = {
+  ask: '聞くことをまとめています',
+  set_conditions: '条件を書き留めています',
+  propose_candidates: '条件に合う道を組み立てています',
+  remember_material: '渡された資料を読んでいます',
+  describe_business: '事業の形を捉えています',
+  report_facts: '数字を並べています',
+  report_diagnosis: '診断をまとめています',
+  propose_work: 'Work の形にしています',
 };
 
 export async function chatStep(state: ChatState, history: Msg[], opts: ChatOpts = {}): Promise<ChatOut> {
   const real = hasKey('fast');
   const p = real ? providerFor('fast') : new FakeProvider();
 
-  const lines = [`いまの会社:\n${state.company}`];
+  /**
+   * **何で動いているかを、統括AI自身に知らせる。**
+   * 知らなければ答えようがなく、「聞かれない限り話に出さない」に逃げるしかない
+   * （実際そうなった）。どのモデルを使うかは社長が選んだ設定なので、隠すものではない。
+   */
+  const lines = [
+    real
+      ? `あなたが動いているモデル: ${modelFor('fast')}（OpenRouter 経由）。聞かれたらそのまま答えてください`
+      : 'いまはモデルの鍵が無く、決め打ちの仮の返事を返しています。聞かれたらそう答えてください',
+    `いまの会社:\n${state.company}`,
+  ];
   if (state.hasWork) lines.push('**この会話ではもう Work を作りました。** propose_work は呼ばないでください。');
   if (state.conditions) lines.push(`集まっている条件:\n${JSON.stringify({
     hours_per_week: state.conditions.hoursPerWeek ?? null,
@@ -122,9 +168,11 @@ export async function chatStep(state: ChatState, history: Msg[], opts: ChatOpts 
     tools: [ask, setConditions, proposeCandidates, rememberMaterial, describeBusiness, reportFacts, reportDiagnosis, proposeWork],
     maxTokens: 8000,
     effort: 'low',
+    ...(state.needCard ? { toolChoice: 'required' as const } : {}),
     signal: opts.signal,
   })) {
     if (c.type === 'text') { text += c.text; opts.onText?.(c.text); }
+    if (c.type === 'tool_begin' && STAGE[c.name]) opts.onStage?.(STAGE[c.name]);
     if (c.type === 'tool_use') {
       const input = (c.input ?? {}) as Record<string, unknown>;
       // 材料は1往復で何個来てもいい（ほかの道具は最後の1つが勝つ）
@@ -213,6 +261,7 @@ export async function chatStep(state: ChatState, history: Msg[], opts: ChatOpts 
    * だから**足りないときは、もう一度だけ短く書いてもらう** — 道具は渡さないので必ず文が来る。
    */
   if (!out.text && cards.length) {
+    opts.onStage?.('言葉にしています');
     out.text = await prose(p, sys, history, cards, opts);
   }
   return out;

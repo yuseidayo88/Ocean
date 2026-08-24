@@ -15,7 +15,9 @@ import { threadGet } from '@/app/actions/live';
  * 返すのは「うまくいかなかった理由」だけ。うまくいったら null。
  * 本文は `onText` に、届いたぶんだけ渡す。
  */
-export async function streamReply(threadId: string, onText: (chunk: string) => void): Promise<string | null> {
+export async function streamReply(
+  threadId: string, onText: (chunk: string) => void, onStage?: (stage: string) => void,
+): Promise<string | null> {
   let fail: string | null = null;
   let reached = false;        // 流す道が本当に応えたか（応えなければ落とす）
   let drop = false;           // 「この道では返せない」と言われた
@@ -37,8 +39,10 @@ export async function streamReply(threadId: string, onText: (chunk: string) => v
         for (const row of rows) {
           if (!row.trim()) continue;
           try {
-            const m = JSON.parse(row) as { t?: string; done?: boolean; err?: string; fallback?: boolean };
+            const m = JSON.parse(row) as
+              { s?: string; t?: string; done?: boolean; err?: string; fallback?: boolean };
             if (m.fallback) { drop = true; break; }
+            if (m.s) { reached = true; onStage?.(m.s); }
             if (m.t) { reached = true; onText(m.t); }
             if (m.done) reached = true;
             if (m.err) { reached = true; fail = m.err; }

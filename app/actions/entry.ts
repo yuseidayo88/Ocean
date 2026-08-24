@@ -23,7 +23,7 @@ export async function discoveryGet(id: string): Promise<Discovery | null> {
  * **選ばなかった候補は残る**（不変条件 9）。
  */
 export async function adoptCandidate(
-  sessionId: string, candidateId: string, threadId?: string,
+  sessionId: string, candidateId: string, threadId?: string, ending?: string,
 ): Promise<StartResult> {
   try {
     const s = store();
@@ -32,6 +32,8 @@ export async function adoptCandidate(
     if (!d || !c) return { ok: false, need: 'error', message: 'その候補は見つかりませんでした' };
     const goal = [
       `${c.name}を立ち上げたい`,
+      // **終わりを聞き返されたときの答え**（選んだ選択肢がそのまま入る）
+      ending ? `終わり: ${ending}` : '',
       `背景: ${c.summary}`,
       d.conditions.hoursPerWeek ? `使える時間: 週${d.conditions.hoursPerWeek}時間` : '',
       d.conditions.budgetJpy ? `使えるお金: 〜${Math.round(d.conditions.budgetJpy / 10000)}万円` : '',
@@ -60,7 +62,7 @@ export async function profileGet(id: string): Promise<Profile | null> {
 
 /** 見つかったこと1件から Work を立てる（診断は必ず「次に何をするか」まで持つ、の実行側） */
 export async function findingToWork(
-  profileId: string, index: number, threadId?: string,
+  profileId: string, index: number, threadId?: string, ending?: string,
 ): Promise<StartResult> {
   try {
     const s = store();
@@ -71,7 +73,7 @@ export async function findingToWork(
     if (f.workId) return { ok: true, id: f.workId, real: p.diagnosis?.real ?? true };
     const goal = [
       `${f.work.title}をやりたい`,
-      `終わり: ${f.work.goal}`,
+      `終わり: ${ending || f.work.goal}`,
       `背景: ${p.name} の診断で「${f.title}」（${f.why}）`,
       ...(f.evidence.length ? [`根拠: ${f.evidence.join(' / ')}`] : []),
     ].join('\n');

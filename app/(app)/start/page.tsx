@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Route } from 'next';
 import { Composer, ExecStatus, TopBar } from '@/components/shell/Chrome';
-import { chatStart, type Entry } from '@/app/actions/chat';
+import { chatStart } from '@/app/actions/chat';
+import type { Entry } from '@/lib/exec/openers';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
 

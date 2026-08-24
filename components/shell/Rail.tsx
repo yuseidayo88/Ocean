@@ -176,19 +176,18 @@ export function Rail({ empty }: { empty?: boolean } = {}) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, height: 30, padding: '0 10px' }}>
           <span style={{ color: T5, fontSize: 12 }}>チャット</span>
           <div style={{ flex: 1 }} />
-          {!blank && (
-            <Link href="/chat/new" className="icob" title="新しいチャット"
-                  style={{ display: 'inline-flex', padding: 4, marginRight: -3 }}>
-              <Icon name="plus" color={T4} size={14} />
-            </Link>
-          )}
+          {/**
+            * **会話だけは、まだ何もない会社でも本物を出す**（2026-08-24）。
+            * 前は `/start` にいるあいだ `blank` で丸ごと「まだありません」にしていたので、
+            * **Work がまだ無い会社では、話した会話が左に出てこなかった**。
+            * 会社が空かどうかと、会話があるかどうかは別のこと。
+            */}
+          <Link href="/chat/new" className="icob" title="新しいチャット"
+                style={{ display: 'inline-flex', padding: 4, marginRight: -3 }}>
+            <Icon name="plus" color={T4} size={14} />
+          </Link>
         </div>
-        {blank ? (
-          <div style={{ padding: '2px 10px 0' }}>
-            <span style={{ color: DIM, fontSize: 12 }}>まだありません</span>
-          </div>
-        ) : (
-          <>
+        <>
             {threads.length === 0 && (
               <div style={{ padding: '2px 10px 0' }}>
                 <span style={{ color: DIM, fontSize: 12 }}>まだありません</span>
@@ -218,8 +217,7 @@ export function Rail({ empty }: { empty?: boolean } = {}) {
                 padding: '0 12px', borderRadius: 8, color: T5, fontSize: 12, textAlign: 'left',
               }}>すべて見る</button>
             )}
-          </>
-        )}
+        </>
       </div>
 
       <div style={{ flex: 1 }} />

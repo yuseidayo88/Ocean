@@ -29,6 +29,7 @@ export class OpenAIProvider implements ModelProvider {
               parameters: t.input_schema,
               strict: false,
             })),
+            ...(input.toolChoice === 'required' ? { tool_choice: 'required' as const } : {}),
           }
         : {}),
       stream: true,

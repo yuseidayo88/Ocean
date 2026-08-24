@@ -183,7 +183,8 @@ const foot = await ev(`(() => { const c = document.querySelector('.sy'); if (!c)
            pad: parseInt(getComputedStyle(kid).paddingBottom, 10) }; })()`);
 ok('会話は下に貼り付いていて、入力欄に隠れない',
    !!foot && foot.gap <= 2 && foot.pad >= 100, JSON.stringify(foot));
-await ev(`[...document.querySelectorAll('button')].find(b => b.innerText === 'この案にする')?.click()`);
+// 候補は**行そのものが選ぶもの**（ボタンではない）。押しやすさを3つとも同じにした
+await ev(`[...document.querySelectorAll('[role=button]')].find(b => b.innerText.includes('この案にする'))?.click()`);
 const planB = await until((b) => b.includes('承認して始める'), 20, 800);
 ok('候補から Work の計画に入った', planB.includes('承認して始める') && /\/plan$/.test(await ev('location.pathname')),
    await ev('location.pathname'));

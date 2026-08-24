@@ -26,6 +26,8 @@ export class AnthropicProvider implements ModelProvider {
       // **深さは thinking の量。モデルは変えない**（→ CLAUDE.md）
       ...(input.effort ? { output_config: { effort: input.effort } } : {}),
       ...(input.tools?.length ? { tools: input.tools } : {}),
+      ...(input.tools?.length && input.toolChoice === 'required'
+        ? { tool_choice: { type: 'any' as const } } : {}),
     }, { signal: input.signal })
 
     for await (const ev of s) {

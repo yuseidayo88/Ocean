@@ -1,6 +1,7 @@
 import { chatStep, type ChatState } from './chat';
 import { store, type ChatCard, type LiveWork } from '@/lib/store';
 import type { Conditions } from './types';
+import { isOpener } from './openers';
 import { sayError } from '@/lib/errors';
 
 /**
@@ -42,7 +43,9 @@ export type ReplyResult = { ok: true } | { ok: false; message: string; missing?:
  * `onText` は本文が1かたまり届くたびに呼ばれる（流す口のため）。
  * **書き込みは最後に1回**。途中で倒れたら、代わりに理由を1行残す。
  */
-export async function replyTo(id: string, onText?: (t: string) => void): Promise<ReplyResult> {
+export async function replyTo(
+  id: string, onText?: (t: string) => void, onStage?: (s: string) => void,
+): Promise<ReplyResult> {
   const s = store();
   try {
     const t = await s.getThread(id);
@@ -51,6 +54,8 @@ export async function replyTo(id: string, onText?: (t: string) => void): Promise
     // いまのスレッドの状態を畳む
     const disc = t.thread.discoveryId ? await s.getDiscovery(t.thread.discoveryId) : null;
     const prof = t.thread.profileId ? await s.getProfile(t.thread.profileId) : null;
+    // **入口の一言で始まった往復は、必ずカードになる**（→ `lib/exec/openers.ts`）
+    const last = t.messages[t.messages.length - 1];
     const state: ChatState = {
       hasWork: !!t.thread.workId,
       conditions: disc?.conditions,
@@ -58,6 +63,7 @@ export async function replyTo(id: string, onText?: (t: string) => void): Promise
       materials: (prof?.sources ?? []).map((x) => x.locator),
       diagnosed: !!prof?.diagnosis,
       company: await snapshot(),
+      needCard: !!last && last.role === 'user' && isOpener(last.body),
     };
 
     const history = t.messages.slice(-10).map((m) => ({
@@ -65,7 +71,7 @@ export async function replyTo(id: string, onText?: (t: string) => void): Promise
       content: m.body,
     }));
 
-    const out = await chatStep(state, history, { onText });
+    const out = await chatStep(state, history, { onText, onStage });
 
     /* ── 書く。**カードは1枚だけ**（候補 → 診断 → Work → 質問 の順に強い） ── */
     let card: ChatCard | undefined;
