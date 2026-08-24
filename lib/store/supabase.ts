@@ -733,35 +733,61 @@ export const supabaseStore: Store = {
   async getThread(id) {
     const c = await db();
     const { data: t } = await c.from('chat_threads')
-      .select('id, title, work_id, last_message_at').eq('id', id).maybeSingle();
+      .select('id, title, work_id, discovery_id, profile_id, last_message_at').eq('id', id).maybeSingle();
     if (!t) return null;
     const { data: m } = await c.from('chat_messages')
-      .select('role, body, created_at').eq('thread_id', id).order('created_at');
+      .select('role, body, refs, created_at').eq('thread_id', id).order('created_at');
     return {
       thread: {
         id: t.id as string, title: t.title as string,
         workId: (t.work_id ?? undefined) as string | undefined,
+        discoveryId: (t.discovery_id ?? undefined) as string | undefined,
+        profileId: (t.profile_id ?? undefined) as string | undefined,
         lastAt: t.last_message_at as string,
       },
       messages: (m ?? []).map((x): ChatMsg => ({
         role: x.role as ChatMsg['role'], body: x.body as string, at: x.created_at as string,
+        card: (x.refs ?? undefined) as ChatMsg['card'],
       })),
     };
   },
 
-  async addChat(threadId, role, body, title) {
+  async addChat(threadId, role, body, title, card) {
     const c = await db();
     let id = threadId;
     if (!id) {
       const { data: row, error } = await c.from('chat_threads')
-        .insert({ title: (title ?? body).slice(0, 24) }).select('id').single();
+        .insert({ title: (title ?? body).slice(0, 16) }).select('id').single();
       if (error || !row) throw new AppError('unknown', error?.message ?? 'thread insert failed');
       id = row.id as string;
     }
-    const { error } = await c.from('chat_messages').insert({ thread_id: id, role, body });
+    // カードは refs に置く（0002 から空いている jsonb。カードは id しか持たないので軽い）
+    const { error } = await c.from('chat_messages')
+      .insert({ thread_id: id, role, body, refs: card ?? null });
     if (error) throw new AppError('unknown', error.message);
     await c.from('chat_threads').update({ last_message_at: new Date().toISOString() }).eq('id', id);
     return id;
+  },
+
+  async linkThread(threadId, patch) {
+    const c = await db();
+    if (patch.workId) {
+      /**
+       * **workId は一度きり**（1チャット=1Work）。`is('work_id', null)` を付けた
+       * 1本の update で決める — 読んでから書くと、二度押しで2本目が立つ
+       */
+      const { data } = await c.from('chat_threads')
+        .update({ work_id: patch.workId }).eq('id', threadId).is('work_id', null).select('id');
+      if (!data?.length) return false;
+    }
+    const rest: Record<string, string> = {};
+    if (patch.discoveryId) rest.discovery_id = patch.discoveryId;
+    if (patch.profileId) rest.profile_id = patch.profileId;
+    if (Object.keys(rest).length) {
+      const { error } = await c.from('chat_threads').update(rest).eq('id', threadId);
+      if (error) throw new AppError('unknown', error.message);
+    }
+    return true;
   },
 
   async listSkills() {

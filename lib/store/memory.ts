@@ -273,18 +273,31 @@ export const memoryStore: Store = {
     return thread ? { thread, messages: msgs.get(id) ?? [] } : null;
   },
 
-  async addChat(threadId, role, body, title) {
+  async addChat(threadId, role, body, title, card) {
     let id = threadId;
     if (!id || !threads.some((t) => t.id === id)) {
       id = `t-${threads.length + 1}`;
-      threads.push({ id, title: (title ?? body).slice(0, 24), lastAt: new Date().toISOString() });
+      threads.push({ id, title: (title ?? body).slice(0, 16), lastAt: new Date().toISOString() });
     }
     const list = msgs.get(id) ?? [];
-    list.push({ role, body, at: new Date().toISOString() });
+    list.push({ role, body, at: new Date().toISOString(), card });
     msgs.set(id, list);
     const th = threads.find((t) => t.id === id);
     if (th) th.lastAt = new Date().toISOString();
     return id;
+  },
+
+  async linkThread(threadId, patch) {
+    const th = threads.find((t) => t.id === threadId);
+    if (!th) return false;
+    // **workId は一度きり。** 1チャット=1Work は、ここが最後の砦
+    if (patch.workId) {
+      if (th.workId) return false;
+      th.workId = patch.workId;
+    }
+    if (patch.discoveryId) th.discoveryId = patch.discoveryId;
+    if (patch.profileId) th.profileId = patch.profileId;
+    return true;
   },
 
   async listSkills() {

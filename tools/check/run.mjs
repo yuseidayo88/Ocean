@@ -42,14 +42,23 @@ const say = async (msg, after = 1200) => {
 await send('Runtime.enable'); await send('Page.enable');
 await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
 
-// ① ゴール → 計画 → 承認
+// ① ゴール → **チャットが開く** → Work を作る確認 → 計画 → 承認
+//    入口は3つともチャットになった（2026-08-24）。Work は確認を押すまでできない
 await send('Page.navigate', { url: `${BASE}/start` }); await wait(2500);
-await ev(`(() => { const t = document.querySelector('textarea');
-  Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(t, '韓国人向けの日本語学習サービスを立ち上げたい');
-  t.dispatchEvent(new Event('input', { bubbles: true })); t.focus(); })()`);
-await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
-await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
-await wait(4000);
+await say('韓国人向けの日本語学習サービスを立ち上げたい', 0);
+const opened = await until((b) => b.includes('この Work を作る'), 20, 800);
+ok('書くとチャットが開いて、Work を提案する',
+   opened.includes('Work にできます') && /^\/chat\//.test(await ev('location.pathname')),
+   await ev('location.pathname'));
+// **確認を押すまで Work はできていない** — 押す前に一覧を見て、空のままなことを確かめる
+const chatUrl = await ev('location.href');
+await send('Page.navigate', { url: `${BASE}/work` }); await wait(2000);
+const workList = await text();
+ok('確認を押すまで Work は作られない',
+   workList.includes('まだ') || workList.includes('ありません'), workList.slice(-90));
+await send('Page.navigate', { url: chatUrl }); await wait(2200);
+await ev(`[...document.querySelectorAll('button')].find(b => b.innerText === 'この Work を作る')?.click()`);
+await until((b) => b.includes('承認して始める'), 20, 800);
 await ev(`[...document.querySelectorAll('button')].find(b => b.textContent.includes('承認して始める'))?.click()`);
 await wait(3500);
 ok('承認して Work に着いた', /\/work\/[^/]+$/.test(await ev('location.pathname')), await ev('location.pathname'));
@@ -131,79 +140,49 @@ const sk = await text();
 ok('標準スキルが見えている', sk.includes('標準') && sk.includes('調査のまとめ方'), sk.slice(0, 80));
 ok('スキルが実行で読まれた（used_count）', /\d+回/.test(sk), sk.match(/[^\n]*回[^\n]*/)?.[0]);
 
-// ⑤'' 入口 Case B — 条件を集める → 候補3つ → 選んで Work 化
-// **まず1通で条件が2つ以上そろう道**を通す（ここだけ穴が残っていた —
-// setSid の URL 書き戻しが router.push を潰して「考えています」で永久に止まっていた）
-await send('Page.navigate', { url: `${BASE}/discovery` }); await wait(2200);
-await say('使えるのは週10時間です。得意は日本語教育。元手は50万円まで。');
-const oneShot = await until((b) => b.includes('おすすめ'), 15, 800);
-ok('1通で条件がそろえば、そのまま候補へ',
-   oneShot.includes('おすすめ') && /\/discovery\/result/.test(await ev('location.pathname')),
+// ⑤'' 入口 Case B — **チャットの中で**条件を集めて候補3つ
+await send('Page.navigate', { url: `${BASE}/start` }); await wait(2200);
+await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('まだ決まっていない'))?.click()`);
+const askInChat = await until((b) => b.includes('週にどれくらい使えますか'), 20, 800);
+ok('「まだ決まっていない」がチャットで始まる',
+   askInChat.includes('週にどれくらい使えますか') && /^\/chat\//.test(await ev('location.pathname')),
    await ev('location.pathname'));
-
-await send('Page.navigate', { url: `${BASE}/discovery` }); await wait(2200);
-await ev(`(() => { const t = document.querySelector('textarea');
-  Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(t, '使えるのは週10時間です');
-  t.dispatchEvent(new Event('input', { bubbles: true })); t.focus(); })()`);
-await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
-await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
-const askB = await until((b) => b.includes('やりたくないこと'), 15, 800);
-ok('条件が板で聞かれる（Case B）', askB.includes('やりたくないこと') && askB.includes('週10時間'), askB.slice(0, 80));
-await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('在庫を持つ'))?.click()`);
-const cands = await until((b) => b.includes('おすすめ'), 15, 800);
-ok('候補が3つ出て推しが立つ', cands.includes('おすすめ') && cands.includes('教材') && cands.includes('在庫を持つ'),
-   cands.slice(0, 100));
-
-// **「条件を変える」が跳ね返らない。** 候補が出たあと条件を直す道が塞がっていた
-const resultUrl = await ev('location.href');
-await ev(`[...document.querySelectorAll('a')].find(a => a.innerText === '条件を変える')?.click()`);
-// 集めた条件（チップ）は読み戻しなので、それが出るまで待つ
-const backToCond = await until((b) => b.includes('週10時間'), 12, 600);
-ok('条件を変える で条件の画面に留まる',
-   backToCond.includes('先に条件だけ') && backToCond.includes('週10時間')
-     && /^\/discovery\?/.test(await ev('location.pathname + location.search')),
-   `${await ev('location.pathname + location.search')} ${backToCond.slice(0, 40)}`);
-await send('Page.navigate', { url: resultUrl }); await wait(2000);
-
-await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('この案ではじめる'))?.click()`);
-const planB = await until((b) => b.includes('承認して始める'), 15, 800);
+const threadB = await ev('location.pathname');
+// 選択肢を押すと、そのまま会話が続く
+await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('週10時間'))?.click()`);
+await until((b) => b.includes('もう1つ条件'), 20, 800);
+await say('得意は日本語教育です。');
+const cands = await until((b) => b.includes('おすすめ'), 20, 800);
+ok('条件が2つそろうと、候補のカードが会話に出る',
+   cands.includes('おすすめ') && cands.includes('教材販売') && cands.includes('推さない理由'),
+   cands.slice(-160));
+ok('候補のカードは会話の中（別の画面に飛ばない）', (await ev('location.pathname')) === threadB, await ev('location.pathname'));
+await ev(`[...document.querySelectorAll('button')].find(b => b.innerText === 'この案にする')?.click()`);
+const planB = await until((b) => b.includes('承認して始める'), 20, 800);
 ok('候補から Work の計画に入った', planB.includes('承認して始める') && /\/plan$/.test(await ev('location.pathname')),
    await ev('location.pathname'));
 
-// ⑤''' 入口 Case D — 取り込む → 診断 → 見つかったことから Work 化
-await send('Page.navigate', { url: `${BASE}/import` }); await wait(2200);
-await say('月の売上は412,000円。1回3,500円のレッスンを月8回で売っている。');
-await say('nihongo-lesson.jp');
-const srcs = await until((b) => b.includes('1 / 2 完了'), 10, 800);
-ok('取り込みが保存される（完了と待機）', srcs.includes('書いて渡した') && srcs.includes('待機'), srcs.slice(0, 100));
-
-// **待たずに2件足す。** 事業がまだ無い状態で同時に走ると、別々の事業が2つできて
-// 資料が散る（実際そうなっていた）。1本の列に並べたので、4件が1つの事業に載る
-await say('生徒は23人。新規4・解約3。', 0);
-await say('サイトの来訪は月1,840、申込12。', 0);
-const race = await until((b) => /[23] \/ 4 完了/.test(b), 12, 800);
-ok('同時に足しても事業は1つ（4件が1つに載る）', /[23] \/ 4 完了/.test(race), race.match(/\d \/ \d 完了/)?.[0] ?? race.slice(0, 60));
-await ev(`[...document.querySelectorAll('button')].find(b => b.innerText === '診断する')?.click()`);
-const diag = await until((b) => b.includes('いちばん効く'), 15, 800);
-ok('診断が数字と見つかったことを出す',
-   diag.includes('継続率を測れていない') && diag.includes('412,000') && diag.includes('nihongo-lesson.jp'),
-   diag.slice(0, 120));
-ok('診断が Work の提案まで持つ', diag.includes('Work「継続率を見えるようにする」'), diag.slice(0, 120));
-const diagUrl = await ev('location.href');
-await ev(`[...document.querySelectorAll('button')].find(b => b.innerText === 'いちばん上から始める')?.click()`);
-const planD = await until((b) => b.includes('承認して始める'), 15, 800);
+// ⑤''' 入口 Case D — **チャットの中で**取り込み → 診断
+await send('Page.navigate', { url: `${BASE}/start` }); await wait(2200);
+await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('すでに事業がある'))?.click()`);
+const askD = await until((b) => b.includes('あるものだけで構いません'), 20, 800);
+ok('「すでに事業がある」がチャットで始まる',
+   askD.includes('あるものだけ') && /^\/chat\//.test(await ev('location.pathname')), await ev('location.pathname'));
+const threadD = await ev('location.pathname');
+await say('月の売上は412,000円です。nihongo-lesson.jp で売っています。');
+const diag = await until((b) => b.includes('継続率を測れていない'), 20, 800);
+ok('材料を渡すと、診断のカードが会話に出る',
+   diag.includes('継続率を測れていない') && diag.includes('412,000') && diag.includes('測れていません'),
+   diag.slice(-160));
+ok('診断のカードも会話の中', (await ev('location.pathname')) === threadD, await ev('location.pathname'));
+await ev(`[...document.querySelectorAll('button')].find(b => b.innerText === 'Work にする')?.click()`);
+const planD = await until((b) => b.includes('承認して始める'), 20, 800);
 ok('診断から Work の計画に入った', planD.includes('承認して始める') && /\/plan$/.test(await ev('location.pathname')),
    await ev('location.pathname'));
-
-// **戻って押しても、同じ Work は二度立たない。** 候補側の adopted_work_id と同じ守り
-await send('Page.navigate', { url: diagUrl });
-const again = await until((b) => b.includes('Work にした'), 12, 800);
-ok('立てた診断は「Work にした」に変わる', again.includes('Work にした'), again.slice(0, 120));
-await ev(`[...document.querySelectorAll('.row')].find(r => r.innerText.includes('継続率'))?.click()`);
-await wait(700);
-const dpane2 = await ev(`document.querySelector('aside')?.innerText ?? ''`);
-ok('もう立てたものは「Work を見る」になる',
-   dpane2.includes('Work を見る') && !dpane2.includes('この Work を立てる'), dpane2.slice(-80));
+// **1チャット = 1 Work。** 戻っても2本目は立たない
+await send('Page.navigate', { url: `${BASE}${threadD}` });
+const again = await until((b) => b.includes('Work を見る'), 20, 800);
+ok('1チャット=1Work（戻ると「Work を見る」に変わる）', again.includes('Work を見る'), again.slice(-120));
 
 // ⑥ 埋まった状態のレイアウト。ダミーを消したので、**ここでしか測れない**
 //    （ホーム4ビューは Work が動いてはじめて絵になる）

@@ -65,8 +65,8 @@ npx wrangler dev --local --env preview   # workerd（本番と同じ形）
 /home            ホーム（?view=desk / progress / flow で切替）
 /work/w-japanese  Work / その /plan で計画の承認
 /tasks /deliverables /decisions /team /inbox /hire /skills
-/chat/t-price     チャット / /chat/new で新規
-/start /discovery /discovery/result /import /diagnosis   入口
+/chat/<id>        チャット / /chat/new で新規
+/start            入口（**ここから全部チャットになる**。専用画面は 2026-08-24 に撤去）
 ```
 
 ```json
@@ -106,6 +106,7 @@ psql "$DATABASE_URL" -f supabase/migrations/0018_run_model.sql
 psql "$DATABASE_URL" -f supabase/migrations/0019_entry_columns.sql
 psql "$DATABASE_URL" -f supabase/migrations/0020_candidate_why.sql
 psql "$DATABASE_URL" -f supabase/migrations/0021_discovery_no_delete.sql
+psql "$DATABASE_URL" -f supabase/migrations/0022_thread_links.sql
 ```
 
 `0003` は RLS と、不変条件をデータベース側で守るためのトリガを入れます。

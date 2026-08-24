@@ -4,18 +4,22 @@ import { useParams, useRouter } from 'next/navigation';
 import type { Route } from 'next';
 import { Go as Link } from '@/components/ui/Go';
 import { Composer, ExecStatus, TopBar } from '@/components/shell/Chrome';
+import { Card } from '@/components/chat/Cards';
 import { Orb } from '@/components/ui/Orb';
-import { sendChat, threadGet } from '@/app/actions/live';
+import { threadGet } from '@/app/actions/live';
+import { chatSend } from '@/app/actions/chat';
 import type { ChatMsg } from '@/lib/store';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-import { EXEC, T1, T2, T5 } from '@/lib/design/tokens';
+import { EXEC, T1, T2 } from '@/lib/design/tokens';
 /**
- * チャット＝2ペインの会話（ChatGPT と同じ。右ペインなし）。
- * **会話はここに一本化する。** Work は会話を持たない。
+ * チャット＝2ペインの会話（参考: ChatGPT）。**右ペインは出さない** —
+ * 候補も診断も質問も、**会話の中のカード**として出る。
  *
- * 返事は本物 — 送ると統括AIが fast の1往復で返す（鍵の無い環境は「仮の返事」と名乗る）。
- * まだ何も話していなければ、何も無いと出す。
+ * ここが**入口でもある**（2026-08-24 の作り直し）。
+ * 「まだ決まっていない」「すでに事業がある」も、別の画面ではなくこの会話で進む。
+ *
+ * **1チャット = 1 Work。** Work は勝手に作られず、カードの「作る」を押したときだけできる。
  */
 
 const You = ({ children }: { children: React.ReactNode }) => (
@@ -48,6 +52,7 @@ export default function ChatPage() {
   const [title, setTitle] = useState(fresh ? '新しいチャット' : '');
   const [pending, setPending] = useState<string | null>(null);
   const [gone, setGone] = useState(false);
+  const foot = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (fresh) return;
@@ -61,11 +66,13 @@ export default function ChatPage() {
     return () => { on = false; };
   }, [id, fresh]);
 
-  /** この画面が書いたものは、この画面の会話として続く（右ペインを開かない） */
+  // 送るたび・返るたびに、いちばん下へ（会話は下が現在）
+  useEffect(() => { foot.current?.scrollIntoView({ block: 'end' }); }, [msgs.length, pending]);
+
   const send = (text: string) => {
     setPending(text);
-    void sendChat(fresh ? null : id, text).then((r) => {
-      if (!r.ok || !r.threadId) { setPending(null); return; }
+    void chatSend(fresh ? null : id, text).then((r) => {
+      if (!r.ok || !('threadId' in r) || !r.threadId) { setPending(null); return; }
       if (fresh) { router.replace(`/chat/${r.threadId}` as Route); return; }
       threadGet(id).then((t) => {
         setPending(null);
@@ -75,17 +82,18 @@ export default function ChatPage() {
   };
 
   const empty = !pending && msgs.length === 0;
+  // **動くのはいちばん新しいカードだけ。** 会話が先に進んだら、古いカードは読むだけ
+  const lastCard = msgs.reduce((at, m, i) => (m.card ? i : at), -1);
 
   return (
     <div style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column', background: '#000' }}>
-      <TopBar crumb={fresh ? undefined : 'チャット'} title={title || (gone ? '見つかりません' : '…')} />
+      <TopBar title={title || (gone ? '見つかりません' : '…')} />
 
       {empty ? (
         <div style={{ flex: 1, display: 'grid', placeItems: 'center' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
             <Orb color={EXEC} size={72} seed={7} />
             <span style={{ fontSize: 20 }}>{gone ? 'このチャットは見つかりませんでした' : '何を相談しますか？'}</span>
-            {!gone && <span style={{ color: T5, fontSize: 12.5 }}>待っています</span>}
             {gone && <Link href="/chat/new" style={{ color: T2, fontSize: 13 }}>新しいチャットを始める</Link>}
           </div>
         </div>
@@ -99,7 +107,8 @@ export default function ChatPage() {
               ? <You key={i}>{m.body}</You>
               : (
                 <div key={i} style={{ width: '100%', maxWidth: 748, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <Body text={m.body} />
+                  {m.body && <Body text={m.body} />}
+                  {m.card && <Card card={m.card} live={i === lastCard} threadId={id} onSend={send} />}
                 </div>
               )
           ))}
@@ -110,7 +119,7 @@ export default function ChatPage() {
               <ExecStatus state="thinking" />
             </div>
           )}
-          <div style={{ flex: 1 }} />
+          <div ref={foot} style={{ height: 1, flexShrink: 0 }} />
         </div>
       )}
 

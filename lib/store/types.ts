@@ -58,8 +58,31 @@ export type Note = {
 };
 
 /** チャットのスレッドと発言。会話は**ここに一本化**する（Work は会話を持たない） */
-export type ChatThread = { id: string; title: string; workId?: string; lastAt?: string };
-export type ChatMsg = { role: 'user' | 'executive'; body: string; at?: string };
+export type ChatThread = {
+  id: string; title: string; lastAt?: string;
+  /** **1チャット = 1 Work。** 作ったらここに入り、二度は作らない */
+  workId?: string;
+  /** この会話で集めている条件 / 取り込んだ事業。**スレッドが覚える**（→ 0022） */
+  discoveryId?: string;
+  profileId?: string;
+};
+
+/**
+ * 会話の中に出るカード。**右ペインは開かない** — 中身は会話の中で完結する。
+ *
+ * **カードは id しか持たない。** 中身（候補・診断）は描くときに store から読む。
+ * 焼き込むと「もう採用した」「もう Work にした」が古いまま残る。
+ */
+export type ChatCard =
+  | { kind: 'ask'; questions: Question[] }
+  | { kind: 'candidates'; sessionId: string }
+  | { kind: 'diagnosis'; profileId: string }
+  | { kind: 'work'; title: string; goal: string; weeks: number; why: string };
+
+export type ChatMsg = {
+  role: 'user' | 'executive'; body: string; at?: string;
+  card?: ChatCard;
+};
 
 /**
  * スキル（SKILL.md）1枚。employee_id が無ければ会社ぜんぶのスキル。
@@ -216,7 +239,12 @@ export interface Store {
   listThreads(): Promise<ChatThread[]>;
   getThread(id: string): Promise<{ thread: ChatThread; messages: ChatMsg[] } | null>;
   /** 発言を書く。threadId が null なら新しいスレッドを作る。返り値はスレッド id */
-  addChat(threadId: string | null, role: 'user' | 'executive', body: string, title?: string): Promise<string>;
+  addChat(threadId: string | null, role: 'user' | 'executive', body: string, title?: string, card?: ChatCard): Promise<string>;
+  /**
+   * スレッドが覚えるもの（作った Work / 集めている条件 / 取り込んだ事業）を書く。
+   * **workId は一度きり** — すでに入っていれば false を返して上書きしない（1チャット=1Work）
+   */
+  linkThread(threadId: string, patch: { workId?: string; discoveryId?: string; profileId?: string }): Promise<boolean>;
   /**
    * スキル（SKILL.md）の一覧・有効の切り替え・追加・削除。
    * **1枚も無ければ標準スキル（builtin）を播く** — 元々の機能なので、どの会社にも最初からある

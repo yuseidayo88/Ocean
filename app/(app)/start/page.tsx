@@ -3,39 +3,39 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Route } from 'next';
-import { Go as Link } from '@/components/ui/Go';
-import { Ask, Composer, ExecStatus, TopBar } from '@/components/shell/Chrome';
-import { startWork, type StartResult } from '@/app/actions/work';
-import { Icon } from '@/components/ui/Icon';
+import { Composer, ExecStatus, TopBar } from '@/components/shell/Chrome';
+import { chatStart, type Entry } from '@/app/actions/chat';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
 
 import { DIM, EXEC, RED_T, SEAM, T2, T4, T5 } from '@/lib/design/tokens';
 /**
- * ⓪ はじめての画面。入口は3つに分かれる。
- * 入力欄が主役なので中央に置く（floating=false）。**偽の中身を置かない。**
+ * ⓪ はじめての画面。**入口は3つとも、チャットになる**（2026-08-24 の作り直し）。
  *
- * ・**やりたいことがある**（Case A）→ そのまま書く。統括AIが計画まで引く
- * ・まだ決まっていない（Case B）→ 条件を集める
- * ・すでに事業がある（Case D）→ 取り込んで診断する
+ * 前は「まだ決まっていない」「すでに事業がある」が別の画面へ飛んでいた。
+ * いまは**どれも新しいチャットを1本作って**、そこで統括AIが聞いていく。
+ * 会話の置き場が1つになるので、あとから「あのとき何を話したか」を探せる。
+ *
+ * 入力欄が主役なので中央に置く（floating=false）。**偽の中身を置かない。**
  */
 
-const CHOICES = [
-  { href: '/discovery', icon: 'search', title: 'まだ決まっていない', sub: '条件から一緒に決めます' },
-  { href: '/import',    icon: 'globe',  title: 'すでに事業がある',   sub: '取り込んで、診断します' },
-] as const;
+const CHOICES: { entry: Entry; icon: IconName; title: string; sub: string }[] = [
+  { entry: 'discovery', icon: 'search', title: 'まだ決まっていない', sub: '条件から一緒に決めます' },
+  { entry: 'import', icon: 'globe', title: 'すでに事業がある', sub: '取り込んで、診断します' },
+];
 
 export default function StartPage() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  const [res, setRes] = useState<StartResult | null>(null);
-  /** 直前に書いたゴール。聞き返しに答えるとき、これに足して渡し直す */
-  const [goal, setGoal] = useState('');
+  const [fail, setFail] = useState('');
 
-  const go = async (text: string) => {
-    setBusy(true); setRes(null); setGoal(text);
-    const r = await startWork(text);
-    if (r.ok) { router.push(`/work/${r.id}/plan` as Route); return; }
-    setBusy(false); setRes(r);
+  /** **どの入口も、新しいチャットを1本作る。** 行き先は必ずその会話 */
+  const open = async (entry: Entry, text?: string) => {
+    if (busy) return;
+    setBusy(true); setFail('');
+    const r = await chatStart(entry, text);
+    if (r.ok) { router.push(`/chat/${r.threadId}` as Route); return; }
+    setBusy(false); setFail(r.message);
   };
 
   return (
@@ -46,32 +46,22 @@ export default function StartPage() {
         <span style={{ fontSize: 26, lineHeight: '36px' }}>何をはじめますか？</span>
         {busy && <ExecStatus state="thinking" />}
         <Composer placeholder="やりたいことを、そのまま書いてください" floating={false}
-          onSend={go} busy={busy}
-          above={res && !res.ok && res.need === 'end'
-            ? <Ask q={res.body} idx={1} total={1} free="自分の言葉で書く" busy={busy}
-                   options={res.options.map((o) => ({ label: o.label, note: o.description }))}
-                   /* **選んだら本当に進む。** 選んだ終わり方を足して、もう一度統括AIに渡す */
-                   onPick={(label) => go(`${goal}\n終わりの決め方: ${label}`)}
-                   onFree={(text) => go(`${goal}\n終わりの決め方: ${text}`)}
-                   onSkip={() => setRes(null)} />
-            : undefined} />
-        {res && !res.ok && res.need === 'error' && (
-          <span style={{ color: RED_T, fontSize: 12.5 }}>{res.message}</span>
-        )}
+          onSend={(t) => open('goal', t)} busy={busy} />
+        {fail && <span style={{ color: RED_T, fontSize: 12.5 }}>{fail}</span>}
         {!busy && <div style={{ display: 'flex', gap: 14, width: '100%', maxWidth: 748 }}>
           {CHOICES.map((c) => (
-            <Link key={c.href} href={c.href} className="card" style={{
+            <button key={c.entry} onClick={() => open(c.entry)} className="card" style={{
               flex: 1, display: 'flex', alignItems: 'center', gap: 14, padding: '15px 18px',
-              borderRadius: 12, background: '#0B0B0B', border: `1px solid ${SEAM}`,
+              borderRadius: 12, background: '#0B0B0B', border: `1px solid ${SEAM}`, textAlign: 'left',
             }}>
               <Icon name={c.icon} color={T4} size={16} />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <span style={{ color: T2 }}>{c.title}</span>
                 <span style={{ color: T5, fontSize: 11.5 }}>{c.sub}</span>
-              </div>
+              </span>
               <div style={{ flex: 1 }} />
               <Icon name="chev" color={DIM} size={13} />
-            </Link>
+            </button>
           ))}
         </div>}
       </div>

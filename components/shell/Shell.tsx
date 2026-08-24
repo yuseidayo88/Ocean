@@ -131,8 +131,11 @@ export function ShellBox({ children }: { children: React.ReactNode }) {
 /** 会話のペインの幅 */
 export const CHAT_W = 430;
 
-/** まだ何もない会社の画面（→ docs/design/01-data-model.md 入口） */
-export const EMPTY_ROUTES = ['/start', '/discovery', '/import', '/diagnosis'];
+/**
+ * まだ何もない会社の画面（→ docs/design/01-data-model.md 入口）。
+ * 入口はチャットに一本化したので、**残っているのは `/start` だけ**（2026-08-24）。
+ */
+export const EMPTY_ROUTES = ['/start'];
 export const isBlank = (p: string) => EMPTY_ROUTES.some((r) => p === r || p.startsWith(r + '/'));
 
 /**

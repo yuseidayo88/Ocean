@@ -1,18 +1,14 @@
 import { scan } from './_probe.mjs';
 const B = process.env.BASE ?? 'http://localhost:3300';
 
-/** 24画面。ペインを持つものは「閉じた URL / 開いた URL」の組で見る */
+/** ペインを持つものは「閉じた URL / 開いた URL」の組で見る */
 /**
  * ゼロ状態の画面。**ダミーは無い** — 空の会社で、全画面が正直な空状態を出すことを測る。
  * 埋まった状態（Work が動いたあと）のレイアウトは run.mjs の最後のスイープが測る。
  */
 const pairs = [
   ['/start',             `${B}/start`,             null],
-  ['/work/new',          `${B}/work/new`,          null],
-  ['/discovery',         `${B}/discovery`,         null],
-  ['/discovery/result',  `${B}/discovery/result`,  null],
-  ['/import',            `${B}/import`,            null],
-  ['/diagnosis',         `${B}/diagnosis`,         null],
+  ['/chat/new',          `${B}/chat/new`,          null],
   ['/tasks',             `${B}/tasks`,             null],
   ['/inbox',             `${B}/inbox`,             null],
   ['/team',              `${B}/team`,              `${B}/team?open=exec`],
@@ -22,7 +18,6 @@ const pairs = [
   ['/hire',              `${B}/hire`,              `${B}/hire?open=market-researcher`],
   ['/skills',            `${B}/skills`,            null],
   ['/billing',           `${B}/billing`,           null],
-  ['/chat/new',          `${B}/chat/new`,          null],
   ['/home',              `${B}/home`,              null],
 ];
 for (const [label, closed, open] of pairs) {
