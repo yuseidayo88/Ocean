@@ -10,10 +10,18 @@ import { replyTo } from '@/lib/exec/reply';
  * 流すのは本文だけ。**カードは最後**（道具の結果は往復の終わりにしか揃わない）なので、
  * 終わりの合図を受けた画面がスレッドを読み直して、カードごと差し替える。
  *
+ * **`/api/*` はページとは別の関数として配られることがある**（Vercel も Cloudflare も）。
+ * メモリのストアはその場合ここからは見えず、ページ側が書いたスレッドが
+ * **まるごと存在しないように見える**（実際そうなって「このチャットは見つかりませんでした」
+ * だけが出た）。だから**見えなかったときは `fallback`** と言い、画面は
+ * 流さない道（`chatReply` ＝ ページ側の関数）で取り直す。
+ * **存在しているものを「見つかりません」と言わない。**
+ *
  * 形は行区切りの JSON（1行1件）:
- *   {"t":"…"}      本文のかけら
- *   {"done":true}  書き終わり（画面はここで読み直す）
- *   {"err":"…"}    倒れた。理由は画面に出す（会話にも1行残っている）
+ *   {"t":"…"}          本文のかけら
+ *   {"done":true}      書き終わり（画面はここで読み直す）
+ *   {"fallback":true}  この道では返せない。画面は別の道で取り直す
+ *   {"err":"…"}        倒れた。理由は画面に出す（会話にも1行残っている）
  */
 
 export const dynamic = 'force-dynamic';
@@ -31,7 +39,9 @@ export async function POST(req: Request) {
       const line = (o: unknown) => c.enqueue(enc.encode(`${JSON.stringify(o)}\n`));
       try {
         const r = await replyTo(threadId, (t) => line({ t }));
-        line(r.ok ? { done: true } : { err: r.message });
+        if (r.ok) line({ done: true });
+        else if (r.missing) line({ fallback: true });
+        else line({ err: r.message });
       } catch (e) {
         line({ err: e instanceof Error ? e.message : '応えられませんでした' });
       }

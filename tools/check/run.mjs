@@ -210,6 +210,15 @@ await send('Page.navigate', { url: `${BASE}${threadD}` });
 const again = await until((b) => b.includes('Work を見る'), 20, 800);
 ok('1チャット=1Work（戻ると「Work を見る」に変わる）', again.includes('Work を見る'), again.slice(-120));
 
+// ⑤'''' `/chat/new` から始める道。**`/start` を通らない**ので、書いた先で id が変わる。
+//        移ったあと誰が返事を頼むのか、が変わる道なので、ここも1本通しておく
+await send('Page.navigate', { url: `${BASE}/chat/new` }); await wait(2200);
+await say('ロゴを作りたい', 0);
+const fromNew = await until((b) => b.includes('（仮の返事）'), 20, 800);
+ok('新しいチャットからでも返事が来る',
+   fromNew.includes('（仮の返事）') && /^\/chat\/(?!new)/.test(await ev('location.pathname')),
+   await ev('location.pathname'));
+
 // ⑥ 埋まった状態のレイアウト。ダミーを消したので、**ここでしか測れない**
 //    （ホーム4ビューは Work が動いてはじめて絵になる）
 const { scan } = await import('./_probe.mjs');

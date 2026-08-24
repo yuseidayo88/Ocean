@@ -150,8 +150,13 @@ export default function ChatPage() {
     setPending(text); setFail('');
     void chatSay(fresh ? null : id, text).then((r) => {
       if (!r.ok) { setPending(null); setFail(r.message); return; }
-      // 新しいチャットは、書けた時点でその会話へ移る（返事は移った先が取りに行く）
-      if (fresh) { asked.current = r.threadId; router.replace(`/chat/${r.threadId}` as Route); return; }
+      /**
+       * 新しいチャットは、書けた時点でその会話へ移る。
+       * **返事は移った先が取りに行く**（開いた会話の最後が社長の発言なら1回だけ頼む）。
+       * ここで `asked` に印を付けない — いまは行き先が変わると器ごと作り直されるので
+       * 印は消えるが、**消えなかったときに誰も返さなくなる**。頼りにしない。
+       */
+      if (fresh) { setPending(null); router.replace(`/chat/${r.threadId}` as Route); return; }
       void reply(id);
     });
   };

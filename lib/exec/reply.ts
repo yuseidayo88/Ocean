@@ -32,7 +32,11 @@ export async function snapshot(): Promise<string> {
   return lines.join('\n');
 }
 
-export type ReplyResult = { ok: true } | { ok: false; message: string };
+/**
+ * `missing` ＝ そのスレッドが**この実行環境からは見えなかった**。
+ * 呼んだ側が「あるはず」と知っているなら、道が悪い（→ `app/api/chat/route.ts`）。
+ */
+export type ReplyResult = { ok: true } | { ok: false; message: string; missing?: true };
 
 /**
  * `onText` は本文が1かたまり届くたびに呼ばれる（流す口のため）。
@@ -42,7 +46,7 @@ export async function replyTo(id: string, onText?: (t: string) => void): Promise
   const s = store();
   try {
     const t = await s.getThread(id);
-    if (!t) return { ok: false, message: 'このチャットは見つかりませんでした' };
+    if (!t) return { ok: false, message: 'このチャットは見つかりませんでした', missing: true };
 
     // いまのスレッドの状態を畳む
     const disc = t.thread.discoveryId ? await s.getDiscovery(t.thread.discoveryId) : null;
