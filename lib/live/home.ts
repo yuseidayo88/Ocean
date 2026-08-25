@@ -40,8 +40,8 @@ export type HomeData = {
   ticks: { x: number; label: string }[];
   todayX: number;
   done: { id: string; title: string; ended: string; phases: number }[];
-  /** 判断待ちと遅れの数。答えの1行が言う */
-  gates: number; late: number;
+  /** 判断待ち・遅れ・まだ見ていない成果物の数。**答えの1行が言う** */
+  gates: number; late: number; review: number;
 };
 
 const DAY = 24 * 3600 * 1000;
@@ -313,5 +313,7 @@ export function buildHome(
     done: finished.map((w) => ({ id: w.id, title: w.title, ended: '', phases: w.phases.length })),
     gates: view.filter((v) => v.gate).length,
     late: view.filter((v) => typeof v.health === 'object').length,
+    // **社長を待っているもの**は2つ（◆ と、まだ見ていない成果物）。両方を答えの1行に出す
+    review: active.reduce((a, w) => a + (w.dels ?? []).filter((d) => d.state === '要確認').length, 0),
   };
 }

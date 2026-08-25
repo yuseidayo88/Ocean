@@ -119,7 +119,7 @@ function Home() {
           : view === 'flow' ? <FlowView data={data} />
           : view === 'desk' ? <Desk lanes={data.lanes} idle={data.idle} />
           : <Progress works={data.works} ticks={data.ticks} todayX={data.todayX}
-                      done={data.done} gates={data.gates} late={data.late} />}
+                      done={data.done} gates={data.gates} late={data.late} review={data.review} />}
       </div>
 
       {/* 盤面は中身が入力欄の上に収まっていて潜らない。**黒に溶かすとドットを切るだけ** */}
