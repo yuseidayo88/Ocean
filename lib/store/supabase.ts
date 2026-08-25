@@ -3,7 +3,7 @@ import { AGENT_COLOR, type EmployeeColor } from '@/lib/view/model';
 import { colorFor, sortCands } from './memory';
 import { BUILTIN_SKILLS } from '@/lib/roster/skills';
 import { AppError } from '@/lib/errors';
-import { STALL_MS, type ChatMsg, type ChatThread, type Discovery, type DraftWork, type LiveDecision, type LiveWork, type Note, type Profile, type RunStep, type SkillRow, type Store } from './types';
+import { STALL_MS, type AgentPref, type ChatMsg, type ChatThread, type Discovery, type DraftWork, type LiveDecision, type LiveWork, type Note, type Profile, type RunStep, type SkillRow, type Store } from './types';
 
 /**
  * 本番の保存先。行は全部 RLS（`account_id = private.current_account_id()`）で絞られる。
@@ -851,6 +851,54 @@ export const supabaseStore: Store = {
       const { data } = await c.from('agent_skills').select('used_count').eq('id', id).maybeSingle();
       if (data) await c.from('agent_skills').update({ used_count: (data.used_count ?? 0) + 1 }).eq('id', id);
     }
+  },
+
+  /* ══════════════ モデルと深さ ══════════════ */
+
+  async listPrefs() {
+    const c = await db();
+    const { data } = await c.from('agent_prefs').select('employee_id, model, effort');
+    return (data ?? []).map((x): AgentPref => ({
+      employeeId: (x.employee_id ?? null) as string | null,
+      model: (x.model ?? undefined) as string | undefined,
+      effort: (x.effort ?? undefined) as AgentPref['effort'],
+    }));
+  },
+
+  async prefOf(employeeId) {
+    const c = await db();
+    // **統括AI は employee_id が null。** `.eq(null)` は当たらないので `.is` で引く
+    const q = c.from('agent_prefs').select('employee_id, model, effort');
+    const { data } = await (employeeId ? q.eq('employee_id', employeeId) : q.is('employee_id', null))
+      .maybeSingle();
+    if (!data) return null;
+    return {
+      employeeId: (data.employee_id ?? null) as string | null,
+      model: (data.model ?? undefined) as string | undefined,
+      effort: (data.effort ?? undefined) as AgentPref['effort'],
+    };
+  },
+
+  async setPref(employeeId, patch) {
+    const c = await db();
+    const sel = c.from('agent_prefs').select('id');
+    const { data: row } = await (employeeId ? sel.eq('employee_id', employeeId) : sel.is('employee_id', null))
+      .maybeSingle();
+    // **渡した項目だけ書き換える**（モデルを選んでも深さが消えない）
+    const patchRow = {
+      ...(patch.model !== undefined ? { model: patch.model } : {}),
+      ...(patch.effort !== undefined ? { effort: patch.effort } : {}),
+      updated_at: new Date().toISOString(),
+    };
+    if (row) {
+      const { error } = await c.from('agent_prefs').update(patchRow).eq('id', row.id);
+      if (error) throw new AppError('unknown', error.message);
+      return;
+    }
+    const { error } = await c.from('agent_prefs').insert({ employee_id: employeeId, ...patchRow });
+    // 同時に2つのタブから触っても1行（0024 の一意 index）。弾かれたら書き直す
+    if (error?.code === '23505') { await supabaseStore.setPref(employeeId, patch); return; }
+    if (error) throw new AppError('unknown', error.message);
   },
 
   /* ══════════════ 学び ══════════════ */

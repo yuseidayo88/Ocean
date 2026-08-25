@@ -3,6 +3,7 @@ import { store, type ChatCard, type LiveWork } from '@/lib/store';
 import type { Conditions } from './types';
 import { isOpener, OPENER } from './openers';
 import { sayError } from '@/lib/errors';
+import { execPref } from './pref';
 
 /**
  * **統括AIに返してもらう1回**（書くのはもう終わっている）。
@@ -81,13 +82,20 @@ export async function replyTo(
     const prof = t.thread.profileId ? await s.getProfile(t.thread.profileId) : null;
     // **入口の一言で始まった往復は、必ずカードになる**（→ `lib/exec/openers.ts`）
     const last = t.messages[t.messages.length - 1];
+    /**
+     * **統括AIのモデルは1回だけ読む。** 続きの輪で最大3往復するので、
+     * 往復ごとに保存先へ読みに行くと、そのぶん返事が遅くなる。
+     * 会社のいまと**同時に**取る（遠いDBでは、順に待つと往復が2回ぶん積み上がる）。
+     */
+    const [{ model }, company] = await Promise.all([execPref(), snapshot()]);
     const state: ChatState = {
+      model,
       hasWork: !!t.thread.workId,
       conditions: disc?.conditions,
       proposed: !!disc?.candidates.length,
       materials: (prof?.sources ?? []).map((x) => x.locator),
       diagnosed: !!prof?.diagnosis,
-      company: await snapshot(),
+      company,
       needCard: !!last && last.role === 'user' && isOpener(last.body),
       /**
        * **スレッドが知っていることを、最初から持たせる。**

@@ -5,6 +5,7 @@ import { TIER_TABLE, type Tier } from './tiers'
 import type { ModelProvider } from './provider'
 import { AppError } from '../errors'
 
+export * from './catalog'
 export * from './provider'
 export * from './tiers'
 

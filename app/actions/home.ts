@@ -11,13 +11,13 @@ import type { RunStep } from '@/lib/store';
 export async function homeData(): Promise<HomeData> {
   try {
     const s = store();
-    const [works, employees, notes, steps] = await Promise.all([
-      s.listWorks(), s.listEmployees(), s.listNotes(), s.recentSteps(30),
+    const [works, employees, notes, steps, prefs] = await Promise.all([
+      s.listWorks(), s.listEmployees(), s.listNotes(), s.recentSteps(30), s.listPrefs(),
     ]);
     // 走っているタスクの歩み（少数）。デスクの工程の行が読む
     const runningIds = works.flatMap((w) => w.tasks.filter((t) => t.state === 'running').map((t) => t.id));
     const stepPairs = await Promise.all(runningIds.map(async (id) => [id, await s.getSteps(id)] as [string, RunStep[]]));
-    return buildHome(works, employees, notes, steps, new Map(stepPairs));
+    return buildHome(works, employees, notes, steps, new Map(stepPairs), prefs);
   } catch {
     return buildHome([], [], [], [], new Map());
   }

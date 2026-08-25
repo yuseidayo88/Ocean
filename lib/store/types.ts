@@ -1,3 +1,4 @@
+import type { Effort } from '@/lib/ai/catalog';
 import type { CandidateDraft, Conditions, Container, Fact, Finding, Hire, Plan, Question } from '@/lib/exec/types';
 
 /** 承認を待っている Work 1件ぶん。画面（計画の承認）が読むのはこれだけ */
@@ -96,6 +97,14 @@ export type SkillRow = {
   /** SKILL.md の中身。一覧では読まないこともある */
   body?: string;
 };
+
+/**
+ * **その社員が、どのモデルで、どれだけ考えるか。**
+ * `employeeId` が null なら統括AI（employees に行を持たないので、スキルと同じ書き方）。
+ * 未設定のところは既定（`DEFAULT_PREF`）で走る — 空は「まだ選んでいない」であって
+ * 「何も無い」ではない。
+ */
+export type AgentPref = { employeeId: string | null; model?: string; effort?: Effort };
 
 /** 実行の1歩。デスクの工程の行と、タスクの右ペインに出る */
 export type RunStep = {
@@ -270,6 +279,15 @@ export interface Store {
   addLearnings(employeeId: string, lines: string[]): Promise<void>;
   /** 社長が消す・直す（丸ごと置き換え。空にしたら行ごと消える） */
   setLearnings(employeeId: string, lines: string[]): Promise<void>;
+  /* ══════════════ モデルと深さ（メンバー画面で社長が選ぶ）══════════════ */
+
+  /** 全員ぶん（統括AIを含む）。メンバー画面が1回で取る */
+  listPrefs(): Promise<AgentPref[]>;
+  /** 1人ぶん。**実行の直前に読む** — 選んだものがその往復に効く */
+  prefOf(employeeId: string | null): Promise<AgentPref | null>;
+  /** 押したその場で効く（保存ボタンは無い）。渡した項目だけ書き換える */
+  setPref(employeeId: string | null, patch: { model?: string; effort?: Effort }): Promise<void>;
+
   /** 会社の名前（パンくずの根）。登録時はメールが入っている */
   companyName(): Promise<string>;
   /** 最近の歩み（オフィスのログ）。誰が・何をしたか、新しい順 */

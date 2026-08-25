@@ -1,3 +1,4 @@
+import type { Effort } from './catalog'
 import type { Tier } from './tiers'
 
 /**
@@ -17,19 +18,14 @@ export interface ToolDef {
   input_schema: { type: 'object'; properties?: Record<string, unknown>; required?: string[]; [k: string]: unknown }
 }
 
-/**
- * **思考の深さ。** どれだけ考えてから答えるかで、**モデルは変わらない**
- * （→ CLAUDE.md「モデルは変わらない。`tierFor(effort)` にモデルを選ばせない」）。
- * 画面のつまみ（`EffortInline`）はこの5段に対応する。
- *
- * 前はここに口が無く、代わりに `tierFromEffort` が**深さでモデルを切り替えて**いた。
- * 決めごとと逆のものが、使われないまま残っていた。
- */
-export const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const
-export type Effort = (typeof EFFORTS)[number]
-
 export interface RunInput {
   tier: Tier
+  /**
+   * **どのモデルで走るか**（通り道での名前 ＝ `lib/ai/catalog.ts` の `id`）。
+   * 省略すると階層の表のモデル（`TIER_TABLE`）。社長がメンバー画面で選んだものが、
+   * ここに入って**そのまま上流に届く** — 選べるのに効かない、を作らない。
+   */
+  model?: string
   /** 変わらない前置き。ここをキャッシュの境目にする */
   system: string
   messages: Msg[]
@@ -41,7 +37,7 @@ export interface RunInput {
    */
   toolChoice?: 'auto' | 'required'
   maxTokens?: number
-  /** 思考の深さ。省略すると各社の既定 */
+  /** 思考の深さ。省略すると各社の既定。**受けない段はモデルに合わせて寄せる**（→ catalog） */
   effort?: Effort
   signal?: AbortSignal
 }

@@ -1,5 +1,6 @@
 import { hasKey, providerFor, billedCostUsd, modelFor, type ModelProvider, type Msg } from '@/lib/ai';
 import { FakeProvider } from '@/lib/ai/fake';
+import { execPref, staffPref } from '@/lib/exec/pref';
 import { personaOf } from '@/lib/roster';
 import { store, type LiveWork } from '@/lib/store';
 import { RUN_TOOLS } from './tools';
@@ -68,8 +69,13 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
   const memory = (await s.listDels().catch(() => []))
     .filter((x) => x.state === '承認済').slice(0, 5);
 
-  /** どのモデルで走るか（ガバナンスの記録。鍵の無い環境は fake） */
-  const usedModel = hasKey() ? modelFor('standard') : 'fake';
+  /**
+   * **この社員の設定で走る**（メンバー画面で社長が選んだモデルと深さ）。
+   * 選んでいなければ既定。担当のいないタスクは統括AIの設定を借りない。
+   */
+  const pref = await staffPref(task.ownerId);
+  /** どのモデルで走ったか（ガバナンスの記録。鍵の無い環境は fake） */
+  const usedModel = hasKey() ? modelFor('standard', pref.model) : 'fake';
 
   const runId = await s.startRun(taskId);
   await s.addDecisionRefs(runId, decided.map((d) => d.id)).catch(() => {});
@@ -138,7 +144,8 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
     }];
 
     for await (const c of pick().stream({
-      tier: 'standard', system, messages, tools: RUN_TOOLS, maxTokens: 8000, effort: 'low',
+      tier: 'standard', model: pref.model, effort: pref.effort,
+      system, messages, tools: RUN_TOOLS, maxTokens: 8000,
     })) {
       if (c.type === 'tool_use') {
         const a = (c.input ?? {}) as Record<string, unknown>;
@@ -178,7 +185,7 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
       }
     }
 
-    const costCents = Math.round(billedCostUsd('standard', usage.in, usage.out) * 100);
+    const costCents = Math.round(billedCostUsd('standard', usage.in, usage.out, pref.model) * 100);
 
     // 読んだスキルと書いた学びを残す（失敗しても実行は倒さない）
     if (skills.length) await s.bumpSkillUse(skills.map((x) => x.id)).catch(() => {});
@@ -222,8 +229,8 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
     // 途中で落ちても、そこまでに使ったぶんは正直に記帳する（0 にしない）
     await s.finishRun(runId, {
       status: 'failed', tokensIn: usage.in, tokensOut: usage.out,
-      costCents: Math.round(billedCostUsd('standard', usage.in, usage.out) * 100),
-      model: hasKey() ? modelFor('standard') : 'fake', error: say(e),
+      costCents: Math.round(billedCostUsd('standard', usage.in, usage.out, pref.model) * 100),
+      model: usedModel, error: say(e),
     }).catch(() => {});
     await s.addNotification({
       kind: 'エラー', body: `${task.title} — 途中で止まりました`, subjectType: 'task', subjectId: taskId,
@@ -239,8 +246,10 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
 async function execGlance(title: string, body: string): Promise<string> {
   if (!hasKey('fast')) return '';
   let out = '';
+  // 話すのは統括AIなので**モデルは統括AIの設定**。深さは使わない（40字の一文）
+  const { model } = await execPref();
   for await (const c of providerFor('fast').stream({
-    tier: 'fast', effort: 'low', maxTokens: 300,
+    tier: 'fast', model, effort: 'low', maxTokens: 300,
     system: 'あなたは一人社長の統括AI。部下の成果物を渡すとき、社長がどこを見ればいいかを日本語40文字以内の1文で添える。文だけ返す。',
     messages: [{ role: 'user', content: `成果物「${title}」:
 ${body.slice(0, 4000)}` }],

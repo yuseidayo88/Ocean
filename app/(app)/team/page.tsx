@@ -9,13 +9,13 @@ import { EffortInline, ModelInline, Toggle } from '@/components/shell/Controls';
 import { BLUE, COMPOSER_H, DIM, EDGE, GREEN, GREEN_T, HAIR, MUTE, RULE, SEAM, T2, T3, T4, T5 } from '@/lib/design/tokens';
 import { Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
-import { AGENT_COLOR, EFFORT_WORDS, EXEC, MODELS } from '@/lib/view/model';
-import { MODEL_LABEL } from '@/lib/ai/tiers';
+import { AGENT_COLOR, EXEC, prefWords } from '@/lib/view/model';
+import { EFFORTS, modelOf, type Effort } from '@/lib/ai/catalog';
 import { pressable } from '@/lib/a11y';
 import { hire, listEmployees } from '@/app/actions/run';
-import { learningsGet, learningsSet, skillToggle, teamData } from '@/app/actions/live';
+import { learningsGet, learningsSet, prefSet, skillToggle, teamData } from '@/app/actions/live';
 import { ROSTER, definitionOf, slugOf, type Definition } from '@/lib/roster';
-import type { LiveEmployee, SkillRow } from '@/lib/store';
+import type { AgentPref, LiveEmployee, SkillRow } from '@/lib/store';
 import { useShell } from '@/components/shell/Shell';
 
 /**
@@ -36,7 +36,9 @@ import { useShell } from '@/components/shell/Shell';
 /** 統括AIも社員も同じ形で描くための、行1本ぶんの持ちもの */
 type Line = {
   id: string; name: string; en: string; state: string; color: string; seed: number;
-  lead: string; can: string[]; canMore: number; model: string; effort: number;
+  lead: string; can: string[]; canMore: number;
+  /** いま選ばれているモデル（通り道での名前）と深さ。まだ選んでいなければ既定の姿 */
+  model: string; effort: Effort;
   /** 定義の Critical Rules（社長は消せない）。設定のペインに出す */
   rules: string[];
   sub?: string;
@@ -47,48 +49,79 @@ type Line = {
 /** 全員に効くことを開いているときの id */
 const ALL = 'all';
 
-const EXEC_LINE: Line = {
-  id: EXEC.id, name: EXEC.name, en: EXEC.en, state: '', color: EXEC.color, seed: 5,
-  lead: EXEC.lead, can: EXEC.can, canMore: EXEC.canMore, model: EXEC.model, effort: EXEC.effort,
-  rules: [], sub: '会社に1人。止めることも外すこともできません',
+/** 統括AI。**設定は持つが employees には行が無い**ので、設定の鍵は null */
+const execLine = (p?: AgentPref): Line => {
+  const w = prefWords('exec', p);
+  return {
+    id: EXEC.id, name: EXEC.name, en: EXEC.en, state: '', color: EXEC.color, seed: 5,
+    lead: EXEC.lead, can: EXEC.can, canMore: EXEC.canMore, model: w.model, effort: w.effort,
+    rules: [], sub: '会社に1人。止めることも外すこともできません',
+  };
 };
 
-const toLine = (e: LiveEmployee): Line => {
+const toLine = (e: LiveEmployee, p?: AgentPref): Line => {
   const d = definitionOf(e.definitionId);
+  const w = prefWords('employee', p);
   return {
     id: e.id, name: e.name, en: d?.en ?? '', state: e.state === 'running' ? '実行中' : '待機',
     color: e.color, seed: e.name.length * 7 + 3,
     lead: d?.mission ?? '', can: (d?.rules ?? []).slice(0, 3).map((r) => r.split('。')[0]),
-    canMore: Math.max(0, (d?.rules.length ?? 0) - 3), model: MODEL_LABEL, effort: 2,
+    canMore: Math.max(0, (d?.rules.length ?? 0) - 3), model: w.model, effort: w.effort,
     rules: d?.rules ?? [],
     sub: e.hiredAt ? `${e.hiredAt.slice(0, 10)} から在籍` : undefined,
   };
 };
 
-/** まだいない人。ロスターの定義だけを持つ行（在籍の行と同じ形で並べる） */
-const toCand = (d: Definition): Line => ({
-  id: `d-${d.slug}`, name: d.name, en: d.en, state: '', color: AGENT_COLOR[d.color],
-  seed: d.name.length * 9 + 5, lead: d.mission,
-  can: d.rules.slice(0, 3).map((r) => r.split('。')[0]),
-  canMore: Math.max(0, d.rules.length - 3), model: MODEL_LABEL, effort: 2,
-  rules: d.rules, cand: d.slug,
-});
+/**
+ * まだいない人。ロスターの定義だけを持つ行（在籍の行と同じ形で並べる）。
+ * **設定はまだ無い**（採ってから選ぶ）ので、モデルと深さは既定の姿のまま出さない。
+ */
+const toCand = (d: Definition): Line => {
+  const w = prefWords('employee');
+  return {
+    id: `d-${d.slug}`, name: d.name, en: d.en, state: '', color: AGENT_COLOR[d.color],
+    seed: d.name.length * 9 + 5, lead: d.mission,
+    can: d.rules.slice(0, 3).map((r) => r.split('。')[0]),
+    canMore: Math.max(0, d.rules.length - 3), model: w.model, effort: w.effort,
+    rules: d.rules, cand: d.slug,
+  };
+};
 
 export default function TeamPage() {
   /** 在籍（採用した社員）。store がひとつの出どころ */
   const [staff, setStaff] = useState<LiveEmployee[] | null>(null);
   const [skills, setSkills] = useState<SkillRow[]>([]);
+  /** モデルと深さ。**選んでいない人は行が無い**（既定で走る） */
+  const [prefs, setPrefs] = useState<AgentPref[]>([]);
   useEffect(() => {
     let on = true;
-    // **1回で取る。** 在籍とスキルは一緒に出るものなので、別々に往復しない
-    teamData().then((d) => { if (on) { setStaff(d.staff); setSkills(d.skills); } });
+    // **1回で取る。** 在籍・スキル・設定は一緒に出るものなので、別々に往復しない
+    teamData().then((d) => { if (on) { setStaff(d.staff); setSkills(d.skills); setPrefs(d.prefs); } });
     return () => { on = false; };
   }, []);
 
   const { say5 } = useShell();
   // 右は閉じた状態から始まる。行か歯車を押すと、その1人ぶんだけ開く
   const [openId, setOpenId] = useOpen();
-  const lines = (staff ?? []).map(toLine);
+  const prefOf = (id: string | null) => prefs.find((x) => x.employeeId === id);
+  /**
+   * **押したその場で効く**（保存ボタンは置かない）。
+   * 画面を先に変えて、裏で書く — 書けなかったときだけ言って、本物を読み直す。
+   * `employeeId` が null なら統括AI。
+   */
+  const pick = async (employeeId: string | null, patch: { model?: string; effort?: Effort }) => {
+    setPrefs((xs) => [
+      ...xs.filter((x) => x.employeeId !== employeeId),
+      { ...(xs.find((x) => x.employeeId === employeeId) ?? { employeeId }), ...patch },
+    ]);
+    const r = await prefSet(employeeId, patch);
+    if (!r.ok) {
+      say5(r.message ?? '設定を保存できませんでした');
+      teamData().then((d) => setPrefs(d.prefs));
+    }
+  };
+  const lines = (staff ?? []).map((e) => toLine(e, prefOf(e.id)));
+  const exec = execLine(prefOf(null));
   /** **候補 ＝ ロスターの定義 − いまの在籍。** 採用は定義で採るので、同じ担当が2人にならない */
   const taken = new Set((staff ?? []).map((e) => slugOf(e.definitionId)));
   const cands = (staff === null ? [] : ROSTER.filter((d) => !taken.has(d.slug))).map(toCand);
@@ -121,11 +154,13 @@ export default function TeamPage() {
           </div>
 
           {/* 統括AI は社員より上。設定はできるが、止めることも外すこともできない */}
-          <Row l={EXEC_LINE} top on={execOn} onOpen={() => setOpenId(EXEC.id)} />
+          <Row l={exec} top on={execOn} onOpen={() => setOpenId(EXEC.id)}
+            onPick={(patch) => pick(null, patch)} />
           <div style={{ height: 1, background: RULE }} />
 
           {lines.map((l) => (
-            <Row key={l.id} l={l} on={openId === l.id} onOpen={() => setOpenId(l.id)} />
+            <Row key={l.id} l={l} on={openId === l.id} onOpen={() => setOpenId(l.id)}
+              onPick={(patch) => pick(l.id, patch)} />
           ))}
 
           {/* **まだいない人。** 同じ行の形のまま、暗く並べて右に採用する */}
@@ -165,7 +200,8 @@ export default function TeamPage() {
       {(sel || execOn || allOn) && (
         <SettingsPane
           who={allOn ? 'all' : execOn ? 'exec' : sel?.cand ? 'candidate' : 'employee'}
-          l={sel ?? EXEC_LINE}
+          l={sel ?? exec}
+          onPick={(patch) => pick(execOn ? null : sel?.id ?? null, patch)}
           skills={skills}
           onHire={sel?.cand ? () => take(sel) : undefined}
           onToggle={async (id, on) => {
@@ -185,8 +221,9 @@ export default function TeamPage() {
  * **まだいない人も同じ行で描く。** 違うのは2つだけ —
  * 全体を暗くする（在籍と見間違えない）／ 右はモデルと歯車ではなく `採用する`。
  */
-function Row({ l, on, onOpen, onHire, top }: {
+function Row({ l, on, onOpen, onHire, onPick, top }: {
   l: Line; on?: boolean; onOpen?: () => void; onHire?: () => void; top?: boolean;
+  onPick?: (patch: { model?: string; effort?: Effort }) => void;
 }) {
   const press = onOpen ? pressable(onOpen) : {};
   const cand = !!l.cand;
@@ -230,8 +267,10 @@ function Row({ l, on, onOpen, onHire, top }: {
           /* モデルと深さ。**別々の操作**で、右に縦に積む。どちらも枠を持たない */
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flexShrink: 0 }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
-              <ModelInline value={l.model} models={MODELS} />
-              <EffortInline value={l.effort} words={EFFORT_WORDS} />
+              <ModelInline value={l.model} onPick={(m) => onPick?.({ model: m })} />
+              {/* **段はモデルが決める。** 深さを受けないモデルでは、つまみごと出ない */}
+              <EffortInline value={l.effort} efforts={modelOf(l.model)?.efforts ?? EFFORTS}
+                onPick={(e) => onPick?.({ effort: e })} />
             </div>
             {/* 歯車 ＝ その社員の設定。**右ペインで開く**（画面ごと移動しない） */}
             <button className="icob" aria-label={`${l.name}の設定`}
@@ -273,9 +312,10 @@ function StateMark({ state }: { state: string }) {
  *
  * **保存ボタンを置かない**（トグルはその場で効く）。道具は社長に触らせない。
  */
-function SettingsPane({ who, l, skills, onToggle, onHire, onClose }: {
+function SettingsPane({ who, l, skills, onToggle, onHire, onPick, onClose }: {
   who: 'employee' | 'exec' | 'all' | 'candidate'; l: Line; skills: SkillRow[];
   onToggle: (id: string, on: boolean) => void; onHire?: () => void; onClose: () => void;
+  onPick?: (patch: { model?: string; effort?: Effort }) => void;
 }) {
   const { say5 } = useShell();
   const cand = who === 'candidate';
@@ -283,6 +323,8 @@ function SettingsPane({ who, l, skills, onToggle, onHire, onClose }: {
   const list = who === 'all' ? skills.filter((s) => s.scope === 'company') : skills;
   const title = who === 'all' ? '全員に効くこと' : who === 'exec' ? '統括AIの設定'
     : cand ? 'まだいない人' : 'AI社員の設定';
+  /** そのモデルが受ける深さの段。空なら深さは選べない */
+  const depth = modelOf(l.model)?.efforts ?? EFFORTS;
 
   return (
     <Pane width={430} icon={cand ? 'team' : 'gear'} title={title} onClose={onClose}>
@@ -364,15 +406,22 @@ function SettingsPane({ who, l, skills, onToggle, onHire, onClose }: {
             <div style={{ display: 'flex', alignItems: 'center' }}>
               <span style={{ color: T3 }}>モデル</span>
               <div style={{ flex: 1 }} />
-              <ModelInline value={l.model} models={MODELS} />
+              <ModelInline value={l.model} onPick={(m) => onPick?.({ model: m })} />
             </div>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <span style={{ color: T3 }}>思考の深さ</span>
-              <div style={{ flex: 1 }} />
-              <EffortInline value={l.effort} words={EFFORT_WORDS} />
-            </div>
+            {/* **深さを受けないモデルでは、行ごと出さない**（押せない行を置かない） */}
+            {depth.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <span style={{ color: T3 }}>思考の深さ</span>
+                <div style={{ flex: 1 }} />
+                <EffortInline value={l.effort} efforts={depth} onPick={(e) => onPick?.({ effort: e })} />
+              </div>
+            )}
             <span style={{ color: T5, fontSize: 11.5 }}>
-              深さは選んだモデルの中でどれだけ考えるか。モデルは変わりません
+              {depth.length === 0
+                ? 'このモデルは深さを選べません。考える量はモデルが決めます'
+                : who === 'exec'
+                  ? '深さが効くのは計画と判断のとき。会話の返事はいつも速く返します'
+                  : '深さは選んだモデルの中でどれだけ考えるか。モデルは変わりません'}
             </span>
           </div>
         )}

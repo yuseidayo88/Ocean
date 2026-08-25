@@ -136,6 +136,45 @@ await ev(`[...document.querySelectorAll('.row')].find(r => r.innerText.includes(
 const paneB = await until((b) => b.includes('学び'), 10, 800);
 ok('社員の学びが設定ペインに残った', paneB.includes('数字は事実・推計・要確認の3束に分けてから出す'), paneB.slice(0, 120));
 
+/**
+ * ⑤'' モデルと深さ。**選んだものが本当に残るか**を1本通す
+ * （画面 → サーバーアクション → 保存先 → 読み直し）。
+ * 深さは**モデルごとに段が違う**ので、Claude を選ぶと「考えずに答える」が消える。
+ */
+await send('Page.navigate', { url: `${BASE}/team` }); await wait(2000);
+const before = await text();
+ok('選んでいない社員は既定のモデルで出る', before.includes('GPT-5.6 Luna'), before.match(/[^\n]*Luna[^\n]*/)?.[0]);
+// 調査担当の行のモデルを Claude Sonnet 5 にする
+await ev(`[...document.querySelectorAll('.row')].find(r => r.innerText.includes('調査担当'))
+            ?.querySelector('button[aria-haspopup="listbox"]')?.click()`);
+await wait(400);
+await ev(`[...document.querySelectorAll('[role="option"]')].find(b => b.innerText.includes('Claude Sonnet 5'))?.click()`);
+await wait(900);
+await send('Page.navigate', { url: `${BASE}/team` });
+const after = await until((b) => b.includes('Claude Sonnet 5'), 10, 600);
+ok('選んだモデルが残る（読み直しても Claude Sonnet 5）', after.includes('Claude Sonnet 5'),
+   after.match(/[^\n]*Claude[^\n]*/)?.[0]);
+// 深さの段は選んだモデルのもの（Claude は `none` を受けない = 段が5つ）
+const dots = await ev(`(() => {
+  const r = [...document.querySelectorAll('.row')].find(x => x.innerText.includes('調査担当'));
+  const sl = r?.querySelector('[role="slider"]');
+  return sl ? [sl.querySelectorAll('button').length, sl.getAttribute('aria-valuetext')] : null;
+})()`);
+ok('深さの段はモデルが決める（Claude は5段）', Array.isArray(dots) && dots[0] === 5, JSON.stringify(dots));
+// つまみを右へ1つ動かして、残ることを見る
+await ev(`(() => {
+  const r = [...document.querySelectorAll('.row')].find(x => x.innerText.includes('調査担当'));
+  const bs = r.querySelector('[role="slider"]').querySelectorAll('button');
+  bs[bs.length - 1].click();
+})()`);
+await wait(900);
+await send('Page.navigate', { url: `${BASE}/team` }); await wait(2000);
+const deep = await ev(`(() => {
+  const r = [...document.querySelectorAll('.row')].find(x => x.innerText.includes('調査担当'));
+  return r?.querySelector('[role="slider"]')?.getAttribute('aria-valuetext');
+})()`);
+ok('選んだ深さが残る（いちばん深く）', deep === 'いちばん深く', String(deep));
+
 await send('Page.navigate', { url: `${BASE}/skills` }); await wait(2200);
 const sk = await text();
 ok('標準スキルが見えている', sk.includes('標準') && sk.includes('調査のまとめ方'), sk.slice(0, 80));

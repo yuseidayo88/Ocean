@@ -41,7 +41,8 @@ function OfficeView({ data }: { data: HomeData }) {
         <OfficeLog events={data.events} />
       </div>
       <div style={{ flexShrink: 0, marginBottom: COMPOSER_H }}>
-        <OfficeTeam staff={data.staff} works={data.works.length} gates={data.gates} lit={lit} onHover={setLit} />
+        <OfficeTeam staff={data.staff} works={data.works.length} gates={data.gates}
+          exec={data.exec} lit={lit} onHover={setLit} />
       </div>
     </div>
   );

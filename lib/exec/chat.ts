@@ -66,6 +66,12 @@ export type ChatState = {
    * push のある往復は**その道具だけを渡して、必ず使わせる** — 出ないことがない。
    */
   push?: 'record' | 'ask' | 'candidates';
+  /**
+   * **統括AIが選ばれているモデル**（メンバー画面。既定は `DEFAULT_PREF.exec.model`）。
+   * 呼ぶ側が1回だけ読んで持ち回る — 続きの往復ごとに保存先を読みに行かない。
+   * **深さはここでは使わない。** 会話の返事はいつも速く返す（深さは計画と判断のとき）。
+   */
+  model?: string;
   /** 続きの往復のために持ち回る（同じスレッドの探索・事業） */
   discoveryId?: string;
   profileId?: string;
@@ -159,7 +165,7 @@ export async function chatStep(state: ChatState, history: Msg[], opts: ChatOpts 
    */
   const lines = [
     real
-      ? `あなたが動いているモデル: ${labelFor('fast')}。**聞かれたらモデル名だけ答える**（通り道や社内の作りは言わない）`
+      ? `あなたが動いているモデル: ${labelFor('fast', state.model)}。**聞かれたらモデル名だけ答える**（通り道や社内の作りは言わない）`
       : 'いまはモデルの鍵が無く、決め打ちの仮の返事を返しています。聞かれたらそう答えてください',
     `いまの会社:\n${state.company}`,
   ];
@@ -214,6 +220,7 @@ export async function chatStep(state: ChatState, history: Msg[], opts: ChatOpts 
 
   for await (const c of p.stream({
     tier: 'fast',
+    model: state.model,
     system: sys,
     messages: history,
     tools,
@@ -332,7 +339,7 @@ export async function chatStep(state: ChatState, history: Msg[], opts: ChatOpts 
     && !out.work && !out.materials.length;
   if (!out.text && cards.length && state.push !== 'record' && !condOnly) {
     opts.onStage?.('言葉にしています');
-    out.text = await prose(p, sys, history, cards, opts);
+    out.text = await prose(p, sys, history, cards, opts, state.model);
   }
   return out;
 }
@@ -355,11 +362,13 @@ function cardWords(o: ChatOut): string[] {
  */
 async function prose(
   p: ModelProvider, system: string, history: Msg[], cards: string[], opts: ChatOpts,
+  model?: string,
 ): Promise<string> {
   try {
     let out = '';
     for await (const c of p.stream({
       tier: 'fast',
+      model,
       system: [
         system, '',
         '## いま',

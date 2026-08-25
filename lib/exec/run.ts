@@ -6,6 +6,7 @@ import { checkStop, toOptions, toQuestions } from './parse';
 import type { Container, Draft, Hire, Plan } from './types';
 import { AppError } from '@/lib/errors';
 import { slugOf } from '@/lib/roster';
+import { execPref, type Pref } from './pref';
 
 /**
  * Work を立てるまでを1回まわす。
@@ -34,11 +35,14 @@ export type RunResult = { draft: Draft; real: boolean };
 
 export async function draftWork(goal: string, ctx = ''): Promise<RunResult> {
   const { p, real } = pickProvider();
+  // **統括AIの設定で走る**（メンバー画面のいちばん上の行）
+  const pref = await execPref();
   const got = new Map<string, Record<string, unknown>>();
   let stop: string | null = null;
 
   for await (const c of p.stream({
     tier: 'deep',
+    model: pref.model,
     system: CONSTITUTION,
     messages: shape(goal, ctx),
     tools: PHASE5_TOOLS,
@@ -49,10 +53,11 @@ export async function draftWork(goal: string, ctx = ''): Promise<RunResult> {
      */
     maxTokens: 16000,
     /**
-     * 統括AIの計画は**いちばん深く考えさせる**。ここで外すと、
-     * 全フェーズの組み立てと採用がまとめてずれる（→ CLAUDE.md「統括AI は常に deep」）。
+     * 統括AIの計画は**深く考えさせる**。ここで外すと、全フェーズの組み立てと採用が
+     * まとめてずれる（→ CLAUDE.md「統括AI は常に deep」）。
+     * 深さは社長が選べる（既定は「やや深め」）— 選んだものがそのまま効く。
      */
-    effort: 'high',
+    effort: pref.effort,
   })) {
     if (c.type === 'tool_use') got.set(c.name, (c.input ?? {}) as Record<string, unknown>);
     if (c.type === 'done') stop = c.stopReason;
@@ -92,7 +97,7 @@ export async function draftWork(goal: string, ctx = ''): Promise<RunResult> {
    */
   let plan = toPlan(got.get('draft_plan'));
   if (!plan.phases.length || !plan.firstPhaseTasks.length) {
-    plan = await drawPlan(p, goal, ctx, container);
+    plan = await drawPlan(p, goal, ctx, container, pref);
   }
 
   return { real, draft: {
@@ -106,10 +111,13 @@ export async function draftWork(goal: string, ctx = ''): Promise<RunResult> {
 }
 
 /** 計画だけをもう一度。**道具は1つ、必ず使わせる** */
-async function drawPlan(p: ModelProvider, goal: string, ctx: string, c: Container): Promise<Plan> {
+async function drawPlan(
+  p: ModelProvider, goal: string, ctx: string, c: Container, pref: Pref,
+): Promise<Plan> {
   const got = new Map<string, Record<string, unknown>>();
   for await (const ch of p.stream({
     tier: 'deep',
+    model: pref.model,
     system: CONSTITUTION,
     messages: [{
       role: 'user',
@@ -125,7 +133,7 @@ async function drawPlan(p: ModelProvider, goal: string, ctx: string, c: Containe
     tools: [PHASE5_TOOLS.find((t) => t.name === 'draft_plan')!],
     toolChoice: 'required',
     maxTokens: 8000,
-    effort: 'high',
+    effort: pref.effort,
   })) {
     if (ch.type === 'tool_use') got.set(ch.name, (ch.input ?? {}) as Record<string, unknown>);
   }

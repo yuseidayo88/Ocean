@@ -1,7 +1,7 @@
 import { AGENT_COLOR, type EmployeeColor } from '@/lib/view/model';
 import { BUILTIN_SKILLS } from '@/lib/roster/skills';
 import { AppError } from '@/lib/errors';
-import { STALL_MS, type ChatMsg, type ChatThread, type Discovery, type DraftWork, type LiveDecision, type LiveEmployee, type LiveWork, type Note, type Profile, type RunStep, type SkillRow, type Store } from './types';
+import { STALL_MS, type AgentPref, type ChatMsg, type ChatThread, type Discovery, type DraftWork, type LiveDecision, type LiveEmployee, type LiveWork, type Note, type Profile, type RunStep, type SkillRow, type Store } from './types';
 
 /**
  * メモリの保存先。**Supabase に出られない環境（デモ・この開発環境）用。**
@@ -342,6 +342,28 @@ export const memoryStore: Store = {
 
   /* ══════════════ 学び ══════════════ */
 
+  /* ══════════════ モデルと深さ ══════════════ */
+
+  async listPrefs() {
+    return [...prefs.values()].map((p) => ({ ...p }));
+  },
+
+  async prefOf(employeeId) {
+    const p = prefs.get(employeeId ?? EXEC_PREF);
+    return p ? { ...p } : null;
+  },
+
+  async setPref(employeeId, patch) {
+    const key = employeeId ?? EXEC_PREF;
+    const cur = prefs.get(key) ?? { employeeId };
+    // **渡した項目だけ書き換える**（モデルを選んでも深さが消えない）
+    prefs.set(key, {
+      employeeId,
+      model: patch.model ?? cur.model,
+      effort: patch.effort ?? cur.effort,
+    });
+  },
+
   async learnings(employeeId) {
     return [...(learned.get(employeeId) ?? [])];
   },
@@ -587,6 +609,7 @@ const g2 = globalThis as unknown as {
   __msgs?: Map<string, ChatMsg[]>;
   __skills?: SkillRow[];
   __learned?: Map<string, string[]>;
+  __prefs?: Map<string, AgentPref>;
   __morning?: Set<string>;
 };
 const runs = (g2.__runs ??= new Map());
@@ -596,6 +619,9 @@ const threads = (g2.__threads ??= []);
 const msgs = (g2.__msgs ??= new Map<string, ChatMsg[]>());
 const skills = (g2.__skills ??= []);
 const learned = (g2.__learned ??= new Map<string, string[]>());
+/** 統括AI（employee_id が null）の置き場。Map の鍵に null は使えないので名前を1つ決める */
+const EXEC_PREF = '__exec__';
+const prefs = (g2.__prefs ??= new Map<string, AgentPref>());
 const morningDays = (g2.__morning ??= new Set<string>());
 const g3 = globalThis as unknown as { __decs?: LiveDecision[]; __staff?: LiveEmployee[] };
 const decisions = (g3.__decs ??= []);

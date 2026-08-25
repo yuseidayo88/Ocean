@@ -1,4 +1,5 @@
-import type { LiveEmployee, LiveWork, Note, RunStep } from '@/lib/store/types';
+import type { AgentPref, LiveEmployee, LiveWork, Note, RunStep } from '@/lib/store/types';
+import { prefWords } from '@/lib/view/model';
 import type {
   DeskBody, Event, Lane, MapChip, MapWork, Produce, Ring, State, Work,
 } from '@/lib/view/model';
@@ -14,12 +15,20 @@ import type {
  */
 
 export type StaffCard = {
-  id: string; name: string; state: State; now: string; model: string; effort: number;
+  id: string; name: string; state: State; now: string;
+  /**
+   * いま選ばれているモデルの名前（メンバー画面で選んだもの）。
+   * **深さはここに出さない** — 言葉が長く（「いちばん深く」）、状態の語と1行に収まらない。
+   * 深さはつまみのあるメンバー画面で見る（同じことを2か所で言わない）。
+   */
+  model: string;
   color: string;
   desk: { el: string; step: { done: number; all: number; name: string }; produce: Produce; wait: number };
 };
 
 export type HomeData = {
+  /** 統括AIのモデル（オフィスの先頭のカード） */
+  exec: { model: string };
   works: Work[];
   events: Event[];
   staff: StaffCard[];
@@ -74,7 +83,11 @@ export function buildHome(
   notes: Note[],
   steps: { at?: string; who: string; what: string }[],
   stepsByTask: Map<string, RunStep[]>,
+  prefs: AgentPref[] = [],
 ): HomeData {
+  /** 設定 → 画面の言葉。**選んでいない人は既定の姿**（実行もそれで走る） */
+  const wordsFor = (id: string | null, who: 'exec' | 'employee') =>
+    prefWords(who, prefs.find((x) => x.employeeId === id));
   const active = works.filter((w) => w.status !== 'done' && w.status !== 'archived');
   const finished = works.filter((w) => w.status === 'done');
   const now = Date.now();
@@ -240,7 +253,7 @@ export function buildHome(
       id: e.id, name: e.name, color: e.color,
       state: at ? '実行中' : '待機',
       now: at ? at.t.title : '仕事を待っています',
-      model: '自動', effort: 2,
+      model: wordsFor(e.id, 'employee').label,
       desk: {
         el: '',
         step: { done: ts.length, all: at ? ts.length + 1 : ts.length, name: stepName },
@@ -298,6 +311,7 @@ export function buildHome(
   });
 
   return {
+    exec: { model: wordsFor(null, 'exec').label },
     works: view,
     events,
     staff, lanes, idle,

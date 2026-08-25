@@ -1,5 +1,6 @@
 import { hasKey, providerFor, type Msg } from '@/lib/ai';
 import { FakeProvider } from '@/lib/ai/fake';
+import { execPref } from './pref';
 import type { ToolDef } from '@/lib/ai';
 import type { LiveWork } from '@/lib/store';
 
@@ -41,6 +42,7 @@ export async function draftNextTasks(
   decided: { question: string; chosen?: string }[],
 ): Promise<NextTask[]> {
   const p = hasKey('deep') ? providerFor('deep') : new FakeProvider();
+  const pref = await execPref();   // 統括AIの設定（メンバー画面）
   const dels = (work.dels ?? []).slice(0, 4);
 
   const messages: Msg[] = [{
@@ -57,7 +59,7 @@ export async function draftNextTasks(
 
   let tasks: NextTask[] = [];
   for await (const c of p.stream({
-    tier: 'deep', effort: 'high', maxTokens: 4000,
+    tier: 'deep', model: pref.model, effort: pref.effort, maxTokens: 4000,
     system: 'あなたは一人社長の統括AI。前のフェーズの結果と社長の決定を踏まえ、次のフェーズのタスクを引く。',
     messages, tools: [TOOL],
   })) {

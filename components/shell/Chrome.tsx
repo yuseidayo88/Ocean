@@ -7,7 +7,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { CompanyPicker, useShell } from '@/components/shell/Shell';
 import { AMBER, AMBER_T, BLUE, COMPOSER_H as TOKEN_COMPOSER_H, DIM, EASE, EASE_FAST, EDGE, FAINT, GREEN_T, HAIR, LINE, RAIL, RED_T, RULE, SEAM, SUNK, T1, T2, T3, T4, T5, WELL } from '@/lib/design/tokens';
-import { EFFORT_WORDS } from '@/lib/view/model';
 import { chatTargets, openWorkChat } from '@/app/actions/chat';
 
 /** 入力欄の高さ。**下に貼り付く中身はこのぶん逃がす**（→ lib/design/tokens.ts） */
@@ -123,9 +122,9 @@ function grow(t: HTMLTextAreaElement, onH?: (h: number) => void) {
   });
 }
 
-export function Composer({ placeholder, mode = NEW_CHAT, effort = '自動', above, floating = true,
+export function Composer({ placeholder, mode = NEW_CHAT, above, floating = true,
                            veil = true, inPane = false, local = false, onSend, busy = false, onHeight }:
-  { placeholder: string; mode?: string; effort?: string; above?: React.ReactNode; floating?: boolean;
+  { placeholder: string; mode?: string; above?: React.ReactNode; floating?: boolean;
     /**
      * 下端を黒に溶かすか。**中身がスクロールして入力欄の裏に潜る画面だけ。**
      * 盤面（ワークフロー）は中身が入力欄の上に収まっていて潜らないので、
@@ -293,8 +292,9 @@ export function Composer({ placeholder, mode = NEW_CHAT, effort = '自動', abov
           */}
         {/* 宛先は「どの会話に書くか」。**ペインの中では出さない** — 見出しがもう名乗っている */}
         {!inPane && <ToMenu label={mode} />}
-        {/* 深さは本物の選択。統括AI がどこまで考えるかを、その場で変える */}
-        <EffortMenu init={effort} />
+        {/* **深さの選びは置かない。** ここに置いていたものは自分の中だけで値を持っていて、
+            押しても何も変わらなかった（「自動」という言葉も、ほかのどこにも無い）。
+            深さは**モデルの中の話**なので、モデルと並べてメンバー画面に置く */}
         {/* **書いていないときは送れない。** 押せないものを押せる顔にしない */}
         <button disabled={!can || busy} onClick={send} className={can && !busy ? 'solid' : undefined} style={{
           width: 32, height: 32, borderRadius: 999, flexShrink: 0,
@@ -809,10 +809,6 @@ export function PaneHead({ children, top = false }: { children: React.ReactNode;
 
 
 /**
- * 入力欄の深さ。**thinking の量**を決める（モデルは変わらない）。
- * メンバー画面の行に置いたものと同じ言葉づかい。`自動` は統括AIに任せる。
- */
-/**
  * 宛先のメニュー。**どの Work の会話に書くか**を選ぶ。
  *
  * 相手は変わらない（いつも統括AI）ので、選ぶのは**話の続き先**。
@@ -907,45 +903,3 @@ function ToMenu({ label }: { label: string }) {
   );
 }
 
-function EffortMenu({ init }: { init: string }) {
-  const [v, setV] = useState(init);
-  const [open, setOpen] = useState(false);
-  const box = useRef<HTMLSpanElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const away = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); setOpen(false); } };
-    document.addEventListener('mousedown', away);
-    document.addEventListener('keydown', esc, true);
-    return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', esc, true); };
-  }, [open]);
-  return (
-    <span ref={box} style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
-      <button className="btn" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen(!open)} style={{
-        display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 9px',
-        borderRadius: 8, color: T2, whiteSpace: 'nowrap',
-        boxShadow: open ? 'inset 0 0 0 40px rgba(255,255,255,.03)' : undefined,
-      }}>
-        <Icon name="bars" color={T4} size={13} />{v}
-      </button>
-      {open && (
-        <span role="listbox" className="pop" style={{
-          position: 'absolute', bottom: 36, right: 0, zIndex: 20, width: 168, padding: 5, borderRadius: 11,
-          background: SUNK, border: `1px solid ${FAINT}`, boxShadow: '0 18px 44px rgba(0,0,0,.74)',
-        }}>
-          {['自動', ...EFFORT_WORDS].map((w) => (
-            <button key={w} role="option" aria-selected={w === v} className={w === v ? undefined : 'btn'}
-              onClick={() => { setV(w); setOpen(false); }} style={{
-                display: 'flex', alignItems: 'center', width: '100%', height: 30, padding: '0 10px',
-                borderRadius: 7, background: w === v ? `${WELL}` : undefined,
-                color: w === v ? T1 : T2, fontSize: 12,
-              }}>
-              {w}<span style={{ flex: 1 }} />
-              {w === v && <span style={{ color: GREEN_T, fontSize: 11 }}>✓</span>}
-            </button>
-          ))}
-        </span>
-      )}
-    </span>
-  );
-}

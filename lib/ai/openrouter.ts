@@ -1,5 +1,6 @@
 import OpenAI from 'openai'
-import { modelFor } from './tiers'
+import { effortFor } from './catalog'
+import { resolve } from './tiers'
 import { EMPTY_USAGE, type Chunk, type ModelProvider, type RunInput } from './provider'
 
 /**
@@ -19,16 +20,6 @@ import { EMPTY_USAGE, type Chunk, type ModelProvider, type RunInput } from './pr
 
 const BASE = 'https://openrouter.ai/api/v1'
 
-/**
- * 深さ。OpenRouter は `reasoning_effort` を受ける。
- * **`low` / `high` / `max` の3つにしか落とさない** — モデルごとに受ける段が違い
- * （Ox Alpha は max / high / low の3つだけ）、無い段を送ると弾かれるため。
- * どの段を受けるかは `GET /api/v1/models` の `reasoning.supported_efforts` に出る。
- */
-const EFFORT: Record<string, 'low' | 'high' | 'max'> = {
-  low: 'low', medium: 'low', high: 'high', xhigh: 'high', max: 'max',
-}
-
 export class OpenRouterProvider implements ModelProvider {
   readonly vendor = 'openrouter'
   private client: OpenAI
@@ -46,8 +37,14 @@ export class OpenRouterProvider implements ModelProvider {
   }
 
   async *stream(input: RunInput): AsyncIterable<Chunk> {
-    // 本番は表のモデル、試すあいだは無料のモデル、env があればそれが勝つ（→ tiers.ts）
-    const model = modelFor(input.tier)
+    // 社長が選んだモデル、無ければ表のモデル、env があればそれが勝つ（→ tiers.ts）
+    const { name: model, spec } = resolve(input.tier, input.model)
+    /**
+     * 深さ。OpenRouter は `reasoning_effort` を受ける。
+     * **モデルごとに受ける段が違う**（無い段を送ると往復ごと弾かれる）ので、
+     * 一覧の持っている段に寄せてから送る（→ `lib/ai/catalog.ts`）。
+     */
+    const effort = effortFor(spec, input.effort)
     const usage = { ...EMPTY_USAGE }
     const calls = new Map<number, { id: string; name: string; json: string }>()
     let stopReason: string | null = null
@@ -60,7 +57,7 @@ export class OpenRouterProvider implements ModelProvider {
         { role: 'system', content: input.system },
         ...input.messages.map((m) => ({ role: m.role, content: m.content })),
       ],
-      ...(input.effort ? { reasoning_effort: EFFORT[input.effort] } : {}),
+      ...(effort ? { reasoning_effort: effort } : {}),
       /**
        * Web検索（OpenRouter の web プラグイン）。**既定はオフ** —
        * 検索は従量で課金されるので、無料のテストを黙って有料にしない。

@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { TIER_TABLE } from './tiers'
+import { effortFor } from './catalog'
+import { resolve } from './tiers'
 import { EMPTY_USAGE, type Chunk, type ModelProvider, type RunInput } from './provider'
 
 /** Anthropic：キャッシュの位置を明示する */
@@ -12,19 +13,21 @@ export class AnthropicProvider implements ModelProvider {
   }
 
   async *stream(input: RunInput): AsyncIterable<Chunk> {
-    const spec = TIER_TABLE[input.tier]
+    const { name: model, spec } = resolve(input.tier, input.model)
+    const effort = effortFor(spec, input.effort)
     const usage = { ...EMPTY_USAGE }
     let stopReason: string | null = null
     const toolInputs = new Map<number, { id: string; name: string; json: string }>()
 
     const s = this.client.messages.stream({
-      model: spec.direct,
+      model,
       max_tokens: input.maxTokens ?? 4096,
       // 変わらない前置きに印を置く。ここまでが使い回される
       system: [{ type: 'text', text: input.system, cache_control: { type: 'ephemeral' } }],
       messages: input.messages.map((m) => ({ role: m.role, content: m.content })),
       // **深さは thinking の量。モデルは変えない**（→ CLAUDE.md）
-      ...(input.effort ? { output_config: { effort: input.effort } } : {}),
+      // Claude は `none` を受けない（一覧の段にも無い）。型でも念のため落とす
+      ...(effort && effort !== 'none' ? { output_config: { effort } } : {}),
       ...(input.tools?.length ? { tools: input.tools } : {}),
       ...(input.tools?.length && input.toolChoice === 'required'
         ? { tool_choice: { type: 'any' as const } } : {}),

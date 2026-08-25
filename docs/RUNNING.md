@@ -107,6 +107,8 @@ psql "$DATABASE_URL" -f supabase/migrations/0019_entry_columns.sql
 psql "$DATABASE_URL" -f supabase/migrations/0020_candidate_why.sql
 psql "$DATABASE_URL" -f supabase/migrations/0021_discovery_no_delete.sql
 psql "$DATABASE_URL" -f supabase/migrations/0022_thread_links.sql
+psql "$DATABASE_URL" -f supabase/migrations/0023_candidate_ending.sql
+psql "$DATABASE_URL" -f supabase/migrations/0024_agent_prefs.sql
 ```
 
 `0003` は RLS と、不変条件をデータベース側で守るためのトリガを入れます。
@@ -168,7 +170,7 @@ RLS の with check は `account_id = private.current_account_id()` のままな�
 | 候補は消さない | `revoke delete`（rule だと cascade が壊れて退会できなくなる）。**親も塞ぐ**（0021）— `discovery_candidates` だけ revoke しても、`discovery_sessions` の DELETE が残っていれば cascade で候補ごと消せた（実測: authenticated に DELETE あり・FK は cascade）|
 | **決定も消さない** | `revoke delete`（0013）。追記のみの引き金は UPDATE しか見ておらず、DELETE が素通りだった |
 | 退会したらデータも消える | トリガ `users_drop_empty_account` |
-| 会社をまたいで見えない | 全27表の RLS（実測） |
+| 会社をまたいで見えない | 全27表の RLS（実測。0024 で `agent_prefs` を足し、使われていなかった `employee_settings` を落としたので数は変わらない） |
 | `account_id` を書き忘れられない | 22表の既定値 `private.current_account_id()`（0007） |
 | 朝の報告は1日1通 | 一意 index `notifications_morning_daily`（0015）。開いているタブが2つでも2通目は止まる（探針で実証） |
 | 在籍は定義ごとに1人 | 一意 index `employees_one_per_definition`（0015）。「採用する」を同時に押しても調査担当は2人にならない（探針で実証） |
@@ -178,6 +180,7 @@ RLS の with check は `account_id = private.current_account_id()` のままな�
 | 質問はスレッドに属する | `questions.thread_id` NOT NULL（Work のスレッドを先に作る） |
 | 承認と引き直しは必ず台帳に残る | トリガ `works_audit`（0008）。アプリは `audit_events` に書けない |
 | 質問とタスクの並びが決まる | `seq`（0009）。`created_at` は同じ insert 文で同着になる |
+| モデルと深さは1人1行 | 一意 index `agent_prefs_exec` / `agent_prefs_employee`（0024）。タブを2つ開いて同時に選んでも2行にならない。知らない深さは check で弾く（探針で実証） |
 
 ## 環境変数
 
@@ -193,20 +196,26 @@ RLS の with check は `account_id = private.current_account_id()` のままな�
 `wrangler.jsonc` の `vars` に書かない（`vars` は平文でリポジトリに残る）。
 
 **鍵が入ったら最初に確かめること**（この開発環境からは `openrouter.ai` に出られない）:
-`GET https://openrouter.ai/api/v1/models` でモデルの slug
-（`anthropic/claude-opus-5` の綴り）／ プロンプトキャッシュの透過 ／ `usage` の中身。
+`GET https://openrouter.ai/api/v1/models` で**一覧6枚の slug**
+（`lib/ai/catalog.ts` の `id`。実測で確かめてあるのは `openai/gpt-5.6-luna` だけで、
+残り5枚は各社の名前から組んだもの）／ プロンプトキャッシュの透過 ／ `usage` の中身。
+綴りが違っていたら、直すのは**表の1行**か `OPENROUTER_MODEL_<階層>` の env。
 
 ### どのモデルで動くか
 
 **鍵を入れるだけでいい。** `OPENROUTER_API_KEY` があれば、
 **どこでも表のモデル**（`TIER_TABLE` — いまは3階層とも `openai/gpt-5.6-luna`）で動く。
-切り替えは `modelFor()`（`lib/ai/tiers.ts`）の3段:
+切り替えは `resolve()`（`lib/ai/tiers.ts`）の4段:
 
 | 順 | 何を見るか | いつ使われるか |
 |---|---|---|
-| ① | `OPENROUTER_MODEL_DEEP` / `_STANDARD` / `_FAST` | 明示したとき。**常に最優先** |
+| ① | `OPENROUTER_MODEL_DEEP` / `_STANDARD` / `_FAST` | 明示したとき。**常に最優先**（運用の逃げ道） |
 | ② | `TEST_MODEL`（`stealth/ox-alpha`） | `OPENROUTER_FREE_TEST=1` かつ本番でないとき |
-| ③ | `TIER_TABLE` のモデル | **既定**（本番も、それ以外も） |
+| ③ | **社長がメンバー画面で選んだモデル**（`agent_prefs`） | 選んだ人の往復だけ（0024。一覧は `lib/ai/catalog.ts`） |
+| ④ | `TIER_TABLE` のモデル | **既定**（何も選んでいない人） |
+
+**単価を知っているモデルだけ記帳する**（`billedCostUsd`）。①②は単価が分からないので 0。
+③は一覧の単価、④は表の単価。**タダの実行がトライアル残高を減らさない。**
 
 **②は既定から外した**（2026-08-24）。前は「本番以外は自動で Ox Alpha」だったので、
 表を書き換えても本番以外には効かず、**社長が選んだモデルで動いていなかった**。

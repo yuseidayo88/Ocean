@@ -1,5 +1,9 @@
 import { WebSocket } from 'ws';
-const PORT = process.argv[2], W = Number(process.argv[3]), H = Number(process.argv[4]);
+// 幅は渡されなければ `SHELL_MIN`（1440）。**既定のウィンドウの大きさで測らない** —
+// 渡し忘れると NaN のまま override が落ちて、800×600 で測ってしまう
+// （器の最小幅より狭いので、切れて当たり前のものが何十件も出る）。
+const PORT = process.argv[2];
+const W = Number(process.argv[3]) || 1440, H = Number(process.argv[4]) || 900;
 
 const probe = `(() => {
   const vw = innerWidth, vh = innerHeight;
@@ -47,6 +51,9 @@ export async function scan(url) {
     if (m.method === 'Runtime.exceptionThrown') errs.push('EXC ' + (m.params.exceptionDetails.exception?.description||'').slice(0,160));
   });
   await send('Runtime.enable');
+  // **古い画面を測らない。** 走らせ直したサーバーの中身は変わっているので、
+  // 貯めてあるものを出されると、直したはずのものが直っていないように見える
+  await send('Network.enable'); await send('Network.setCacheDisabled', { cacheDisabled: true });
   await send('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: 1, mobile: false });
   await send('Page.enable'); await send('Page.navigate', { url });
   await new Promise(r2 => setTimeout(r2, 3200));

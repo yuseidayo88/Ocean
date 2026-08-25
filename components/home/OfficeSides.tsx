@@ -150,10 +150,15 @@ function Card({ who, first, lit, onHover }: {
         <Orb color={who.color} size={26} seed={who.name.length * 7 + 3} />
         <span style={{ fontSize: 13 }}>{who.name}</span>
       </Link>
+      {/* 状態とモデル。**状態の語は縮めない**（縮むと「待 / 機」と2行に割れる）。
+          モデルが長いときは切って `…` にする — 切れたら検査が数える */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: 14 }}>
         <span style={{ width: 5, height: 5, borderRadius: 9, background: dot, flexShrink: 0 }} />
-        <span style={{ color: word, fontSize: 10.5 }}>{who.state}</span>
-        <span style={{ color: T5, fontSize: 10.5, whiteSpace: 'nowrap' }}>·  {who.model} · 深さ {who.effort}</span>
+        <span style={{ color: word, fontSize: 10.5, whiteSpace: 'nowrap', flexShrink: 0 }}>{who.state}</span>
+        <span style={{
+          color: T5, fontSize: 10.5, whiteSpace: 'nowrap',
+          overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
+        }}>· {who.model}</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, height: 17 }}>
         <span style={{ color: T2, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{who.now}</span>
@@ -177,8 +182,10 @@ function Card({ who, first, lit, onHover }: {
   );
 }
 
-export function OfficeTeam({ staff, works, gates, lit, onHover }: {
+export function OfficeTeam({ staff, works, gates, exec: execPref, lit, onHover }: {
   staff: StaffCard[]; works: number; gates: number;
+  /** 統括AIのモデル（社長が選んだもの） */
+  exec: { model: string };
   lit?: string; onHover?: (id: string) => void;
 }) {
   const [rail, edge] = useRail<HTMLDivElement>();
@@ -187,7 +194,7 @@ export function OfficeTeam({ staff, works, gates, lit, onHover }: {
     id: 'exec', name: EXEC.name, color: EXEC.color,
     state: works > 0 ? '実行中' : '待機',
     now: works > 0 ? `Work ${works}件を見ています` : 'ゴールを待っています',
-    model: EXEC.model, effort: EXEC.effort,
+    model: execPref.model,
     desk: { el: '', step: { done: 0, all: 0, name: '' },
             produce: { kind: 'text', cap: gates > 0 ? `あなたの判断待ち ${gates}` : '判断待ちなし' }, wait: gates },
   };

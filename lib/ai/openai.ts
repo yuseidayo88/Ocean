@@ -1,5 +1,6 @@
 import OpenAI from 'openai'
-import { TIER_TABLE } from './tiers'
+import { effortFor } from './catalog'
+import { resolve } from './tiers'
 import { EMPTY_USAGE, type Chunk, type ModelProvider, type RunInput } from './provider'
 
 /** OpenAI：キャッシュは自動。道具の名前が違うのでここで揃える */
@@ -12,14 +13,17 @@ export class OpenAIProvider implements ModelProvider {
   }
 
   async *stream(input: RunInput): AsyncIterable<Chunk> {
-    const spec = TIER_TABLE[input.tier]
+    const { name: model, spec } = resolve(input.tier, input.model)
+    const effort = effortFor(spec, input.effort)
     const usage = { ...EMPTY_USAGE }
 
     const s = await this.client.responses.create({
-      model: spec.direct,
+      model,
       instructions: input.system,
       input: input.messages.map((m) => ({ role: m.role, content: m.content })),
       max_output_tokens: input.maxTokens ?? 4096,
+      // **深さは thinking の量。モデルは変えない**（直つなぎの道は実キーで通していない）
+      ...(effort ? { reasoning: { effort } } : {}),
       ...(input.tools?.length
         ? {
             tools: input.tools.map((t) => ({

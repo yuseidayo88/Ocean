@@ -7,6 +7,8 @@
  * 直につなぐ道（`anthropic` / `openai`）は残してあるので、
  * `vendor` を書き換えるだけで戻せる。
  */
+import { modelOf, type Effort, type ModelSpec } from './catalog'
+
 export const TIERS = ['fast', 'standard', 'deep'] as const
 export type Tier = (typeof TIERS)[number]
 
@@ -83,40 +85,82 @@ export const TIER_TABLE: Record<Tier, TierSpec> = {
  */
 export const TEST_MODEL = 'stealth/ox-alpha'
 
-/**
- * その階層で実際に呼ぶモデルを決める。順番は
- *   ① env の指定（`OPENROUTER_MODEL_DEEP` など）
- *   ② `OPENROUTER_FREE_TEST=1` かつ本番でなければ**ただのモデル**
- *   ③ 表のモデル（既定）
- */
-export function modelFor(tier: Tier): string {
-  const named = process.env[`OPENROUTER_MODEL_${tier.toUpperCase()}`]
-  if (named) return named
-  if (process.env.OPENROUTER_FREE_TEST === '1' && process.env.APP_ENV !== 'production') return TEST_MODEL
-  return TIER_TABLE[tier].model
+/** その階層で実際に呼ぶモデルの名前（→ `resolve`） */
+export function modelFor(tier: Tier, chosen?: string): string {
+  return resolve(tier, chosen).name
 }
 
 /**
  * **社長に見せる名前。** 表のモデルで走っているなら `MODEL_LABEL`、
- * env で差し替えているならその名前をそのまま（画面が嘘をつかない）。
+ * 選んだモデルならその名前、env で差し替えているならその文字列をそのまま
+ * （画面が嘘をつかない）。
  */
-export function labelFor(tier: Tier): string {
-  const now = modelFor(tier)
-  return now === TIER_TABLE[tier].model ? MODEL_LABEL : now
-}
-
-export function costUsd(tier: Tier, inTok: number, outTok: number): number {
-  const s = TIER_TABLE[tier]
-  return (inTok / 1e6) * s.inPerMTok + (outTok / 1e6) * s.outPerMTok
+export function labelFor(tier: Tier, chosen?: string): string {
+  return resolve(tier, chosen).label
 }
 
 /**
- * 台帳に落とす原価。**表のモデルで走ったときだけ**表の単価で数える。
+ * **その往復で本当に呼ぶモデル。** 順番は
+ *   ① env の指定（`OPENROUTER_MODEL_DEEP` など。運用の逃げ道なので、いちばん強い）
+ *   ② `OPENROUTER_FREE_TEST=1` かつ本番でなければ**ただのモデル**
+ *   ③ **社長が選んだモデル**（メンバー画面。表に載っているものだけ）
+ *   ④ 階層の表（既定）
+ *
+ * `known` ＝ 単価を知っているか。知らないもの（無料のテスト・env の差し替え）は
+ * **0 で記帳する** — 定価で数えると、タダの実行がトライアル残高を減らす。
+ */
+export function resolve(tier: Tier, chosen?: string): {
+  name: string; label: string; inPerMTok: number; outPerMTok: number; known: boolean; spec?: ModelSpec
+} {
+  const t = TIER_TABLE[tier]
+  const named = process.env[`OPENROUTER_MODEL_${tier.toUpperCase()}`]
+  if (named) return { name: named, label: named, inPerMTok: 0, outPerMTok: 0, known: false }
+  if (process.env.OPENROUTER_FREE_TEST === '1' && process.env.APP_ENV !== 'production') {
+    return { name: TEST_MODEL, label: TEST_MODEL, inPerMTok: 0, outPerMTok: 0, known: false }
+  }
+  const spec = modelOf(chosen)
+  /**
+   * **直つなぎのときは、通り道と同じ会社のモデルだけ選ばせる。**
+   * OpenAI に直つなぎしている器へ `claude-opus-5` を渡しても通らない
+   * （OpenRouter を通しているあいだは、どの会社のモデルでも1本で行ける）。
+   */
+  if (spec && (t.vendor === 'openrouter' || t.vendor === spec.vendor)) {
+    return {
+      name: t.vendor === 'openrouter' ? spec.id : spec.direct, label: spec.label,
+      inPerMTok: spec.inPerMTok, outPerMTok: spec.outPerMTok, known: true, spec,
+    }
+  }
+  const table = modelOf(t.model)
+  return {
+    name: t.vendor === 'openrouter' ? t.model : t.direct, label: MODEL_LABEL,
+    inPerMTok: t.inPerMTok, outPerMTok: t.outPerMTok, known: true, spec: table,
+  }
+}
+
+export function costUsd(tier: Tier, inTok: number, outTok: number, chosen?: string): number {
+  const r = resolve(tier, chosen)
+  return (inTok / 1e6) * r.inPerMTok + (outTok / 1e6) * r.outPerMTok
+}
+
+/**
+ * 台帳に落とす原価。**単価を知っているモデルで走ったときだけ**数える。
  * 無料のテストモデル（Ox Alpha）や env で差し替えたモデルの単価は知らないので、
- * **知らない値は 0 で記帳する** — 定価で数えると、タダの実行がトライアル残高を減らす。
+ * **知らない値は 0 で記帳する**。
  * 本当の実測（OpenRouter の usage の cost）は鍵が入って確かめてから。
  */
-export function billedCostUsd(tier: Tier, inTok: number, outTok: number): number {
-  if (modelFor(tier) !== TIER_TABLE[tier].model) return 0
-  return costUsd(tier, inTok, outTok)
+export function billedCostUsd(tier: Tier, inTok: number, outTok: number, chosen?: string): number {
+  const r = resolve(tier, chosen)
+  return r.known ? costUsd(tier, inTok, outTok, chosen) : 0
+}
+
+/**
+ * **設定していないときの姿。** 画面はここを出し、実行もここで走る（食い違わせない）。
+ *
+ * ・統括AI（`exec`）は計画と判断が仕事なので `deep` の表のモデル・やや深め。
+ *   **会話の返事だけは、深さを使わず速く返す**（→ `lib/exec/chat.ts`）
+ * ・AI社員は `standard` の表のモデル・浅め（1タスク=1往復を速く回す）
+ */
+export const DEFAULT_PREF: Record<'exec' | 'employee', { model: string; effort: Effort }> = {
+  exec: { model: TIER_TABLE.deep.model, effort: 'high' },
+  employee: { model: TIER_TABLE.standard.model, effort: 'low' },
 }

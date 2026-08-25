@@ -5,7 +5,8 @@
  */
 
 import { agentColor, EXEC as EXEC_COLOR } from '@/lib/design/tokens';
-import { MODEL_LABEL } from '@/lib/ai/tiers';
+import { EFFORT_WORD, modelOf, type Effort } from '@/lib/ai/catalog';
+import { DEFAULT_PREF } from '@/lib/ai/tiers';
 
 
 export type EmployeeColor = 'cyan' | 'purple' | 'indigo' | 'green';
@@ -20,24 +21,6 @@ export type State = '判断待ち' | '要確認' | '実行中' | '待機' | '完
 export type Health = '順調' | { late: number };
 
 export const ME = { initial: 'Y', name: 'あなた' };
-
-export type Employee = {
-  id: string; name: string; role: string; color: EmployeeColor;
-  state: State; now: string; load: number; tasks: number; deliverables: number; since: string;
-  /** メンバー画面（C案）で出すもの */
-  en: string;
-  /** 1行の約束。**できることと同じことを言わない**（癖・守ることを書く） */
-  lead: string;
-  /** 頼めることの名前。**読むだけ。ここからは足せない**（→ SKILL.md か採用で決まる） */
-  can: string[];
-  /** 行に出すのは can の3つまで。残りの件数 */
-  canMore: number;
-  /** モデルは固定。深さは**そのモデルの中でどれだけ考えるか**（thinking）で、モデルを変えない */
-  model: string;
-  effort: number;
-  /** ホームのオフィス下段。**器は担当ではなく produces で決める**（業種を埋め込まない） */
-  desk: Desk;
-};
 
 /** 出したものの見せ方。形が担当ごとに違うので、レールを見るだけで職種が分かる */
 export type Produce =
@@ -58,15 +41,18 @@ export type Desk = {
 };
 
 /**
- * モデル。**いまは1つしか無いので、選ばせない**（2026-08-24）。
- * 前は 自動 / Haiku 4.5 / Sonnet 5 / Opus 5 を並べていたが、
- * どれを選んでも実際は同じモデルで走っていた — **画面が嘘をついていた**。
- * 選べるようにするのは、切り替えが本当に効くようになってから（→ `docs/PLAN.md`）。
+ * **設定を画面の言葉に。**（モデルと深さ → `lib/ai/catalog.ts`）
+ *
+ * まだ選んでいない人は**既定の姿**を出す。実行もその既定で走るので、
+ * 画面と実物が食い違わない（「自動」のような、どこにも無い言葉を出さない）。
  */
-export const MODELS = [MODEL_LABEL] as const;
-
-/** 深さ ＝ thinking の量。いちばん左は考えずに答える */
-export const EFFORT_WORDS = ['考えずに答える', '浅め', '標準', 'やや深め', '深め', 'いちばん深く'] as const;
+export function prefWords(who: 'exec' | 'employee', p?: { model?: string; effort?: Effort }) {
+  const def = DEFAULT_PREF[who];
+  const model = p?.model ?? def.model;
+  const effort = p?.effort ?? def.effort;
+  const spec = modelOf(model);
+  return { model, effort, label: spec?.label ?? model, word: EFFORT_WORD[effort], spec };
+}
 
 export type Phase = {
   name: string; goal: string; state: 'done' | 'now' | 'next';
@@ -259,6 +245,5 @@ export const EXEC = {
   id: 'exec', name: '統括AI', en: 'Executive', color: EXEC_COLOR,
   lead: 'あなたの言葉は全部ここに届きます。',
   can: ['Workを立てる', '計画を作る', '社員を選ぶ'], canMore: 1,
-  model: MODEL_LABEL, effort: 4,
 };
 
