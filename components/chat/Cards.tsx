@@ -32,7 +32,7 @@ const HEAD: React.CSSProperties = {
 export function Card({ card, live, threadId, onSend }:
   { card: ChatCard; live: boolean; threadId: string; onSend: (text: string) => void }) {
   if (card.kind === 'ask') return <AskCard card={card} live={live} onSend={onSend} />;
-  if (card.kind === 'candidates') return <CandidatesCard id={card.sessionId} live={live} threadId={threadId} />;
+  if (card.kind === 'candidates') return <CandidatesCard id={card.sessionId} live={live} threadId={threadId} onSend={onSend} />;
   if (card.kind === 'diagnosis') return <DiagnosisCard id={card.profileId} live={live} threadId={threadId} />;
   return <WorkCard card={card} live={live} threadId={threadId} />;
 }
@@ -252,7 +252,9 @@ function Building({ name }: { name: string }) {
   );
 }
 
-function CandidatesCard({ id, live, threadId }: { id: string; live: boolean; threadId: string }) {
+function CandidatesCard({ id, live, threadId, onSend }: {
+  id: string; live: boolean; threadId: string; onSend: (text: string) => void;
+}) {
   const router = useRouter();
   const [d, setD] = useState<Discovery | null>(null);
   const [busy, setBusy] = useState('');
@@ -367,6 +369,18 @@ function CandidatesCard({ id, live, threadId }: { id: string; live: boolean; thr
         {end && (
           <EndAsk body={end.body} options={end.options} busy={!!busy}
             onPick={(label) => adopt(end.candId, label)} />
+        )}
+        {/**
+          * **3つとも違うときの道。** 前はここが行き止まりだった —
+          * 押せるのは「この案にする」だけで、どれも違う社長は自分で入力欄に
+          * 書き出すしかなかった（何を書けばいいのかも分からない）。
+          * 押すと**会話に戻る**ので、統括AIが「何が違うか」を1問だけ聞いてから出し直す。
+          */}
+        {live && !taken && !busy && !end && (
+          <button className="lnk" onClick={() => onSend('どれもピンと来ません。何が違うか話して、出し直したいです')}
+            style={{ alignSelf: 'flex-start', color: T4, fontSize: 12, padding: '6px 0 0' }}>
+            どれも違う — 条件から見直す
+          </button>
         )}
         {fail && <span style={{ display: 'block', color: RED_T, fontSize: 12, paddingTop: 8 }}>{fail}</span>}
       </div>

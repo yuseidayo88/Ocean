@@ -324,6 +324,42 @@ async function* fakeChat(input: RunInput): AsyncIterable<Chunk> {
     return;
   }
 
+  /**
+   * **「どれも違う」と言われた往復。** すぐ3つ出し直さない —
+   * 何が違うかを1問だけ聞いてから、違う軸で出し直す（本物の方針と同じ形）。
+   */
+  if (/ピンと来|どれも違/.test(said)) {
+    yield tool('ask', { questions: [{
+      body: 'どこが違いますか。',
+      why: '違う軸で出し直すために、いちばん外したいところを教えてください。',
+      options: [
+        { label: '相手が違う', description: '誰に売るかを変えます', recommended: true },
+        { label: '売り方が違う', description: '講座・教材・受託のような形を変えます' },
+        { label: '分野そのものが違う', description: '別の分野から考え直します' },
+      ],
+    }] });
+    yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
+    return;
+  }
+
+  /**
+   * **「どこが違うか」に答えた往復。** ここで Work を提案してはいけない
+   * （答えは答えであって、新しいゴールではない）。**違う軸で候補を出し直す。**
+   */
+  if (/どこが違いますか/.test(said)) {
+    const cur0 = (() => {
+      try { return JSON.parse(input.system?.match(/集まっている条件:\n(\{[\s\S]*?\})/)?.[1] ?? '{}'); }
+      catch { return {}; }
+    })();
+    const axis = said.includes('相手が違う') ? '相手を変えて'
+      : said.includes('売り方が違う') ? '売り方を変えて' : '分野から見直して';
+    yield tool('propose_candidates', {
+      candidates: fakeCands(cur0).map((c) => ({ ...c, summary: `（${axis}）${c.summary}` })),
+    });
+    yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
+    return;
+  }
+
   // ② まだ決まっていない道 — 条件を集めて、そろったら候補
   const cond = condFrom(said);
   const already = sys.match(/集まっている条件:\n(\{[\s\S]*?\})/)?.[1];

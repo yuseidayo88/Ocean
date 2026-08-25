@@ -4,6 +4,10 @@ import { WebSocket } from 'ws';
  * どの画面からでも統括AIと話せるか。
  * 入力欄に書いて Enter → 右ペインが会話になって開き、入力欄はその中へ移る。
  * **入力欄は常に1つ**（増えていないこと）。中身がはみ出していないこと。
+ *
+ * ただし**入口の画面（`/start`）とチャットの画面は右ペインを出さない** — そこは
+ * 会話そのものが主役なので、書くと会話へ入る。空の会社では `/home` が `/start` に
+ * 落ちるので、この道も通る。
  */
 const PORT = process.argv[2];
 const BASE = process.argv[3] ?? process.env.BASE ?? 'http://localhost:3300';
@@ -55,10 +59,18 @@ for (const path of ['/tasks', '/home', '/team', '/deliverables', '/decisions']) 
   await new Promise((x) => setTimeout(x, 1200));
 
   const v = await ev(PROBE);
-  const chatScreen = path.startsWith('/chat');
+  const at = (await ev('location.pathname')) ?? '';
+  /**
+   * **入口の画面は、右ペインではなく会話そのものを開く**（そういう決めごと）。
+   * 空の会社では `/home` が `/start` に落ちるので、ここを通る。
+   * 「どの画面からでも統括AIと話せる」は満たしている — 器が違うだけ。
+   */
+  const chatScreen = path.startsWith('/chat') || at.startsWith('/chat');
   const L = [];
   if (chatScreen) {
     if (v) L.push('  チャット画面なのに右ペインが出た');
+    else if (!(await ev('document.body.innerText')).includes('この件、どう進める'))
+      L.push('  会話に書いたものが出ていない');
   } else if (!v) {
     L.push('  右ペインが出ない');
   } else {

@@ -258,6 +258,20 @@ ok('会話は下に貼り付いていて、入力欄に隠れない',
  * 候補は**行そのものが選ぶもの**（ボタンではない）。押しやすさを3つとも同じにした。
  * ただし**押しただけでは Work はできない** — 中に出る確認の「作る」を押してはじめて。
  */
+/**
+ * **どれも違うときの道。** 3つとも違う社長が行き止まりにならない —
+ * 押すと会話に戻り、**何が違うかを1問だけ**聞かれる（すぐ3つ出し直さない）。
+ * そして**答えを新しいゴールにしない**（質問文が Work の題になる穴があった）。
+ */
+await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('どれも違う'))?.click()`);
+const why = await until((b) => b.includes('どこが違いますか'), 20, 700);
+ok('「どれも違う」と言うと、何が違うかを1問だけ聞かれる',
+   why.includes('どこが違いますか') && why.includes('相手が違う'), why.slice(-140));
+ok('答えを新しいゴールにしない（Work の提案が出ない）', !why.includes('この Work を作る'), why.slice(-140));
+await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('相手が違う'))?.click()`);
+const axis = await until((b) => b.includes('相手を変えて'), 20, 800);
+ok('違う軸で候補が出し直される', axis.includes('相手を変えて') && axis.includes('推さない理由'), axis.slice(-160));
+
 await ev(`[...document.querySelectorAll('[role=button]')].find(b => b.innerText.includes('この案にする'))?.click()`);
 const sure = await until((b) => b.includes('この案で Work を作りますか'), 12, 500);
 ok('候補を押しただけでは Work を作らない',
@@ -267,6 +281,26 @@ await ev(`[...document.querySelectorAll('button')].find(b => b.innerText === '�
 const planB = await until((b) => b.includes('承認して始める'), 20, 800);
 ok('候補から Work の計画に入った', planB.includes('承認して始める') && /\/plan$/.test(await ev('location.pathname')),
    await ev('location.pathname'));
+
+/**
+ * **吹き出しは社長の言葉だけ。** 前は候補のねらいと集めた条件を全部つないで
+ * 1つのゴールにしていたので、「◯◯を立ち上げたい 終わり: … 背景: … 分野: …
+ * 使える時間: …」が**社長が書いた言葉として**出ていた。
+ */
+const bubble = await ev(`(() => {
+  const s = [...document.querySelectorAll('span')].find(x => x.innerText.includes('を立ち上げたい'));
+  return s ? s.innerText : '';
+})()`);
+ok('計画の吹き出しは社長の言葉だけ（背景や条件を混ぜない）',
+   bubble.includes('立ち上げたい') && bubble.includes('終わり:') && !bubble.includes('背景:') && !bubble.includes('分野:'),
+   bubble.slice(0, 90));
+/**
+ * **どの道で進めるかは、いちばん最初の「決めたこと」。**
+ * 選ばなかった2つと並べて台帳に残る（なぜその道かは、選ばなかった道と並べて意味になる）。
+ */
+await send('Page.navigate', { url: `${BASE}/decisions` }); await wait(2200);
+const led = await text();
+ok('選んだ道が決定事項に残る', led.includes('どの道で進めるか') && led.includes('オンライン講座'), led.slice(0, 140));
 
 // ⑤''' 入口 Case D — **チャットの中で**取り込み → 診断
 await send('Page.navigate', { url: `${BASE}/start` }); await wait(2200);

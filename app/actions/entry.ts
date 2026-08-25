@@ -37,24 +37,45 @@ export async function adoptCandidate(
      */
     const took = d.candidates.find((x) => x.adoptedWorkId);
     if (took?.adoptedWorkId) return { ok: true, id: took.adoptedWorkId, real: true };
+    /**
+     * **吹き出しに出るのは、社長が決めたことだけ。**
+     * 「終わり」は候補が持っている（選ぶ前に読めるので、あとから聞き返さない。
+     * `ending` は聞き返したときの答え＝保険）。
+     */
     const goal = [
       `${c.name}を立ち上げたい`,
-      /**
-       * **終わりは候補が持っている。** 候補を出すときに一緒に書かせてあるので、
-       * 採用したあとに聞き返さない（社長から見ると、選んだのに同じことをもう一度
-       * 聞かれる形になっていた）。`ending` は聞き返したときの答え（保険）。
-       */
       ending || c.ending ? `終わり: ${ending || c.ending}` : '',
-      `背景: ${c.summary}`,
+    ].filter(Boolean).join('\n');
+    /** **背景と条件は統括AIにだけ渡す。** 計画はこれを読んで引かれる */
+    const ctx = [
+      `この道を選んだ理由: ${c.summary}`,
       d.conditions.interests.length ? `分野: ${d.conditions.interests.join('・')}` : '',
-      d.conditions.hoursPerWeek ? `使える時間: 週${d.conditions.hoursPerWeek}時間` : '',
+      d.conditions.hoursPerWeek ? `社長が使える時間: 週${d.conditions.hoursPerWeek}時間` : '',
       d.conditions.budgetJpy ? `使えるお金: 〜${Math.round(d.conditions.budgetJpy / 10000)}万円` : '',
       d.conditions.strengths.length ? `得意: ${d.conditions.strengths.join('・')}` : '',
       d.conditions.avoid.length ? `やりたくない: ${d.conditions.avoid.join('・')}` : '',
+      '',
+      '**計画は、この条件で本当に回る形にしてください。**'
+      + '使える時間を超える週を作らない。やりたくないことを含む道は引かない。',
     ].filter(Boolean).join('\n');
-    const r = await startWork(goal);
+    const r = await startWork(goal, ctx);
     if (r.ok) {
       await s.adoptCandidate(sessionId, candidateId, r.id);
+      /**
+       * **どの道で進めるかは、いちばん最初の「決めたこと」。**
+       * 選ばなかった2つと並べて台帳に残す — **なぜその道かは、選ばなかった道と
+       * 並べてはじめて意味になる**（→ CLAUDE.md 入口）。
+       * ここから先の実行の依頼文にも、この決定が載る（Phase 9 の受け渡し）。
+       */
+      await s.addDecided(r.id, {
+        question: 'どの道で進めるか',
+        chosen: c.name,
+        why: c.summary,
+        options: d.candidates.map((x) => ({
+          label: x.name,
+          description: x.id === candidateId ? x.summary : (x.notChosenWhy || x.summary),
+        })),
+      }).catch(() => {});
       // **1チャット = 1 Work。** 会話から採用したなら、その会話の Work にする
       if (threadId) await s.linkThread(threadId, { workId: r.id }).catch(() => false);
     }
@@ -83,13 +104,14 @@ export async function findingToWork(
     if (!p || !f) return { ok: false, need: 'error', message: 'その診断は見つかりませんでした' };
     // もう立てたものは二度立てない（候補の adopted_work_id と同じ守り）
     if (f.workId) return { ok: true, id: f.workId, real: p.diagnosis?.real ?? true };
-    const goal = [
-      `${f.work.title}をやりたい`,
-      `終わり: ${ending || f.work.goal}`,
-      `背景: ${p.name} の診断で「${f.title}」（${f.why}）`,
+    const goal = [`${f.work.title}をやりたい`, `終わり: ${ending || f.work.goal}`].join('\n');
+    /** 診断の中身は統括AIにだけ渡す（吹き出しは社長が決めたことだけ） */
+    const ctx = [
+      `いまの事業: ${p.name}`,
+      `見つかったこと: ${f.title}（${f.why}）`,
       ...(f.evidence.length ? [`根拠: ${f.evidence.join(' / ')}`] : []),
     ].join('\n');
-    const r = await startWork(goal);
+    const r = await startWork(goal, ctx);
     if (r.ok) {
       await s.linkFinding(profileId, index, r.id);
       if (threadId) await s.linkThread(threadId, { workId: r.id }).catch(() => false);

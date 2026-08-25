@@ -219,6 +219,16 @@ export interface Store {
    */
   answerDecision(decisionId: string, chosen: string): Promise<void>;
   /** その Work の決めたこと（新しい順）。実行の文脈と決定事項画面が読む */
+  /**
+   * **もう決まっていることを台帳に残す**（社長がその場で選んだもの）。
+   * タスクから上がってくる判断（`markDecision` → `answerDecision`）と違って、
+   * これは最初から `decided`。いちばん最初の1件は「どの道で進めるか」で、
+   * **選ばなかった道も一緒に残す** — なぜその道かは、選ばなかった道と並べて意味になる。
+   */
+  addDecided(workId: string, d: {
+    question: string; chosen: string; why?: string;
+    options: { label: string; description?: string }[];
+  }): Promise<void>;
   listDecisions(workId?: string): Promise<LiveDecision[]>;
   /** 実行が決定を読んだ記録（decision_refs）。**読んだのに記録が無い、を作らない** */
   addDecisionRefs(runId: string, decisionIds: string[]): Promise<void>;

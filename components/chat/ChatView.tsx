@@ -94,7 +94,12 @@ export function ChatView({ id, first }: { id: string; first: FirstLoad }) {
   const [fail, setFail] = useState('');
   const gone = first.gone;
   /** この会話が宛てている先（入力欄のラベル）。Work に紐づいていればその名前 */
-  const [to, setTo] = useState(first.gone ? NEW_CHAT : first.to);
+  /**
+   * 宛先の名前。**Work に紐づいていない会話は「新しいチャット」**。
+   * サーバーは空文字で返す（Work が無いので名前も無い）ので、ここで名前を与える —
+   * 既定値は `undefined` のときしか効かないので、空のままだと**⌄ だけが並ぶ**。
+   */
+  const [to, setTo] = useState(first.gone || !first.to ? NEW_CHAT : first.to);
   /** 送るところ（外が動く器・中が中身）。中身が伸びたら下に貼り直す */
   /** 会話はいつも下に貼り付く（右ペインと同じ1つの決まり → `lib/use-stick.ts`） */
   const [box, inner] = useStick<HTMLDivElement, HTMLDivElement>();

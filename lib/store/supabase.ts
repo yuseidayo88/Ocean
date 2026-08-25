@@ -555,6 +555,17 @@ export const supabaseStore: Store = {
     }
   },
 
+  async addDecided(workId, d) {
+    const c = await db();
+    // 追記のみ（0013 で DELETE は revoke 済み）。status=decided なので chosen は必ず入る
+    const { error } = await c.from('decisions').insert({
+      work_id: workId, question: d.question, rationale: d.why ?? null,
+      options: d.options, chosen_option_key: d.chosen,
+      status: 'decided', decided_at: new Date().toISOString(),
+    });
+    if (error) throw new AppError('unknown', error.message);
+  },
+
   async getDecision(taskId) {
     const c = await db();
     const { data } = await c.from('decisions')

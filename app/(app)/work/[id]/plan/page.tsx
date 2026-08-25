@@ -129,7 +129,11 @@ export default function PlanPage() {
         <TopBar crumb={v.title} title="計画案" onPanel={() => setPane(true)} panelOn={pane} />
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '14px 26px 18px' }}>
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <span style={{ maxWidth: '78%', padding: '9px 16px', borderRadius: 18, background: '#24354A', color: '#DCE7F5' }}>
+            {/* **行は行のまま。** ゴールと「終わり」は別の行なので、つなげて出さない */}
+            <span style={{
+              maxWidth: '78%', padding: '9px 16px', borderRadius: 18,
+              background: '#24354A', color: '#DCE7F5', whiteSpace: 'pre-wrap',
+            }}>
               {v.goal}
             </span>
           </div>

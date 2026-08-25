@@ -174,8 +174,20 @@ export async function replyTo(
       return card;
     };
 
+    /**
+     * **答えは答えであって、新しいゴールではない。**
+     * 探索の途中で「質問 → 答え」を返しただけなのに、その答えから
+     * `propose_work` が返ってきた（実測: **質問文がそのまま Work の題**になり、
+     * 「どこが違いますか」という Work を作りますか、と出た）。
+     * 探索中（候補の道の途中で、まだ Work が無い）は、答えの往復からの提案は取らない —
+     * 続きの輪が、質問か候補で受け直す。
+     */
+    const answeredNow = !!last && last.role === 'user' && /\n→ /.test(last.body);
+    const noGoalFromAnswer = (o: ChatOut): ChatOut =>
+      (answeredNow && state.discoveryId && !state.hasWork ? { ...o, work: undefined } : o);
+
     const out = await chatStep(state, history, { onText, onStage, onThink });
-    let card = await absorb(out);
+    let card = await absorb(noGoalFromAnswer(out));
     let saidSoFar = out.text;
 
     /**
@@ -196,7 +208,7 @@ export async function replyTo(
        * `→` 1文字で判定すると「英会話→教材販売の流れ」のような**ふつうの発言**まで
        * 写す往復に送られ、写すものが無いのに空振りのモデル呼び出しが増える。
        */
-      const answered = !!last && last.role === 'user' && /\n→ /.test(last.body);
+      const answered = answeredNow;
 
       /**
        * 1. 答えが届いたのに、条件に写っていない → 写す。
@@ -212,7 +224,7 @@ export async function replyTo(
             [...history, ...(saidSoFar ? [{ role: 'assistant' as const, content: saidSoFar }] : [])],
             { onText: undefined, onStage, onThink },   // 写すだけの往復の本文は画面に流さない
           );
-          card = (await absorb(rec)) ?? card;
+          card = (await absorb(noGoalFromAnswer(rec))) ?? card;
         } catch { /* 写せなかった。答えは history に残っているので、続きの往復が読む */ }
       }
 
@@ -227,7 +239,7 @@ export async function replyTo(
             [...history, ...(saidSoFar ? [{ role: 'assistant' as const, content: saidSoFar }] : [])],
             { onText, onStage, onThink },
           );
-          card = await absorb(more);
+          card = await absorb(noGoalFromAnswer(more));
           saidSoFar = saidSoFar || more.text;
         } catch (e) { lastFail = e; }
       }

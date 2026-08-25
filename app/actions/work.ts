@@ -18,13 +18,21 @@ export type StartResult =
   | { ok: false; need: 'end'; body: string; options: { label: string; description: string }[] }
   | { ok: false; need: 'error'; message: string };
 
-export async function startWork(goal: string): Promise<StartResult> {
+/**
+ * `goal` は**社長の言葉**（画面の吹き出しにそのまま出る）。
+ * `ctx` は**統括AIにだけ渡す背景**（候補のねらい・集めた条件・診断の根拠）。
+ *
+ * 分けているのは、前は全部つないで1つのゴールにしていたから —
+ * 「◯◯を立ち上げたい 終わり: … 背景: … 分野: … 使える時間: … やりたくない: …」が
+ * **社長が書いた言葉として吹き出しに出ていた**。読めたものではないし、嘘でもある。
+ */
+export async function startWork(goal: string, ctx = ''): Promise<StartResult> {
   const text = goal.trim();
   if (!text) return { ok: false, need: 'error', message: 'やりたいことを書いてください' };
 
   let out: { draft: Draft; real: boolean };
   try {
-    out = await draftWork(text);
+    out = await draftWork(text, ctx);
   } catch (e) {
     return { ok: false, need: 'error', message: sayError(e, '統括AIが応えませんでした') };
   }

@@ -210,6 +210,15 @@ export const memoryStore: Store = {
     notes.push({ kind: '判断待ち', body: d.question });
   },
 
+  async addDecided(workId, d) {
+    decisions.push({
+      id: `dec-${decisions.length + 1}`, workId,
+      question: d.question, why: d.why,
+      options: d.options.map((o) => ({ label: o.label, description: o.description })),
+      chosen: d.chosen, status: 'decided', when: new Date().toISOString(),
+    });
+  },
+
   async getDecision(taskId) {
     return decisions.find((d) => d.taskId === taskId && d.status === 'open') ?? null;
   },
