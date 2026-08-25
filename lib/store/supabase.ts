@@ -1119,6 +1119,15 @@ export const supabaseStore: Store = {
     await c.from('notifications').insert({ kind: 'エラー', subject_type: 'work', subject_id: workId, body: why });
   },
 
+  async setWorkPaused(workId, paused) {
+    const c = await db();
+    // **その状態のものだけ動かす**（二度押し・同時押しで行ったり来たりしない）
+    const { data } = await c.from('works')
+      .update({ status: paused ? 'paused' : 'active' })
+      .eq('id', workId).eq('status', paused ? 'active' : 'paused').select('id');
+    return !!data?.length;
+  },
+
   async spentSinceCents(iso) {
     const c = await db();
     // consume は必ず負の1行（引き金 `run_ledger` → 0014）。**使ったぶんは正の数で返す**

@@ -279,6 +279,13 @@ export const memoryStore: Store = {
   /** メモリ版は台帳を持たない。**残高があるふりをしない**（null = 上限なし） */
   async balanceCents() { return null; },
   async ledger() { return []; },
+  async setWorkPaused(workId, paused) {
+    const live = [...bag.values()].find((d) => d.live?.id === workId)?.live;
+    if (!live || live.status !== (paused ? 'active' : 'paused')) return false;
+    live.status = paused ? 'paused' : 'active';
+    return true;
+  },
+
   /** 台帳が無いので数えようがない。**0 と言わない**（使っていない、ではなく、数えていない） */
   async spentSinceCents() { return null; },
 

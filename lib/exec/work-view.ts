@@ -28,6 +28,8 @@ export type WorkCrew = { id?: string; name: string; color: string; dim?: boolean
 
 /** 成果物の1行。**ダミーも本物も同じ形**（by は名前で持つ。id 引きは器の外でしない） */
 export type WorkDel = {
+  /** 成果物の種類（`doc` / `diagram` …）。持ち出すときの拡張子が変わる */
+  kind?: string;
   id: string; title: string; byName: string; when?: string; state: string;
   /** 実際の書き出し（本物）。ダミーは図形のサムネイルで代用 */
   preview?: string;
@@ -63,6 +65,8 @@ export type WorkView = {
   phaseGate?: string;
   /** まだ社長が見ていない成果物の数 */
   unseen: number;
+  /** 社長が止めているか（止めているあいだ、会社はこの Work を拾わない） */
+  paused: boolean;
   /** Work が終わったか */
   finished?: boolean;
   crew: WorkCrew[];
@@ -111,7 +115,8 @@ export function fromLive(w: LiveWork): WorkView {
     })),
     dels: (w.dels ?? []).map((d) => ({
       id: d.id, title: d.title, byName: d.by ?? 'AI社員', when: d.when, state: d.state,
-      preview: d.preview, body: d.body, taskId: d.taskId,
+      // **持ち出すとき、拡張子が変わる**（図は .json）ので kind も渡す
+      kind: d.kind, preview: d.preview, body: d.body, taskId: d.taskId,
     })),
     decs: [],
     live: true,
@@ -120,6 +125,7 @@ export function fromLive(w: LiveWork): WorkView {
     finished: w.status === 'done',
     /** 終わったときに出す事実（**「すべて揃っています」と言い切らない**） */
     unseen: (w.dels ?? []).filter((d) => d.state === '要確認').length,
+    paused: w.status === 'paused',
     crew: w.crew.map((c) => ({
       id: c.id, name: c.name, color: c.color,
       tasks: w.tasks.filter((t) => t.owner === c.name && t.state !== 'done').length,

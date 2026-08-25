@@ -401,6 +401,17 @@ const small = await until((b) => /[1-9]\d?%|要確認/.test(b), 30);
 ok('社員を提案しない計画でも、担当が付いて動く',
    small.includes('調査担当') && /[1-9]\d?%|要確認/.test(small), small.slice(0, 140));
 
+// ⑤'' **社長が止められる。** 見ていないあいだも動く会社に、止める手が要る
+const smallUrl = await ev('location.href');
+await send('Page.navigate', { url: `${smallUrl.split('?')[0]}?open=about` }); await wait(2600);
+await ev(`document.querySelector('aside [role=switch]')?.click()`);
+const held = await until((b) => b.includes('一時停止'), 12, 700);
+ok('社長が Work を止められる', held.includes('一時停止') && held.includes('止めています'),
+   held.match(/一時停止|止めています/g)?.join(' / ') ?? '(止まっていない)');
+await ev(`document.querySelector('aside [role=switch]')?.click()`);
+const back2 = await until((b) => !b.includes('一時停止'), 12, 700);
+ok('もう一度押すと動きだす', !back2.includes('一時停止'), back2.match(/一時停止|進行中|完了/g)?.join(' / ') ?? '');
+
 // ⑤' **もう作ってある会話は「作る」と書かない**（カードは id しか持たない）。
 //     前は「作った」がカードの中の state にしかなく、開き直すと作るボタンに戻っていた
 await send('Page.navigate', { url: chatUrl }); await wait(2600);

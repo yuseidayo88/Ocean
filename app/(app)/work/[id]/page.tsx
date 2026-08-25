@@ -6,15 +6,18 @@ import { useOpen } from '@/lib/use-open';
 import { Go as Link } from '@/components/ui/Go';
 import { notFound, useParams } from 'next/navigation';
 import { Centre, Composer, Pane, PaneHead, TopBar } from '@/components/shell/Chrome';
+import { Toggle } from '@/components/shell/Controls';
+import { useShell } from '@/components/shell/Shell';
 import { Diamond, Dot, Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
 import { AMBER_T, BLUE, COMPOSER_H, DIM, FAINT, GREEN, GREEN_T, HAIR, MUTE, RAIL, RED, RED_T, SEAM, SUNK, T1, T2, T3, T4, T5, WELL } from '@/lib/design/tokens';
 import { fromLive, type WorkView } from '@/lib/exec/work-view';
 import { getWork } from '@/app/actions/work';
-import { approvePhase, decide, taskDecision, taskSteps } from '@/app/actions/run';
+import { approvePhase, decide, holdWork, taskDecision, taskSteps } from '@/app/actions/run';
 import type { LiveDecision } from '@/lib/store';
 import { DelActions } from '@/components/live/DelActions';
 import { DelBody } from '@/components/live/DelBody';
+import { DelTake } from '@/components/live/DelTake';
 import type { RunStep } from '@/lib/store';
 import { useEffect, useState } from 'react';
 
@@ -211,6 +214,7 @@ export default function WorkPage() {
   const pane = openId === 'about';
   const setPane = (v: boolean) => setOpen(v ? 'about' : null);
   const [w, setW] = useState<WorkView | null>(null);
+  const { say5 } = useShell();
   const [gone, setGone] = useState(false);
 
   useEffect(() => {
@@ -257,9 +261,9 @@ export default function WorkPage() {
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
             {/* **終わった Work を「進行中」と言わない**（2026-08-25）。
                 状態の語は6つだけ — 完了 / 遅れ N日 / 進行中 */}
-            <Dot color={late ? `${RED}` : GREEN} size={7} />
-            <span style={{ color: late ? RED_T : GREEN_T, fontSize: 12 }}>
-              {w.finished ? '完了' : late ? `遅れ ${w.late}日` : '進行中'}
+            <Dot color={w.paused ? `${MUTE}` : late ? `${RED}` : GREEN} size={7} />
+            <span style={{ color: w.paused ? T4 : late ? RED_T : GREEN_T, fontSize: 12 }}>
+              {w.finished ? '完了' : w.paused ? '一時停止' : late ? `遅れ ${w.late}日` : '進行中'}
             </span>
           </span>
         } />
@@ -457,6 +461,34 @@ export default function WorkPage() {
               </span>
             </Link>
           ))}
+
+          {/**
+            * **止める手**（2026-08-25）。見ていないあいだも会社は動く（1時間ごとの Cron）ので、
+            * 気が変わった Work を止められないと、社長は安心して閉じられない。
+            * 社員の設定と同じ作法 — **最後の行にトグル、保存ボタンは置かない**。
+            * 止めているあいだ、この Work は会社に拾われない（走っている最中のものは最後までやる）。
+            */}
+          {!w.finished && (
+            <>
+              <PaneHead>この Work を動かす</PaneHead>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '6px 0' }}>
+                <span style={{ color: T2, fontSize: 13 }}>{w.paused ? '止めています' : '動いています'}</span>
+                <div style={{ flex: 1 }} />
+                <Toggle on={!w.paused} label="この Work を動かす"
+                  onPick={async (next: boolean) => {
+                    setW({ ...w, paused: !next });   // 先に画面を変えて、裏で書く
+                    const r = await holdWork(w0id, !next);
+                    if (!r.ok) say5(r.message ?? '変えられませんでした');
+                    getWork(id).then((x) => x && setW(fromLive(x)));
+                  }} />
+              </div>
+              <span style={{ color: T5, fontSize: 11.5, lineHeight: '18px' }}>
+                {w.paused
+                  ? '新しいタスクは起きません。動かすと、続きから進みます。'
+                  : '止めると、新しいタスクは起きなくなります。'}
+              </span>
+            </>
+          )}
         </div>
       </Pane>
       )}
@@ -494,6 +526,9 @@ export default function WorkPage() {
                 background: 'rgba(227,116,0,0.18)', color: AMBER_T, fontSize: 11,
               }}>要確認</span>
             )}
+            <div style={{ flex: 1 }} />
+            {/* **持ち出せない成果物は、無いのと同じ**（→ `components/live/DelTake.tsx`） */}
+            <DelTake title={openDel.title} body={openDel.body ?? openDel.preview ?? ''} kind={openDel.kind} />
           </div>
           <DelBody body={openDel.body ?? openDel.preview ?? ''} />
         </div>

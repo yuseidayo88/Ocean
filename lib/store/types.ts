@@ -264,6 +264,13 @@ export interface Store {
   /** 枠に当たって止める。works → paused ＋ エラー通知 */
   pauseWork(workId: string, why: string): Promise<void>;
   /**
+   * **社長が自分で止める / 再開する。**
+   * 見ていないあいだも動く会社（1時間ごとの Cron）に、**止める手**が要る —
+   * 気が変わった Work にお金を使い続けられるのは、社長には怖い。
+   * 通知は出さない（自分でやったことを知らせ返さない）。動いたら true。
+   */
+  setWorkPaused(workId: string, paused: boolean): Promise<boolean>;
+  /**
    * その時刻より後に**使ったぶん**（セント・正の数）。1日の上限を測るのに使う。
    * 台帳の実績だけを数える — 見積もりではない（→ `lib/run/budget.ts`）。
    * **null = 数えていない**（メモリ版のデモ。上限があるふりをしない）

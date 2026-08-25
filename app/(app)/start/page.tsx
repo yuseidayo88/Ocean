@@ -20,6 +20,24 @@ import { DIM, EXEC, RED_T, SEAM, T2, T4, T5 } from '@/lib/design/tokens';
  * 入力欄が主役なので中央に置く（floating=false）。**偽の中身を置かない。**
  */
 
+/**
+ * **何を頼めるのかを、押せる形で見せる**（2026-08-25）。
+ *
+ * ここは入力欄が1つあるだけだった。**やりたいことが言葉になっている人**しか
+ * 先へ進めない画面で、いちばん最初につまずくところ。
+ *
+ * 説明のコピーではなく**提案**にする — 押すとその言葉で会話が始まり、
+ * 統括AIが聞き返してくる。押しただけでは Work にならないので、覗くのは安全。
+ * 選んだ4つは、**一人社長が実際に社員に頼むこと**（名簿の7人に素直に割り振れる形）。
+ */
+const EXAMPLES = [
+  // **3つで1行に収める。** 4つだと折り返して1つだけ次の行に落ち、並びが崩れる。
+  // 作る / 決める / 調べる を1つずつ — 会社に何を頼めるかの幅が、これで伝わる
+  'オンライン講座をはじめたい',
+  'いまの価格を決め直したい',
+  '競合を調べて勝てる場所を探したい',
+];
+
 const CHOICES: { entry: Entry; icon: IconName; title: string; sub: string }[] = [
   { entry: 'discovery', icon: 'search', title: 'まだ決まっていない', sub: '条件から一緒に決めます' },
   { entry: 'import', icon: 'globe', title: 'すでに事業がある', sub: '取り込んで、診断します' },
@@ -49,6 +67,19 @@ export default function StartPage() {
         <Composer placeholder="やりたいことを、そのまま書いてください" floating={false}
           onSend={(t) => open('goal', t)} busy={busy} />
         {fail && <span style={{ color: RED_T, fontSize: 12.5 }}>{fail}</span>}
+        {!busy && (
+          <div style={{
+            display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8,
+            width: '100%', maxWidth: 748,
+          }}>
+            {EXAMPLES.map((t) => (
+              <button key={t} onClick={() => open('goal', t)} className="btn" style={{
+                height: 30, padding: '0 12px', borderRadius: 8,
+                border: `1px solid ${SEAM}`, color: T4, fontSize: 12.5,
+              }}>{t}</button>
+            ))}
+          </div>
+        )}
         {!busy && <div style={{ display: 'flex', gap: 14, width: '100%', maxWidth: 748 }}>
           {CHOICES.map((c) => (
             <button key={c.entry} onClick={() => open(c.entry)} className="card" style={{

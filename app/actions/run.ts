@@ -123,6 +123,20 @@ export async function pumpCompany(): Promise<PumpResult> {
   }
 }
 
+/**
+ * **社長が自分で止める / 再開する。**
+ * 見ていないあいだも動く会社（1時間ごとの Cron）に、止める手が要る。
+ * 止めた Work はポンプが拾わない（`activeWorks` は active だけ）。
+ */
+export async function holdWork(workId: string, paused: boolean): Promise<{ ok: boolean; message?: string }> {
+  try {
+    const moved = await store().setWorkPaused(workId, paused);
+    return moved ? { ok: true } : { ok: false, message: 'この Work はもうその状態です' };
+  } catch (e) {
+    return { ok: false, message: sayError(e, paused ? '止められませんでした' : '再開できませんでした') };
+  }
+}
+
 /** タスクの歩み。右ペインが読む */
 export async function taskSteps(taskId: string): Promise<RunStep[]> {
   return store().getSteps(taskId);

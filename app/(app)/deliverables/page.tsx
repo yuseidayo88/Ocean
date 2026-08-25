@@ -9,6 +9,7 @@ import { Dot, Icon } from '@/components/ui/Icon';
 import { listDels } from '@/app/actions/run';
 import { DelActions } from '@/components/live/DelActions';
 import { DelBody } from '@/components/live/DelBody';
+import { DelTake } from '@/components/live/DelTake';
 import type { LiveDeliverable } from '@/lib/store';
 import { pressable } from '@/lib/a11y';
 import { AMBER, AMBER_T, COMPOSER_H, GREEN, HAIR, MUTE, RAIL, T2, T3, T5 } from '@/lib/design/tokens';
@@ -128,7 +129,11 @@ export default function DeliverablesPage() {
             tabs={docs.map((d) => ({ label: d.title, dot: tabDot(d.state) }))}
             tab={tabs.at} onTab={tabs.select}>
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 20px' }}>
-          <span style={{ fontSize: 16, display: 'block' }}>{top.title}</span>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 16 }}>{top.title}</span>
+            {/* **持ち出せない成果物は、無いのと同じ**（→ `components/live/DelTake.tsx`） */}
+            <DelTake title={top.title} body={top.body ?? top.preview ?? ''} kind={top.kind} />
+          </div>
           <span style={{ color: T5, fontSize: 12, display: 'block', paddingTop: 5 }}>
             {top.by ?? 'AI社員'} · {top.workTitle}{(top.version ?? 1) > 1 ? ` · v${top.version}` : ''}
           </span>
