@@ -220,6 +220,23 @@ Secret にすると「隠れていないものを隠れているように見せ�
 「有効になっていない」と返ってくるので、入口が日本語1行で言う（`/auth/callback` が
 短い合図に畳む → `components/auth/LoginForm.tsx` の `WHY`）。
 
+**開いているかどうかは `/api/health` の `login` で分かる**（2026-08-25 に足した）。
+上の3か所はどれか1つ抜けても画面では同じ「押しても入れない」に見えるので、
+少なくとも Supabase 側が開いているかを、外から1本で確かめられるようにした:
+
+```
+{"ok":true,"supabase":true,"model":true,"login":{"google":true,"email":true}}
+```
+
+残る2つ（Google Cloud のリダイレクト URI / Supabase の Redirect URLs）は
+**実際に1回入ってみないと分からない**。外したときの見え方は:
+
+| 症状 | どこが抜けているか |
+|---|---|
+| Google の画面が `redirect_uri_mismatch` で止まる | Google Cloud の承認済みリダイレクト URI |
+| Google から戻ってきたのに `/login` に戻される | Supabase の Redirect URLs（`<住所>/**`） |
+| 入れたが会社が空 | 正常（`handle_new_user` が会社・自分・トライアル $5 を作る） |
+
 `emailRedirectTo` / `redirectTo` は**その画面の住所から組む**ので、
 プレビューの URL でもそのまま動く（Redirect URLs に許してあれば）。
 
