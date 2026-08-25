@@ -6,6 +6,7 @@ import { colorFor, sortCands } from './memory';
 import { BUILTIN_SKILLS } from '@/lib/roster/skills';
 import { AppError } from '@/lib/errors';
 import { finishNote, finishSay, gateNote, type Finished } from '@/lib/exec/finish';
+import type { McpServer } from '@/lib/mcp/types';
 import { STALL_MS, type AgentPref, type ChatMsg, type ChatThread, type Discovery, type DraftWork, type LiveDecision, type LiveWork, type Note, type Profile, type RunStep, type SkillRow, type Store } from './types';
 
 /**
@@ -1372,6 +1373,69 @@ export const supabaseStore: Store = {
     const { error } = await c.from('diagnoses').update({ findings }).eq('id', data.id);
     if (error) throw new AppError('unknown', error.message);
     return true;
+  },
+
+  /* ══════════════ つないだ道具（MCP・Phase 12）══════════════ */
+
+  async listMcpServers() {
+    const c = await db();
+    // **`token` は引かない。** 鍵を読むのは `mcpSecret` 1か所だけ（0028 の注）
+    const { data } = await c.from('mcp_servers')
+      .select('id, name, url, write_ok, enabled, checked_at, tool_count, last_error, token')
+      .order('created_at');
+    return (data ?? []).map((x): McpServer => ({
+      id: x.id as string, name: x.name as string, url: x.url as string,
+      hasToken: !!x.token,
+      write: x.write_ok as boolean, on: x.enabled as boolean,
+      checkedAt: (x.checked_at ?? undefined) as string | undefined,
+      toolCount: (x.tool_count ?? undefined) as number | undefined,
+      lastError: (x.last_error ?? undefined) as string | undefined,
+    }));
+  },
+
+  async addMcpServer(x) {
+    const c = await db();
+    // **同じ行き先は二度つながない**（0028 の一意 index）。
+    // 出しなおしたときは名前と鍵を上書きして、確かめ直しの印を消す
+    const { data, error } = await c.from('mcp_servers')
+      .upsert({ name: x.name, url: x.url, token: x.token ?? null,
+                checked_at: null, tool_count: null, last_error: null },
+              { onConflict: 'account_id,url' })
+      .select('id').single();
+    if (error || !data) throw new AppError('unknown', error?.message ?? 'mcp_servers upsert failed');
+    return data.id as string;
+  },
+
+  async setMcpServer(id, patch) {
+    const c = await db();
+    const row: Record<string, unknown> = {};
+    if (patch.on !== undefined) row.enabled = patch.on;
+    if (patch.write !== undefined) row.write_ok = patch.write;
+    if (patch.name !== undefined) row.name = patch.name;
+    if (!Object.keys(row).length) return;
+    const { error } = await c.from('mcp_servers').update(row).eq('id', id);
+    if (error) throw new AppError('unknown', error.message);
+  },
+
+  async removeMcpServer(id) {
+    const c = await db();
+    const { error } = await c.from('mcp_servers').delete().eq('id', id);
+    if (error) throw new AppError('unknown', error.message);
+  },
+
+  async noteMcpCheck(id, r) {
+    const c = await db();
+    await c.from('mcp_servers').update({
+      checked_at: new Date().toISOString(),
+      tool_count: r.error ? null : (r.tools ?? 0),
+      last_error: r.error ?? null,
+    }).eq('id', id);
+  },
+
+  async mcpSecret(id) {
+    const c = await db();
+    const { data } = await c.from('mcp_servers').select('token').eq('id', id).maybeSingle();
+    return (data?.token ?? undefined) as string | undefined;
   },
 };
 

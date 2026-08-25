@@ -4,7 +4,10 @@ import { execPref, staffPref } from '@/lib/exec/pref';
 import { personaOf } from '@/lib/roster';
 import { store, type LiveWork } from '@/lib/store';
 import { RUN_TOOLS, drawWorkflow } from './tools';
+import type { ToolDef } from '@/lib/ai/provider';
 import { checkWorkflow, fatalOf, packDoc, toWorkflow } from '@/lib/diagram/parse';
+import { readyTools, runTool, toolsLine } from '@/lib/mcp/company';
+import { MCP_ROUNDS, TOOL_PREFIX } from '@/lib/mcp/types';
 import { sayDiags, type Diag } from '@/lib/diagram/check';
 import type { Workflow } from '@/lib/diagram/types';
 
@@ -16,7 +19,10 @@ import type { Workflow } from '@/lib/diagram/types';
  *
  * **1タスク=1往復。** ループを回さないのは手抜きではなく安全弁 —
  * 途中の道具はぜんぶ「書き残す」系なので、往復する理由がない。
- * Web調査のような「読む」道具が入るとき（Phase 8+）に初めてループが要る。
+ *
+ * **例外は、会社が MCP をつないでいるとき**（Phase 12。2026-08-25）。
+ * あれは「読む」道具なので、読んだ結果を見てから書くことになる。
+ * つないでいない会社ではこれまでどおり1往復 — **払う理由が無いのに往復しない**。
  *
  * 進捗はここでは書かない。addStep の progress が DB の引き金で導出される。
  */
@@ -107,6 +113,12 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
         && work.tasks.some((t) => t.id === d.taskId && t.state === 'done'))
       .slice(0, 3);
 
+    /**
+     * **つないだ道具**（MCP・Phase 12。2026-08-25）。
+     * 会社が1つもつないでいなければ空 — そのときは何も変わらない。
+     */
+    const ready = await readyTools().catch(() => null);
+
     const system = [
       personaOf(task.ownerSlug ?? '', task.owner ?? 'AI社員'),
       '',
@@ -152,6 +164,7 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
         ...(/ を直す$/.test(task.title)
           ? ['', `成果物のタイトルは「${task.title.replace(/ を直す$/, '')}」のまま出す（直した新しい版になる）`]
           : []),
+        ...(ready ? toolsLine(ready) : []),
         '',
         `あなたのタスク: ${task.title}`,
         `やること: ${task.intent || task.title}`,
@@ -163,13 +176,35 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
     /** 図の下書き（道具から来た生の値）。**通ってから成果物にする** */
     let drawn: Record<string, unknown> | null = null;
 
+    /**
+     * **つないだ道具があるときだけ、往復する。**
+     *
+     * 1タスク＝1往復は、道具が全部「書き残す」系だったから成り立っていた
+     * （→ CLAUDE.md「Web調査のような『読む』道具が入るときに初めてループが要る」）。
+     * MCP は**読む道具**なので、読んだ結果を見てから書くことになる。
+     * つないでいない会社ではこれまでどおり1往復 — **払う理由が無いのに往復しない**。
+     */
+    const tools = ready?.defs.length
+      ? [...RUN_TOOLS, ...ready.defs.map((d) => ({
+          name: d.name, description: d.description,
+          input_schema: d.input_schema as ToolDef['input_schema'],
+        }))]
+      : RUN_TOOLS;
+    const rounds = ready?.defs.length ? MCP_ROUNDS : 1;
+
+    for (let round = 1; round <= rounds; round++) {
+    /** この往復で呼ばれた、つないだ道具（結果を次の往復に渡す） */
+    const called: { name: string; args: Record<string, unknown> }[] = [];
+
     for await (const c of pick().stream({
       tier: 'standard', model: pref.model, effort: pref.effort,
-      system, messages, tools: RUN_TOOLS, maxTokens: 8000,
+      system, messages, tools, maxTokens: 8000,
     })) {
       if (c.type === 'tool_use') {
         const a = (c.input ?? {}) as Record<string, unknown>;
-        if (c.name === 'log_step') {
+        if (ready && c.name.startsWith(TOOL_PREFIX)) {
+          called.push({ name: c.name, args: a });
+        } else if (c.name === 'log_step') {
           await s.addStep(runId, {
             seq: ++seq, kind: 'tool_use', tool: 'log_step',
             summary: String(a.title ?? ''), progress: clamp(a.progress),
@@ -205,6 +240,37 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
         usage.in += c.usage.inputTokens;
         usage.out += c.usage.outputTokens;
       }
+    }
+
+    /**
+     * 成果物まで書けたか、判断で止まったなら、そこで終わり（道具を呼んでいても続けない）。
+     * 何も呼ばなかったときも終わり — 続ける理由が無い。
+     */
+    if (!called.length || wrote || drawn || decision || finished) break;
+
+    /**
+     * **結果は「社長の発言」として渡す。**
+     * 器（`Msg`）は role と文字しか持たない — 道具の往復を本物の形で入れるには
+     * 3つの通り道（Anthropic / OpenAI / OpenRouter）ぜんぶを直すことになる。
+     * ここでやりたいのは「読んだものを見せて、続きを書かせる」だけなので、
+     * **宙に浮いた tool_call を作らない**この形のほうが安全でもある。
+     */
+    const results: string[] = [];
+    for (const call of called) {
+      const r = await runTool(ready!, call.name, call.args);
+      await s.addStep(runId, {
+        seq: ++seq, kind: 'tool_use', tool: call.name,
+        summary: r.ok ? `${call.name} を呼んだ` : `${call.name} — ${r.error}`,
+      });
+      results.push(`--- ${call.name} ---\n${r.ok ? r.text : `呼べませんでした: ${r.error}`}`);
+    }
+    messages.push({
+      role: 'user',
+      content: ['呼んだ道具の結果です:', ...results, '',
+                '**これを踏まえて、このタスクを最後までやってください。**'
+                + '足りなければもう一度呼んでいいですが、'
+                + '**分かった範囲で成果物を書くほうが先**です。'].join('\n'),
+    });
     }
 
     const costCents = Math.round(billedCostUsd('standard', usage.in, usage.out, pref.model) * 100);

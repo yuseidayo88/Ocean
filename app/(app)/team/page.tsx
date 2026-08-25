@@ -6,7 +6,7 @@ import { useOpen } from '@/lib/use-open';
 import { Go as Link } from '@/components/ui/Go';
 import { Centre, Composer, Pane, Section, TopBar } from '@/components/shell/Chrome';
 import { EffortInline, ModelInline, Toggle } from '@/components/shell/Controls';
-import { BLUE, COMPOSER_H, DIM, EDGE, GREEN, GREEN_T, HAIR, MUTE, RULE, SEAM, T2, T3, T4, T5 } from '@/lib/design/tokens';
+import { BLUE, COMPOSER_H, DIM, EDGE, GREEN, GREEN_T, HAIR, MUTE, RED_T, RULE, SEAM, T2, T3, T4, T5 } from '@/lib/design/tokens';
 import { Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
 import { AGENT_COLOR, EXEC, prefWords } from '@/lib/view/model';
@@ -15,7 +15,8 @@ import { pressable } from '@/lib/a11y';
 import { hire, listEmployees } from '@/app/actions/run';
 import { learningsGet, learningsSet, prefSet, skillToggle, teamData } from '@/app/actions/live';
 import { ROSTER, definitionOf, slugOf, type Definition } from '@/lib/roster';
-import type { AgentPref, LiveEmployee, SkillRow } from '@/lib/store';
+import type { AgentPref, LiveEmployee, McpServer, SkillRow } from '@/lib/store';
+import { listMcp, setMcp } from '@/app/actions/tools';
 import { useShell } from '@/components/shell/Shell';
 
 /**
@@ -318,6 +319,55 @@ function StateMark({ state }: { state: string }) {
  *
  * **保存ボタンを置かない**（トグルはその場で効く）。道具は社長に触らせない。
  */
+/**
+ * つないだ道具（MCP・Phase 12）。**ここは読むだけ** —
+ * つなぐ・切る・書けるようにするは `/tools`（スキルと同じ置き方）。
+ * **繋がっていないなら、そう出す**（一覧に並んでいるのに何も呼べない、を作らない）。
+ */
+function McpList() {
+  const [rows, setRows] = useState<McpServer[] | null>(null);
+  useEffect(() => { listMcp().then(setRows); }, []);
+  const all = rows ?? [];
+  return (
+    <Section label="つないだ道具" right={
+      <Link href="/tools" className="btn" style={{
+        display: 'inline-flex', alignItems: 'center', gap: 5, color: T4, fontSize: 12,
+      }}>
+        <Icon name="plus" color={T4} size={12} />つなぐ
+      </Link>
+    }>
+      {rows !== null && all.length === 0 && (
+        <span style={{ display: 'block', padding: '10px 0', color: T5, fontSize: 12.5 }}>
+          まだありません。MCP でつなぐと、AI社員が仕事のなかでそのまま読み書きします
+        </span>
+      )}
+      {all.map((m, i) => (
+        <div key={m.id} style={{
+          display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0',
+          borderBottom: i === all.length - 1 ? undefined : `1px solid ${HAIR}`,
+        }}>
+          <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <span style={{ color: m.on ? undefined : T4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {m.name}
+            </span>
+            <span style={{ color: m.lastError ? RED_T : T5, fontSize: 11 }}>
+              {m.lastError ? m.lastError
+                : m.toolCount != null ? `道具 ${m.toolCount}${m.write ? ' · 書ける' : ''}`
+                : 'まだ確かめていません'}
+            </span>
+          </div>
+          <div style={{ flex: 1 }} />
+          <Toggle on={m.on} label={`${m.name} を使う`}
+            onPick={async (next) => {
+              setRows((xs) => (xs ?? []).map((x) => (x.id === m.id ? { ...x, on: next } : x)));
+              await setMcp(m.id, { on: next });
+            }} />
+        </div>
+      ))}
+    </Section>
+  );
+}
+
 function SettingsPane({ who, l, skills, onToggle, onHire, onPick, onPause, onClose }: {
   who: 'employee' | 'exec' | 'all' | 'candidate'; l: Line; skills: SkillRow[];
   onToggle: (id: string, on: boolean) => void; onHire?: () => void; onClose: () => void;
@@ -381,6 +431,10 @@ function SettingsPane({ who, l, skills, onToggle, onHire, onPick, onPause, onClo
             </div>
           ))}
         </Section>}
+
+        {/* つないだ道具（MCP）＝会社ぜんぶに効くので、**全員に効くこと**の中に置く。
+            ここは読むだけ — つなぐ・切る・書けるようにするは `/tools` で */}
+        {who === 'all' && <McpList />}
 
         {/* 学び＝この社員が仕事から書き溜めたメモ。**次の実行の依頼文に載る**。
             ルールにするかは社長が決める（自動では昇格しない） */}

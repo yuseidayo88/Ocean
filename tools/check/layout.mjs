@@ -24,6 +24,7 @@ const pairs = [
   ['/deliverables',      `${B}/deliverables`,      null],
   ['/decisions',         `${B}/decisions`,         null],
   ['/skills',            `${B}/skills`,            null],
+  ['/tools',             `${B}/tools`,             null],
   ['/billing',           `${B}/billing`,           null],
   ['/home',              `${B}/home`,              null],
 ];

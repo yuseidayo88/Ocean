@@ -63,6 +63,10 @@ export type LiveDeliverable = {
  */
 export type PhaseGate = { closed: string[]; hold: boolean; ready: boolean; at: string | null };
 
+/** つないだ道具（MCP）。**鍵はここに置かない** → `lib/mcp/types.ts` */
+export type { McpServer } from '@/lib/mcp/types';
+import type { McpServer } from '@/lib/mcp/types';
+
 /** 通知1件。通知の画面（片づける場所）が読む */
 export type Note = {
   id: string; kind: string; body: string;
@@ -335,6 +339,27 @@ export interface Store {
    * **1枚も無ければ標準スキル（builtin）を播く** — 元々の機能なので、どの会社にも最初からある
    */
   listSkills(): Promise<SkillRow[]>;
+
+  /* ══════════════ つないだ道具（MCP・Phase 12）══════════════ */
+
+  /** つないだ先の一覧。**鍵は返らない**（型に無い） */
+  listMcpServers(): Promise<McpServer[]>;
+  /**
+   * つなぐ。**同じ行き先は二度つながない**（0028 の一意 index）。
+   * 返すのは作った id。すでにあれば、その id（名前と鍵は上書きする）
+   */
+  addMcpServer(x: { name: string; url: string; token?: string }): Promise<string>;
+  /** 使う・書ける・名前 を変える。触った列だけ */
+  setMcpServer(id: string, patch: { on?: boolean; write?: boolean; name?: string }): Promise<void>;
+  /** つなぐのをやめる */
+  removeMcpServer(id: string): Promise<void>;
+  /** 確かめた結果を書き戻す（道具の数か、繋がらなかった理由） */
+  noteMcpCheck(id: string, r: { tools?: number; error?: string }): Promise<void>;
+  /**
+   * 相手に渡す鍵。**呼ぶときだけ、1本だけ**引く。
+   * ここ以外から `token` を読まない（→ `supabase/migrations/0028_mcp_servers.sql`）
+   */
+  mcpSecret(id: string): Promise<string | undefined>;
   setSkill(id: string, on: boolean): Promise<void>;
   addSkill(s: { name: string; filename: string; body: string }): Promise<void>;
   /** 消せるのは user のものだけ（標準は切れるが消せない。学びは setLearnings で） */

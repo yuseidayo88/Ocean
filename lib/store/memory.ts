@@ -1,6 +1,7 @@
 import { AGENT_COLOR, type EmployeeColor } from '@/lib/view/model';
 import { byName as rosterByName, crewFor } from '@/lib/roster';
 import { finishNote, finishSay, gateNote, type Finished } from '@/lib/exec/finish';
+import type { McpServer } from '@/lib/mcp/types';
 import { previewFor } from '@/lib/deliver/format';
 import { BUILTIN_SKILLS } from '@/lib/roster/skills';
 import { AppError } from '@/lib/errors';
@@ -713,6 +714,46 @@ export const memoryStore: Store = {
     f.workId = workId;
     return true;
   },
+
+  /* ══════════════ つないだ道具（MCP・Phase 12）══════════════
+   * Supabase 版と同じ順序で同じことをする。**同じ行き先は二度つながない**も同じ。
+   */
+
+  async listMcpServers() {
+    return [...mcps.values()].map(({ token, ...rest }) => ({ ...rest, hasToken: !!token }));
+  },
+
+  async addMcpServer(x) {
+    const had = [...mcps.values()].find((m) => m.url === x.url);
+    if (had) {
+      Object.assign(had, { name: x.name, token: x.token,
+                           checkedAt: undefined, toolCount: undefined, lastError: undefined });
+      return had.id;
+    }
+    const id = `mcp-${Date.now().toString(36)}-${++n}`;
+    mcps.set(id, { id, name: x.name, url: x.url, token: x.token, write: false, on: true });
+    return id;
+  },
+
+  async setMcpServer(id, patch) {
+    const m = mcps.get(id);
+    if (!m) return;
+    if (patch.on !== undefined) m.on = patch.on;
+    if (patch.write !== undefined) m.write = patch.write;
+    if (patch.name !== undefined) m.name = patch.name;
+  },
+
+  async removeMcpServer(id) { mcps.delete(id); },
+
+  async noteMcpCheck(id, r) {
+    const m = mcps.get(id);
+    if (!m) return;
+    m.checkedAt = new Date().toISOString();
+    m.toolCount = r.error ? undefined : (r.tools ?? 0);
+    m.lastError = r.error;
+  },
+
+  async mcpSecret(id) { return mcps.get(id)?.token; },
 };
 
 /** run と通知の置き場（メモリ版だけの裏方） */
@@ -753,6 +794,11 @@ const staff = (g3.__staff ??= []);
  */
 type DiscRow = Discovery & { past: Discovery['candidates']; seq: number };
 type ProfRow = Profile & { seq: number };
+/** つないだ道具（MCP）。**鍵はここにだけ持つ** — 画面に返す型には入れない */
+type McpRow = Omit<McpServer, 'hasToken'> & { token?: string };
+const g5 = globalThis as unknown as { __mcps?: Map<string, McpRow> };
+const mcps = (g5.__mcps ??= new Map<string, McpRow>());
+
 const g4 = globalThis as unknown as { __disc?: Map<string, DiscRow>; __profiles?: Map<string, ProfRow> };
 const disc = (g4.__disc ??= new Map<string, DiscRow>());
 const profiles = (g4.__profiles ??= new Map<string, ProfRow>());

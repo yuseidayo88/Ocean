@@ -125,8 +125,36 @@ const tool = (name: string, inputValue: unknown): Chunk =>
  */
 async function* fakeRun(input: RunInput): AsyncIterable<Chunk> {
   const text = lastText(input);
-  const task = text.match(/あなたのタスク: (.+)/)?.[1]?.trim() ?? '作業';
+  // タスク名は**最初の発言**にある（道具の結果は後から user として足されるので）
+  const all = input.messages.map((m) => m.content).join('\n');
+  const task = all.match(/あなたのタスク: (.+)/)?.[1]?.trim() ?? '作業';
   const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  /**
+   * **つないだ道具を呼ぶ道**（MCP・Phase 12 の確かめ用）。
+   * 会社が MCP をつないでいると、道具の一覧に `mcp__…` が混ざってくる。
+   * **1度だけ呼んで、返ってきた文字を成果物に入れる** — 本物と同じ順
+   * （読む → 書く）を通すので、往復の仕組みとその中身の受け渡しが両方確かめられる。
+   */
+  const mcp = (input.tools ?? []).find((t) => t.name.startsWith('mcp__'));
+  if (mcp && !text.includes('呼んだ道具の結果です')) {
+    yield tool('log_step', { title: `${mcp.name} で確かめる`, progress: 30 });
+    await wait(300);
+    yield tool(mcp.name, {});
+    yield { type: 'done', usage: { ...EMPTY_USAGE }, stopReason: 'tool_use' };
+    return;
+  }
+  if (mcp && text.includes('呼んだ道具の結果です')) {
+    const got = text.slice(text.indexOf('---')).split('\n').slice(1, 4).join('\n').trim();
+    yield tool('write_deliverable', {
+      title: task.slice(0, 18), kind: 'report',
+      body: [`# ${task}`, '', '## つないだ道具から読んだもの', '', got || '(空でした)', '',
+             '> これは決め打ちの成果物です。'].join('\n'),
+    });
+    yield tool('finish', { summary: `${task} を終えた（つないだ道具を1つ読んだ）` });
+    yield { type: 'done', usage: { ...EMPTY_USAGE }, stopReason: 'tool_use' };
+    return;
+  }
 
   /**
    * **判断で止まる道**（Phase 9 の確かめ用）。「絞る」仕事は、

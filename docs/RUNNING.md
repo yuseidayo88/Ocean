@@ -110,6 +110,9 @@ psql "$DATABASE_URL" -f supabase/migrations/0022_thread_links.sql
 psql "$DATABASE_URL" -f supabase/migrations/0023_candidate_ending.sql
 psql "$DATABASE_URL" -f supabase/migrations/0024_agent_prefs.sql
 psql "$DATABASE_URL" -f supabase/migrations/0025_agent_paused.sql
+psql "$DATABASE_URL" -f supabase/migrations/0026_daily_cap.sql
+psql "$DATABASE_URL" -f supabase/migrations/0027_works_audit_more.sql
+psql "$DATABASE_URL" -f supabase/migrations/0028_mcp_servers.sql
 ```
 
 `0003` は RLS と、不変条件をデータベース側で守るためのトリガを入れます。
@@ -186,6 +189,8 @@ RLS の with check は `account_id = private.current_account_id()` のままな�
 | 質問とタスクの並びが決まる | `seq`（0009）。`created_at` は同じ insert 文で同着になる |
 | モデルと深さは1人1行 | 一意 index `agent_prefs_exec` / `agent_prefs_employee`（0024）。タブを2つ開いて同時に選んでも2行にならない。知らない深さは check で弾く（探針で実証） |
 | 止めた社員は動かない | `nextQueued` が `agent_prefs.paused` の人を飛ばす（0025）。**`employees.status` には持たせない** — あの列は実行が running / idle と書き換えるので、止めた印が次の実行で消える |
+| つないだ道具の鍵は画面に返さない | 型（`McpServer`）に `token` が無い（0028）。DB の列の権限で止める形は、引くために `public` の SECURITY DEFINER が要り、**それだけで警告が1件増える** → スキーマ由来の警告0件を優先した。守るのは「一覧を引いたら鍵まで画面に届いていた」のほう |
+| 同じ行き先を二度つながない | 一意 index `mcp_servers_once`（0028）。二度押し・同時押しで2行にならない |
 | きょうのぶんの上限は1日1通 | 一意 index `notifications_cap_daily`（0026）。ポンプは数秒ごとに来るので、ここが通知を積む口になってはいけない。上限そのものは列を足さず `token_ledger` の実績から数える（見積もりを持たないので、ずれようがない）|
 
 ## 環境変数
