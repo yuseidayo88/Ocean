@@ -1,5 +1,6 @@
 import type { AgentPref, LiveEmployee, LiveWork, Note, RunStep } from '@/lib/store/types';
 import { prefWords } from '@/lib/view/model';
+import { buildBoard } from './flow';
 import type {
   DeskBody, Event, Lane, MapChip, MapWork, Produce, Ring, State, Work,
 } from '@/lib/view/model';
@@ -34,7 +35,8 @@ export type HomeData = {
   staff: StaffCard[];
   lanes: Lane[];
   idle: { id: string; name: string; color: string }[];
-  map: { works: MapWork[]; chips: MapChip[] };
+  /** ワークフローの盤面（組み立ては `lib/live/flow.ts`。archify の作法と検査つき） */
+  map: { works: MapWork[]; chips: MapChip[]; main?: string; diags: string[] };
   ticks: { x: number; label: string }[];
   todayX: number;
   done: { id: string; title: string; ended: string; phases: number }[];
@@ -281,41 +283,32 @@ export function buildHome(
     }
   }
 
-  /* ── ワークフローの地図。鎖は縦に積む（枝の系譜はまだ持っていない） ── */
-  const mapWorks: MapWork[] = active.map((w, i): MapWork => {
-    const gate = w.tasks.some((t) => t.state === 'needs_decision');
-    const late = view[i]?.health;
-    const nowPhase = w.phases.find((p) => p.state === 'active' || p.state === 'review');
-    return {
-      id: w.id, title: w.title, col: 0, row: i * 2,
-      status: gate ? '判断待ち' : typeof late === 'object' ? `遅れ ${late.late}日` : undefined,
-      tone: gate ? 'gate' : typeof late === 'object' ? 'late' : undefined,
-      crew: nowPhase
+  /**
+   * ── ワークフローの地図 ──
+   * **組み立ては `lib/live/flow.ts` に1か所。** archify の作法（主線1本 /
+   * 枝は最寄りの主線ノードから / ノードは12まで）と、9つの検査がそこに入っている。
+   * ここは live から必要な値を渡すだけ。
+   */
+  const board = buildBoard(
+    active,
+    (w) => {
+      const nowPhase = w.phases.find((p) => p.state === 'active' || p.state === 'review');
+      return nowPhase
         ? [...new Set(phaseTasks(w, nowPhase.id).map((t) => colorOf(w, t.owner)).filter((c) => c !== '#5F5F5F'))]
-        : [],
-      phases: w.phases.map((p) => ({
-        name: p.name,
-        kind: p.state === 'done' || p.state === 'skipped' ? 'done'
-          : p.state === 'active' || p.state === 'review' ? 'now' : 'wait',
-        pct: p.state === 'active' ? Math.round(phaseDone(w, p.id) * 100) : undefined,
-      })),
-    };
-  });
-  const chips: MapChip[] = [];
-  active.forEach((w, i) => {
-    const nowSeq = w.phases.findIndex((p) => p.state === 'active' || p.state === 'review');
-    const gate = w.tasks.find((t) => t.state === 'needs_decision');
-    if (gate) chips.push({ title: gate.title, sub: '判断 · あなたの番', col: Math.max(nowSeq, 1), row: i * 2 + 1, owner: [w.id, Math.max(nowSeq, 0)] });
-    const rev = (w.dels ?? []).find((d) => d.state === '要確認');
-    if (rev && !gate) chips.push({ title: rev.title, sub: '成果物 · 要確認', col: Math.max(nowSeq, 1), row: i * 2 + 1, owner: [w.id, Math.max(nowSeq, 0)] });
-  });
+        : [];
+    },
+    (w) => {
+      const h = view[active.indexOf(w)]?.health;
+      return typeof h === 'object' ? h.late : undefined;
+    },
+  );
 
   return {
     exec: { model: wordsFor(null, 'exec').label },
     works: view,
     events,
     staff, lanes, idle,
-    map: { works: mapWorks, chips },
+    map: board,
     ticks, todayX,
     done: finished.map((w) => ({ id: w.id, title: w.title, ended: '', phases: w.phases.length })),
     gates: view.filter((v) => v.gate).length,

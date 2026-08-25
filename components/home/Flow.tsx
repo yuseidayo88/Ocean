@@ -4,8 +4,8 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Orb } from '@/components/ui/Orb';
 import { useParam } from '@/lib/use-open';
 import { useSize } from '@/lib/use-size';
-import { AMBER, AMBER_T, CANVAS, COMPOSER_H, EASE, EDGE, FAINT, HAIR, LINE, RAIL, RED_T, SEAM, SUNK, T1, T2, T4, T5, WELL } from '@/lib/design/tokens';
-import type { MapChip, MapPhase, MapWork } from '@/lib/view/model';
+import { AMBER, AMBER_T, CANVAS, COMPOSER_H, EASE, EDGE, FAINT, HAIR, LINE, MUTE, RAIL, RED_T, SEAM, SUNK, T1, T2, T4, T5, WELL } from '@/lib/design/tokens';
+import type { MapChip, MapWork } from '@/lib/view/model';
 
 /**
  * ワークフロー＝**地図**。横に区切らない。鎖（Work）を格子の上に置いて、
@@ -90,27 +90,12 @@ function Node({ x, y, w, h, title, sub, kind, pct, crew = 0, col = 0, lit, pick 
   );
 }
 
-/** 済んだフェーズが2つ以上続いたら1枚に。**畳んでも元のフェーズ番号は失わない** */
-type Folded = { name: string; kind: 'done' | 'now' | 'wait'; pct?: number; from: number; to: number };
-function fold(ph: MapPhase[]): Folded[] {
-  const out: Folded[] = [];
-  let run: { p: MapPhase; i: number }[] = [];
-  const flush = () => {
-    if (!run.length) return;
-    out.push({
-      name: run.map((r) => r.p.name).join('・'), kind: 'done',
-      from: run[0].i + 1, to: run[run.length - 1].i + 1,
-    });
-    run = [];
-  };
-  ph.forEach((p, i) => {
-    if (p.kind === 'done') { run.push({ p, i }); return; }
-    flush();
-    out.push({ name: p.name, kind: p.kind, pct: p.pct, from: i + 1, to: i + 1 });
-  });
-  flush();
-  return out;
-}
+/**
+ * **畳みは組み立て側でやる**（`lib/live/flow.ts`）。ここでは畳まない —
+ * 前は描く側で畳んでいたので、**チップの列が畳んだあとの列とずれ、枝が斜めに出ていた**
+ * （この会社の決まりは直角の線）。archify の「枝は最寄りの主線ノードから出す」に合わせて、
+ * **列を決める場所を1つ**にした。
+ */
 
 const WORD = { done: '完了', now: '実行中', wait: '待機' } as const;
 
@@ -129,36 +114,42 @@ function elbow(pts: [number, number][], r = 12) {
   return `${d} L ${last[0]} ${last[1]}`;
 }
 
-type FlowMap = { works: MapWork[]; chips: MapChip[] };
+type FlowMap = {
+  works: MapWork[]; chips: MapChip[];
+  /** 主線（いちばん上の鎖）の Work id。archify の「One obvious main path」 */
+  main?: string;
+  /** 組み立ての診断。**空でないときは描かない**（壊れた地図は嘘をつく） */
+  diags?: string[];
+};
 
 /** 盤面のすべて（ノード・線・ラベル）を一度に組む。ミニマップも同じものから描く */
 function build(FLOWMAP: FlowMap) {
   /** どの要素も **どの鎖のものか**（`of`）を持つ。押したときに残すものが決まる */
   const nodes: { x: number; y: number; w: number; h: number; kind: Kind; tone?: string;
                  title: string; sub: string; pct?: number; crew?: number; col: number; of: string }[] = [];
-  const links: { pts: [number, number][]; faint?: boolean; col: number; of: string[] }[] = [];
+  const links: { pts: [number, number][]; faint?: boolean; main?: boolean; col: number; of: string[] }[] = [];
   const labels: { x: number; y: number; col: number; of: string[] }[] = [];
   const names: { x: number; y: number; title: string; status?: string; tone?: string; col: number; of: string }[] = [];
 
   const byId = new Map<string, MapWork>();
-  const folded = new Map<string, Folded[]>();
-  for (const w of FLOWMAP.works) { byId.set(w.id, w); folded.set(w.id, fold(w.phases)); }
-  /** 元のフェーズ番号 → 畳んだあとの列 */
-  const slot = (w: MapWork, phase: number) =>
-    folded.get(w.id)!.findIndex((f) => phase + 1 >= f.from && phase + 1 <= f.to);
+  for (const w of FLOWMAP.works) byId.set(w.id, w);
+  /** 枝の親の列。**組み立て側が畳んだあとの列**をそのまま持っている */
+  const slot = (_w: MapWork, col: number) => col;
 
   for (const w of FLOWMAP.works) {
-    const fs = folded.get(w.id)!;
+    const fs = w.phases;
     names.push({ x: COL[w.col], y: ROW[w.row] - 26, title: w.title, status: w.status, tone: w.tone,
                  col: w.col, of: w.id });
     fs.forEach((f, i) => {
       nodes.push({
         x: COL[w.col + i], y: ROW[w.row], w: NW, h: NH, kind: f.kind, of: w.id, col: w.col + i,
         title: f.name, pct: f.pct, crew: f.kind === 'now' ? w.crew.length : 0,
-        sub: `フェーズ ${f.from === f.to ? f.from : `${f.from}〜${f.to}`} · ${WORD[f.kind]}`,
+        sub: `フェーズ ${f.span && f.span[1] > f.span[0] ? `${f.span[0]}〜${f.span[1]}` : (f.span?.[0] ?? i + 1)} · ${WORD[f.kind]}`,
         tone: w.tone === 'late' && f.kind === 'now' ? 'late' : undefined,
       });
-      if (i) links.push({ of: [w.id], col: w.col + i,
+      // **主線の鎖は太く引く**（色は増やさない — 明るさと太さで言う）。
+      // archify の「主線を1本にする」を、この会社の言葉で描いたもの
+      if (i) links.push({ of: [w.id], col: w.col + i, main: w.id === FLOWMAP.main,
         pts: [[COL[w.col + i] - 22, ROW[w.row] + NH / 2], [COL[w.col + i], ROW[w.row] + NH / 2]] });
     });
   }
@@ -212,7 +203,9 @@ function build(FLOWMAP: FlowMap) {
           ? [[stem, pb], [stem, pb + 28], [cc(c.col), pb + 28], [cc(c.col), ROW[c.row]]]
           : cs.length > 1
             ? [[stem, pb + 28], [cc(c.col), pb + 28], [cc(c.col), ROW[c.row]]]
-            : [[stem, pb], [cc(c.col), ROW[c.row]]],
+            // **2点にしない。** 2点だと親と列がずれた瞬間に斜めの線になる —
+            // この会社の決まりは直角の線（archify の「枝は最寄りの主線ノードから」も同じ）
+            : [[stem, pb], [stem, pb + 28], [cc(c.col), pb + 28], [cc(c.col), ROW[c.row]]],
       });
       nodes.push({ x: COL[c.col], y: ROW[c.row], w: NW, h: CHIP_H, kind: 'gate',
                    title: c.title, sub: c.sub, col: c.col, of: p.id });
@@ -314,8 +307,8 @@ const Scene = memo(function Scene({ nodes, links, labels, names, works, endX, en
       <svg width={endX} height={endY} viewBox={`0 0 ${endX} ${endY}`}
            style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
         {links.map((l, i) => (
-          <path key={i} d={elbow(l.pts)} fill="none" strokeWidth={1.3}
-                stroke={l.faint ? `${FAINT}` : '#333333'} opacity={lit(l.of) ? 1 : 0.26}
+          <path key={i} d={elbow(l.pts)} fill="none" strokeWidth={l.main ? 1.9 : 1.3}
+                stroke={l.faint ? `${FAINT}` : l.main ? '#4A4A4A' : '#333333'} opacity={lit(l.of) ? 1 : 0.26}
                 style={{ transition: `opacity ${EASE}`,
                          animation: `flowfade ${IN} ${(0.02 + l.col * STEP).toFixed(3)}s backwards` }} />
         ))}
@@ -339,8 +332,7 @@ const Scene = memo(function Scene({ nodes, links, labels, names, works, endX, en
       {/* 社員はいまのフェーズのノードの右に置く（⊕ で足すものではない）。
           **オフィスと同じ粒子のアバター**。ここだけ別の丸を描かない */}
       {works.map((w) => {
-        const fs = fold(w.phases);
-        const i = fs.findIndex((f) => f.kind === 'now');
+        const i = w.phases.findIndex((f) => f.kind === 'now');
         if (i < 0 || !w.crew.length) return null;
         const x = COL[w.col + i] + NW - CREW_PAD - CREW / 2, y = ROW[w.row] + NH / 2;
         return w.crew.map((c, k) => (
@@ -381,6 +373,12 @@ const SLACK = 0.45;
 export function Flow({ map: given }: { map: FlowMap }) {
   /** 盤面の形はデータで決まる。**描き直すたびに組み直さない**（`Scene` の memo が効かなくなる） */
   const made = useMemo(() => build(given), [given]);
+  /**
+   * **通らない盤面は描かない。** 組み立て（`lib/live/flow.ts`）が9つの検査に掛けていて、
+   * 同じ場所に2つ載る・線の先がいない、といったものが残っていたら地図が嘘をつく。
+   * 白い画面にはしない — 何が起きたかを1行で言う。
+   */
+  const broken = given.diags?.length ? given.diags : null;
   const { nodes, links, labels, names } = made;
   const B = useMemo(() => bounds(made), [made]);
   const bw = B.x1 - B.x0, bh = B.y1 - B.y0;
@@ -548,6 +546,20 @@ export function Flow({ map: given }: { map: FlowMap }) {
     const v = goal.current;
     aim(hold({ ...v, x: vw / 2 - cx * v.z, y: vh / 2 - cy * v.z }), true);
   }, [aim, hold, vw, vh]);
+
+  if (broken) {
+    return (
+      <div style={{
+        position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', gap: 8, padding: 24,
+      }}>
+        <span style={{ color: T4, fontSize: 13 }}>この盤面は描けませんでした</span>
+        {broken.slice(0, 3).map((d, i) => (
+          <span key={i} style={{ color: MUTE, fontSize: 11.5 }}>{d}</span>
+        ))}
+      </div>
+    );
+  }
 
   return (
     /* 盤面は中身の領域いっぱい。**外の計算から切り離す** */

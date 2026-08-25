@@ -216,7 +216,14 @@ export type Lane = {
  *   ・済んだフェーズが2つ以上続いたら1枚に畳む（フェーズ 1〜3 · 完了）
  *   ・列と段の番号だけ持つ。ピクセルは画面側が決める
  */
-export type MapPhase = { name: string; kind: 'done' | 'now' | 'wait'; pct?: number };
+export type MapPhase = {
+  name: string; kind: 'done' | 'now' | 'wait'; pct?: number;
+  /**
+   * **元のフェーズ番号**（畳んだ範囲）。畳むと列と番号がずれるので、番号のほうを持つ。
+   * `[3, 3]` なら「フェーズ 3」、`[1, 3]` なら「フェーズ 1〜3」。
+   */
+  span?: [number, number];
+};
 
 export type MapWork = {
   id: string; title: string;
