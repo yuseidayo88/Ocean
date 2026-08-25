@@ -3,7 +3,10 @@ import { FakeProvider } from '@/lib/ai/fake';
 import { execPref, staffPref } from '@/lib/exec/pref';
 import { personaOf } from '@/lib/roster';
 import { store, type LiveWork } from '@/lib/store';
-import { RUN_TOOLS } from './tools';
+import { RUN_TOOLS, drawWorkflow } from './tools';
+import { checkWorkflow, fatalOf, packDoc, toWorkflow } from '@/lib/diagram/parse';
+import { sayDiags, type Diag } from '@/lib/diagram/check';
+import type { Workflow } from '@/lib/diagram/types';
 
 /**
  * AI社員が1タスクを最後まで走る（Phase 7）。
@@ -101,7 +104,8 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
       '',
       '道具の使い方:',
       '1. log_step で作業の区切りを3〜6回記録する（progress は正直に）',
-      '2. write_deliverable で成果物を1つ書く',
+      '2. 成果物を1つ書く — 文章なら write_deliverable、'
+      + '**手順や承認の流れなら draw_workflow で図にする**（どちらか一方）',
       '3. 事業の判断（価格・対象など）に当たったら ask_decision で止まる',
       '4. 次も効く学びがあれば note_learning で1行だけ書き残す（任意）',
       '5. 最後に finish。**文章では答えない** — すべて道具で',
@@ -143,6 +147,9 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
       ].join('\n'),
     }];
 
+    /** 図の下書き（道具から来た生の値）。**通ってから成果物にする** */
+    let drawn: Record<string, unknown> | null = null;
+
     for await (const c of pick().stream({
       tier: 'standard', model: pref.model, effort: pref.effort,
       system, messages, tools: RUN_TOOLS, maxTokens: 8000,
@@ -164,6 +171,8 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
           await s.addStep(runId, {
             seq: ++seq, kind: 'tool_use', tool: 'write_deliverable', summary: `${wrote} を書いた`,
           });
+        } else if (c.name === 'draw_workflow') {
+          drawn = a;                          // 検証してから成果物にする（往復の外で）
         } else if (c.name === 'ask_decision') {
           decision = {
             question: String(a.question ?? '判断してください'),
@@ -196,6 +205,44 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
       await s.finishRun(runId, { status: 'done', tokensIn: usage.in, tokensOut: usage.out, costCents, model: usedModel });
       await s.markDecision(taskId, decision);
       return { ok: 'decision', question: decision.question };
+    }
+
+    /**
+     * **図は、検証を通ってから成果物になる**（archify の validate → deliver と同じ順）。
+     * 絵が壊れる診断（線の先がいない・同じ場所に2つ…）が出たら、
+     * **何が悪いかを渡して、もう一度だけ**描いてもらう。それでも壊れているなら、
+     * 通らなかったと正直に言う（壊れた図を成果物にしない）。
+     * 読みにくいだけの診断は、直らなかったこととして成果物に残す。
+     */
+    if (drawn) {
+      let wf = toWorkflow(drawn);
+      let diags = checkWorkflow(wf);
+      if (fatalOf(diags).length) {
+        const again = await redraw(pick(), system, messages, wf, diags, pref, usage);
+        if (again) { wf = again; diags = checkWorkflow(wf); }
+      }
+      const fatal = fatalOf(diags);
+      if (fatal.length) {
+        const why = `図が通りませんでした — ${fatal[0].rule}`;
+        await s.finishRun(runId, {
+          status: 'failed', tokensIn: usage.in, tokensOut: usage.out,
+          costCents: Math.round(billedCostUsd('standard', usage.in, usage.out, pref.model) * 100),
+          model: usedModel, error: why,
+        });
+        await s.addNotification({
+          kind: 'エラー', body: `${task.title} — ${why}`, subjectType: 'task', subjectId: taskId,
+        });
+        return { ok: false, error: why };
+      }
+      wrote = wf.meta.title;
+      bodyText = wf.meta.title;                 // 統括AIのレビューは題だけ見る（図に本文は無い）
+      await s.addDeliverable({
+        workId: work.id, taskId, employeeId: task.ownerId,
+        title: wrote, kind: 'diagram', body: packDoc(wf, diags),
+      });
+      await s.addStep(runId, {
+        seq: ++seq, kind: 'tool_use', tool: 'draw_workflow', summary: `${wrote} を描いた`,
+      });
     }
 
     if (!wrote && !finished) {
@@ -263,3 +310,40 @@ const clamp = (v: unknown) => {
   const n = Number(v);
   return Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : undefined;
 };
+
+/**
+ * 図を1回だけ描き直してもらう。**道具は `draw_workflow` 1つだけ渡す** —
+ * 「必ず使え」と書くだけでは守られないので、道具を1つに絞る
+ * （→ CLAUDE.md「push の往復はその道具しか渡さない」）。
+ *
+ * 直すのは**診断が指したところだけ**（archify の「診断された対象だけ直す」）。
+ */
+async function redraw(
+  p: ModelProvider, system: string, messages: Msg[],
+  wf: Workflow, diags: Diag[], pref: { model?: string; effort?: string },
+  usage: { in: number; out: number },
+): Promise<Workflow | null> {
+  const ask: Msg[] = [...messages, {
+    role: 'user',
+    content: [
+      'いま描いた図に、絵が壊れるところがありました。',
+      sayDiags(diags),
+      '',
+      '**指されたところだけ**直して、draw_workflow をもう一度呼んでください。',
+      'ほかは変えないでください。',
+      '',
+      `いまの図: ${JSON.stringify({ ...wf, meta: wf.meta })}`,
+    ].join('\n'),
+  }];
+  let got: Record<string, unknown> | null = null;
+  try {
+    for await (const c of p.stream({
+      tier: 'standard', model: pref.model, effort: pref.effort as never,
+      system, messages: ask, tools: [drawWorkflow], toolChoice: 'required', maxTokens: 6000,
+    })) {
+      if (c.type === 'tool_use' && c.name === 'draw_workflow') got = (c.input ?? {}) as Record<string, unknown>;
+      if (c.type === 'done') { usage.in += c.usage.inputTokens; usage.out += c.usage.outputTokens; }
+    }
+  } catch { return null; }              // 描き直せなかった。呼び元が正直に失敗にする
+  return got ? toWorkflow(got) : null;
+}

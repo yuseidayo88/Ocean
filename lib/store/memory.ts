@@ -1,5 +1,6 @@
 import { AGENT_COLOR, type EmployeeColor } from '@/lib/view/model';
 import { crewFor } from '@/lib/roster';
+import { previewOf } from '@/lib/diagram/parse';
 import { BUILTIN_SKILLS } from '@/lib/roster/skills';
 import { AppError } from '@/lib/errors';
 import type { Hire } from '@/lib/exec/types';
@@ -163,7 +164,9 @@ export const memoryStore: Store = {
     if (prevAt >= 0) live.dels.splice(prevAt, 1);
     live.dels.unshift({
       id: `del-${Date.now().toString(36)}-${d.taskId}`, title: d.title, kind: d.kind,
-      state: '要確認', preview: d.body.replace(/^#.*\n/, '').slice(0, 90), body: d.body,
+      state: '要確認',
+      // **図は主線を書き出しにする**（supabase 版と同じ規則）
+      preview: previewOf(d.body) ?? d.body.replace(/^#.*\n/, '').slice(0, 90), body: d.body,
       by: live.tasks.find((t) => t.id === d.taskId)?.owner, when: 'たった今', taskId: d.taskId,
       version,
     });

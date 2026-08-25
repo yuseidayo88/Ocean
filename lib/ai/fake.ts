@@ -68,6 +68,16 @@ export class FakeProvider implements ModelProvider {
         yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
         return;
       }
+      /**
+       * **図の描き直し**（`lib/run/worker.ts` の `redraw`）。
+       * 1回目はわざと壊してあるので、ここで**指されたところだけ**直した形を返す。
+       * 本物と同じ壊れ方を通さないと、直す仕掛けが動いているか分からない。
+       */
+      if (only === 'draw_workflow') {
+        yield tool('draw_workflow', wfDraw(true));
+        yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
+        return;
+      }
     }
 
     // ══ チャット（道具を全部持っている）══ 先に見る
@@ -135,6 +145,22 @@ async function* fakeRun(input: RunInput): AsyncIterable<Chunk> {
         { label: '両方', description: '確かめる時間が2倍かかる' },
       ],
     });
+    yield { type: 'done', usage: { ...EMPTY_USAGE }, stopReason: 'tool_use' };
+    return;
+  }
+
+  /**
+   * **図を描く道**（archify の形）。1回目は**わざと壊す** — 線の先に居ないノードを指す。
+   * OneFound の検証がそれを見つけて、道具を1つに絞って描き直しを頼む。
+   * 2回目（依頼文に「絵が壊れるところがありました」が入っている）で通る形を返す。
+   * **本物と同じ壊れ方を通さないと、直す仕掛けが動いているか分からない。**
+   */
+  if (/流れ|手順|工程/.test(task)) {
+    yield tool('log_step', { title: '主線を先に決めた', progress: 40 });
+    await wait(600);
+    yield tool('draw_workflow', wfDraw(false));
+    await wait(300);
+    yield tool('finish', { summary: '申込の流れを図にした' });
     yield { type: 'done', usage: { ...EMPTY_USAGE }, stopReason: 'tool_use' };
     return;
   }
@@ -683,6 +709,9 @@ function nextTasks(phase: string) {
     return [
       { title: '収益モデルを比べる', intent: '売切り / 月額 / 回数券の3案。継続率の前提つきで損益を並べる', owner_hint: '戦略担当' },
       { title: '価格の帯を決める', intent: '競合表の価格帯に、決めた対象の支払い意欲を重ねて2案に絞る', owner_hint: '戦略担当' },
+      // **図の道も通す**（draw_workflow → 9つの検査 → 描き直し）。
+      // 決め打ちでも本物と同じ道具・同じ順を踏まないと、この穴は見つからない
+      { title: '申込の流れを描く', intent: '申し込みから受け取りまでの流れを図にする。差し戻しの道も入れる', owner_hint: '企画担当' },
     ];
   }
   if (/プロダクト|MVP/.test(phase)) {
@@ -694,4 +723,40 @@ function nextTasks(phase: string) {
   return [
     { title: `${phase || '次'}の段取りを引く`, intent: 'このフェーズでやることを3件に分けて、順番を決める' },
   ];
+}
+
+/**
+ * 決め打ちの図（archify の形）。**1回目はわざと壊す** — 線の先に居ないノードを指す。
+ * OneFound の9つの検査がそれを見つけ、道具を1つに絞って描き直しを頼み、
+ * 2回目（`fixing`）で通る形になる。
+ */
+function wfDraw(fixing: boolean) {
+  return {
+    title: '申込の流れ',
+    subtitle: '申し込みから受け取りまで',
+    lanes: [
+      { id: 'you', label: 'あなた' },
+      { id: 'ai', label: 'AI社員' },
+    ],
+    phases: [
+      { id: 'p1', label: '受付', fromCol: 0, toCol: 1 },
+      { id: 'p2', label: '制作', fromCol: 2, toCol: 4 },
+    ],
+    nodes: [
+      { id: 'apply', lane: 'you', col: 0, type: 'work', label: '申し込みを受ける' },
+      { id: 'check', lane: 'ai', col: 1, type: 'work', label: '内容を確かめる', sublabel: '不足は差し戻す' },
+      { id: 'decide', lane: 'you', col: 2, type: 'decision', label: '受けるか決める' },
+      { id: 'make', lane: 'ai', col: 3, type: 'work', label: '作って渡す' },
+      { id: 'done', lane: 'you', col: 4, type: 'end', label: '受け取ってもらう' },
+    ],
+    edges: [
+      { from: 'apply', to: 'check', role: 'main' },
+      { from: 'check', to: 'decide', role: 'main' },
+      { from: 'decide', to: 'make', label: '受ける', role: 'main' },
+      { from: 'make', to: 'done', role: 'main' },
+      // **ここが壊れているところ** — `resend` は居ない。直すと 'apply' へ戻る
+      { from: 'check', to: fixing ? 'apply' : 'resend', label: '不足あり', role: 'return' },
+    ],
+    mainPath: ['apply', 'check', 'decide', 'make', 'done'],
+  };
 }

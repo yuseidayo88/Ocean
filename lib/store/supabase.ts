@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { AGENT_COLOR, type EmployeeColor } from '@/lib/view/model';
 import { crewFor } from '@/lib/roster';
+import { previewOf } from '@/lib/diagram/parse';
 import { colorFor, sortCands } from './memory';
 import { BUILTIN_SKILLS } from '@/lib/roster/skills';
 import { AppError } from '@/lib/errors';
@@ -372,8 +373,10 @@ export const supabaseStore: Store = {
 
   async addDeliverable(d) {
     const c = await db();
-    // preview は本文の書き出し（見出し行を飛ばして90文字）
-    const preview = d.body.replace(/^#.*\n/, '').replace(/[#*|>`-]/g, '').trim().slice(0, 90);
+    // preview は本文の書き出し（見出し行を飛ばして90文字）。
+    // **図は主線を書き出しにする** — JSON をそのまま出すと記号の山になる
+    const preview = previewOf(d.body)
+      ?? d.body.replace(/^#.*\n/, '').replace(/[#*|>`-]/g, '').trim().slice(0, 90);
 
     /**
      * 版の配線。**同じ Work で同じタイトル**なら同じ lineage の新しい版にする

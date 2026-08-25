@@ -128,6 +128,23 @@ ok('フェーズが 2 に進んだ', /フェーズ\n2 \/ /.test(next), next.matc
 const done2 = await until((b) => b.includes('フェーズ「戦略」が終わりました'), 40);
 ok('戦略フェーズも走って終わった', done2.includes('フェーズ「戦略」が終わりました'), done2.slice(0, 80));
 
+/**
+ * **図の成果物**（archify の形）。AI社員が `draw_workflow` で描き、
+ * OneFound の9つの検査を通ってから成果物になる。
+ * 決め打ちのプロバイダは**1回目をわざと壊す**ので、
+ * これが出ているなら「検証 → 描き直し → 通った」の輪が回っている。
+ */
+await send('Page.navigate', { url: `${BASE}/deliverables` }); await wait(2500);
+const dels = await text();
+ok('図が成果物になった（主線が書き出しに出る）',
+   dels.includes('申込の流れ') && dels.includes('申し込みを受ける → 内容を確かめる'), dels.slice(0, 160));
+await ev(`[...document.querySelectorAll('button,[role=button],a')].find(b => b.innerText.includes('申込の流れ'))?.click()`);
+const shown = await until((b) => b.includes('受けるか決める'), 15, 600);
+ok('図が絵として描かれる（判断は「あなたが決める」）',
+   shown.includes('受けるか決める') && shown.includes('あなたが決める') && shown.includes('不足あり'),
+   shown.slice(-160));
+ok('壊れた線は残っていない', !shown.includes('resend'), shown.slice(-100));
+
 // ⑤' 学びの輪（note_learning → 社員のメモ → 設定ペイン）と標準スキル
 await send('Page.navigate', { url: `${BASE}/team` }); await wait(2200);
 const team = await text();

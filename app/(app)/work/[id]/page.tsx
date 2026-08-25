@@ -14,6 +14,7 @@ import { getWork } from '@/app/actions/work';
 import { approvePhase, decide, pumpWork, taskDecision, taskSteps } from '@/app/actions/run';
 import type { LiveDecision } from '@/lib/store';
 import { DelActions } from '@/components/live/DelActions';
+import { DelBody } from '@/components/live/DelBody';
 import type { RunStep } from '@/lib/store';
 import { useEffect, useRef, useState } from 'react';
 
@@ -490,10 +491,7 @@ export default function WorkPage() {
               }}>要確認</span>
             )}
           </div>
-          <pre style={{
-            margin: 0, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-            fontSize: 12, lineHeight: '20px', color: T2, whiteSpace: 'pre-wrap',
-          }}>{openDel.body ?? openDel.preview ?? ''}</pre>
+          <DelBody body={openDel.body ?? openDel.preview ?? ''} />
         </div>
         {/* 社長のレビュー。**押すと本当に変わる**（承認 / 差し戻し → 直しタスク） */}
         <DelActions delId={openDel.id} workId={w0id} taskId={openDel.taskId}

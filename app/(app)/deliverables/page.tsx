@@ -8,6 +8,7 @@ import { Centre, Composer, Pane, TopBar } from '@/components/shell/Chrome';
 import { Dot, Icon } from '@/components/ui/Icon';
 import { listDels } from '@/app/actions/run';
 import { DelActions } from '@/components/live/DelActions';
+import { DelBody } from '@/components/live/DelBody';
 import type { LiveDeliverable } from '@/lib/store';
 import { pressable } from '@/lib/a11y';
 import { AMBER, AMBER_T, COMPOSER_H, GREEN, HAIR, MUTE, RAIL, T2, T3, T5 } from '@/lib/design/tokens';
@@ -131,10 +132,7 @@ export default function DeliverablesPage() {
           <span style={{ color: T5, fontSize: 12, display: 'block', paddingTop: 5 }}>
             {top.by ?? 'AI社員'} · {top.workTitle}{(top.version ?? 1) > 1 ? ` · v${top.version}` : ''}
           </span>
-          <pre style={{
-            margin: '16px 0 0', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-            fontSize: 12, lineHeight: '20px', color: T2, whiteSpace: 'pre-wrap',
-          }}>{top.body ?? top.preview ?? ''}</pre>
+          <div style={{ paddingTop: 16 }}><DelBody body={top.body ?? top.preview ?? ''} /></div>
         </div>
         <DelActions delId={top.id} workId={top.workId} taskId={top.taskId}
                     title={top.title} state={top.state} onDone={reload} />

@@ -43,6 +43,98 @@ export const writeDeliverable: ToolDef = {
   },
 };
 
+/**
+ * ワークフローの図。**成果物のもう1つの形**（1タスクに1つ、`write_deliverable` の代わり）。
+ *
+ * 形は archify の IR（→ `lib/diagram/types.ts`）。**座標は書かない** —
+ * 列（`col`）とレーン（`lane`）だけ決めれば、格子が位置を決める。
+ * 出したものは OneFound の中で9つの検査に掛かる（→ `lib/diagram/check.ts`）。
+ * **通らなかったら、何が悪いかを返してもう一度だけ頼む。**
+ */
+export const drawWorkflow: ToolDef = {
+  name: 'draw_workflow',
+  description:
+    '手順・承認の流れ・工程を**図**にする。文章より図のほうが早いときだけ使う。'
+    + '1タスクにつき1回で、write_deliverable の代わりになる（両方は呼ばない）。'
+    + '**主線を1本に決める**（mainPath）。枝はいちばん近い主線のノードから出す。'
+    + 'ノードは12個まで。座標は書かない — lane と col だけ決める。',
+  input_schema: {
+    type: 'object',
+    properties: {
+      title: { type: 'string', description: '4〜20文字の名詞。「申し込みの流れ」のように' },
+      subtitle: { type: 'string', description: '1行の補足。無くてよい' },
+      lanes: {
+        type: 'array',
+        description: '横の帯。誰が／どこでやるかで分ける。1〜4本',
+        items: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', description: '英数字の短い id' },
+            label: { type: 'string', description: 'レーンの名前。短く' },
+            variant: { type: 'string', enum: ['normal', 'exception'], description: '例外の道は exception' },
+          },
+          required: ['id', 'label'],
+        },
+      },
+      phases: {
+        type: 'array',
+        description: '列の範囲に名前を付ける帯。無くてよい',
+        items: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            label: { type: 'string' },
+            fromCol: { type: 'number' },
+            toCol: { type: 'number' },
+          },
+          required: ['id', 'label', 'fromCol', 'toCol'],
+        },
+      },
+      nodes: {
+        type: 'array',
+        description: '**12個まで。** 同じレーンの同じ列に2つ置かない',
+        items: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', description: '英数字の短い id' },
+            lane: { type: 'string', description: 'lanes の id' },
+            col: { type: 'number', description: '何列目か（0 から）' },
+            type: {
+              type: 'string', enum: ['work', 'decision', 'deliverable', 'wait', 'end'],
+              description: 'decision は**社長が決めるところ**（橙になる）',
+            },
+            label: { type: 'string', description: '何をするか。短く' },
+            sublabel: { type: 'string', description: '1行の補足。無くてよい' },
+          },
+          required: ['id', 'lane', 'col', 'type', 'label'],
+        },
+      },
+      edges: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            from: { type: 'string' },
+            to: { type: 'string' },
+            label: { type: 'string', description: '線の上の短い言葉。「承認」「差し戻し」など' },
+            role: {
+              type: 'string', enum: ['main', 'branch', 'async', 'return', 'error'],
+              description: '主線は main。枝は branch。戻りは return',
+            },
+          },
+          required: ['from', 'to'],
+        },
+      },
+      mainPath: {
+        type: 'array',
+        description: '**いちばん通ってほしい道**。2つ以上のノード id を順に。線で繋がっていること',
+        items: { type: 'string' },
+      },
+    },
+    required: ['title', 'lanes', 'nodes', 'edges', 'mainPath'],
+  },
+};
+
 /** 社長の判断が要るとき。勝手に決めずに止まる */
 export const askDecision: ToolDef = {
   name: 'ask_decision',
@@ -106,4 +198,4 @@ export const noteLearning: ToolDef = {
   },
 };
 
-export const RUN_TOOLS: ToolDef[] = [logStep, writeDeliverable, askDecision, noteLearning, finish];
+export const RUN_TOOLS: ToolDef[] = [logStep, writeDeliverable, drawWorkflow, askDecision, noteLearning, finish];
