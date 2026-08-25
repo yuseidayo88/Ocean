@@ -10,7 +10,10 @@ import type { MapChip, MapWork } from '@/lib/view/model';
 /**
  * ワークフロー＝**地図**。横に区切らない。鎖（Work）を格子の上に置いて、
  * 関係は直角に曲がる線で言う（地下鉄の路線図と同じ引き方）。
- *   ・文法は2つだけ — **鎖の中は横の線**（次のフェーズ）/ **枝は縦の線**（新しい Work・成果物）
+ *   ・**会社の幹が1本、左を縦に通る**（2026-08-25。社長が4案から選んだ形）。
+ *     Work はそこから枝分かれする — 「これは1つの会社の地図だ」が一目で出る。
+ *     **Work が1本しか無い会社では引かない**（どこから来てどこへ行く線か言えない）
+ *   ・文法は2つだけ — **鎖の中は横の線**（次のフェーズ）/ **枝は縦の線**（成果物・判断）
  *   ・**済んだフェーズが2つ以上続いたら1枚に畳む**（フェーズ 1〜3 · 完了）。
  *     ノードの形は変えないので、フェーズが増えても鎖の幅が伸びきらない
  *   ・左3pxの色帯は進捗のガントと同じ読み方 — 済＝暗い / いま＝明るい / これから＝点線 /
@@ -119,82 +122,65 @@ type FlowMap = {
 
 /** 盤面のすべて（ノード・線・ラベル）を一度に組む。ミニマップも同じものから描く */
 /**
- * 盤面の姿（見比べ用。**選んだら1つに絞る**）。
- *   `now`  いまの形 — 鎖は横、枝は下
- *   `band` Work ごとに薄い帯を敷く（archify の lanes）
- *   `down` 縦に流す — フェーズが上から下、Work が横に並ぶ
- *   `trunk` 会社の幹を1本左に置き、Work がそこから枝分かれする（地下鉄の路線図）
+ * **幹（会社の背骨）の x。** 格子の上に置く（列0のまん中）ので、
+ * 目分量でずらしていない。Work の鎖は列1から始まる。
  */
-export type Variant = 'now' | 'band' | 'down' | 'trunk';
+const SPINE = COL[0] + NW / 2;
 
-/** 縦に流すときの格子。列＝Work（2列ぶん使う）、段＝フェーズ */
-const DCOL = [56, 254, 452, 650, 848, 1046, 1244, 1442];
-const DROW = [88, 192, 296, 400, 504, 608, 712];
-/** 幹の x（`trunk`）。会社の背骨 */
-const SPINE = 74;
-
-function build(FLOWMAP: FlowMap, v: Variant = 'now') {
+function build(FLOWMAP: FlowMap) {
   /** どの要素も **どの鎖のものか**（`of`）を持つ。押したときに残すものが決まる */
   const nodes: { x: number; y: number; w: number; h: number; kind: Kind; tone?: string;
                  title: string; sub: string; pct?: number; crew?: number; col: number; of: string }[] = [];
   const links: { pts: [number, number][]; faint?: boolean; col: number; of: string[] }[] = [];
-  const labels: { x: number; y: number; col: number; of: string[] }[] = [];
   const names: { x: number; y: number; title: string; status?: string; tone?: string; col: number; of: string }[] = [];
-  const bands: { x: number; y: number; w: number; h: number; of: string }[] = [];
-  /** 社員の球。**姿ごとに置き直さない** — ここで座標まで決めて渡す */
+  /** 社員の球。**描く側で置き直さない** — ここで座標まで決めて渡す */
   const crew: { x: number; y: number; col: number; of: string; colors: string[] }[] = [];
 
+  const ws = FLOWMAP.works;
+  /**
+   * **幹は Work が2本以上のときだけ引く。** 1本しか無い会社に背骨を描いても、
+   * どこから来てどこへ行く線なのか言えない（無いものを在るように描かない）。
+   * 1本のときは鎖を左端から始めて、幹のぶんの余白も作らない。
+   */
+  const many = ws.length > 1;
+  const originCol = many ? 1 : 0;
+  const mid = (w: MapWork) => ROW[w.row] + NH / 2;
+
+  if (many) {
+    // 背骨そのもの。**1本だけ引く**（Work ごとに引くと同じ線が重なる）
+    links.push({ of: ws.map((w) => w.id), col: 0,
+                 pts: [[SPINE, mid(ws[0])], [SPINE, mid(ws[ws.length - 1])]] });
+  }
+
   const byId = new Map<string, MapWork>();
-  for (const w of FLOWMAP.works) byId.set(w.id, w);
-  const lane = (w: MapWork) => Math.floor(w.row / 2);
-  /** Work の左端（`trunk` は幹のぶん右へ寄せる） */
-  const originCol = v === 'trunk' ? 1 : 0;
+  for (const w of ws) byId.set(w.id, w);
 
-  /** フェーズのノードの左上。**姿ごとに置き方が変わるのはここだけ** */
-  const phaseAt = (w: MapWork, i: number) => v === 'down'
-    ? { x: DCOL[lane(w) * 2], y: DROW[i] }
-    : { x: COL[originCol + i], y: ROW[w.row] };
-
-  for (const w of FLOWMAP.works) {
+  for (const w of ws) {
     const fs = w.phases;
-    const head = phaseAt(w, 0);
-    names.push({ x: head.x, y: head.y - 26, title: w.title, status: w.status, tone: w.tone,
+    const x0 = COL[originCol];
+    names.push({ x: x0, y: ROW[w.row] - 26, title: w.title, status: w.status, tone: w.tone,
                  col: originCol, of: w.id });
-    if (v === 'band') {
-      // **チップも帯の中に入れる**（その Work のものなので、外に出ると縁が切れて見える）
-      const hasChip = FLOWMAP.chips.some((c) => c.owner[0] === w.id);
-      bands.push({ x: COL[0] - 18, y: ROW[w.row] - 34, of: w.id,
-                   w: (fs.length - 1) * 198 + NW + 36,
-                   h: (hasChip ? ROW[w.row + 1] + CHIP_H + 20 : ROW[w.row] + NH + 12) - (ROW[w.row] - 34) });
-    }
+    // 幹から、その Work の先頭へ。**水平の1本**（幹との継ぎ目は T になる）
+    if (many) links.push({ of: [w.id], col: originCol, pts: [[SPINE, mid(w)], [x0, mid(w)]] });
+
     fs.forEach((f, i) => {
-      const at = phaseAt(w, i);
+      const x = COL[originCol + i], y = ROW[w.row];
       nodes.push({
-        x: at.x, y: at.y, w: NW, h: NH, kind: f.kind, of: w.id, col: originCol + i,
+        x, y, w: NW, h: NH, kind: f.kind, of: w.id, col: originCol + i,
         title: f.name, pct: f.pct, crew: f.kind === 'now' ? w.crew.length : 0,
         sub: `フェーズ ${f.span && f.span[1] > f.span[0] ? `${f.span[0]}〜${f.span[1]}` : (f.span?.[0] ?? i + 1)} · ${WORD[f.kind]}`,
         tone: w.tone === 'late' && f.kind === 'now' ? 'late' : undefined,
       });
       if (f.kind === 'now' && w.crew.length) {
-        crew.push({ x: at.x + NW - CREW_PAD - CREW / 2, y: at.y + NH / 2,
-                    col: originCol + i, of: w.id, colors: w.crew });
+        crew.push({ x: x + NW - CREW_PAD - CREW / 2, y: y + NH / 2, col: originCol + i, of: w.id, colors: w.crew });
       }
-      if (!i) return;
-      const prev = phaseAt(w, i - 1);
-      links.push({ of: [w.id], col: originCol + i,
-        pts: v === 'down'
-          // 縦に流す: 前のフェーズの下から、次の上へ
-          ? [[at.x + NW / 2, prev.y + NH], [at.x + NW / 2, at.y]]
-          : [[at.x - 22, at.y + NH / 2], [at.x, at.y + NH / 2]] });
+      // 鎖の中は横の線（次のフェーズ）
+      if (i) links.push({ of: [w.id], col: originCol + i,
+                          pts: [[x - 22, y + NH / 2], [x, y + NH / 2]] });
     });
-    // 幹：会社の背骨から、その Work の先頭へ（地下鉄の路線図の引き方）
-    if (v === 'trunk') {
-      links.push({ of: [w.id], col: 0,
-        pts: [[SPINE, ROW[0] + NH / 2], [SPINE, head.y + NH / 2], [head.x, head.y + NH / 2]] });
-    }
   }
 
-  // 成果物と判断は、属するフェーズにぶら下げる
+  // 成果物と判断は、**属するフェーズの真下**にぶら下げる（枝は縦の線）
   const byOwner = new Map<string, typeof FLOWMAP.chips>();
   for (const c of FLOWMAP.chips) {
     const k = `${c.owner[0]}:${c.owner[1]}`;
@@ -203,23 +189,15 @@ function build(FLOWMAP: FlowMap, v: Variant = 'now') {
   for (const [key, cs] of byOwner) {
     const [pid, pi] = key.split(':');
     const p = byId.get(pid)!;
-    const at = phaseAt(p, Number(pi));
+    const col = originCol + Number(pi);
+    const x = COL[col], stem = x + NW / 2;
     cs.forEach((c, i) => {
-      // 縦に流すときは**右へ**、それ以外は**真下へ**
-      const to = v === 'down'
-        ? { x: DCOL[lane(p) * 2 + 1], y: at.y + (NH - CHIP_H) / 2 + i * 66 }
-        : { x: at.x, y: ROW[p.row + 1] + i * 66 };
-      links.push({
-        faint: true, of: [p.id], col: originCol + Number(pi),
-        pts: v === 'down'
-          ? [[at.x + NW, at.y + NH / 2], [to.x, to.y + CHIP_H / 2]]
-          : [[at.x + NW / 2, at.y + NH], [at.x + NW / 2, to.y]],
-      });
-      nodes.push({ x: to.x, y: to.y, w: NW, h: CHIP_H, kind: 'gate',
-                   title: c.title, sub: c.sub, col: originCol + Number(pi), of: p.id });
+      const y = ROW[p.row + 1] + i * 66;
+      links.push({ faint: true, of: [p.id], col, pts: [[stem, ROW[p.row] + NH], [stem, y]] });
+      nodes.push({ x, y, w: NW, h: CHIP_H, kind: 'gate', title: c.title, sub: c.sub, col, of: p.id });
     });
   }
-  return { nodes, links, labels, names, bands, crew };
+  return { nodes, links, names, crew };
 }
 
 const MINI: Record<Kind, string> = {
@@ -231,10 +209,10 @@ function bounds(b: ReturnType<typeof build>) {
   // **線も入れる。** 入れないと、幹のように節の外を通る線が箱から出て切れる
   const lx = b.links.flatMap((l) => l.pts.map((q) => q[0]));
   const ly = b.links.flatMap((l) => l.pts.map((q) => q[1]));
-  const xs = [...b.nodes.map((n) => n.x), ...b.names.map((n) => n.x), ...b.labels.map((l) => l.x - 46), ...lx];
-  const ys = [...b.nodes.map((n) => n.y), ...b.names.map((n) => n.y), ...b.labels.map((l) => l.y - 8), ...ly];
-  const xe = [...b.nodes.map((n) => n.x + n.w), ...b.names.map((n) => n.x + 190), ...b.labels.map((l) => l.x + 46), ...lx];
-  const ye = [...b.nodes.map((n) => n.y + n.h), ...b.names.map((n) => n.y + 18), ...b.labels.map((l) => l.y + 8), ...ly];
+  const xs = [...b.nodes.map((n) => n.x), ...b.names.map((n) => n.x), ...lx];
+  const ys = [...b.nodes.map((n) => n.y), ...b.names.map((n) => n.y), ...ly];
+  const xe = [...b.nodes.map((n) => n.x + n.w), ...b.names.map((n) => n.x + 190), ...lx];
+  const ye = [...b.nodes.map((n) => n.y + n.h), ...b.names.map((n) => n.y + 18), ...ly];
   return { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xe), y1: Math.max(...ye) };
 }
 
@@ -302,27 +280,16 @@ function Mark({ status }: { status?: string }) {
  * そのぶん遅れて「ぎこちない」になる（社員の球を入れてから 3,900 節点ある）。
  * 選んでいる鎖（`of`）が変わったときだけ作り直す。
  */
-const Scene = memo(function Scene({ nodes, links, labels, names, bands, crew, endX, endY, lit, pick }: {
+const Scene = memo(function Scene({ nodes, links, names, crew, endX, endY, lit, pick }: {
   nodes: ReturnType<typeof build>['nodes'];
   links: ReturnType<typeof build>['links'];
-  labels: ReturnType<typeof build>['labels'];
   names: ReturnType<typeof build>['names'];
-  bands: ReturnType<typeof build>['bands'];
   crew: ReturnType<typeof build>['crew'];
   endX: number; endY: number;
   lit: (of: string | string[]) => boolean;
   pick: (of: string) => void;
 }) {
   return (<>
-      {/* Work ごとの帯（`band` の姿だけ）。**面は薄く、枠は持たない** */}
-      {bands.map((b) => (
-        <div key={b.of} style={{
-          position: 'absolute', left: b.x, top: b.y, width: b.w, height: b.h,
-          borderRadius: 16, background: 'rgba(255,255,255,0.018)',
-          opacity: lit(b.of) ? 1 : 0.26, transition: `opacity ${EASE}`, pointerEvents: 'none',
-        }} />
-      ))}
-
       {/* 線は見るだけ。**押せる面をふさがない**（空きを押したら選択が外れる）。
           **中身と同じ寸法**にする（盤面の幅で描くと、真ん中に寄せたぶん右へはみ出す） */}
       <svg width={endX} height={endY} viewBox={`0 0 ${endX} ${endY}`}
@@ -362,14 +329,6 @@ const Scene = memo(function Scene({ nodes, links, labels, names, bands, crew, en
         </span>
       )))}
 
-      {labels.map((l, i) => (
-        <span key={i} style={{
-          position: 'absolute', left: l.x, top: l.y, transform: 'translate(-50%, -50%)',
-          padding: '0 6px', color: T5, fontSize: 10.5, whiteSpace: 'nowrap', background: CANVAS,
-          opacity: lit(l.of) ? 1 : 0.26, transition: `opacity ${EASE}`, pointerEvents: 'none',
-          animation: `flowfade ${IN} ${(0.1 + l.col * STEP).toFixed(3)}s backwards`,
-        }}>新しい Work</span>
-      ))}
   </>);
 });
 
@@ -388,16 +347,14 @@ const SLACK = 0.45;
 
 export function Flow({ map: given }: { map: FlowMap }) {
   /** 盤面の形はデータで決まる。**描き直すたびに組み直さない**（`Scene` の memo が効かなくなる） */
-  /** 見比べ用の姿（`?fx=`）。**選んだら1つに絞って、この分岐は消す** */
-  const [fx] = useParam('fx', 'now');
-  const made = useMemo(() => build(given, fx as Variant), [given, fx]);
+  const made = useMemo(() => build(given), [given]);
   /**
    * **通らない盤面は描かない。** 組み立て（`lib/live/flow.ts`）が9つの検査に掛けていて、
    * 同じ場所に2つ載る・線の先がいない、といったものが残っていたら地図が嘘をつく。
    * 白い画面にはしない — 何が起きたかを1行で言う。
    */
   const broken = given.diags?.length ? given.diags : null;
-  const { nodes, links, labels, names, bands, crew } = made;
+  const { nodes, links, names, crew } = made;
   const B = useMemo(() => bounds(made), [made]);
   const bw = B.x1 - B.x0, bh = B.y1 - B.y0;
 
@@ -621,7 +578,7 @@ export function Flow({ map: given }: { map: FlowMap }) {
              transform: `translate(${eye.x}px, ${eye.y}px) scale(${eye.z})`,
              transformOrigin: '0 0',
            }}>
-        <Scene nodes={nodes} links={links} labels={labels} names={names} bands={bands} crew={crew}
+        <Scene nodes={nodes} links={links} names={names} crew={crew}
                endX={B.x1 + 24} endY={B.y1 + 24} lit={lit} pick={pick} />
       </div>
 
