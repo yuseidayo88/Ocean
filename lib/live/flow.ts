@@ -1,6 +1,5 @@
 import { checkWorkflow } from '@/lib/diagram/check';
 import type { Workflow } from '@/lib/diagram/types';
-import { MAX_NODES } from '@/lib/diagram/types';
 import type { MapChip, MapPhase, MapWork } from '@/lib/view/model';
 import type { LiveWork } from '@/lib/store';
 
@@ -11,36 +10,41 @@ import type { LiveWork } from '@/lib/store';
  * archify 本体（Node の CLI）は動かせないので、**持ち込むのは形と作法**
  * （→ `docs/design/11-diagram.md`）。当てたのは3つ:
  *
- * **① 主線を1本にする。** 前は Work が対等に縦へ積まれていて、
- * 「いまどれを見ればいいか」が盤面のどこにも出ていなかった。
- * **放っておけない順**（判断待ち → 遅れ → 順調。タスク一覧・進捗とまったく同じ規則）の
- * 1本目を主線にして、**いちばん上の段**に置く。
- *
- * **② 枝は、いちばん近い主線のノードから出す。** 前はチップ（判断・要確認）の列を
+ * **① 枝は、いちばん近い主線のノードから出す。** 前はチップ（判断・要確認）の列を
  * `Math.max(nowSeq, 1)` で決めていて、**畳んだあとの列とずれていた** —
  * だから親の真下に落ちず、**線が斜めに出ていた**（この会社の決まりは直角の線）。
  * 畳みをここでやって、チップは**親のフェーズと同じ列**に置く。
  *
- * **③ ノードは12まで。** 超えたら、済んだフェーズを**Work ごと1枚に畳む**。
- * 一目で読めない盤面は、地図として役に立たない。
- *
- * 組んだものは **archify と同じ9つの検査**に掛ける（`lib/diagram/check.ts`）。
+ * **② 組んだものを、成果物の図と同じ9つの検査に掛ける**（`lib/diagram/check.ts`）。
  * **盤面も、通らないものは描かない。**
+ *
+ * **当てなかった作法が2つある**（2026-08-25 に一度入れて、外した）:
+ *
+ * ・**主線を1本にする**（放っておけない順に並べ替え、その鎖を太く引く）。
+ *   3つの理由でやめた — ①**地図の行が動く**（判断に答えると Work が下がって別のが上がる。
+ *   地図でいちばんやってはいけないこと）②「いま何が放っておけないか」は**進捗の答えの1行・
+ *   タスクの判断待ちの帯・通知**がもう言っている（同じことを2回書かない）
+ *   ③線を 1.3 → 1.9 にしただけでは**ほとんど見えない**（見えない印は印ではない）。
+ *   そもそもこの画面が答える問いは「どれが急ぎか」ではなく「**これはどの Work か**」で、
+ *   その答えは**押すと1本だけ残る**仕掛けがすでに持っている
+ *
+ * ・**ノードは12まで。** これは**1枚の図**の作法。地図のほうは、12個に収まらないから
+ *   **拡大縮小とミニマップ**を持っている。予算で強制的に畳むと、社長が見たいものを隠す側に倒れる
+ *
+ * **archify は「当てるもの」ではなく「照らすもの」として効いた** — 作法を物差しに当てたら、
+ * 元の実装が**自分のルール（直角の線）を破っていた**のが2つ出てきた。それがこの直しの本体。
  */
 
 /** 畳んだあとのフェーズ。**元のフェーズ番号は失わない**（フェーズ 1〜3 · 完了） */
 type Folded = MapPhase & { from: number; to: number };
 
-/**
- * 済んだフェーズが**2つ以上続いたら1枚に畳む**。
- * `hard` は予算に当たったとき — **済んだものは全部1枚**にする。
- */
-function fold(ph: MapPhase[], hard = false): Folded[] {
+/** 済んだフェーズが**2つ以上続いたら1枚に畳む**（元からの決めごと） */
+function fold(ph: MapPhase[]): Folded[] {
   const out: Folded[] = [];
   let run: { p: MapPhase; i: number }[] = [];
   const flush = () => {
     if (!run.length) return;
-    if (run.length === 1 && !hard) {
+    if (run.length === 1) {
       const { p, i } = run[0];
       out.push({ ...p, from: i + 1, to: i + 1 });
     } else {
@@ -60,16 +64,9 @@ function fold(ph: MapPhase[], hard = false): Folded[] {
   return out;
 }
 
-/** 放っておけない順。**タスク一覧・進捗と同じ規則**（語彙も順番も揃える） */
-const urgency = (w: LiveWork) =>
-  w.tasks.some((t) => t.state === 'needs_decision') ? 0
-    : (w.dels ?? []).some((d) => d.state === '要確認') ? 1 : 2;
-
 export type Board = {
   works: MapWork[];
   chips: MapChip[];
-  /** 主線（いちばん上の鎖）の Work id。**無いこともある**（Work が1つも無い会社） */
-  main?: string;
   /** 組み立ての診断。**空でないときは盤面を描かない** */
   diags: string[];
 };
@@ -79,21 +76,16 @@ export function buildBoard(
   crewOf: (w: LiveWork) => string[],
   lateOf: (w: LiveWork) => number | undefined,
 ): Board {
-  // ① 主線を先頭に。**同じ urgency なら元の順**（並びが毎回変わらない）
-  const order = active.map((w, i) => ({ w, i }))
-    .sort((a, b) => urgency(a.w) - urgency(b.w) || a.i - b.i)
-    .map((x) => x.w);
-
-  // ③ 12ノードの予算。まずふつうに畳んで、超えたら済んだぶんを1枚にする
-  const count = (hard: boolean) =>
-    order.reduce((n, w) => n + fold(phasesOf(w), hard).length, 0)
-    + order.reduce((n, w) => n + chipsOf(w).length, 0);
-  const hard = count(false) > MAX_NODES;
+  /**
+   * **並べ替えない。** 地図の行が動くと、社長は毎回どこを見ればいいか探し直すことになる。
+   * 「いま何が放っておけないか」は進捗・タスク・通知が言っている。
+   */
+  const order = active;
 
   const works: MapWork[] = [];
   const chips: MapChip[] = [];
   order.forEach((w, i) => {
-    const fs = fold(phasesOf(w), hard);
+    const fs = fold(phasesOf(w));
     const gate = w.tasks.some((t) => t.state === 'needs_decision');
     const late = lateOf(w);
     works.push({
@@ -116,7 +108,7 @@ export function buildBoard(
     }
   });
 
-  return { works, chips, main: order[0]?.id, diags: verify(works, chips) };
+  return { works, chips, diags: verify(works, chips) };
 }
 
 const phasesOf = (w: LiveWork): MapPhase[] => w.phases.map((p) => ({

@@ -36,7 +36,7 @@ export type HomeData = {
   lanes: Lane[];
   idle: { id: string; name: string; color: string }[];
   /** ワークフローの盤面（組み立ては `lib/live/flow.ts`。archify の作法と検査つき） */
-  map: { works: MapWork[]; chips: MapChip[]; main?: string; diags: string[] };
+  map: { works: MapWork[]; chips: MapChip[]; diags: string[] };
   ticks: { x: number; label: string }[];
   todayX: number;
   done: { id: string; title: string; ended: string; phases: number }[];

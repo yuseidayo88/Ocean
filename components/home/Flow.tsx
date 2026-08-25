@@ -116,8 +116,6 @@ function elbow(pts: [number, number][], r = 12) {
 
 type FlowMap = {
   works: MapWork[]; chips: MapChip[];
-  /** 主線（いちばん上の鎖）の Work id。archify の「One obvious main path」 */
-  main?: string;
   /** 組み立ての診断。**空でないときは描かない**（壊れた地図は嘘をつく） */
   diags?: string[];
 };
@@ -127,7 +125,7 @@ function build(FLOWMAP: FlowMap) {
   /** どの要素も **どの鎖のものか**（`of`）を持つ。押したときに残すものが決まる */
   const nodes: { x: number; y: number; w: number; h: number; kind: Kind; tone?: string;
                  title: string; sub: string; pct?: number; crew?: number; col: number; of: string }[] = [];
-  const links: { pts: [number, number][]; faint?: boolean; main?: boolean; col: number; of: string[] }[] = [];
+  const links: { pts: [number, number][]; faint?: boolean; col: number; of: string[] }[] = [];
   const labels: { x: number; y: number; col: number; of: string[] }[] = [];
   const names: { x: number; y: number; title: string; status?: string; tone?: string; col: number; of: string }[] = [];
 
@@ -147,9 +145,7 @@ function build(FLOWMAP: FlowMap) {
         sub: `フェーズ ${f.span && f.span[1] > f.span[0] ? `${f.span[0]}〜${f.span[1]}` : (f.span?.[0] ?? i + 1)} · ${WORD[f.kind]}`,
         tone: w.tone === 'late' && f.kind === 'now' ? 'late' : undefined,
       });
-      // **主線の鎖は太く引く**（色は増やさない — 明るさと太さで言う）。
-      // archify の「主線を1本にする」を、この会社の言葉で描いたもの
-      if (i) links.push({ of: [w.id], col: w.col + i, main: w.id === FLOWMAP.main,
+      if (i) links.push({ of: [w.id], col: w.col + i,
         pts: [[COL[w.col + i] - 22, ROW[w.row] + NH / 2], [COL[w.col + i], ROW[w.row] + NH / 2]] });
     });
   }
@@ -307,8 +303,8 @@ const Scene = memo(function Scene({ nodes, links, labels, names, works, endX, en
       <svg width={endX} height={endY} viewBox={`0 0 ${endX} ${endY}`}
            style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
         {links.map((l, i) => (
-          <path key={i} d={elbow(l.pts)} fill="none" strokeWidth={l.main ? 1.9 : 1.3}
-                stroke={l.faint ? `${FAINT}` : l.main ? '#4A4A4A' : '#333333'} opacity={lit(l.of) ? 1 : 0.26}
+          <path key={i} d={elbow(l.pts)} fill="none" strokeWidth={1.3}
+                stroke={l.faint ? `${FAINT}` : '#333333'} opacity={lit(l.of) ? 1 : 0.26}
                 style={{ transition: `opacity ${EASE}`,
                          animation: `flowfade ${IN} ${(0.02 + l.col * STEP).toFixed(3)}s backwards` }} />
         ))}
