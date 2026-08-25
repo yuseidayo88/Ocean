@@ -14,6 +14,10 @@ const pairs = [
   ['/team',              `${B}/team`,              `${B}/team?open=exec`],
   ['/team?open=all',     `${B}/team?open=all`,     `${B}/team?open=all`],
   ['/team 候補',         `${B}/team`,              `${B}/team?open=d-market-researcher`],
+  // 入口。**器の外にある唯一の画面**（レールも入力欄も無い＝右ペインも無い）。
+  // 戻された理由が出ている姿も測る（1行増えて崩れないか）
+  ['/login',             `${B}/login`,             null],
+  ['/login 理由つき',    `${B}/login?e=provider`,  null],
   ['/deliverables',      `${B}/deliverables`,      null],
   ['/decisions',         `${B}/decisions`,         null],
   ['/skills',            `${B}/skills`,            null],

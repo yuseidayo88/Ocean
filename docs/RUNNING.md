@@ -206,6 +206,23 @@ Secret にすると「隠れていないものを隠れているように見せ�
 **入れたら再デプロイが要る。** `NEXT_PUBLIC_` は焼き込みなので、変数を足しただけでは
 動いているサイトは変わらない。効いたかどうかは `/api/health` の `supabase` で分かる。
 
+### 入口（ログイン）
+
+**パスワードは持たない。** 入り方は2つ — Google か、メールのリンク（マジックリンク）。
+
+| どこ | 何を |
+|---|---|
+| Supabase → Authentication → **URL Configuration** | Site URL にサイトの住所。Redirect URLs に `<住所>/**` |
+| Google Cloud Console → 認証情報 → **OAuth クライアント ID（ウェブ）** | 承認済みリダイレクト URI に **`https://<プロジェクト>.supabase.co/auth/v1/callback`** |
+| Supabase → Authentication → **Providers → Google** | 有効にして、クライアント ID と Secret を貼る |
+
+**Google を有効にする前に押しても、画面は黙らない** — Supabase から
+「有効になっていない」と返ってくるので、入口が日本語1行で言う（`/auth/callback` が
+短い合図に畳む → `components/auth/LoginForm.tsx` の `WHY`）。
+
+`emailRedirectTo` / `redirectTo` は**その画面の住所から組む**ので、
+プレビューの URL でもそのまま動く（Redirect URLs に許してあれば）。
+
 **鍵が入ったら最初に確かめること**（この開発環境からは `openrouter.ai` に出られない）:
 `GET https://openrouter.ai/api/v1/models` で**一覧6枚の slug**
 （`lib/ai/catalog.ts` の `id`。実測で確かめてあるのは `openai/gpt-5.6-luna` だけで、
