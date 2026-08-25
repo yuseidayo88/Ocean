@@ -83,10 +83,14 @@ export function fromDraft(d: DraftWork): PlanView {
     weeks: d.plan.weeks || at,
     rows,
     hires: d.hires.map((h, i) => ({ name: h.displayName, color: COLORS[i % COLORS.length] })),
-    makes: d.plan.deliverables.map((m, i) => {
-      // 成果物がどのフェーズのものかは、順番で割り当てる（統括AIには聞いていない）
-      const per = Math.max(1, Math.ceil(d.plan.deliverables.length / Math.max(1, rows.length)));
-      return [m, `フェーズ${Math.min(rows.length, Math.floor(i / per) + 1)}`] as [string, string];
+    /**
+     * **統括AIが言ったフェーズだけを出す**（2026-08-25）。
+     * 前は順番から割り当てていて、誰も言っていないことを承認の画面に書いていた。
+     * 書いていないもの・名簿に無いフェーズ名は**空にする** — でっち上げない。
+     */
+    makes: d.plan.deliverables.map((m) => {
+      const at = m.phase ? rows.findIndex((r) => r.name === m.phase) : -1;
+      return [m.name, at >= 0 ? `フェーズ${at + 1}` : ''] as [string, string];
     }),
     real: d.real,
     firstTasks: d.plan.firstPhaseTasks.length,

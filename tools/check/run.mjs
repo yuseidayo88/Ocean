@@ -401,6 +401,14 @@ const small = await until((b) => /[1-9]\d?%|要確認/.test(b), 30);
 ok('社員を提案しない計画でも、担当が付いて動く',
    small.includes('調査担当') && /[1-9]\d?%|要確認/.test(small), small.slice(0, 140));
 
+// ⑤' **もう作ってある会話は「作る」と書かない**（カードは id しか持たない）。
+//     前は「作った」がカードの中の state にしかなく、開き直すと作るボタンに戻っていた
+await send('Page.navigate', { url: chatUrl }); await wait(2600);
+const madeCard = await text();
+ok('作ってある会話のカードは「計画を見る」になる',
+   madeCard.includes('計画を見る') && !madeCard.includes('この Work を作る'),
+   madeCard.match(/この Work を作る|計画を見る/g)?.join(' / ') ?? '(どちらも無い)');
+
 // ⑥ 埋まった状態のレイアウト。ダミーを消したので、**ここでしか測れない**
 //    （ホーム4ビューは Work が動いてはじめて絵になる）
 const { scan } = await import('./_probe.mjs');

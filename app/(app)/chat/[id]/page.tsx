@@ -29,6 +29,8 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
       const last = t.messages[t.messages.length - 1];
       first = {
         gone: false, title: t.thread.title, to, messages: t.messages,
+        // **この会話がもう Work を持っているか**（カードが「作る / 見る」を決める）
+        workId: t.thread.workId,
         // 最後が社長の発言なら、返事がまだ来ていない（開いた側が取りに行く）
         waiting: last?.role === 'user',
       };

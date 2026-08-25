@@ -1,10 +1,11 @@
 import { createClient } from '@/lib/supabase/server';
 import { AGENT_COLOR, type EmployeeColor } from '@/lib/view/model';
-import { crewFor } from '@/lib/roster';
+import { byName as rosterByName, crewFor } from '@/lib/roster';
 import { previewOf } from '@/lib/diagram/parse';
 import { colorFor, sortCands } from './memory';
 import { BUILTIN_SKILLS } from '@/lib/roster/skills';
 import { AppError } from '@/lib/errors';
+import { finishNote, finishSay, type Finished } from '@/lib/exec/finish';
 import { STALL_MS, type AgentPref, type ChatMsg, type ChatThread, type Discovery, type DraftWork, type LiveDecision, type LiveWork, type Note, type Profile, type RunStep, type SkillRow, type Store } from './types';
 
 /**
@@ -654,13 +655,58 @@ export const supabaseStore: Store = {
     const next = ph?.find((p) => p.status === 'planned');
     if (!next) {
       await c.from('works').update({ status: 'done', done_at: new Date().toISOString() }).eq('id', workId);
-      await c.from('notifications').insert({ kind: '要確認', subject_type: 'work', subject_id: workId, body: 'Work が終わりました' });
+      /**
+       * **終わりこそ、いちばん言うべきところ**（2026-08-25）。
+       * 前は「Work が終わりました」の1行だけで、何ができたのかも入っていなかった。
+       * 通知には事実を、会話にはその Work を始めたスレッドへ統括AIの報告を置く。
+       * 言葉は `lib/exec/finish.ts` の1か所（双子が同じ文を書く）。
+       */
+      const { data: w } = await c.from('works').select('title').eq('id', workId).maybeSingle();
+      const { data: ds } = await c.from('deliverables')
+        .select('title, status').eq('work_id', workId).neq('status', 'superseded')
+        .order('created_at', { ascending: false });
+      const { data: dec } = await c.from('decisions')
+        .select('question, chosen').eq('work_id', workId).eq('status', 'decided');
+      const f: Finished = {
+        title: (w?.title as string) ?? 'Work',
+        dels: (ds ?? []).map((d) => d.title as string),
+        unseen: (ds ?? []).filter((d) => d.status === 'review').length,
+        decisions: (dec ?? []).map((d) => ({
+          question: d.question as string, chosen: (d.chosen ?? '') as string,
+        })).filter((d) => d.chosen),
+      };
+      await c.from('notifications').insert({
+        kind: '要確認', subject_type: 'work', subject_id: workId, body: finishNote(f),
+      });
+      // 会話は倒れても終わりを止めない（報告は義務だが、状態のほうが先）
+      await (async () => {
+        const th = await threadFor(c, workId, f.title.slice(0, 16));
+        await c.from('chat_messages')
+          .insert({ thread_id: th, role: 'executive', body: finishSay(f), refs: [] });
+        await c.from('chat_threads').update({ last_message_at: new Date().toISOString() }).eq('id', th);
+      })().catch(() => {});
       return null;
     }
     await c.from('phases').update({ status: 'active', started_at: new Date().toISOString() }).eq('id', next.id);
     await c.from('works').update({ current_phase_id: next.id }).eq('id', workId);
 
     if (nextTasks.length) {
+      /**
+       * **要る人がいなければ、ここで採用する**（2026-08-25）。
+       *
+       * 計画のときに提案されるのは、たいてい**最初のフェーズの担当だけ**。
+       * フェーズ3で「企画担当」と書かれても、その人は会社に居ないので、
+       * 前は**先頭の社員に落ちて**いた — 実際、通しで走らせると
+       * MVPの要件も LPの構成も申込の流れも**全部 調査担当**が書いていた。
+       * 画面には担当名が出るので、社長には見分けがつかない。
+       *
+       * 名簿にある名前なら採る（`hireEmployee` は定義ごとに1人なので、
+       * 二度呼んでも増えない）。名簿に無い名前は採らない — 居ない人は作らない。
+       */
+      for (const name of new Set(nextTasks.map((t) => t.ownerHint).filter(Boolean) as string[])) {
+        const def = rosterByName(name);
+        if (def) await supabaseStore.hireEmployee(def.slug, def.name).catch(() => {});
+      }
       // 担当は名前で引き当てる（承認のときと同じ規則）
       const { data: em } = await c.from('employees')
         .select('id, display_name').neq('status', 'retired');

@@ -29,7 +29,13 @@ const TOOL: ToolDef = {
             intent: { type: 'string', description: '何をどこまでやるか。1〜2文' },
             owner_hint: { type: 'string', description: '名簿の「◯◯担当」。ここに無い名前を作らない' },
           },
-          required: ['title', 'intent'],
+          /**
+           * **担当は必ず書かせる**（2026-08-25）。任意にしていたので、
+           * 書かれなかったタスクは**先頭の社員**に落ちていた — 通しで走らせると
+           * 「ローンチの段取り」を調査担当が書いていて、画面にはそう出るのに
+           * 誰も選んでいない。名簿は依頼文に載せてあるので、選べないはずがない。
+           */
+          required: ['title', 'intent', 'owner_hint'],
         },
       },
     },
@@ -61,7 +67,10 @@ export async function draftNextTasks(
       ...(decided.length ? ['', '社長の決定:', ...decided.map((d) => `- ${d.question} → ${d.chosen}`)] : []),
       ...(dels.length ? ['', 'ここまでの成果物:', ...dels.map((d) => `- ${d.title}: ${(d.preview ?? '').slice(0, 120)}`)] : []),
       '',
-      'draft_phase_tasks を1回呼んで、このフェーズのタスクを引いてください。文章では答えないでください。',
+      'draft_phase_tasks を1回呼んで、このフェーズのタスクを引いてください。',
+      '**担当は名簿の「◯◯担当」から必ず選んでください**（居ない人は作らない。'
+      + 'まだ在籍していない担当を選んでよい — そのときは採用されます）。',
+      '文章では答えないでください。',
     ].join('\n'),
   }];
 

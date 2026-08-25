@@ -255,9 +255,11 @@ export default function WorkPage() {
       <Centre>
         <TopBar crumb="Work" title={w.title} onPanel={() => setPane(true)} panelOn={!!openId} right={
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            {/* **終わった Work を「進行中」と言わない**（2026-08-25）。
+                状態の語は6つだけ — 完了 / 遅れ N日 / 進行中 */}
             <Dot color={late ? `${RED}` : GREEN} size={7} />
             <span style={{ color: late ? RED_T : GREEN_T, fontSize: 12 }}>
-              {late ? `遅れ ${w.late}日` : '進行中'}
+              {w.finished ? '完了' : late ? `遅れ ${w.late}日` : '進行中'}
             </span>
           </span>
         } />
@@ -271,10 +273,20 @@ export default function WorkPage() {
           {/* フェーズの承認 — review のあいだだけ出る行動の帯（Phase 9） */}
           {w.phaseGate && <PhaseGate name={w.phaseGate} workId={w0id}
             onDone={() => getWork(id).then((r) => r && setW(fromLive(r)))} />}
+          {/* **確かめていないことを言わない**（2026-08-25）。
+              前は「成果物がすべて揃っています」と書いていたが、
+              できただけで社長は1つも見ていない、ということが実際に起きる */}
           {w.finished && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <Icon name="check" color={GREEN_T} size={15} width={2} />
-              <span style={{ color: GREEN_T }}>この Work は終わりました。成果物がすべて揃っています</span>
+              <span style={{ color: GREEN_T }}>
+                この Work は終わりました — 成果物 {w.dels.length}件
+              </span>
+              {w.unseen > 0 && (
+                <span style={{ color: AMBER_T, fontSize: 13 }}>
+                  まだ見ていないものが {w.unseen}件
+                </span>
+              )}
             </div>
           )}
 

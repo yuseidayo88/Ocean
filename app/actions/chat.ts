@@ -82,9 +82,16 @@ export async function chatMakeWork(
     if (!t) return { ok: false, need: 'error', message: 'このチャットは見つかりませんでした' };
     if (t.thread.workId) return { ok: true, id: t.thread.workId, real: true };
 
-    const goal = [`${w.title}をやりたい`, `終わり: ${w.goal}`,
-                  w.weeks ? `見込み: およそ${w.weeks}週` : ''].filter(Boolean).join('\n');
-    const r = await startWork(goal);
+    /**
+     * **吹き出しに出るのは社長が決めたことだけ**（→ `startWork(goal, ctx)`）。
+     * 前はここが3行を1つに繋いでいたので、Work 画面のゴール行に
+     * 「◯◯をやりたい 終わり: … 見込み: およそ10週」が
+     * **社長の言葉として**出ていた（計画の吹き出しでは直したのに、ここが残っていた）。
+     * 終わりの形と見込みは、統括AIにだけ渡す。
+     */
+    const ctx = [`Work の題: ${w.title}`, w.weeks ? `見込み: およそ${w.weeks}週` : '']
+      .filter(Boolean).join('\n');
+    const r = await startWork(w.goal, ctx);
     if (!r.ok) return r;
     // 取れなかった＝別のタブが先に作った。そちらを指す（2本目を立てない）
     const mine = await s.linkThread(threadId, { workId: r.id });

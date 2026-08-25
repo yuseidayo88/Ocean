@@ -191,8 +191,15 @@ export const draftPlan: ToolDef = {
       },
       deliverables: {
         type: 'array',
-        description: '承認すると作られるもの',
-        items: { type: 'string' },
+        description: '承認すると作られるもの。**どのフェーズで出来るかも書く**（推測させない）',
+        items: {
+          type: 'object',
+          properties: {
+            name: { type: 'string', description: '成果物の名前' },
+            phase: { type: 'string', description: 'どのフェーズで出来るか。上の phases の name と同じ字' },
+          },
+          required: ['name', 'phase'],
+        },
       },
     },
     required: ['weeks', 'phases', 'gates', 'first_phase_tasks', 'deliverables'],

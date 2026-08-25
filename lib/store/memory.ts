@@ -1,5 +1,6 @@
 import { AGENT_COLOR, type EmployeeColor } from '@/lib/view/model';
-import { crewFor } from '@/lib/roster';
+import { byName as rosterByName, crewFor } from '@/lib/roster';
+import { finishNote, finishSay, type Finished } from '@/lib/exec/finish';
 import { previewOf } from '@/lib/diagram/parse';
 import { BUILTIN_SKILLS } from '@/lib/roster/skills';
 import { AppError } from '@/lib/errors';
@@ -486,8 +487,38 @@ export const memoryStore: Store = {
     if (!at) return null;
     at.state = 'done';
     const next = live.phases.find((p) => p.state === 'planned');
-    if (!next) { live.status = 'done'; notes.push({ kind: '要確認', body: `${live.title} が終わりました` }); return null; }
+    if (!next) {
+      // **終わりこそ、いちばん言うべきところ**（supabase 版と同じ文・同じ場所）
+      live.status = 'done';
+      // メモリ版は旧版を持たない（最新版しか配列に無い）ので、そのまま数える
+      const shown = live.dels ?? [];
+      const f: Finished = {
+        title: live.title,
+        dels: shown.map((d) => d.title),
+        unseen: shown.filter((d) => d.state === '要確認').length,
+        decisions: decisions
+          .filter((d) => d.workId === workId && d.status === 'decided' && d.chosen)
+          .map((d) => ({ question: d.question, chosen: d.chosen! })),
+      };
+      notes.push({ kind: '要確認', body: finishNote(f) });
+      const th = await memoryStore.threadForWork(workId).catch(() => null);
+      if (th) await memoryStore.addChat(th, 'executive', finishSay(f)).catch(() => {});
+      return null;
+    }
     next.state = 'active';
+    /**
+     * **要る人がいなければ、ここで採用する**（supabase 版と同じ規則）。
+     * 計画で提案されるのは最初のフェーズの担当だけなので、
+     * 前はフェーズ3以降のタスクが**全部 先頭の社員**に落ちていた。
+     */
+    for (const name of new Set(nextTasks.map((t) => t.ownerHint).filter(Boolean) as string[])) {
+      if (live.crew.some((c) => c.name === name)) continue;
+      const def = rosterByName(name);
+      if (!def) continue;
+      const id = await memoryStore.hireEmployee(def.slug, def.name);
+      const em = staff.find((x) => x.id === id);
+      if (em) live.crew.push({ id: em.id, name: em.name, color: em.color });
+    }
     const crew0 = live.crew[0];
     for (const t of nextTasks) {
       const hire = live.crew.find((c) => c.name === t.ownerHint) ?? crew0;

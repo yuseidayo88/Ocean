@@ -61,6 +61,8 @@ export type WorkView = {
   active?: boolean;
   /** 承認待ちのフェーズ名（review）。あれば画面の上に行動の帯を出す */
   phaseGate?: string;
+  /** まだ社長が見ていない成果物の数 */
+  unseen: number;
   /** Work が終わったか */
   finished?: boolean;
   crew: WorkCrew[];
@@ -83,7 +85,13 @@ const WORD: Record<string, string> = {
 export function fromLive(w: LiveWork): WorkView {
   const done = (id: string) => w.tasks.filter((t) => t.phaseId === id && t.state === 'done').length;
   const all = (id: string) => w.tasks.filter((t) => t.phaseId === id).length;
-  const nowIdx = Math.max(0, w.phases.findIndex((p) => p.state === 'active'));
+  /**
+   * いまどのフェーズか。**終わった Work は最後のフェーズまで来ている**（2026-08-25）。
+   * 前は active を探すだけだったので、全フェーズが done の Work で −1 → 0 に落ち、
+   * 画面が「フェーズ 1 / 4」と出していた（100% なのに1番目、という食い違い）。
+   */
+  const activeIdx = w.phases.findIndex((p) => p.state === 'active' || p.state === 'review');
+  const nowIdx = activeIdx >= 0 ? activeIdx : Math.max(0, w.phases.length - 1);
   const seq = new Map(w.phases.map((p) => [p.id, p.seq]));
 
   return {
@@ -110,6 +118,8 @@ export function fromLive(w: LiveWork): WorkView {
     active: w.status === 'active' && w.tasks.some((t) => t.state === 'queued' || t.state === 'running'),
     phaseGate: w.phases.find((p) => p.state === 'review')?.name,
     finished: w.status === 'done',
+    /** 終わったときに出す事実（**「すべて揃っています」と言い切らない**） */
+    unseen: (w.dels ?? []).filter((d) => d.state === '要確認').length,
     crew: w.crew.map((c) => ({
       id: c.id, name: c.name, color: c.color,
       tasks: w.tasks.filter((t) => t.owner === c.name && t.state !== 'done').length,

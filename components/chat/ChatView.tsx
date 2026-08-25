@@ -74,7 +74,9 @@ function Body({ text }: { text: string }) {
  */
 export type FirstLoad =
   | { gone: true }
-  | { gone: false; title: string; to: string; messages: ChatMsg[]; waiting: boolean };
+  | { gone: false; title: string; to: string; messages: ChatMsg[]; waiting: boolean;
+      /** この会話が持っている Work（1チャット = 1 Work）。カードが「作る / 見る」を決める */
+      workId?: string };
 
 export function ChatView({ id, first }: { id: string; first: FirstLoad }) {
   const router = useRouter();
@@ -105,12 +107,20 @@ export function ChatView({ id, first }: { id: string; first: FirstLoad }) {
   const [box, inner] = useStick<HTMLDivElement, HTMLDivElement>();
   /** 返事を頼んだスレッド。開き直しで二度頼まない */
   const asked = useRef<string | null>(null);
+  /** この会話が持っている Work（1チャット = 1 Work）。カードが「作る / 見る」を決めるのに使う */
+  const [workId, setWorkId] = useState<string | null>(first.gone ? null : first.workId ?? null);
 
   /** 読んだものを画面に写す */
   const apply = useCallback((r: NonNullable<Awaited<ReturnType<typeof threadGet>>>) => {
     setMsgs(r.messages);
     setTitle(r.thread.title);
     const wid = r.thread.workId;
+    /**
+     * **カードは id しか持たない**（→ CLAUDE.md）。この会話がもう Work を持っているかは
+     * スレッドが知っているので、そこから渡す。前は「作った」がカードの中の state だけにあり、
+     * **開き直すと「この Work を作る」に戻っていた** — もう有るのに作ると書いてある。
+     */
+    setWorkId(wid ?? null);
     if (!wid) { setTo(NEW_CHAT); return; }
     chatTargets().then((ws) => setTo(ws.find((w) => w.id === wid)?.title ?? NEW_CHAT));
   }, []);
@@ -197,7 +207,8 @@ export function ChatView({ id, first }: { id: string; first: FirstLoad }) {
               : (
                 <div key={i} style={{ width: '100%', maxWidth: 748, display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {m.body && <Body text={m.body} />}
-                  {m.card && <Card card={m.card} live={i === lastCard} threadId={id} onSend={send} />}
+                  {m.card && <Card card={m.card} live={i === lastCard} threadId={id}
+                                    workId={workId} onSend={send} />}
                 </div>
               )
           ))}

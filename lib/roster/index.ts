@@ -94,6 +94,16 @@ const ALIAS: Record<string, string> = { 'revenue-strategist': 'business-strategi
  */
 export const slugOf = (definitionId: string): string => ALIAS[definitionId] ?? definitionId;
 
+/**
+ * 名前（「◯◯担当」）から定義を引く。**採用は定義で採る**ので、
+ * 統括AIが書いた担当名を在籍に変えるときの入口になる。
+ * 名簿に無い名前は undefined（居ない人をでっち上げない）。
+ */
+export function byName(name: string): Definition | undefined {
+  const want = (name ?? '').trim();
+  return ROSTER.find((d) => d.name === want || d.en === want);
+}
+
 export function definitionOf(slug: string): Definition | undefined {
   return ROSTER.find((d) => d.slug === slugOf(slug));
 }

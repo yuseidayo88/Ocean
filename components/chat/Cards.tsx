@@ -29,12 +29,13 @@ const HEAD: React.CSSProperties = {
   display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px 0', color: T3, fontSize: 12.5,
 };
 
-export function Card({ card, live, threadId, onSend }:
-  { card: ChatCard; live: boolean; threadId: string; onSend: (text: string) => void }) {
+export function Card({ card, live, threadId, workId, onSend }:
+  { card: ChatCard; live: boolean; threadId: string; workId?: string | null;
+    onSend: (text: string) => void }) {
   if (card.kind === 'ask') return <AskCard card={card} live={live} onSend={onSend} />;
   if (card.kind === 'candidates') return <CandidatesCard id={card.sessionId} live={live} threadId={threadId} onSend={onSend} />;
   if (card.kind === 'diagnosis') return <DiagnosisCard id={card.profileId} live={live} threadId={threadId} />;
-  return <WorkCard card={card} live={live} threadId={threadId} />;
+  return <WorkCard card={card} live={live} threadId={threadId} workId={workId} />;
 }
 
 /* ══════════════ 質問（選択肢） ══════════════ */
@@ -470,12 +471,19 @@ function DiagnosisCard({ id, live, threadId }: { id: string; live: boolean; thre
  * **Work は確認してから作る。** 会話しただけで Work が増えない、が守りたいこと。
  * 断ってもいい — そのまま会話が続く（断ったことは会話に残る）。
  */
-function WorkCard({ card, live, threadId }:
-  { card: Extract<ChatCard, { kind: 'work' }>; live: boolean; threadId: string }) {
+function WorkCard({ card, live, threadId, workId }:
+  { card: Extract<ChatCard, { kind: 'work' }>; live: boolean; threadId: string;
+    workId?: string | null }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [fail, setFail] = useState('');
-  const [made, setMade] = useState<string | null>(null);
+  /**
+   * **もう作ってあるなら「作る」と書かない。**
+   * 前は作ったことがこの部品の state にしか無く、開き直すと
+   * 「この Work を作る」に戻っていた（押しても二度は作られないが、画面が嘘をつく）。
+   * いまはスレッドが持っている Work を親から受け取る（→ CLAUDE.md「カードは id しか持たない」）。
+   */
+  const [made, setMade] = useState<string | null>(workId ?? null);
 
   const [end, setEnd] = useState<{ body: string; options: { label: string; description: string }[] } | null>(null);
 

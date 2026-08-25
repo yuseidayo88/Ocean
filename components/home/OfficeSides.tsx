@@ -31,7 +31,13 @@ const Mono = ({ t, c = DIM }: { t: string; c?: string }) => (
 
 // ── 右: 今日の出来事 ─────────────────────────────────────────
 
-export function OfficeLog({ events, w = 288 }: { events: Event[]; w?: number }) {
+/**
+ * 右＝ログ。**「稼働中」は、本当に動いている社員がいるときだけ**（2026-08-25）。
+ * 前は常に緑の点が出ていたので、Work が全部終わった会社でも稼働中と言っていた。
+ * 状態の語は6つだけなので、動いていないときは「待機」。
+ */
+export function OfficeLog({ events, running = 0, w = 288 }: { events: Event[]; running?: number; w?: number }) {
+  const live = running > 0;
   return (
     <div style={{
       width: w, flexShrink: 0, display: 'flex', flexDirection: 'column',
@@ -41,7 +47,8 @@ export function OfficeLog({ events, w = 288 }: { events: Event[]; w?: number }) 
         <span style={{ color: T5, fontSize: 11 }}>ログ</span>
         <div style={{ flex: 1 }} />
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: T5, fontSize: 10.5 }}>
-          <span style={{ width: 5, height: 5, borderRadius: 9, background: GREEN }} />稼働中
+          <span style={{ width: 5, height: 5, borderRadius: 9, background: live ? GREEN : MUTE }} />
+          {live ? '稼働中' : '待機'}
         </span>
       </div>
       <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>

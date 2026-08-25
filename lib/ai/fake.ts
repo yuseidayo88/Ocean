@@ -287,7 +287,10 @@ function plan(goal: string) {
         { title: '参考を集める', intent: '同じ業種の事例を10件集めて、方向を3つに分ける', owner_hint: '商品設計担当' },
         { title: '案を3つ出す', intent: '方向の違う案を3つ。それぞれ選ぶ理由を1行で', owner_hint: 'デザイン制作担当' },
       ],
-      deliverables: ['案の比較', '仕上がったもの'],
+      deliverables: [
+        { name: '案の比較', phase: '案出し' },
+        { name: '仕上がったもの', phase: '仕上げ' },
+      ],
     };
   }
   return {
@@ -307,7 +310,14 @@ function plan(goal: string) {
       { title: '市場の大きさを出す', intent: '上から（統計）と下から（単価×人数）の2通り。3倍以上ずれたら前提の違いを書く', owner_hint: '調査担当' },
       { title: '対象を1つに絞る', intent: '調査をもとに、誰のどの困りごとに絞るかを1文で', owner_hint: '調査担当' },
     ],
-    deliverables: ['競合表', '市場規模の推計', '対象の定義', '収益モデル比較', '価格表', 'MVPの要件'],
+    deliverables: [
+      { name: '競合表', phase: '調査' },
+      { name: '市場規模の推計', phase: '調査' },
+      { name: '対象の定義', phase: '調査' },
+      { name: '収益モデル比較', phase: '戦略' },
+      { name: '価格表', phase: '戦略' },
+      { name: 'MVPの要件', phase: 'プロダクト' },
+    ],
   };
 }
 
@@ -721,7 +731,9 @@ function nextTasks(phase: string) {
     ];
   }
   return [
-    { title: `${phase || '次'}の段取りを引く`, intent: 'このフェーズでやることを3件に分けて、順番を決める' },
+    // **担当は必ず書く**（本物も required。書かないと先頭の社員に落ちる、を作らない）
+    { title: `${phase || '次'}の段取りを引く`, intent: 'このフェーズでやることを3件に分けて、順番を決める',
+      owner_hint: '企画担当' },
   ];
 }
 

@@ -204,5 +204,13 @@ const toPlan = (r?: Record<string, unknown>): Plan => ({
   firstPhaseTasks: ((r?.first_phase_tasks as Record<string, string>[]) ?? [])
     .map((t) => ({ title: String(t?.title ?? ''), intent: String(t?.intent ?? ''), ownerHint: String(t?.owner_hint ?? '') }))
     .filter((t) => t.title),
-  deliverables: (r?.deliverables as string[]) ?? [],
+  /**
+   * **古い控えは名前だけの配列**（`['競合表', …]`）。読めなくしない。
+   * 新しい形は `{ name, phase }` で、どのフェーズで出来るかを統括AIが書く。
+   */
+  deliverables: ((r?.deliverables as (string | Record<string, unknown>)[]) ?? [])
+    .map((m) => (typeof m === 'string'
+      ? { name: m }
+      : { name: String(m?.name ?? ''), phase: m?.phase ? String(m.phase) : undefined }))
+    .filter((m) => m.name),
 });

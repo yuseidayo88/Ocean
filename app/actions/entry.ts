@@ -104,9 +104,11 @@ export async function findingToWork(
     if (!p || !f) return { ok: false, need: 'error', message: 'その診断は見つかりませんでした' };
     // もう立てたものは二度立てない（候補の adopted_work_id と同じ守り）
     if (f.workId) return { ok: true, id: f.workId, real: p.diagnosis?.real ?? true };
-    const goal = [`${f.work.title}をやりたい`, `終わり: ${ending || f.work.goal}`].join('\n');
-    /** 診断の中身は統括AIにだけ渡す（吹き出しは社長が決めたことだけ） */
+    // **吹き出しは1文**（`終わり:` を繋がない → `app/actions/chat.ts` と同じ規則）
+    const goal = `${f.work.title}をやりたい`;
+    /** 終わりの形も診断の中身も、統括AIにだけ渡す（吹き出しは社長が決めたことだけ） */
     const ctx = [
+      `終わり: ${ending || f.work.goal}`,
       `いまの事業: ${p.name}`,
       `見つかったこと: ${f.title}（${f.why}）`,
       ...(f.evidence.length ? [`根拠: ${f.evidence.join(' / ')}`] : []),

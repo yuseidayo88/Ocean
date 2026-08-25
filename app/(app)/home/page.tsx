@@ -38,7 +38,7 @@ function OfficeView({ data }: { data: HomeData }) {
         <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
           <Office works={data.works} lit={lit} onHover={setLit} />
         </div>
-        <OfficeLog events={data.events} />
+        <OfficeLog events={data.events} running={data.staff.filter((x) => x.state === '実行中').length} />
       </div>
       <div style={{ flexShrink: 0, marginBottom: COMPOSER_H }}>
         <OfficeTeam staff={data.staff} works={data.works.length} gates={data.gates}
