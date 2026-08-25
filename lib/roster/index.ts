@@ -110,3 +110,63 @@ export function personaOf(slug: string, displayName: string): string {
     ...d.rules.map((r) => `- ${r}`),
   ].join('\n');
 }
+
+/**
+ * 統括AIに渡す名簿。**採用も担当も、必ずこの中から選ばせる。**
+ *
+ * 前はこれを渡していなかった。道具の説明には「agency-agents のカタログ ID」と
+ * 書いてあったが、**その一覧をモデルは一度も見ていない**ので、
+ * `propose_hires` は空で返り、`owner_hint` には「商品設計担当」「デザイン制作担当」
+ * のような**この会社に存在しない名前**が書かれた。
+ * その結果、承認しても誰も採用されず、担当のいないタスクだけが残り、
+ * **本番の最初の実行が2本とも失敗した**（2026-08-25 に実キーで踏んだ）。
+ *
+ * `hired` はいまの在籍。**もう居る人をもう一度採らせない**ために渡す。
+ */
+export function rosterBlock(hired: { slug: string; name: string }[] = []): string {
+  const now = hired.length
+    ? hired.map((h) => h.name).join('・')
+    : 'まだ誰もいません（この Work で採用します）';
+  return [
+    '## この会社で雇えるAI社員（この7人がすべて）',
+    ...ROSTER.map((d) => `- \`${d.slug}\` ${d.name} — ${d.mission}`),
+    '',
+    `在籍: ${now}`,
+    '',
+    '**採用も担当も、必ずこの一覧の名前で書きます。**',
+    'ここに無い名前（「商品設計担当」「デザイン制作担当」など）を作りません。',
+    'ぴったりの人がいなければ、いちばん近い人に寄せます。',
+    '**最初のフェーズのタスクの担当は、在籍していなければ必ず採用に挙げます** —',
+    '担当のいないタスクは誰も実行できません。',
+  ].join('\n');
+}
+
+/**
+ * 計画から**実際に採用する人**を決める。
+ *
+ * **`hires` だけを見ない。** 統括AIが `hires` を空で返しても、
+ * タスクの担当名（`ownerHint`）に名前が書いてあるなら、その人を採る。
+ * 本番でこれが起きた — `hires: []` ＋ 名簿に無い担当名で、
+ * **承認しても誰も採用されず、担当のいないタスクだけが残った**（2026-08-25）。
+ *
+ * 名簿に無い ID・名前は**落とす**（架空の社員を作らない）。
+ * 1人も残らなかったら**調査担当**にする — 最初のフェーズは、たいてい調べることから始まる。
+ * 担当のいないタスクを作るより、誰かが着手できるほうがいい。
+ */
+export function crewFor(
+  hires: { definitionId: string; displayName: string }[],
+  ownerHints: (string | undefined)[] = [],
+): { definitionId: string; displayName: string }[] {
+  const picked = new Map<string, Definition>();
+  const take = (d?: Definition) => { if (d && !picked.has(d.slug)) picked.set(d.slug, d); };
+
+  for (const h of hires) {
+    // id で引く → 通らなければ表示名で引く（片方だけ合っていることがある）
+    take(definitionOf(h.definitionId) ?? ROSTER.find((d) => d.name === h.displayName));
+  }
+  for (const name of ownerHints) {
+    if (name) take(ROSTER.find((d) => d.name === name));
+  }
+  if (!picked.size) take(ROSTER[0]);
+  return [...picked.values()].map((d) => ({ definitionId: d.slug, displayName: d.name }));
+}

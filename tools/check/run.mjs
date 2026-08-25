@@ -333,6 +333,24 @@ ok('新しいチャットからでも返事が来る',
    fromNew.includes('（仮の返事）') && /^\/chat\/(?!new)/.test(await ev('location.pathname')),
    await ev('location.pathname'));
 
+/**
+ * **社員を1人も提案しない計画**（本番で実際に来た形）。統括AIが `hires: []` を返し、
+ * 担当に「商品設計担当」「デザイン制作担当」という**この会社に居ない名前**を書く。
+ * 前はそのまま承認でき、誰も採用されず、担当のいないタスクが走って失敗した。
+ * いまは**タスクの担当名から採り、名簿に無い名前は落として調査担当に寄せる**。
+ */
+await until((b) => b.includes('この Work を作る'), 20, 800);
+await ev(`[...document.querySelectorAll('button')].find(b => b.innerText === 'この Work を作る')?.click()`);
+await until((b) => b.includes('承認して始める'), 20, 800);
+const smallPlan = await text();
+ok('居ない担当名を計画に残さない', !smallPlan.includes('商品設計担当') && !smallPlan.includes('デザイン制作担当'),
+   smallPlan.slice(0, 120));
+await ev(`[...document.querySelectorAll('button')].find(b => b.textContent.includes('承認して始める'))?.click()`);
+await wait(3500);
+const small = await until((b) => /[1-9]\d?%|要確認/.test(b), 30);
+ok('社員を提案しない計画でも、担当が付いて動く',
+   small.includes('調査担当') && /[1-9]\d?%|要確認/.test(small), small.slice(0, 140));
+
 // ⑥ 埋まった状態のレイアウト。ダミーを消したので、**ここでしか測れない**
 //    （ホーム4ビューは Work が動いてはじめて絵になる）
 const { scan } = await import('./_probe.mjs');

@@ -496,7 +496,8 @@ export default function WorkPage() {
           }}>{openDel.body ?? openDel.preview ?? ''}</pre>
         </div>
         {/* 社長のレビュー。**押すと本当に変わる**（承認 / 差し戻し → 直しタスク） */}
-        <DelActions delId={openDel.id} workId={w0id} title={openDel.title} state={openDel.state}
+        <DelActions delId={openDel.id} workId={w0id} taskId={openDel.taskId}
+                    title={openDel.title} state={openDel.state}
                     onDone={() => { getWork(id).then((r) => r && setW(fromLive(r))); }} />
       </Pane>
       )}

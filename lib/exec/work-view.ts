@@ -33,6 +33,12 @@ export type WorkDel = {
   preview?: string;
   /** 本文（markdown）。右ペインで開く */
   body?: string;
+  /**
+   * 出したタスク。**差し戻しの直しタスクを、同じ担当に積むために要る。**
+   * 前はここで落としていたので、直しタスクが「担当は未定」で生まれ、
+   * 誰の頭も載らないまま走っていた（→ `addFixTask`）。
+   */
+  taskId?: string;
 };
 
 export type WorkView = {
@@ -97,7 +103,7 @@ export function fromLive(w: LiveWork): WorkView {
     })),
     dels: (w.dels ?? []).map((d) => ({
       id: d.id, title: d.title, byName: d.by ?? 'AI社員', when: d.when, state: d.state,
-      preview: d.preview, body: d.body,
+      preview: d.preview, body: d.body, taskId: d.taskId,
     })),
     decs: [],
     live: true,

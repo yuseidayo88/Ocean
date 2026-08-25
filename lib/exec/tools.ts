@@ -110,7 +110,9 @@ export const ask: ToolDef = {
 export const proposeHires: ToolDef = {
   name: 'propose_hires',
   description:
-    'この Work に要るAI社員を挙げる。いる社員で足りるなら空で返す。'
+    'この Work に要るAI社員を挙げる。**名簿にある7人からだけ選ぶ。**'
+    + 'すでに在籍している人で足りるなら空でよいが、**最初のフェーズのタスクの担当は'
+    + '在籍していなければ必ずここに挙げる**（担当のいないタスクは誰も実行できない）。'
     + '「念のため」で増やさない。フェーズのどこで要るかを必ず書く。',
   input_schema: {
     type: 'object',
@@ -120,8 +122,8 @@ export const proposeHires: ToolDef = {
         items: {
           type: 'object',
           properties: {
-            definition_id: { type: 'string', description: 'agency-agents のカタログ ID' },
-            display_name: { type: 'string', description: '「◯◯担当」の4文字' },
+            definition_id: { type: 'string', description: '名簿の definition_id。ここに無い ID を作らない' },
+            display_name: { type: 'string', description: '名簿の「◯◯担当」。ここに無い名前を作らない' },
             why: { type: 'string', description: 'なぜ要るか。1文' },
             for_phase: { type: 'string', description: 'どのフェーズで要るか' },
           },
@@ -178,7 +180,7 @@ export const draftPlan: ToolDef = {
           properties: {
             title: { type: 'string' },
             intent: { type: 'string', description: '社員に渡す依頼文。画面には出さない' },
-            owner_hint: { type: 'string', description: '誰にやらせるか（表示名）' },
+            owner_hint: { type: 'string', description: '名簿の「◯◯担当」。ここに無い名前を作らない' },
           },
           required: ['title', 'intent', 'owner_hint'],
         },

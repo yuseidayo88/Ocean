@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { AGENT_COLOR, type EmployeeColor } from '@/lib/view/model';
+import { crewFor } from '@/lib/roster';
 import { colorFor, sortCands } from './memory';
 import { BUILTIN_SKILLS } from '@/lib/roster/skills';
 import { AppError } from '@/lib/errors';
@@ -154,7 +155,12 @@ export const supabaseStore: Store = {
 
     // ① 提案した社員を採用する（employees に `proposed` は無い。採用＝ここで1行できる）。
     //    **同じ定義の社員を2人にしない** — Work ごとに採用すると 調査担当 が何人もできる
-    const hires = d?.hires ?? [];
+    /**
+     * **`hires` だけを見ない**（2026-08-25）。統括AIが空で返しても、
+     * タスクの担当名から採る。名簿に無い名前は落とす（→ `lib/roster` の `crewFor`）。
+     * 本番の最初の Work がこれで「誰も採用されないまま承認された」。
+     */
+    const hires = crewFor(d?.hires ?? [], (d?.plan.firstPhaseTasks ?? []).map((t) => t.ownerHint));
     let crew: Crew[] = [];
     if (hires.length) {
       const { data: had } = await c
@@ -429,7 +435,13 @@ export const supabaseStore: Store = {
      */
     const { data: off } = await c.from('agent_prefs').select('employee_id').eq('paused', true);
     const stopped = new Set((off ?? []).map((e) => e.employee_id as string));
-    const next = tk.find((t) => !(t.assignee_employee_id && stopped.has(t.assignee_employee_id as string)));
+    /**
+     * **担当のいないタスクは拾わない**（2026-08-25）。誰の頭も載らないまま走らせると、
+     * モデルは成果物を書かずに終わり、タスクが blocked になるだけ — お金だけ減る
+     * （本番の最初の Work が実際にそうなった）。承認とフェーズ送りが必ず担当を埋めるので、
+     * ここは最後の砦。
+     */
+    const next = tk.find((t) => t.assignee_employee_id && !stopped.has(t.assignee_employee_id as string));
     return next ? { taskId: next.id as string } : null;
   },
 
@@ -540,13 +552,27 @@ export const supabaseStore: Store = {
       : { data: null };
     const { data: seqRow } = await c.from('tasks').select('seq').eq('work_id', workId)
       .order('seq', { ascending: false }).limit(1).maybeSingle();
+    /**
+     * **担当のいない直しタスクを作らない。** 元のタスクが辿れないときは、
+     * この Work で動いている誰かに落とす（承認・フェーズ送りと同じ規則）。
+     * 前はここが null のまま生まれ、誰の頭も載らないまま走っていた。
+     */
+    let who = from?.assignee_employee_id as string | null | undefined;
+    let hint = from?.owner_hint as string | null | undefined;
+    if (!who) {
+      const { data: any1 } = await c.from('tasks')
+        .select('assignee_employee_id, owner_hint').eq('work_id', workId)
+        .not('assignee_employee_id', 'is', null).limit(1).maybeSingle();
+      who = any1?.assignee_employee_id as string | undefined;
+      hint = hint ?? (any1?.owner_hint as string | undefined);
+    }
     const { error } = await c.from('tasks').insert({
       work_id: workId, phase_id: from?.phase_id ?? null, seq: (seqRow?.seq ?? 0) + 1,
       title: `${src.title} を直す`, intent: `社長の指摘: ${note}`,
       status: 'queued', created_by: 'user',
-      assignee_type: from?.assignee_type ?? 'user',
-      assignee_employee_id: from?.assignee_employee_id ?? null,
-      owner_hint: from?.owner_hint ?? null,
+      assignee_type: who ? 'employee' : 'user',
+      assignee_employee_id: who ?? null,
+      owner_hint: hint ?? null,
     });
     if (error) throw new AppError('unknown', error.message);
     // フェーズが review まで来ていたら、直しのぶん戻す
@@ -639,8 +665,14 @@ export const supabaseStore: Store = {
       const { data: seqRow } = await c.from('tasks').select('seq').eq('work_id', workId)
         .order('seq', { ascending: false }).limit(1).maybeSingle();
       let seq = (seqRow?.seq ?? 0);
+      /**
+       * **担当のいないタスクを作らない**（2026-08-25）。名前が合わなければ
+       * 先頭の社員に落とす（承認のときと同じ規則）。前はここだけ null のままで、
+       * フェーズ2以降に「誰も実行できないタスク」ができる道が残っていた。
+       */
+      const fallback = (em ?? [])[0]?.id as string | undefined;
       const { error } = await c.from('tasks').insert(nextTasks.map((t) => {
-        const who = t.ownerHint ? byName.get(t.ownerHint) : undefined;
+        const who = (t.ownerHint ? byName.get(t.ownerHint) : undefined) ?? fallback;
         return {
           work_id: workId, phase_id: next.id, seq: ++seq, title: t.title, intent: t.intent,
           status: 'queued', created_by: 'executive',

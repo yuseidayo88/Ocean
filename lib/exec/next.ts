@@ -1,5 +1,7 @@
 import { hasKey, providerFor, type Msg } from '@/lib/ai';
 import { FakeProvider } from '@/lib/ai/fake';
+import { rosterBlock, slugOf } from '@/lib/roster';
+import { store } from '@/lib/store';
 import { execPref } from './pref';
 import type { ToolDef } from '@/lib/ai';
 import type { LiveWork } from '@/lib/store';
@@ -25,7 +27,7 @@ const TOOL: ToolDef = {
           properties: {
             title: { type: 'string', description: '4〜20文字' },
             intent: { type: 'string', description: '何をどこまでやるか。1〜2文' },
-            owner_hint: { type: 'string', description: '担当（「◯◯担当」の4文字）' },
+            owner_hint: { type: 'string', description: '名簿の「◯◯担当」。ここに無い名前を作らない' },
           },
           required: ['title', 'intent'],
         },
@@ -45,9 +47,15 @@ export async function draftNextTasks(
   const pref = await execPref();   // 統括AIの設定（メンバー画面）
   const dels = (work.dels ?? []).slice(0, 4);
 
+  // **名簿を渡す。** 渡さないと、この会社に居ない担当名が書かれる（run.ts と同じ穴）
+  const roster = rosterBlock((await store().listEmployees().catch(() => []))
+    .map((e) => ({ slug: slugOf(e.definitionId), name: e.name })));
+
   const messages: Msg[] = [{
     role: 'user',
     content: [
+      roster,
+      '',
       `会社のゴール: ${work.goal}`,
       `次のフェーズ: ${nextPhase.name} — ${nextPhase.goal}`,
       ...(decided.length ? ['', '社長の決定:', ...decided.map((d) => `- ${d.question} → ${d.chosen}`)] : []),

@@ -168,7 +168,9 @@ function Card({ who, first, lit, onHover }: {
       {d.step.all > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, height: 14 }}>
           <Steps done={d.step.done} all={d.step.all} color={who.color} run={who.state === '実行中'} />
-          <span style={{ color: T5, fontSize: 10.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {/* いまやっている工程。**切れていて正しい**（`clip`）—
+              1人ぶんの幅は縮めない決まりなので、長い工程名で列は動かさない */}
+          <span className="clip" style={{ color: T5, fontSize: 10.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {d.step.done} / {d.step.all} · {d.step.name}
           </span>
         </div>

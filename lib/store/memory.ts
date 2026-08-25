@@ -1,6 +1,8 @@
 import { AGENT_COLOR, type EmployeeColor } from '@/lib/view/model';
+import { crewFor } from '@/lib/roster';
 import { BUILTIN_SKILLS } from '@/lib/roster/skills';
 import { AppError } from '@/lib/errors';
+import type { Hire } from '@/lib/exec/types';
 import { STALL_MS, type AgentPref, type ChatMsg, type ChatThread, type Discovery, type DraftWork, type LiveDecision, type LiveEmployee, type LiveWork, type Note, type Profile, type RunStep, type SkillRow, type Store } from './types';
 
 /**
@@ -79,9 +81,20 @@ export const memoryStore: Store = {
     const d = bag.get(id);
     if (!d) throw new AppError('not_found', `work ${id} not found`, undefined, 'その計画は見つかりませんでした');
     if (d.approved) return;                      // 二度押しは何もしない
-    // 提案した社員を採用する（Supabase 版と同じ: 定義で引き当てて使い回す。通知は出さない）
+    /**
+     * 採用する人を決める。**`hires` だけを見ない**（Supabase 版と同じ規則）—
+     * 統括AIが空で返しても、タスクの担当名から採る（→ `lib/roster` の `crewFor`）。
+     */
+    const hires: Hire[] = crewFor(d.hires, d.plan.firstPhaseTasks.map((t) => t.ownerHint))
+      .map((c) => {
+        const src = d.hires.find((h) => h.displayName === c.displayName);
+        return { ...c, why: src?.why ?? 'このフェーズのタスクの担当',
+                 forPhase: src?.forPhase ?? (d.plan.phases[0]?.name ?? '') };
+      });
+    const withCrew = { ...d, hires };
+    // 定義で引き当てて使い回す。通知は出さない
     const ids = new Map<string, string>();
-    d.hires.forEach((h, i) => {
+    hires.forEach((h, i) => {
       let e = staff.find((x) => x.definitionId === h.definitionId && x.state !== 'retired');
       if (!e) {
         e = { id: `emp-${staff.length + 1}`, definitionId: h.definitionId, name: h.displayName,
@@ -91,7 +104,7 @@ export const memoryStore: Store = {
       }
       ids.set(h.definitionId, e.id);
     });
-    bag.set(id, { ...d, approved: true, live: live(d, ids) });
+    bag.set(id, { ...withCrew, approved: true, live: live(withCrew, ids) });
   },
 
   async revise(id, next) {
@@ -167,7 +180,12 @@ export const memoryStore: Store = {
     if (!live || live.tasks.some((t) => t.state === 'running')) return null;
     // **止めた社員のタスクは起こさない**（supabase 版と同じ規則）
     const off = new Set([...prefs.values()].filter((p) => p.paused).map((p) => p.employeeId));
-    const next = live.tasks.find((t) => t.state === 'queued' && !(t.ownerId && off.has(t.ownerId)));
+    /**
+     * **担当のいないタスクは拾わない**（2026-08-25）。誰の頭も載らないまま走らせると、
+     * モデルは成果物を書かずに終わり、タスクが blocked になるだけ — お金だけ減る。
+     * 承認とフェーズ送りが必ず担当を埋めるので、ここは最後の砦。
+     */
+    const next = live.tasks.find((t) => t.state === 'queued' && t.ownerId && !off.has(t.ownerId));
     return next ? { taskId: next.id } : null;
   },
 
@@ -461,6 +479,8 @@ export const memoryStore: Store = {
         id: `${workId}-t${live.tasks.length + 1}`, phaseId: next.id,
         title: t.title, intent: t.intent, state: 'queued', progress: 0,
         owner: hire?.name ?? t.ownerHint, ownerId: hire?.id,
+        // **定義も渡す**（supabase 版と同じ）。無いと社員の頭が載らず、素の返事になる
+        ownerSlug: staff.find((x) => x.id === hire?.id)?.definitionId,
       });
     }
     return next.name;
@@ -490,11 +510,20 @@ export const memoryStore: Store = {
     if (!live) return;
     const from = live.tasks.find((t) => t.id === src.taskId);
     const phaseId = from?.phaseId ?? live.phases.find((p) => p.state !== 'done')?.id ?? live.phases[0]?.id ?? '';
+    /**
+     * **担当のいない直しタスクを作らない。** 元のタスクが辿れないときは
+     * 先頭の社員に落とす（承認・フェーズ送りと同じ規則）。
+     * 前はここが空のまま生まれ、誰の頭も載らずに走っていた。
+     */
+    const crew0 = live.crew[0];
+    const back = from ?? live.tasks.find((t) => t.ownerId);
     live.tasks.push({
       id: `${workId}-t${live.tasks.length + 1}`, phaseId,
       title: `${src.title} を直す`, intent: `社長の指摘: ${note}`,
       state: 'queued', progress: 0,
-      owner: from?.owner, ownerSlug: from?.ownerSlug, ownerId: from?.ownerId,
+      owner: back?.owner ?? crew0?.name,
+      ownerSlug: back?.ownerSlug ?? staff.find((x) => x.id === crew0?.id)?.definitionId,
+      ownerId: back?.ownerId ?? crew0?.id,
     });
     // フェーズが review まで来ていたら、直しのぶん戻す
     const ph = live.phases.find((p) => p.id === phaseId);

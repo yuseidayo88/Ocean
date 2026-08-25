@@ -5,7 +5,8 @@ import { PHASE5_TOOLS } from './tools';
 import { checkStop, toOptions, toQuestions } from './parse';
 import type { Container, Draft, Hire, Plan } from './types';
 import { AppError } from '@/lib/errors';
-import { slugOf } from '@/lib/roster';
+import { crewFor, rosterBlock, slugOf } from '@/lib/roster';
+import { store } from '@/lib/store';
 import { execPref, type Pref } from './pref';
 
 /**
@@ -26,9 +27,15 @@ export function pickProvider(): { p: ModelProvider; real: boolean } {
   return { p: providerFor('deep'), real: true };
 }
 
-// 憲法は system に載る（provider が渡す）。ここは user の1通だけ
-const shape = (goal: string, ctx: string): Msg[] => [
-  { role: 'user', content: `${ctx}\n\n社長のゴール:\n${goal}\n\n道具を順に呼んでください。文章では答えないでください。` },
+/**
+ * 憲法は system に載る（provider が渡す）。ここは user の1通だけ。
+ *
+ * **名簿を必ず載せる。** 前は載せていなかったので、`propose_hires` は空で返り、
+ * 担当には「商品設計担当」のような**この会社に存在しない名前**が書かれた
+ * （→ `lib/roster` の `rosterBlock`）。
+ */
+const shape = (goal: string, ctx: string, roster: string): Msg[] => [
+  { role: 'user', content: `${roster}\n\n${ctx}\n\n社長のゴール:\n${goal}\n\n道具を順に呼んでください。文章では答えないでください。` },
 ];
 
 export type RunResult = { draft: Draft; real: boolean };
@@ -37,6 +44,9 @@ export async function draftWork(goal: string, ctx = ''): Promise<RunResult> {
   const { p, real } = pickProvider();
   // **統括AIの設定で走る**（メンバー画面のいちばん上の行）
   const pref = await execPref();
+  // いま誰がいるか。**もう居る人をもう一度採らせない**ために渡す
+  const roster = rosterBlock((await store().listEmployees().catch(() => []))
+    .map((e) => ({ slug: slugOf(e.definitionId), name: e.name })));
   const got = new Map<string, Record<string, unknown>>();
   let stop: string | null = null;
 
@@ -44,7 +54,7 @@ export async function draftWork(goal: string, ctx = ''): Promise<RunResult> {
     tier: 'deep',
     model: pref.model,
     system: CONSTITUTION,
-    messages: shape(goal, ctx),
+    messages: shape(goal, ctx, roster),
     tools: PHASE5_TOOLS,
     /**
      * 道具を5つ、1往復で全部書かせる。**4,000 では足りない。**
@@ -100,12 +110,35 @@ export async function draftWork(goal: string, ctx = ''): Promise<RunResult> {
     plan = await drawPlan(p, goal, ctx, container, pref);
   }
 
+  /**
+   * **担当の名前を、ここで名簿に寄せる。**
+   *
+   * 名簿をプロンプトに載せても、たまに「商品設計担当」のような
+   * **この会社に居ない名前**が返る。承認のときに寄せるだけでは、
+   * **計画の画面が「商品設計担当」と言い、実際には調査担当が動く** —
+   * 画面がその場で嘘をつく。だから控えに入る前に直す。
+   */
+  const hires = toHires(got.get('propose_hires')?.hires as Record<string, string>[] | undefined);
+  const crew = crewFor(hires, plan.firstPhaseTasks.map((t) => t.ownerHint));
+  const byName = new Map(crew.map((c) => [c.displayName, c]));
+  plan = {
+    ...plan,
+    firstPhaseTasks: plan.firstPhaseTasks.map((t) => ({
+      ...t, ownerHint: (byName.has(t.ownerHint) ? t.ownerHint : crew[0]?.displayName) ?? t.ownerHint,
+    })),
+  };
+
   return { real, draft: {
     kind: 'draft',
     container,
     // **型を被せるだけにしない。** options が落ちた質問は板で落ちる（→ parse.ts）
     questions: toQuestions(got.get('ask')?.questions),
-    hires: toHires(got.get('propose_hires')?.hires as Record<string, string>[] | undefined),
+    // 採用も名簿の人だけ（居ない ID・名前は落とす）
+    hires: crew.map((c) => {
+      const src = hires.find((h) => h.displayName === c.displayName);
+      return { ...c, why: src?.why ?? 'このフェーズのタスクの担当',
+               forPhase: src?.forPhase ?? (plan.phases[0]?.name ?? '') };
+    }),
     plan,
   } };
 }

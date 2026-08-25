@@ -42,8 +42,12 @@ function Seg({ p }: { p: Phase }) {
   return <div style={{ ...base, border: `1px dashed ${RULE}` }}><Label c={T5}>{p.name}</Label></div>;
 }
 
+/**
+ * 帯の中のフェーズ名。**切れていて正しい**（`clip`）—
+ * 帯の幅は「何週かかるか」が決めるので、文字に合わせて広げると図が嘘になる。
+ */
 const Label = ({ c, pad = 13, children }: { c: string; pad?: number; children: React.ReactNode }) => (
-  <span style={{
+  <span className="clip" style={{
     position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', padding: `0 ${pad}px`,
     color: c, fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
   }}>{children}</span>

@@ -203,10 +203,30 @@ export function ChatView({ id, first }: { id: string; first: FirstLoad }) {
           ))}
           {pending && <You>{pending}</You>}
 
-          {/* 流れてきている本文。**印は会話の中に置かない**（下に貼り付けてある） */}
-          {wait && live && (
-            <div style={{ width: '100%', maxWidth: 748 }}>
-              <Body text={live} /><span className="caret" />
+          {/**
+            * **考えている印は、次の返事が出るところに置く**（2026-08-25 に社長の指示で移した）。
+            * 参考: ChatGPT / Claude。返事が始まる場所でそのまま本文に入れ替わるので、
+            * 目が動かない。前は入力欄のすぐ上に貼っていた — 隠れはしないが、
+            * **返事とは違う場所**にあるので、出たあとに目線が飛んでいた。
+            *
+            * **会話は下に貼り付いている**（`useStick`）ので、これが増えても隠れない。
+            * 中身は道具の名前から来る**事実**だけ。分からないあいだは「考えています」。
+            */}
+          {(wait || pending !== null) && (
+            <div style={{ width: '100%', maxWidth: 748, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '0 2px', minWidth: 0 }}>
+                <Orb color={EXEC} size={20} seed={7} />
+                <span className="sh" style={{ fontSize: 12.5, flexShrink: 0 }}>{stage || '考えています'}</span>
+                {/* 思考の断片（開示するモデルのときだけ）。1行・薄く */}
+                {thought && (
+                  <span style={{
+                    color: T5, fontSize: 11.5, minWidth: 0, overflow: 'hidden',
+                    textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>{thought}</span>
+                )}
+              </div>
+              {/* 流れてきている本文は、その印の**すぐ下**に出る（右ペインとまったく同じ形） */}
+              {live && <div><Body text={live} /><span className="caret" /></div>}
             </div>
           )}
 
@@ -221,35 +241,6 @@ export function ChatView({ id, first }: { id: string; first: FirstLoad }) {
             </div>
           )}
         </div>
-        </div>
-      )}
-
-      {/**
-        * **考えているあいだ、ずっと見えるところに出す**（参考: Claude の「〇〇中…」）。
-        * 会話の中に置くと、下まで送られていないときに**入力欄の裏に隠れて見えない** —
-        * 実際そうなって「動いているのか止まっているのか分からない」になった。
-        * だから**流れない場所**（入力欄のすぐ上）に貼る。
-        * 中身は道具の名前から来る**事実**だけ。分からないあいだは「考えています」。
-        */}
-      {(wait || pending !== null) && (
-        <div style={{
-          position: 'absolute', left: 0, right: 0, bottom: COMPOSER_H - 16, zIndex: 2,
-          display: 'flex', justifyContent: 'center', pointerEvents: 'none',
-        }}>
-          <div style={{
-            width: '100%', maxWidth: 748, display: 'flex', alignItems: 'center', gap: 9,
-            padding: '0 2px', minWidth: 0,
-          }}>
-            <Orb color={EXEC} size={20} seed={7} />
-            <span className="sh" style={{ fontSize: 12.5, flexShrink: 0 }}>{stage || '考えています'}</span>
-            {/* 思考の断片（開示するモデルのときだけ）。1行・薄く・流れない */}
-            {thought && (
-              <span style={{
-                color: T5, fontSize: 11.5, minWidth: 0, overflow: 'hidden',
-                textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>{thought}</span>
-            )}
-          </div>
         </div>
       )}
 

@@ -176,7 +176,9 @@ function TaskRow({ t, on, onOpen }: { t: Row; on: boolean; onOpen: () => void })
       </span>
       <span style={{ width: 76, flexShrink: 0, color: T4, fontSize: 12 }}>{t.owner ?? ''}</span>
       {/* 行は開く、中のリンクは別の画面へ。食い合わないように止める */}
-      <Link href={`/work/${t.workId}` as Route} onClick={(e) => e.stopPropagation()} className="lnk" style={{
+      {/* **切れていて正しい**（`clip`）— 主役はタスク名で、これはどの Work かの副次ラベル。
+          広げるとタイトルの列を食う。長い会社の名前が来ても、行の形は変わらない */}
+      <Link href={`/work/${t.workId}` as Route} onClick={(e) => e.stopPropagation()} className="lnk clip" style={{
         width: 140, flexShrink: 0, textAlign: 'right', color: fin ? `${DIM}` : T5, fontSize: 12,
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
       }}>{t.workTitle}</Link>
