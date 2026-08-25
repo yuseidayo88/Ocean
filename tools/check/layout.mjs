@@ -18,6 +18,9 @@ const pairs = [
   // 戻された理由が出ている姿も測る（1行増えて崩れないか）
   ['/login',             `${B}/login`,             null],
   ['/login 理由つき',    `${B}/login?e=provider`,  null],
+  ['/login 新規登録',    `${B}/login?mode=signup`, null],
+  ['/login 忘れた',      `${B}/login?mode=forgot`, null],
+  ['/auth/reset',        `${B}/auth/reset`,        null],
   ['/deliverables',      `${B}/deliverables`,      null],
   ['/decisions',         `${B}/decisions`,         null],
   ['/skills',            `${B}/skills`,            null],

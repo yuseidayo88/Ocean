@@ -208,25 +208,55 @@ Secret にすると「隠れていないものを隠れているように見せ�
 
 ### 入口（ログイン）
 
-**パスワードは持たない。** 入り方は2つ — Google か、メールのリンク（マジックリンク）。
+入り方は2つ — **Google か、メールとパスワード**（2026-08-25 に整えた。
+それまではパスワードを持たず、メールのリンクだけだった）。
+画面は3つの姿を持つ — `login` / `signup`（`?mode=signup`）/ `forgot`（`?mode=forgot`）。
 
 | どこ | 何を |
 |---|---|
 | Supabase → Authentication → **URL Configuration** | Site URL にサイトの住所。Redirect URLs に `<住所>/**` |
 | Google Cloud Console → 認証情報 → **OAuth クライアント ID（ウェブ）** | 承認済みリダイレクト URI に **`https://<プロジェクト>.supabase.co/auth/v1/callback`** |
 | Supabase → Authentication → **Providers → Google** | 有効にして、クライアント ID と Secret を貼る |
+| Supabase → Authentication → **Providers → Email** | **Minimum password length = 10** ／ **Required characters = 下・大・数字・記号**（いちばん強い組） |
+
+#### パスワードの決まりは2か所で同じにする
+
+画面の側は `lib/auth/password.ts`（10文字・大文字・小文字・数字・記号）。
+記号として数える文字は Supabase と同じ並びにしてある:
+
+```
+!@#$%^&*()_+-=[]{};'\:"|<>?,./`~
+```
+
+**画面の決まりはUXであって、セキュリティそのものではない。**
+匿名鍵はブラウザに配られているので、この画面を通さずに認証API を直接叩けば、
+弱いパスワードでも作れてしまう。**本当に止めるのは上の表のダッシュボード設定**。
+片方だけ厳しくすると、画面で断られたものが API では通る — だから揃える。
+
+**Pro プランなら Leaked password protection も入れる**（Authentication → Providers →
+Email）。HaveIBeenPwned に載っているパスワードを弾く。無料プランでは選べない。
+
+パスワードは bcrypt でハッシュ化して `auth.users.encrypted_password` に入る
+（列名は歴史的経緯。暗号化ではなくハッシュ）。**こちらは平文を一度も持たない。**
 
 **Google を有効にする前に押しても、画面は黙らない** — Supabase から
 「有効になっていない」と返ってくるので、入口が日本語1行で言う（`/auth/callback` が
 短い合図に畳む → `components/auth/LoginForm.tsx` の `WHY`）。
 
-**開いているかどうかは `/api/health` の `login` で分かる**（2026-08-25 に足した）。
+**開いているかどうかは `/api/health` で分かる**（2026-08-25 に足した）。
 上の3か所はどれか1つ抜けても画面では同じ「押しても入れない」に見えるので、
 少なくとも Supabase 側が開いているかを、外から1本で確かめられるようにした:
 
 ```
-{"ok":true,"supabase":true,"model":true,"login":{"google":true,"email":true}}
+{"ok":true,"supabase":true,"model":true,
+ "login":{"google":true,"email":true},
+ "signup":{"open":true,"confirm":true}}
 ```
+
+`signup.confirm` が true なら、**新規登録は確認メールを踏まないと入れない**
+（画面はどちらでも正しく振る舞う — 確認が要らない設定なら、その場で会社に入る）。
+Supabase の既定のメール送信は時間あたりの本数が少ないので、
+人を招くようになったら SMTP を自分のものに差し替える。
 
 残る2つ（Google Cloud のリダイレクト URI / Supabase の Redirect URLs）は
 **実際に1回入ってみないと分からない**。外したときの見え方は:

@@ -44,6 +44,15 @@ export async function middleware(request: NextRequest) {
   if (!claims && !isPublic(request)) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
+  /**
+   * **入っている人に入口を見せない。** 前は `/login` が誰にでも開いたので、
+   * 入ったあとに戻るを押すと、もう会社にいるのに「ログイン」の画面が出た。
+   * `/auth/*` は素通しのまま — **再設定はセッションを持ったまま開く**画面なので、
+   * ここで弾くと自分のパスワードを変えられなくなる。
+   */
+  if (claims && request.nextUrl.pathname === '/login') {
+    return NextResponse.redirect(new URL('/home', request.url))
+  }
   return response
 }
 

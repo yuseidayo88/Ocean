@@ -14,7 +14,7 @@ export async function GET() {
       /** モデルに繋がるか。**どのモデルかは言わない** */
       model: TIERS.every((t) => Boolean(keyFor(TIER_TABLE[t].vendor))),
       /** どの入り口が開いているか（入口の画面に出ているものと同じ。隠す意味が無い） */
-      login: await logins(),
+      ...await auth(),
     })
   } catch (e) {
     return errorResponse(e)
@@ -35,21 +35,26 @@ const keyFor = (vendor: string) =>
  *
  * 認証サーバーが答えないときは**黙って false にしない** — 分からないなら分からないと言う。
  */
-async function logins(): Promise<Record<string, boolean> | 'unknown' | null> {
+async function auth(): Promise<Record<string, unknown>> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  if (!url || !key) return null
+  if (!url || !key) return { login: null, signup: null }
   try {
     const r = await fetch(`${url}/auth/v1/settings`, {
       headers: { apikey: key },
       signal: AbortSignal.timeout(4000),
       cache: 'no-store',
     })
-    if (!r.ok) return 'unknown'
-    const s = await r.json() as { external?: Record<string, boolean> }
-    const on = Object.entries(s.external ?? {}).filter(([, v]) => v === true)
-    return Object.fromEntries(on)
+    if (!r.ok) return { login: 'unknown', signup: 'unknown' }
+    const s = await r.json() as {
+      external?: Record<string, boolean>; disable_signup?: boolean; mailer_autoconfirm?: boolean;
+    }
+    return {
+      login: Object.fromEntries(Object.entries(s.external ?? {}).filter(([, v]) => v === true)),
+      /** 新規登録が開いているか。`confirm` が true なら**確認メールを踏まないと入れない** */
+      signup: { open: s.disable_signup !== true, confirm: s.mailer_autoconfirm !== true },
+    }
   } catch {
-    return 'unknown'
+    return { login: 'unknown', signup: 'unknown' }
   }
 }

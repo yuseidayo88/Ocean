@@ -21,6 +21,7 @@ node tools/check/chat.mjs     9335                    # どの画面からでも
 node tools/check/cpu.mjs      9335 http://localhost:3300 /home /team
 node tools/check/motion.mjs   9335 http://localhost:3300   # 出入りが動いているか
 CPU=4 node tools/check/press.mjs 9335                     # 押してから右ペインが見えるまで
+node tools/check/login.mjs    9335                        # 入口の3つの姿を1つずつ押す
 node tools/check/approve.mjs  9335                        # 承認の道を1本（Phase 6）
 node tools/check/run.mjs      9335                        # 実行の道を1本（Phase 7）
 node tools/check/_shot.mjs    9335 1440 900 <url> <出力.png>   # 1枚だけ見る（目で確かめる用）
@@ -37,6 +38,7 @@ node tools/check/_shot.mjs    9335 1440 900 <url> <出力.png>   # 1枚だけ見
 | `rail.mjs` | 左レールを閉じたときに中身が崩れないか。閉じているのに中のボタンが触れないか（`inert`） |
 | `cpu.mjs` | **何もしていないとき**の CPU・レイアウト・スタイル再計算。`/home` は 5% 以下が目安 |
 | `motion.mjs` | 右ペイン・左レール・入力欄が1フレームごとにどう動いたか（数字が段になっていれば動いている） |
+| `login.mjs` | 入口の3つの姿（ログイン / 新規登録 / 忘れた）を1つずつ押す。**弱いパスワードで送れない**か、決まりが満たしたところから緑になるか、リンク無しの `/auth/reset` が正直に断るか |
 | `press.mjs` | **押してから右ペインが見えるまで**（ページの中で計測）。`CPU=4` で遅い機械のふりをする |
 | `_shot.mjs` | 検査ではなく**目で見るため**の1枚。数えるのではなく「これでいいか」を人が決めるとき |
 | `reach.mjs` | **下まで送っても、入力欄に隠れて押せなくなるものが無いか。** 入力欄は中身の上に浮くので、下に貼り付く行は `COMPOSER_H` ぶん逃がす。`padding-bottom` では足りない（中身が短いとスクロールが起きず、行は動かない） |
