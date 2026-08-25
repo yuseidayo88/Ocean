@@ -105,11 +105,23 @@ for (let i = 0; i < 8 && !dpane.includes('推奨'); i++) {
 ok('聞かれていることが右ペインに出る', dpane.includes('対象の絞り込み') && dpane.includes('推奨'), dpane.slice(0, 60));
 await ev(`[...document.querySelectorAll('aside button')].find(b => b.innerText.includes('K-POPファン層'))?.click()`);
 await wait(1000);
-// 決めたことが文脈に入らないと fake は完走しない — 完走そのものが受け渡しの証拠
-const gate1 = await until((b) => b.includes('フェーズ「調査」が終わりました'), 40);
-ok('決定が次の実行に渡って、フェーズが終わった', gate1.includes('フェーズ「調査」が終わりました'), gate1.slice(0, 80));
+/**
+ * ③' **◆ が無いフェーズは、会社が自分で進む**（2026-08-25。社長の指示
+ *    「あなたに聞くのは2回とか決めなくていい、AI が判断して適切な提案ができるまでしていい」）。
+ *    決め打ちの計画は ◆ を 戦略 と プロダクト に置いている＝**調査には無い**。
+ *
+ * **通知の1行では測らない** — すぐ次へ進むので、その行はすぐ入れ替わる。
+ * 決めたことが文脈に入らないと fake は完走しないので、**次のフェーズのタスクが
+ * 引かれたこと自体**が「決定が渡った」と「自分で進んだ」の両方の証拠になる。
+ */
+const auto = await until((b) => b.includes('収益モデル'), 60);
+ok('決定が次の実行に渡って、調査フェーズが最後まで走った', auto.includes('収益モデル'), auto.slice(0, 80));
+const bar = await ev(`[...document.querySelectorAll('button')].some(b => b.innerText.includes('次のフェーズへ進める'))`);
+ok('◆ が無いフェーズは、押さなくても次へ進む（承認の帯が出ていない）', !bar, String(bar));
+const p2 = await until((b) => /フェーズ\n2 \/ /.test(b), 30);
+ok('フェーズが 2 に進んだ', /フェーズ\n2 \/ /.test(p2), p2.match(/フェーズ\n[^\n]*/)?.[0]);
 
-// ④ 成果物: 1つ承認、1つ差し戻し → 直しタスクが走って、また review に戻る
+// ④ 成果物: 1つ承認、1つ差し戻し → 直しタスクが走る
 await ev(`[...document.querySelectorAll('button')].find(b => b.className.includes('row') && b.innerText.includes('競合'))?.click()`);
 await wait(700);
 let pane = await ev(`document.querySelector('aside')?.innerText ?? ''`);
@@ -128,19 +140,26 @@ await ev(`(() => { const t = document.querySelector('aside textarea');
   t.dispatchEvent(new Event('input', { bubbles: true })); })()`);
 await wait(200);
 await ev(`[...document.querySelectorAll('aside button')].find(b => b.innerText === '差し戻す')?.click()`);
-await wait(1200);
-ok('差し戻すと 差し戻し済', ((await ev(`document.querySelector('aside')?.innerText ?? ''`))).includes('差し戻し'));
+// 押したあと、ペインは読み直しを1回はさむ（器のポンプが3秒ごとに回っている）。
+// **出るまで少し待つ** — 見ているのは「差し戻せたか」であって「1200ms で出るか」ではない
+let back = '';
+for (let i = 0; i < 10 && !back.includes('差し戻し'); i++) {
+  await wait(600);
+  back = (await ev(`document.querySelector('aside')?.innerText ?? ''`)) || await text();
+}
+ok('差し戻すと 差し戻し済', back.includes('差し戻し'), back.slice(0, 60));
 await ev(`document.querySelector('aside button')?.click()`); await wait(300);
-const gate2 = await until((b) => b.includes('フェーズ「調査」が終わりました'), 40);
-ok('直しが走って、また review に戻った', gate2.includes('フェーズ「調査」が終わりました'), gate2.slice(0, 80));
+const gate2 = await until((b) => b.includes('を直す'), 40);
+ok('差し戻しが直しタスクになって積まれた', gate2.includes('を直す'), gate2.match(/[^\n]*を直す[^\n]*/)?.[0]);
 
-// ⑤ フェーズを承認 → 統括AIが次のタスクを引いて、戦略フェーズが動きだす
+// ⑤ **◆ があるフェーズでは止まる。** 戦略が終わっても、押すまで先へは行かない
+const done2 = await until((b) => b.includes('フェーズ「戦略」が終わりました'), 60);
+ok('◆ があるフェーズは社長を待つ',
+   done2.includes('フェーズ「戦略」が終わりました') && done2.includes('見て、次に進めてください'),
+   done2.match(/フェーズ「戦略」[^\n]*/)?.[0]);
 await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('次のフェーズへ進める'))?.click()`);
-const next = await until((b) => b.includes('収益モデル'), 30);
-ok('次のフェーズのタスクが引かれた', next.includes('収益モデル'), next.slice(0, 80));
-ok('フェーズが 2 に進んだ', /フェーズ\n2 \/ /.test(next), next.match(/フェーズ\n[^\n]*/)?.[0]);
-const done2 = await until((b) => b.includes('フェーズ「戦略」が終わりました'), 40);
-ok('戦略フェーズも走って終わった', done2.includes('フェーズ「戦略」が終わりました'), done2.slice(0, 80));
+const p3 = await until((b) => /フェーズ\n3 \/ /.test(b), 40);
+ok('承認するとフェーズ 3 へ進む', /フェーズ\n3 \/ /.test(p3), p3.match(/フェーズ\n[^\n]*/)?.[0]);
 
 /**
  * **図の成果物**（archify の形）。AI社員が `draw_workflow` で描き、

@@ -1098,27 +1098,43 @@ export const supabaseStore: Store = {
     return (data ?? []).map((w) => w.id as string);
   },
 
-  async closePhaseIfDone(workId) {
+  async closePhaseIfDone(workId, gates = []) {
     const c = await db();
     const { data: ph } = await c.from('phases')
       .select('id, name, status').eq('work_id', workId).eq('status', 'active');
-    let closed = false;
+    const closed: string[] = [];
+    let hold = false;
     for (const p of ph ?? []) {
       const { data: mine } = await c.from('tasks').select('status').eq('phase_id', p.id);
       if (mine?.length && mine.every((t) => t.status === 'done' || t.status === 'cancelled')) {
         // active のものだけ畳む。ポンプが2か所から来ても、通知は畳めた側の1通だけ
         const { data: flipped } = await c.from('phases')
           .update({ status: 'review' }).eq('id', p.id).eq('status', 'active').select('id');
-        if (flipped?.length) {
-          await c.from('notifications').insert({
-            kind: '判断待ち', subject_type: 'phase', subject_id: p.id,
-            body: `フェーズ「${p.name}」が終わりました。見て、次に進めてください`,
-          });
-          closed = true;
-        }
+        if (!flipped?.length) continue;
+        /**
+         * **◆ が置かれたところだけ、社長を待つ。**
+         * 統括AIが置かなかったフェーズは会社が自分で進むので、
+         * 「見て、次に進めてください」と言わない（言って勝手に進むほうが悪い）。
+         */
+        const wait = gates.includes(p.name as string);
+        if (wait) hold = true;
+        await c.from('notifications').insert({
+          kind: wait ? '判断待ち' : '要確認', subject_type: 'phase', subject_id: p.id,
+          body: wait
+            ? `フェーズ「${p.name}」が終わりました。見て、次に進めてください`
+            : `フェーズ「${p.name}」が終わりました。次に進みます`,
+        });
+        closed.push(p.name as string);
       }
     }
-    return closed;
+    return { closed, hold };
+  },
+
+  async planGates(workId) {
+    const c = await db();
+    const { data: w } = await c.from('works').select('plan_draft').eq('id', workId).maybeSingle();
+    const d = w?.plan_draft as unknown as DraftBody | null;
+    return (d?.plan?.gates ?? []).map((g) => g.afterPhase).filter(Boolean);
   },
 
   /* ══════════════ 入口（Case B / D）══════════════ */

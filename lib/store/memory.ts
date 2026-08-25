@@ -546,20 +546,34 @@ export const memoryStore: Store = {
     if (ph && ph.state === 'review') ph.state = 'active';
   },
 
-  async closePhaseIfDone(workId) {
+  async closePhaseIfDone(workId, gates = []) {
     const live = [...bag.values()].find((d) => d.live?.id === workId)?.live;
-    if (!live) return false;
-    let closed = false;
+    if (!live) return { closed: [], hold: false };
+    const closed: string[] = [];
+    let hold = false;
     for (const ph of live.phases) {
       if (ph.state !== 'active') continue;
       const mine = live.tasks.filter((t) => t.phaseId === ph.id);
       if (mine.length && mine.every((t) => t.state === 'done' || t.state === 'cancelled')) {
         ph.state = 'review';
-        notes.push({ kind: '判断待ち', body: `フェーズ「${ph.name}」が終わりました。見て、次に進めてください` });
-        closed = true;
+        // **◆ が置かれたところだけ、社長を待つ**（supabase 版と同じ規則）
+        const wait = gates.includes(ph.name);
+        if (wait) hold = true;
+        notes.push({
+          kind: wait ? '判断待ち' : '要確認',
+          body: wait
+            ? `フェーズ「${ph.name}」が終わりました。見て、次に進めてください`
+            : `フェーズ「${ph.name}」が終わりました。次に進みます`,
+        });
+        closed.push(ph.name);
       }
     }
-    return closed;
+    return { closed, hold };
+  },
+
+  async planGates(workId) {
+    const d = [...bag.values()].find((x) => x.live?.id === workId || x.id === workId);
+    return (d?.plan?.gates ?? []).map((x) => x.afterPhase).filter(Boolean);
   },
 
   /* ══════════════ 入口（Case B / D）══════════════ */

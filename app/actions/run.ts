@@ -62,8 +62,33 @@ export async function pumpWork(workId: string): Promise<PumpResult> {
     if (stop) return { ran: false, why: stop };
 
     const outcome = await runTask(work, next.taskId);
-    // フェーズのタスクが出そろったら review に畳む（判断待ちの通知つき）
-    await s.closePhaseIfDone(workId).catch(() => {});
+
+    /**
+     * フェーズのタスクが出そろったら畳む。
+     *
+     * **◆ を置かなかったフェーズは、会社が自分で進む**（2026-08-25。社長の指示
+     * 「あなたに聞くのは2回とか決めなくていい、AI が判断して適切な提案ができるまでしていい」）。
+     * 統括AIは計画のときに「社長でないと決められないところ」を ◆ として置く。
+     * **置かなかったところで止まるのは、その判断を無かったことにするのと同じ**で、
+     * しかも見ていないあいだ次の1時間がまるごと待ちになる。
+     * ◆ があるところでは、これまでどおり社長を待つ。
+     */
+    const gates = await s.planGates(workId).catch(() => []);
+    const shut = await s.closePhaseIfDone(workId, gates).catch(() => ({ closed: [], hold: false }));
+    if (shut.closed.length && !shut.hold) {
+      const r = await approvePhase(workId).catch(() => ({ ok: false as const, message: '' }));
+      /**
+       * **「次に進みます」と言ったのに進めなかった、を黙らない。**
+       * 引けなければフェーズは review のまま残るので、Work 画面の帯から社長が押せる。
+       * ただし、それを社長が知らないままだと会社が止まったように見える。
+       */
+      if (!r.ok) {
+        await s.addNotification({
+          kind: 'エラー', subjectType: 'work', subjectId: workId,
+          body: `フェーズ「${shut.closed[0]}」のあと、次のフェーズを引けませんでした。Work から進めてください`,
+        }).catch(() => {});
+      }
+    }
     return { ran: true, taskId: next.taskId, outcome };
   } catch (e) {
     // 取り合いに負けただけなら何も起きていない（もう一方のポンプが走らせている）

@@ -156,8 +156,13 @@ export default function PlanPage() {
             <div style={{ display: 'flex', alignItems: 'baseline', paddingBottom: 4 }}>
               <span style={{ color: T3 }}>計画</span>
               <div style={{ flex: 1 }} />
+              {/* **回数は先に決めない**（2026-08-25）。統括AIが「社長でないと決められない」と
+                  判断したところにだけ ◆ が立つ。**◆ が無ければ会社が自分で進む** —
+                  そう書いておかないと、止まらないことが不意打ちになる */}
               <span style={{ color: T5, fontSize: 12 }}>
-                およそ {v.weeks}週{v.rows.filter((r) => r.dec).length > 0 && ` · あなたに聞くのは ◆ の${v.rows.filter((r) => r.dec).length}回`}
+                およそ {v.weeks}週 · {v.rows.filter((r) => r.dec).length > 0
+                  ? `あなたが決めるのは ◆ の${v.rows.filter((r) => r.dec).length}か所。ほかは会社が進めます`
+                  : 'あなたが決めるところはありません。会社が最後まで進めます'}
               </span>
             </div>
             <div style={{ position: 'absolute', left: 220, right: 120, top: 22, bottom: 0, pointerEvents: 'none' }}>

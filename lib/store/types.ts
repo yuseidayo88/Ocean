@@ -204,10 +204,17 @@ export interface Store {
   /** 差し戻しの直しタスク。同じ担当に、社長の言葉つきで積む（ポンプが走らせる） */
   addFixTask(workId: string, src: { taskId?: string; title: string }, note: string): Promise<void>;
   /**
-   * フェーズのタスクが全部 done なら、フェーズを review にして判断待ちの通知を立てる。
-   * 何か閉じたら true（ポンプが呼ぶ）
+   * フェーズのタスクが全部 done なら、フェーズを review にして通知を立てる。
+   *
+   * `gates` は計画の ◆（**社長でないと決められないところ**）の after_phase。
+   * 統括AIが ◆ を置かなかったフェーズは**会社が自分で進む**ので、
+   * 通知の言い方もそこで変える（「決めてください」と言って、勝手に進まない）。
+   *
+   * 返すのは閉じたフェーズ名と、`hold`＝そのうち1つでも ◆ を持っていたか。
    */
-  closePhaseIfDone(workId: string): Promise<boolean>;
+  closePhaseIfDone(workId: string, gates?: string[]): Promise<{ closed: string[]; hold: boolean }>;
+  /** 計画の ◆ が置かれたフェーズ名（`plan_draft` の gates）。無ければ空 */
+  planGates(workId: string): Promise<string[]>;
 
   /* ══════════════ 判断と受け渡し（Phase 9）══════════════ */
 
