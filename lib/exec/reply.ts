@@ -1,4 +1,5 @@
-import { chatStep, type ChatOut, type ChatState } from './chat';
+// **「候補を出していいか」は会話の考え方の一部**なので、判断も言葉も chat.ts に置く
+import { canPropose, chatStep, type ChatOut, type ChatState } from './chat';
 import { store, type ChatCard, type LiveWork } from '@/lib/store';
 import type { Conditions } from './types';
 import { isOpener, OPENER } from './openers';
@@ -18,15 +19,34 @@ import { execPref } from './pref';
 /** 会社のいまを1枚に畳む（Work をまたいだ相談に答えるため） */
 export async function snapshot(): Promise<string> {
   const s = store();
-  const works = await s.listWorks().catch(() => [] as LiveWork[]);
+  // **3本まとめて取る。** 順に待つと、遠いDBでは返事がそのぶん遅れる
+  const [works, decisions, dels] = await Promise.all([
+    s.listWorks().catch(() => [] as LiveWork[]),
+    s.listDecisions().catch(() => []),
+    s.listDels().catch(() => []),
+  ]);
   const lines = works.length
     ? works.map((w) => {
         const at = w.phases.find((p) => p.state === 'active' || p.state === 'review');
-        return `- ${w.title}（${w.status === 'paused' ? '停止中' : at ? `フェーズ${at.seq}: ${at.name}` : w.status}）`;
+        return `- ${w.title}（${w.status === 'done' ? '完了' : w.status === 'paused' ? '停止中'
+          : at ? `フェーズ${at.seq}: ${at.name}` : w.status}）`;
       })
     : ['- まだ Work はありません'];
-  const decided = (await s.listDecisions().catch(() => []))
-    .filter((d) => d.status === 'decided' && d.chosen).slice(0, 5);
+
+  /**
+   * **社長を待たせているものを、統括AIが知っている。**
+   * 前は Work の一覧と決めたことだけだったので、「何かやることある？」に答えられなかった
+   * （会社は先に言う、と言っている製品でそれは弱い）。数だけ渡す — 中身は画面にある。
+   */
+  const open = decisions.filter((d) => d.status === 'open').length;
+  const unseen = dels.filter((d) => d.state === '要確認').length;
+  if (open || unseen) {
+    lines.push('', '社長を待っているもの:');
+    if (open) lines.push(`- 判断待ち ${open}件`);
+    if (unseen) lines.push(`- 要確認の成果物 ${unseen}件`);
+  }
+
+  const decided = decisions.filter((d) => d.status === 'decided' && d.chosen).slice(0, 5);
   if (decided.length) {
     lines.push('', '決めたこと:');
     for (const d of decided) lines.push(`- ${d.question} → ${d.chosen}`);
@@ -39,21 +59,6 @@ export async function snapshot(): Promise<string> {
  * 呼んだ側が「あるはず」と知っているなら、道が悪い（→ `app/api/chat/route.ts`）。
  */
 export type ReplyResult = { ok: true } | { ok: false; message: string; missing?: true };
-
-/** そろっている条件の数（値が入っているもの） */
-const filled = (c: Conditions) =>
-  [c.interests.length || null, c.hoursPerWeek, c.budgetJpy,
-   c.strengths.length || null, c.avoid.length || null, c.deadline]
-    .filter((v) => v !== null && v !== undefined).length;
-
-/**
- * **候補を出していいか。**
- * 分野（何の話か）が分からないまま出すと、「小さな実用品の販売所」のように
- * **何に関するものか誰にも分からない案**になる（実際そうなった）。
- * だから分野は必須。そのうえで、ほかの条件が2つ以上そろっていること。
- */
-const canPropose = (c: Conditions | undefined) =>
-  !!c && c.interests.length > 0 && filled(c) >= 3;
 
 /**
  * `onText` は本文が1かたまり届くたびに呼ばれる（流す口のため）。
@@ -96,7 +101,18 @@ export async function replyTo(
       materials: (prof?.sources ?? []).map((x) => x.locator),
       diagnosed: !!prof?.diagnosis,
       company,
-      needCard: !!last && last.role === 'user' && isOpener(last.body),
+      /**
+       * **この往復は必ずカードになる**と、こちらが先に知っているとき。
+       *   ・入口の一言（→ `lib/exec/openers.ts`）
+       *   ・**探索の途中で、社長が質問に答えたとき**（2026-08-25 に足した）
+       *
+       * 足したのは往復を減らすため。前は「答えを写す往復」と「次の一手の往復」で
+       * **1つの発言に3回モデルを呼んで**いた。答えが届いた往復は、写すのも次の一手も
+       * 同じ1回でできる（道具は複数呼べる）。続きの輪は保険として残す。
+       */
+      needCard: !!last && last.role === 'user'
+        && (isOpener(last.body)
+            || (/\n→ /.test(last.body) && !!t.thread.discoveryId && !disc?.candidates.length)),
       /**
        * **スレッドが知っていることを、最初から持たせる。**
        * 前は conditions を書いた往復の中でしか入らず、モデルが文章だけ返した往復の
@@ -119,7 +135,16 @@ export async function replyTo(
       } catch { /* 作れなければ、従来どおり条件が書かれた往復で作られる */ }
     }
 
-    const history = t.messages.slice(-10).map((m) => ({
+    /**
+     * **社長の最初の一言は、いつも残す。**
+     * 直近10件だけだと、探索が長引いたときに**始まりが history から消える** —
+     * 集まった条件は state が持っているが、「そもそも何と言って始めたか」は
+     * どこにも残らない。この製品でいちばん重い1行なので、先頭に固定する。
+     */
+    const recent = t.messages.slice(-10);
+    const head = t.messages[0];
+    const shown = head && !recent.includes(head) ? [head, ...recent] : recent;
+    const history = shown.map((m) => ({
       role: (m.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
       content: m.body,
     }));
