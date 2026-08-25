@@ -44,7 +44,7 @@ npm run cf:deploy:preview   # レビュー用
 いま見られるプレビュー: https://onefound-yuseidayo88-3854s-projects.vercel.app
 
 **中身はダミーで、押しても書き込みはどこにも届きません。**
-ブランチに push すると作り直されます（Vercel プロジェクト `onefound`・環境変数なし）。
+ブランチに push すると作り直されます（Vercel プロジェクト `onefound`・東京 `hnd1`）。
 **本番の行き先は Cloudflare Workers**（→ `docs/design/05-tech-and-cost.md` の判断ログ）。
 Cloudflare のトークンが入るまでは、ここが静止画の代わりです。
 
@@ -196,6 +196,15 @@ RLS の with check は `account_id = private.current_account_id()` のままな�
 
 本番（Cloudflare）では `wrangler secret put OPENROUTER_API_KEY` で入れる。
 `wrangler.jsonc` の `vars` に書かない（`vars` は平文でリポジトリに残る）。
+
+**Vercel では `NEXT_PUBLIC_` の2つを `Config` で入れる**（`Secret` ではない）。
+`NEXT_PUBLIC_` はビルド時に JavaScript へ焼き込まれ、**どのみちブラウザから読める**ので、
+Secret にすると「隠れていないものを隠れているように見せる」ことになる
+（Vercel 自身がそう警告する）。Supabase の publishable キーは公開前提の札で、
+誰が何を見られるかは資格情報と RLS が決める。`OPENROUTER_API_KEY` はサーバー専用なので `Secret`。
+
+**入れたら再デプロイが要る。** `NEXT_PUBLIC_` は焼き込みなので、変数を足しただけでは
+動いているサイトは変わらない。効いたかどうかは `/api/health` の `supabase` で分かる。
 
 **鍵が入ったら最初に確かめること**（この開発環境からは `openrouter.ai` に出られない）:
 `GET https://openrouter.ai/api/v1/models` で**一覧6枚の slug**
