@@ -95,8 +95,16 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
      * 文脈: 定義（誰か）→ 会社の状況（何のためか）→ タスク（何をするか）。
      * **同じフェーズの済んだ成果物を渡す** — 受け渡しの最小形（本格化は Phase 9）。
      */
+    /**
+     * **同じフェーズだけに絞っていた**（2026-08-25 に広げた）。
+     * 絞ると、戦略フェーズの担当は調査フェーズが書いたものを**1文字も見ずに**始める —
+     * 承認済みの索引（`memory`）はタイトルしか渡さないので、中身はどこからも届かなかった。
+     * この Work の中はぜんぶ地続きなので、済んだタスクの成果物を新しい順に3件渡す
+     * （差し戻されたものは渡さない — 直っていないものを土台にさせない）。
+     */
     const prior = (work.dels ?? [])
-      .filter((d) => work.tasks.some((t) => t.id === d.taskId && t.phaseId === task.phaseId && t.state === 'done'))
+      .filter((d) => d.state !== '差し戻し'
+        && work.tasks.some((t) => t.id === d.taskId && t.state === 'done'))
       .slice(0, 3);
 
     const system = [
@@ -114,14 +122,14 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
     const messages: Msg[] = [{
       role: 'user',
       content: [
-        `会社のゴール: ${work.goal}`,
+        `この Work のゴール: ${work.goal}`,
         `いまのフェーズ: ${phase?.name ?? ''} — ${phase?.goal ?? ''}`,
         ...(decided.length
           ? ['', '決めたこと（社長の決定。**これに沿う**）:',
              ...decided.map((d) => `- ${d.question} → ${d.chosen}`)]
           : []),
         ...(prior.length
-          ? ['', 'ここまでの成果物（参考にする）:',
+          ? ['', 'この Work でここまでに出来ているもの（前のフェーズのぶんも含む。**土台にする**）:',
              ...prior.map((d) => `--- ${d.title} ---\n${(d.body ?? d.preview ?? '').slice(0, 3000)}`)]
           : []),
         ...(skills.length

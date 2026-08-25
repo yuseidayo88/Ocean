@@ -278,6 +278,19 @@ export const memoryStore: Store = {
   /** メモリ版は台帳を持たない。**残高があるふりをしない**（null = 上限なし） */
   async balanceCents() { return null; },
   async ledger() { return []; },
+  /** 台帳が無いので数えようがない。**0 と言わない**（使っていない、ではなく、数えていない） */
+  async spentSinceCents() { return null; },
+
+  async noticeOnce(key, kind, body) {
+    if (onceKeys.has(key)) return false;
+    onceKeys.add(key);
+    notes.push({ kind, body });
+    return true;
+  },
+
+  async activeWorks() {
+    return [...bag.values()].filter((d) => d.live?.status === 'active').map((d) => d.live!.id);
+  },
   /** デモ（メモリ）は通知の画面がダミーなので、書いても誰も読めない。正直に何もしない */
   /* ══════════════ ゼロ状態（画面はぜんぶここを読む）══════════════ */
 
@@ -652,6 +665,7 @@ const g2 = globalThis as unknown as {
     status?: 'running' | 'done' | 'failed'; startedAt?: string; fails?: number; model?: string }>;
   __notes?: { kind: string; body: string; at?: string; subjectType?: string; subjectId?: string }[];
   __notesRead?: Set<number>;
+  __onceKeys?: Set<string>;
   __threads?: ChatThread[];
   __msgs?: Map<string, ChatMsg[]>;
   __skills?: SkillRow[];
@@ -662,6 +676,8 @@ const g2 = globalThis as unknown as {
 const runs = (g2.__runs ??= new Map());
 const notes = (g2.__notes ??= []);
 const notesRead = (g2.__notesRead ??= new Set<number>());
+/** 「その鍵で1通だけ」の印（朝の報告・1日の上限）。DB 側は notifications.group_key が持つ */
+const onceKeys = (g2.__onceKeys ??= new Set<string>());
 const threads = (g2.__threads ??= []);
 const msgs = (g2.__msgs ??= new Map<string, ChatMsg[]>());
 const skills = (g2.__skills ??= []);

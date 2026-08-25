@@ -6,18 +6,46 @@ import { slugOf } from '@/lib/roster';
 import { AppError } from '@/lib/errors';
 import { draftNextTasks } from '@/lib/exec/next';
 import { sayError } from '@/lib/errors';
+import { capCents, dayKey, dayStart } from '@/lib/run/budget';
 
 /**
- * ポンプ（Phase 7）。**開いている画面が、次のタスクを起こす。**
+ * ポンプ（Phase 7 → 2026-08-25 に会社ぜんぶへ広げた）。**次のタスクを1つ起こす。**
  *
  * Durable Object もキューも無い環境（Vercel / ローカル）でも死なない形 —
- * Work 画面が active のあいだ数秒ごとに呼び、running が居なければ次の queued を1つ走らせる。
- * 呼ばれなければ何も動かない＝**社長が見ていないところで料金だけ増える、が起きない**。
- * 常時実行（Cron / DO）は Cloudflare に出るときに足す（→ docs/design/05）。
+ * running が居なければ次の queued を1つ走らせ、終わるまで返らない。
+ *
+ * **前は Work 画面だけが呼んでいた**（「見ていないところで料金だけ増える、が起きない」）。
+ * それは会社としては弱すぎた — ホームやチャットを開いているあいだ、動いている Work は
+ * 止まったままだった。いまは**器（Shell）がどの画面からでも会社ぜんぶを進める**。
+ * 見ていないあいだの使いすぎは、止めるのではなく**1日の上限**で受ける（→ `lib/run/budget.ts`）。
  */
 export type PumpResult =
-  | { ran: false }
+  | { ran: false; why?: 'cap' | 'balance' | 'idle' }
   | { ran: true; taskId: string; outcome: RunOutcome };
+
+/**
+ * 走らせていいか。**残高**（もう無い）と**きょうのぶん**（ここまで）の2本。
+ * 当たり方が違う — 残高は Work ごと paused、きょうのぶんは止まるだけであすまた動く。
+ */
+async function allowed(s: ReturnType<typeof store>, workId: string): Promise<null | 'cap' | 'balance'> {
+  const balance = await s.balanceCents().catch(() => null);
+  if (balance !== null && balance <= 0) {
+    await s.pauseWork(workId, '枠に当たって止まりました。プランを見てください');
+    return 'balance';
+  }
+  const cap = capCents();
+  if (cap > 0) {
+    const spent = await s.spentSinceCents(dayStart()).catch(() => null);
+    if (spent !== null && spent >= cap) {
+      // **1日1通だけ。** ポンプは数秒ごとに来るので、ここが通知を積む口になってはいけない
+      await s.noticeOnce(dayKey(), 'エラー',
+        'きょうのぶんの上限に達しました。あすまた動きます（上限は請求とプランで見られます）')
+        .catch(() => {});
+      return 'cap';
+    }
+  }
+  return null;
+}
 
 export async function pumpWork(workId: string): Promise<PumpResult> {
   try {
@@ -26,21 +54,12 @@ export async function pumpWork(workId: string): Promise<PumpResult> {
     // これが無いと、サーバーが途中で入れ替わったとき running が残り、ポンプが永久に譲り続ける
     await s.reclaimStalled(workId).catch(() => {});
     const next = await s.nextQueued(workId);
-    if (!next) return { ran: false };
+    if (!next) return { ran: false, why: 'idle' };
     const work = await s.getWork(workId);
-    if (!work || work.status !== 'active') return { ran: false };
+    if (!work || work.status !== 'active') return { ran: false, why: 'idle' };
 
-    /**
-     * **残高が尽きたら走らせない**（Phase 11）。Work ごと paused に落とす —
-     * ポーリングのたびに同じ通知が積もらないし、設計の言葉どおり
-     * 「paused = 止める / 予算上限」。トークンの数字はふだんの画面に出さない。
-     * 再開は残高が入ってから（プラン画面）。
-     */
-    const balance = await s.balanceCents().catch(() => null);
-    if (balance !== null && balance <= 0) {
-      await s.pauseWork(workId, '枠に当たって止まりました。プランを見てください');
-      return { ran: false };
-    }
+    const stop = await allowed(s, workId);
+    if (stop) return { ran: false, why: stop };
 
     const outcome = await runTask(work, next.taskId);
     // フェーズのタスクが出そろったら review に畳む（判断待ちの通知つき）
@@ -48,7 +67,33 @@ export async function pumpWork(workId: string): Promise<PumpResult> {
     return { ran: true, taskId: next.taskId, outcome };
   } catch (e) {
     // 取り合いに負けただけなら何も起きていない（もう一方のポンプが走らせている）
-    if (e instanceof AppError && e.kind === 'conflict') return { ran: false };
+    if (e instanceof AppError && e.kind === 'conflict') return { ran: false, why: 'idle' };
+    return { ran: true, taskId: '', outcome: { ok: false, error: sayError(e, '実行が止まりました') } };
+  }
+}
+
+/**
+ * **会社ぜんぶを1つ進める。** 器（Shell）がどの画面からでも呼ぶ。
+ *
+ * 動いている Work を古い順に見て、**起こせるものを1つだけ**起こす。
+ * まとめて走らせない — 1往復ぶんずつ進めば、上限に当たる場所が必ず1か所になるし、
+ * 途中でサーバーが入れ替わっても取りこぼしが1件で済む。
+ */
+export async function pumpCompany(): Promise<PumpResult> {
+  try {
+    const s = store();
+    const ids = await s.activeWorks();
+    if (!ids.length) return { ran: false, why: 'idle' };
+    // 上限は会社に1つなので、Work を回り始める前に1度だけ測る
+    const stop = await allowed(s, ids[0]);
+    if (stop) return { ran: false, why: stop };
+    for (const id of ids) {
+      const r = await pumpWork(id);
+      if (r.ran || r.why !== 'idle') return r;
+    }
+    return { ran: false, why: 'idle' };
+  } catch (e) {
+    if (e instanceof AppError && e.kind === 'conflict') return { ran: false, why: 'idle' };
     return { ran: true, taskId: '', outcome: { ok: false, error: sayError(e, '実行が止まりました') } };
   }
 }
@@ -179,18 +224,26 @@ export async function listEmployees(): Promise<LiveEmployee[]> {
 /** 請求・プラン画面が読む。**トークンの数字を出していいのはこの画面だけ** */
 export async function billing(): Promise<{
   balanceTokens: number | null;
+  /** きょう使ったぶん / 1日の上限。**null = 数えていない**（デモ） */
+  todayTokens: number | null;
+  capTokens: number | null;
   rows: { deltaTokens: number; reason: string; when?: string }[];
 }> {
   try {
     const s = store();
-    const [cents, rows] = await Promise.all([s.balanceCents(), s.ledger()]);
+    const [cents, rows, today] = await Promise.all([
+      s.balanceCents(), s.ledger(), s.spentSinceCents(dayStart()).catch(() => null),
+    ]);
     // 1トークン = $0.00001 → 1セント = 1,000トークン（→ docs/design/05）
+    const cap = capCents();
     return {
       balanceTokens: cents === null ? null : cents * 1000,
+      todayTokens: today === null ? null : today * 1000,
+      capTokens: cap > 0 ? cap * 1000 : null,
       rows: rows.map((r) => ({ deltaTokens: r.deltaCents * 1000, reason: r.reason, when: r.when })),
     };
   } catch {
-    return { balanceTokens: null, rows: [] };
+    return { balanceTokens: null, todayTokens: null, capTokens: null, rows: [] };
   }
 }
 /* ══════════════ 朝の報告 ══════════════ */

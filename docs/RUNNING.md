@@ -118,7 +118,10 @@ RLS の裏方（`current_account_id` など）は **`private` スキーマ**に�
 PostgREST に公開されないので、`/rest/v1/rpc/` から呼ばれません。
 `public` に置くと、SECURITY DEFINER の関数が外から叩ける状態になります。
 
-流したあとは Supabase のリンターを見てください。**警告0件が正常です。**
+流したあとは Supabase のリンターを見てください。**スキーマ由来の警告0件が正常です。**
+（2026-08-25 現在、`Leaked password protection` の WARN が1件出ます。これは
+**Supabase の設定**で、Pro プランで有効にすると消えます — スキーマの問題ではありません。
+**コードで直せないものを「直した」と言わない。**）
 
 `0004` は注釈だけです（表は足しません）。**複数社は Phase 11**。
 1対1を仮定しているのは `users.account_id` の1列だけで、業務データは
@@ -183,6 +186,7 @@ RLS の with check は `account_id = private.current_account_id()` のままな�
 | 質問とタスクの並びが決まる | `seq`（0009）。`created_at` は同じ insert 文で同着になる |
 | モデルと深さは1人1行 | 一意 index `agent_prefs_exec` / `agent_prefs_employee`（0024）。タブを2つ開いて同時に選んでも2行にならない。知らない深さは check で弾く（探針で実証） |
 | 止めた社員は動かない | `nextQueued` が `agent_prefs.paused` の人を飛ばす（0025）。**`employees.status` には持たせない** — あの列は実行が running / idle と書き換えるので、止めた印が次の実行で消える |
+| きょうのぶんの上限は1日1通 | 一意 index `notifications_cap_daily`（0026）。ポンプは数秒ごとに来るので、ここが通知を積む口になってはいけない。上限そのものは列を足さず `token_ledger` の実績から数える（見積もりを持たないので、ずれようがない）|
 
 ## 環境変数
 
@@ -193,6 +197,9 @@ RLS の with check は `account_id = private.current_account_id()` のままな�
 | `OPENROUTER_API_KEY` | AI社員が動き出すとき。Phase 7。**通り道は OpenRouter**（→ 05 判断ログ） |
 | `APP_URL` | OpenRouter の一覧に出す名前（任意） |
 | `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | 直につなぐときの逃げ道。`lib/ai/tiers.ts` の `vendor` を書き換えたときだけ |
+| `CRON_SECRET` | **見ていないあいだも会社が進む**（1時間ごと）。Vercel が自動で `Bearer` に載せて呼ぶ。**無ければ `/api/cron` は開かない**（503） |
+| `RUNNER_EMAIL` / `RUNNER_PASSWORD` | 同上。Cron が「誰として」読み書きするか（→ 下の「見ていないあいだも進む」） |
+| `DAILY_CAP_CENTS` | 1日に使えるぶん（既定 200 = 20万トークン）。**0 以下で上限なし** |
 
 本番（Cloudflare）では `wrangler secret put OPENROUTER_API_KEY` で入れる。
 `wrangler.jsonc` の `vars` に書かない（`vars` は平文でリポジトリに残る）。
@@ -205,6 +212,53 @@ Secret にすると「隠れていないものを隠れているように見せ�
 
 **入れたら再デプロイが要る。** `NEXT_PUBLIC_` は焼き込みなので、変数を足しただけでは
 動いているサイトは変わらない。効いたかどうかは `/api/health` の `supabase` で分かる。
+
+### 見ていないあいだも進む（1時間ごとの Cron）
+
+器（Shell）のポンプは**開いているあいだ**しか動かない。閉じているあいだも進めるのが
+`/api/cron`（`vercel.json` の `crons` が毎時0分に呼ぶ）。進め方は画面とまったく同じ
+`pumpCompany` で、**2つ目の実行系は作っていない**。
+
+Cron のリクエストには cookie が無いので、そのままでは RLS がどの行も返さない
+（`private.current_account_id()` は `auth.uid()` を見る）。取れた道は3つ —
+
+| 案 | なぜ採らなかったか |
+|---|---|
+| service role の鍵 | 漏れたら全社が出る。上の表で持たないと決めてある |
+| 専用の Postgres ロール | 書き込みの既定値（`account_id`）が埋まらない。往復ごとに口座を渡す仕組みが要るが、PostgREST では渡せない |
+| **ふつうにログインする（採用）** | **特別扱いがどこにも無い** — ポリシー28本も、既定値22表も、store のコードも1行も変わらない |
+
+つまり **runner ＝ 会社にもう1人いる利用者**。止めたければその利用者を消せば止まる。
+見えるのはその1社だけ。複数社に開くときは「1社に1人の runner」になる。
+
+**入れかた**（1回だけ）
+
+| 順 | どこ | 何を |
+|---|---|---|
+| ① | Supabase → Authentication → **Add user** | メール（例 `runner@…`）とパスワード。**Auto Confirm User** を入れる |
+| ② | Supabase → SQL Editor | 下の1文（作られたばかりの runner の会社を捨てて、社長の会社に入れる） |
+| ③ | Vercel → Environment Variables | `CRON_SECRET`（任意の長い文字列）／ `RUNNER_EMAIL` ／ `RUNNER_PASSWORD` を **Secret** で |
+
+```sql
+-- runner を社長の会社に入れる。自分の会社（と付いてきたトライアル枠）は捨てる
+with f as (select account_id from users where email = '<社長のメール>'),
+     r as (select id, account_id as own from users where email = '<runner のメール>')
+update users u set account_id = (select account_id from f), role = 'runner'
+ from r where u.id = r.id;
+delete from accounts a
+ where not exists (select 1 from users u where u.account_id = a.id);
+```
+
+**Cloudflare に移すときは呼ぶ側だけ差し替える** — `wrangler.jsonc` に Cron Trigger を置いて
+`/api/cron` を叩く（route も runner もそのまま。`vercel.json` の `crons` は Vercel だけの書き方）。
+
+効いたかどうかは **`/api/health` の `cron`**（`secret` / `runner` / `capCents`）で分かる。
+3つそろっていないうちは `/api/cron` が 503 を返す — **動いているふりをしない**。
+
+**上限**（`DAILY_CAP_CENTS`・既定 200セント＝20万トークン）は画面のポンプにも Cron にも
+同じように効く。当たったら**その日は止まるだけで、あすまた動く**（Work は paused にしない —
+paused は残高が尽きたときの言葉）。通知は**1日1通**（`notifications_cap_daily`・0026）。
+きょう使ったぶんと上限は **請求とプラン**（`/billing`）に出る。
 
 ### 入口（ログイン）
 

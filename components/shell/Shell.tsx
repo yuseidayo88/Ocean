@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { morning } from '@/app/actions/run';
+import { morning, pumpCompany } from '@/app/actions/run';
 import { chatSay } from '@/app/actions/chat';
 import { streamReply } from '@/lib/chat/stream';
 import { SHELL_MIN, T2 } from '@/lib/design/tokens';
@@ -98,6 +98,39 @@ export function Shell({ children, company = 'あなたの会社' }:
       sessionStorage.setItem('onefound.morning', day);
     } catch { /* 覚えられないときは、そのまま頼む */ }
     void morning(day);
+  }, []);
+
+  /**
+   * **会社は、どの画面を開いていても進む**（2026-08-25。社長が「1時間ごと・上限つき」を選んだ）。
+   *
+   * 前はポンプが Work 画面にしか無く、ホームやチャットを見ているあいだ会社は止まっていた。
+   * 「チャットボットは聞かれるまで黙っている。**会社は先に言う**」と言っている以上、
+   * 見ている画面によって進んだり止まったりするのはおかしい。
+   *
+   * 3秒ごと。**タブが裏なら何もしない**（見ていない裏タブの数だけ速く進む、が起きない）。
+   * ポンプはタスクが終わるまで返らないので、二重に起こさない旗を持つ。
+   * 使いすぎは**1日の上限**が受ける（→ `lib/run/budget.ts`）。上限に当たったら
+   * その日は静かになる（ポンプ自身が黙るので、ここでは何も判断しない）。
+   */
+  useEffect(() => {
+    let on = true, timer = 0;
+    /**
+     * **動いているときは3秒、静かなときは15秒。**
+     * 何も起きていない会社を3秒ごとに叩き続けると、開いている画面ぶんだけ
+     * 往復が積み上がる（前は Work 画面1枚だけの話だった）。
+     * 動き出したら詰める — 実行の切り替わりは速く見えてほしい。
+     */
+    const tick = async () => {
+      let wait = 15000;
+      if (!document.hidden) {
+        try { wait = (await pumpCompany()).ran ? 3000 : 15000; } catch { /* 次の回でまた来る */ }
+      } else {
+        wait = 3000; // 裏タブは何もしていないので、表に戻ったらすぐ動けるように短く待つ
+      }
+      if (on) timer = window.setTimeout(tick, wait);
+    };
+    void tick();
+    return () => { on = false; window.clearTimeout(timer); };
   }, []);
 
   /**

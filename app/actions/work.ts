@@ -131,6 +131,14 @@ export async function reviseWork(id: string, ask: string): Promise<ReviseResult>
   if (out.draft.kind === 'need_end') return { ok: false, message: out.draft.body };
 
   const d = out.draft;
+  /**
+   * **空の計画で上書きしない**（2026-08-25）。立てるときには止めていたのに、
+   * **引き直しには同じ守りが無かった** — 「直したい」を押した往復が空で返ると、
+   * ちゃんとしていた計画が「0フェーズ」に置き換わる。直しは元より悪くならない、が要る。
+   */
+  if (!d.plan.phases.length || !d.plan.firstPhaseTasks.length) {
+    return { ok: false, message: '引き直せませんでした（中身が空でした）。前の計画はそのままです' };
+  }
   await store().revise(id, {
     title: d.container.title, goal: before.goal,
     container: d.container, questions: d.questions, hires: d.hires, plan: d.plan, real: out.real,

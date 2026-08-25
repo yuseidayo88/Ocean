@@ -66,14 +66,30 @@ function Home() {
    * **Work が1つも無い会社は、はじめての画面がホーム** — 空の盤面を見せない。
    */
   const [data, setData] = useState<HomeData | null>(null);
+  /**
+   * **オフィスは生きている。** 会社は見ているあいだも動く（器のポンプ）ので、
+   * 1回読んで固まったままだと、絵とログが**止まった写真**になる。
+   *
+   * 8秒ごとに読み直し、**中身が本当に変わったときだけ**入れ替える
+   * （変わっていないのに state を差し替えると、輪も粒も毎回組み直しになる）。
+   * 裏タブでは読まない。
+   */
   useEffect(() => {
-    let on = true;
-    homeData().then((d) => {
-      if (!on) return;
-      if (d.works.length === 0 && d.staff.length === 0) { router.replace('/start'); return; }
-      setData(d);
-    });
-    return () => { on = false; };
+    let on = true, timer = 0, last = '';
+    const pull = async (first = false) => {
+      if (first || !document.hidden) {
+        try {
+          const d = await homeData();
+          if (!on) return;
+          if (first && d.works.length === 0 && d.staff.length === 0) { router.replace('/start'); return; }
+          const now = JSON.stringify(d);
+          if (now !== last) { last = now; setData(d); }
+        } catch { /* 次の回でまた読む */ }
+      }
+      if (on) timer = window.setTimeout(pull, 8000);
+    };
+    void pull(true);
+    return () => { on = false; window.clearTimeout(timer); };
   }, [router]);
 
   if (!data) {

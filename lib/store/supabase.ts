@@ -1073,6 +1073,31 @@ export const supabaseStore: Store = {
     await c.from('notifications').insert({ kind: 'エラー', subject_type: 'work', subject_id: workId, body: why });
   },
 
+  async spentSinceCents(iso) {
+    const c = await db();
+    // consume は必ず負の1行（引き金 `run_ledger` → 0014）。**使ったぶんは正の数で返す**
+    const { data } = await c.from('token_ledger')
+      .select('delta_cents').eq('reason', 'consume').gte('created_at', iso);
+    return (data ?? []).reduce((n, r) => n - (r.delta_cents as number), 0);
+  },
+
+  async noticeOnce(key, kind, body) {
+    const c = await db();
+    const { data: had } = await c.from('notifications')
+      .select('id').eq('group_key', key).limit(1).maybeSingle();
+    if (had) return false;
+    // 同時に来たら 23505 で2通目が落ちる（0026 の一意 index）。落ちたほうは false
+    const { error } = await c.from('notifications').insert({ kind, body, group_key: key });
+    return !error;
+  },
+
+  async activeWorks() {
+    const c = await db();
+    const { data } = await c.from('works')
+      .select('id').eq('status', 'active').order('created_at');
+    return (data ?? []).map((w) => w.id as string);
+  },
+
   async closePhaseIfDone(workId) {
     const c = await db();
     const { data: ph } = await c.from('phases')

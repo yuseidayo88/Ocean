@@ -26,7 +26,7 @@ export default function BillingPage() {
       <TopBar title="請求とプラン" />
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: `26px 30px ${COMPOSER_H}px` }}>
         {/* ラベル（小）→ 数字（大）→ 図形。数字の下に説明文を置かない */}
-        <div style={{ display: 'flex', gap: 24, maxWidth: 640 }}>
+        <div style={{ display: 'flex', gap: 24, maxWidth: 760 }}>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5, borderRight: `1px solid ${HAIR}` }}>
             <span style={{ color: T4, fontSize: 12 }}>プラン</span>
             <span style={{ fontSize: 24, lineHeight: '30px' }}>トライアル</span>
@@ -45,6 +45,45 @@ export default function BillingPage() {
               <span style={{ fontSize: 24, lineHeight: '30px', color: data.balanceTokens <= 0 ? '#F28B82' : T1 }} className="tnum">
                 {fmt(data.balanceTokens)}
               </span>
+            )}
+          </div>
+
+          {/**
+            * **きょう使ったぶん**（2026-08-25）。見ていないあいだも会社が進むようにした以上、
+            * 「目を離しているうちにどこまで使うか」が見えていないと閉じられない。
+            * 残高は「もう無い」の線、これは「きょうはここまで」の線 — 当たっても
+            * あすまた動く（→ `lib/run/budget.ts`）。
+            */}
+          <div style={{ flex: 1.4, display: 'flex', flexDirection: 'column', gap: 5, borderLeft: `1px solid ${HAIR}`, paddingLeft: 24 }}>
+            <span style={{ color: T4, fontSize: 12 }}>きょう使ったぶん</span>
+            {data === null || data.todayTokens === null ? (
+              <>
+                <span style={{ fontSize: 24, lineHeight: '30px', color: T5 }}>—</span>
+                {data && <span style={{ color: T5, fontSize: 11 }}>デモの環境では数えていません</span>}
+              </>
+            ) : (
+              <>
+                <span style={{ fontSize: 24, lineHeight: '30px' }} className="tnum">{fmt(data.todayTokens)}</span>
+                {data.capTokens === null ? (
+                  <span style={{ color: T5, fontSize: 11 }}>1日の上限なし</span>
+                ) : (
+                  <>
+                    {/* 数で言えるものは図形にする。当たっていたら赤（＝止まっている） */}
+                    <div style={{ height: 3, borderRadius: 2, background: HAIR, overflow: 'hidden' }}>
+                      <div style={{
+                        width: `${Math.min(100, Math.round((data.todayTokens / data.capTokens) * 100))}%`,
+                        height: '100%',
+                        background: data.todayTokens >= data.capTokens ? '#D93025' : T3,
+                      }} />
+                    </div>
+                    <span style={{ color: data.todayTokens >= data.capTokens ? '#F28B82' : T5, fontSize: 11 }} className="tnum">
+                      {data.todayTokens >= data.capTokens
+                        ? `1日の上限 ${fmt(data.capTokens)} に達しました。あすまた動きます`
+                        : `1日の上限 ${fmt(data.capTokens)}`}
+                    </span>
+                  </>
+                )}
+              </>
             )}
           </div>
         </div>

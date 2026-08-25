@@ -1,5 +1,6 @@
 import { TIER_TABLE, TIERS } from '@/lib/ai/tiers'
 import { errorResponse } from '@/lib/errors'
+import { capCents } from '@/lib/run/budget'
 
 /**
  * 土台が立っているかを1か所で見る。**鍵の中身は返さない。**
@@ -13,6 +14,16 @@ export async function GET() {
       supabase: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
       /** モデルに繋がるか。**どのモデルかは言わない** */
       model: TIERS.every((t) => Boolean(keyFor(TIER_TABLE[t].vendor))),
+      /**
+       * **見ていないあいだも会社が進むか**（1時間ごとの Cron）。
+       * 鍵は返さない — 3つそろっているかどうかだけ。
+       * 「設定したつもりが効いていない」をここで見つける（Google の入り口と同じ理由）。
+       */
+      cron: {
+        secret: Boolean(process.env.CRON_SECRET),
+        runner: Boolean(process.env.RUNNER_EMAIL && process.env.RUNNER_PASSWORD),
+        capCents: capCents(),
+      },
       /** どの入り口が開いているか（入口の画面に出ているものと同じ。隠す意味が無い） */
       ...await auth(),
     })

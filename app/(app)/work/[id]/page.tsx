@@ -11,12 +11,12 @@ import { Orb } from '@/components/ui/Orb';
 import { AMBER_T, BLUE, COMPOSER_H, DIM, FAINT, GREEN, GREEN_T, HAIR, MUTE, RAIL, RED, RED_T, SEAM, SUNK, T1, T2, T3, T4, T5, WELL } from '@/lib/design/tokens';
 import { fromLive, type WorkView } from '@/lib/exec/work-view';
 import { getWork } from '@/app/actions/work';
-import { approvePhase, decide, pumpWork, taskDecision, taskSteps } from '@/app/actions/run';
+import { approvePhase, decide, taskDecision, taskSteps } from '@/app/actions/run';
 import type { LiveDecision } from '@/lib/store';
 import { DelActions } from '@/components/live/DelActions';
 import { DelBody } from '@/components/live/DelBody';
 import type { RunStep } from '@/lib/store';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 /**
  * Work＝会話を持たない。一目で状況が分かる1枚（参考: Upwork / Squarespace / Linear）。
@@ -220,27 +220,19 @@ export default function WorkPage() {
   }, [id]);
 
   /**
-   * **画面を開いているあいだ、会社が動く**（Phase 7 のポンプ）。
-   * 2.5秒ごとに読み直し、走っているタスクが無ければ次の queued を1つ起こす。
-   * ポンプはタスクが終わるまで返ってこないので、二重に起こさない旗を持つ。
-   * 閉じれば止まる — 見ていないところで料金だけ増える、が起きない。
+   * **開いているあいだ、この Work を読み直す**（2.5秒ごと）。
+   *
+   * **起こすのはここではない**（2026-08-25）。ポンプは器（Shell）に移して
+   * 会社ぜんぶを進めるようにしたので、ここで別に起こすと**同じ会社に2つのポンプ**が立つ。
+   * 取り合いは atomic claim が捌くが、上限を測る場所が2か所になるのは間違い。
+   * ここは**動いている結果を見せるだけ**にする。
    */
-  const pumping = useRef(false);
-  const activeNow = useRef(false);
   useEffect(() => {
     const tick = async () => {
       if (document.hidden) return;
       const r = await getWork(id);
-      if (r) { const v = fromLive(r); setW(v); activeNow.current = !!v.active; }
-      if (activeNow.current && !pumping.current) {
-        pumping.current = true;
-        pumpWork(id).finally(() => {
-          pumping.current = false;
-          getWork(id).then((r2) => r2 && setW(fromLive(r2)));
-        });
-      }
+      if (r) setW(fromLive(r));
     };
-    tick();
     const h = window.setInterval(tick, 2500);
     return () => window.clearInterval(h);
   }, [id]);

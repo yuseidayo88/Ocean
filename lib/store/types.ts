@@ -256,6 +256,22 @@ export interface Store {
   ledger(): Promise<{ deltaCents: number; reason: string; when?: string }[]>;
   /** 枠に当たって止める。works → paused ＋ エラー通知 */
   pauseWork(workId: string, why: string): Promise<void>;
+  /**
+   * その時刻より後に**使ったぶん**（セント・正の数）。1日の上限を測るのに使う。
+   * 台帳の実績だけを数える — 見積もりではない（→ `lib/run/budget.ts`）。
+   * **null = 数えていない**（メモリ版のデモ。上限があるふりをしない）
+   */
+  spentSinceCents(iso: string): Promise<number | null>;
+  /**
+   * **その鍵で1通だけ**。同じ日に二度は出さない（朝の報告の `morning-` と同じ作法）。
+   * 書けたら true。同時に来ても DB の一意 index が2通目を止める（0026）。
+   */
+  noticeOnce(key: string, kind: string, body: string): Promise<boolean>;
+  /**
+   * 動いている Work の id（active だけ・古い順）。
+   * **会社ぜんぶを進めるポンプ**が回るのに使う。`listWorks` は1件ずつ組み立て直すので重い
+   */
+  activeWorks(): Promise<string[]>;
 
   /* ══════════════ ゼロ状態（画面はぜんぶここを読む。ダミーは無い）══════════════ */
 

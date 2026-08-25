@@ -1,7 +1,12 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const PUBLIC = ['/login', '/auth', '/api/health', '/_next', '/favicon.ico']
+/**
+ * `/api/cron` は cookie を持たない（Vercel Cron が呼ぶ）ので、ここで弾くと
+ * **ログイン画面へのリダイレクトを毎時受け取るだけ**になる。
+ * 素通しにするが**開いてはいない** — route 側が `CRON_SECRET` で断る。
+ */
+const PUBLIC = ['/login', '/auth', '/api/health', '/api/cron', '/_next', '/favicon.ico']
 const isPublic = (r: NextRequest) => PUBLIC.some((p) => r.nextUrl.pathname.startsWith(p))
 
 export async function middleware(request: NextRequest) {

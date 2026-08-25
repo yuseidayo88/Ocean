@@ -63,6 +63,15 @@ await until((b) => b.includes('承認して始める'), 20, 800);
 await ev(`[...document.querySelectorAll('button')].find(b => b.textContent.includes('承認して始める'))?.click()`);
 await wait(3500);
 ok('承認して Work に着いた', /\/work\/[^/]+$/.test(await ev('location.pathname')), await ev('location.pathname'));
+const workUrl = await ev('location.href');
+
+// ①' **Work を見ていなくても会社は進む**（2026-08-25。ポンプは器にある）。
+//     ホームに移ってから、そこで実行が始まるのを待つ — 前はここで会社が止まっていた
+await send('Page.navigate', { url: `${BASE}/home` }); await wait(1500);
+const away = await until((b) => b.includes('実行中'), 20, 900);
+ok('Work を開いていなくても会社が進む（ホームで実行中）', away.includes('実行中'),
+   (await ev('location.pathname')) + ' / ' + away.slice(0, 60));
+await send('Page.navigate', { url: workUrl }); await wait(1500);
 
 // ② タスク1〜2が走る（歩みが読める）→ タスク3は判断で止まる
 let sawProgress = false, sawFlow = false;
@@ -85,9 +94,14 @@ const stopped = await until((b) => b.includes('決める'));
 ok('判断で止まった（◆ 決める）', stopped.includes('決める'), stopped.slice(0, 60));
 
 // ③ 判断に答える → 決定が次の実行に入って、タスクが最後まで走る
-await ev(`[...document.querySelectorAll('button')].find(x => x.className.includes('row') && x.innerText.includes('決める'))?.click()`);
-await wait(800);
-const dpane = await ev(`document.querySelector('aside')?.innerText ?? ''`);
+// 押してから開くまでに、読み直しの1回が挟まることがある（器のポンプが3秒ごとに回っている）。
+// **開くまで押し直す** — 見ているのは「開くか」であって「1回目で開くか」ではない
+let dpane = '';
+for (let i = 0; i < 8 && !dpane.includes('推奨'); i++) {
+  await ev(`[...document.querySelectorAll('button')].find(x => x.className.includes('row') && x.innerText.includes('決める'))?.click()`);
+  await wait(700);
+  dpane = await ev(`document.querySelector('aside')?.innerText ?? ''`) ?? '';
+}
 ok('聞かれていることが右ペインに出る', dpane.includes('対象の絞り込み') && dpane.includes('推奨'), dpane.slice(0, 60));
 await ev(`[...document.querySelectorAll('aside button')].find(b => b.innerText.includes('K-POPファン層'))?.click()`);
 await wait(1000);
