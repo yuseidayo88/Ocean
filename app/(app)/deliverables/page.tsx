@@ -10,6 +10,7 @@ import { listDels } from '@/app/actions/run';
 import { DelActions } from '@/components/live/DelActions';
 import { DelBody } from '@/components/live/DelBody';
 import { DelTake } from '@/components/live/DelTake';
+import { formatOf } from '@/lib/deliver/format';
 import type { LiveDeliverable } from '@/lib/store';
 import { pressable } from '@/lib/a11y';
 import { AMBER, AMBER_T, COMPOSER_H, GREEN, HAIR, MUTE, RAIL, T2, T3, T5 } from '@/lib/design/tokens';
@@ -25,7 +26,9 @@ type LiveDel = LiveDeliverable & { workId: string; workTitle: string };
 
 /** サムネイル＝**実際の書き出し**（灰色の棒を置かない） */
 function Thumb({ d }: { d: LiveDel }) {
-  const lines = (d.preview ?? '').split(/(?<=。)/).filter(Boolean).slice(0, 3);
+  // 形によって書き出しの割れ方が違う（表は行、文章は文）。**行が先** — 表を1行に潰さない
+  const lines = (d.preview ?? '').split('\n')
+    .flatMap((l) => l.split(/(?<=。)/)).filter((l) => l.trim()).slice(0, 3);
   return (
     <div style={{
       height: 108, boxSizing: 'border-box', borderRadius: 8, background: RAIL,
@@ -105,6 +108,9 @@ export default function DeliverablesPage() {
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ color: T5 }}>{d.by ?? 'AI社員'}</span>
+                    {/* **どの形で持ち出せるか**を、開く前に言う（表データなら .csv、ページなら .html）。
+                        ピルにはしない — 例外ではなく、ただの事実 */}
+                    <span style={{ color: MUTE, fontSize: 11.5 }}>{formatOf(d.kind, d.preview).label}</span>
                     <div style={{ flex: 1 }} />
                     {d.state === '要確認' && (
                       <span style={{
@@ -137,7 +143,7 @@ export default function DeliverablesPage() {
           <span style={{ color: T5, fontSize: 12, display: 'block', paddingTop: 5 }}>
             {top.by ?? 'AI社員'} · {top.workTitle}{(top.version ?? 1) > 1 ? ` · v${top.version}` : ''}
           </span>
-          <div style={{ paddingTop: 16 }}><DelBody body={top.body ?? top.preview ?? ''} /></div>
+          <div style={{ paddingTop: 16 }}><DelBody body={top.body ?? top.preview ?? ''} kind={top.kind} /></div>
         </div>
         <DelActions delId={top.id} workId={top.workId} taskId={top.taskId}
                     title={top.title} state={top.state} onDone={reload} />

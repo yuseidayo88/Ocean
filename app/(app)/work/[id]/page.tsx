@@ -76,7 +76,8 @@ function Row({ live, onOpen, href, style, children }: {
  * フェーズの承認（Phase 9）。統括AIが前の結果と決定を見て
  * 次のフェーズのタスクを引いてから進む。**押すと本当に進む。**
  */
-function PhaseGate({ name, workId, onDone }: { name: string; workId: string; onDone: () => void }) {
+function PhaseGate({ name, unseen, workId, onDone }:
+  { name: string; unseen: number; workId: string; onDone: () => void }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const go = async () => {
@@ -89,7 +90,10 @@ function PhaseGate({ name, workId, onDone }: { name: string; workId: string; onD
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
       <Diamond size={10} />
-      <span style={{ color: AMBER_T }}>フェーズ「{name}」が終わりました。成果物を見て、次に進めてください</span>
+      <span style={{ color: AMBER_T }}>
+        フェーズ「{name}」が終わりました。
+        {unseen > 0 ? `成果物 ${unseen}件 を見て、次に進めてください` : '次に進めてください'}
+      </span>
       <div style={{ flex: 1 }} />
       {err && <span style={{ color: RED_T, fontSize: 12 }}>{err}</span>}
       <button onClick={go} disabled={busy} className={busy ? undefined : 'solid'} style={{
@@ -275,7 +279,7 @@ export default function WorkPage() {
           </div>
 
           {/* フェーズの承認 — review のあいだだけ出る行動の帯（Phase 9） */}
-          {w.phaseGate && <PhaseGate name={w.phaseGate} workId={w0id}
+          {w.phaseGate && <PhaseGate name={w.phaseGate} unseen={w.gateUnseen} workId={w0id}
             onDone={() => getWork(id).then((r) => r && setW(fromLive(r)))} />}
           {/* **確かめていないことを言わない**（2026-08-25）。
               前は「成果物がすべて揃っています」と書いていたが、
@@ -530,7 +534,7 @@ export default function WorkPage() {
             {/* **持ち出せない成果物は、無いのと同じ**（→ `components/live/DelTake.tsx`） */}
             <DelTake title={openDel.title} body={openDel.body ?? openDel.preview ?? ''} kind={openDel.kind} />
           </div>
-          <DelBody body={openDel.body ?? openDel.preview ?? ''} />
+          <DelBody body={openDel.body ?? openDel.preview ?? ''} kind={openDel.kind} />
         </div>
         {/* 社長のレビュー。**押すと本当に変わる**（承認 / 差し戻し → 直しタスク） */}
         <DelActions delId={openDel.id} workId={w0id} taskId={openDel.taskId}

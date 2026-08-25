@@ -1,11 +1,11 @@
 import { createClient } from '@/lib/supabase/server';
 import { AGENT_COLOR, type EmployeeColor } from '@/lib/view/model';
 import { byName as rosterByName, crewFor } from '@/lib/roster';
-import { previewOf } from '@/lib/diagram/parse';
+import { previewFor } from '@/lib/deliver/format';
 import { colorFor, sortCands } from './memory';
 import { BUILTIN_SKILLS } from '@/lib/roster/skills';
 import { AppError } from '@/lib/errors';
-import { finishNote, finishSay, type Finished } from '@/lib/exec/finish';
+import { finishNote, finishSay, gateNote, type Finished } from '@/lib/exec/finish';
 import { STALL_MS, type AgentPref, type ChatMsg, type ChatThread, type Discovery, type DraftWork, type LiveDecision, type LiveWork, type Note, type Profile, type RunStep, type SkillRow, type Store } from './types';
 
 /**
@@ -374,10 +374,9 @@ export const supabaseStore: Store = {
 
   async addDeliverable(d) {
     const c = await db();
-    // preview は本文の書き出し（見出し行を飛ばして90文字）。
-    // **図は主線を書き出しにする** — JSON をそのまま出すと記号の山になる
-    const preview = previewOf(d.body)
-      ?? d.body.replace(/^#.*\n/, '').replace(/[#*|>`-]/g, '').trim().slice(0, 90);
+    // 一覧に出す書き出しは**形ごとに違うところ**から取る（→ `lib/deliver/format.ts`）。
+    // 図は主線、表は見出しの行、ページは題 — JSON や `|---|` をそのまま出さない
+    const preview = previewFor(d.kind, d.body);
 
     /**
      * 版の配線。**同じ Work で同じタイトル**なら同じ lineage の新しい版にする
@@ -1146,6 +1145,13 @@ export const supabaseStore: Store = {
     return !error;
   },
 
+  async noticed(key) {
+    const c = await db();
+    const { data } = await c.from('notifications')
+      .select('id').eq('group_key', key).limit(1).maybeSingle();
+    return !!data;
+  },
+
   async activeWorks() {
     const c = await db();
     const { data } = await c.from('works')
@@ -1155,34 +1161,44 @@ export const supabaseStore: Store = {
 
   async closePhaseIfDone(workId, gates = []) {
     const c = await db();
-    const { data: ph } = await c.from('phases')
-      .select('id, name, status').eq('work_id', workId).eq('status', 'active');
-    const closed: string[] = [];
-    let hold = false;
-    for (const p of ph ?? []) {
-      const { data: mine } = await c.from('tasks').select('status').eq('phase_id', p.id);
-      if (mine?.length && mine.every((t) => t.status === 'done' || t.status === 'cancelled')) {
-        // active のものだけ畳む。ポンプが2か所から来ても、通知は畳めた側の1通だけ
-        const { data: flipped } = await c.from('phases')
-          .update({ status: 'review' }).eq('id', p.id).eq('status', 'active').select('id');
-        if (!flipped?.length) continue;
-        /**
-         * **◆ が置かれたところだけ、社長を待つ。**
-         * 統括AIが置かなかったフェーズは会社が自分で進むので、
-         * 「見て、次に進めてください」と言わない（言って勝手に進むほうが悪い）。
-         */
-        const wait = gates.includes(p.name as string);
-        if (wait) hold = true;
-        await c.from('notifications').insert({
-          kind: wait ? '判断待ち' : '要確認', subject_type: 'phase', subject_id: p.id,
-          body: wait
-            ? `フェーズ「${p.name}」が終わりました。見て、次に進めてください`
-            : `フェーズ「${p.name}」が終わりました。次に進みます`,
-        });
-        closed.push(p.name as string);
-      }
+    const [{ data: ph }, { data: allTasks }, { data: unseen }] = await Promise.all([
+      c.from('phases').select('id, name, status').eq('work_id', workId).in('status', ['active', 'review']),
+      c.from('tasks').select('id, phase_id, status').eq('work_id', workId),
+      // **まだ見ていない成果物**。差し戻し済（rejected）は直しタスクが積まれるので待たない
+      c.from('deliverables').select('task_id').eq('work_id', workId).eq('status', 'review'),
+    ]);
+    /** そのフェーズに、社長がまだ見ていない成果物が何件あるか */
+    const phaseOf = new Map((allTasks ?? []).map((t) => [t.id as string, t.phase_id as string]));
+    const waiting = new Map<string, number>();
+    for (const d of unseen ?? []) {
+      const pid = d.task_id ? phaseOf.get(d.task_id as string) : undefined;
+      if (pid) waiting.set(pid, (waiting.get(pid) ?? 0) + 1);
     }
-    return { closed, hold };
+
+    const closed: string[] = [];
+    const review: { id: string; name: string }[] = [];
+    for (const p of ph ?? []) {
+      if (p.status === 'review') { review.push({ id: p.id as string, name: p.name as string }); continue; }
+      const mine = (allTasks ?? []).filter((t) => t.phase_id === p.id);
+      if (!mine.length || !mine.every((t) => t.status === 'done' || t.status === 'cancelled')) continue;
+      // active のものだけ畳む。ポンプが2か所から来ても、通知は畳めた側の1通だけ
+      const { data: flipped } = await c.from('phases')
+        .update({ status: 'review' }).eq('id', p.id).eq('status', 'active').select('id');
+      if (!flipped?.length) continue;
+      review.push({ id: p.id as string, name: p.name as string });
+      closed.push(p.name as string);
+      await c.from('notifications').insert({
+        ...gateNote(p.name as string, gates.includes(p.name as string), waiting.get(p.id as string) ?? 0),
+        subject_type: 'phase', subject_id: p.id,
+      });
+    }
+
+    /**
+     * **待つものが残っているか**は、閉じた直後だけでなく毎回測り直す。
+     * 社長が最後の1件を承認した瞬間に `ready` が立ち、ポンプが次のフェーズを引く。
+     */
+    const hold = review.some((p) => gates.includes(p.name) || (waiting.get(p.id) ?? 0) > 0);
+    return { closed, hold, ready: review.length > 0 && !hold, at: review[0]?.name ?? null };
   },
 
   async planGates(workId) {

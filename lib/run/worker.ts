@@ -112,8 +112,13 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
       '',
       '道具の使い方:',
       '1. log_step で作業の区切りを3〜6回記録する（progress は正直に）',
-      '2. 成果物を1つ書く — 文章なら write_deliverable、'
+      '2. 成果物を1つ書く — write_deliverable か、'
       + '**手順や承認の流れなら draw_workflow で図にする**（どちらか一方）',
+      '   **出す形は、社長がそのまま使える形にする** — '
+      + '表計算に入れる数字は kind=csv、公開するページは kind=page（1枚のHTML）、'
+      + '読んで判断してもらうものは kind=report。**迷ったら report**',
+      '   社長はこれを見て、進めていいかを決める。'
+      + '**見せる相手がいるつもりで書く**（社内メモにしない）',
       '3. 事業の判断（価格・対象など）に当たったら ask_decision で止まる',
       '4. 次も効く学びがあれば note_learning で1行だけ書き残す（任意）',
       '5. 最後に finish。**文章では答えない** — すべて道具で',

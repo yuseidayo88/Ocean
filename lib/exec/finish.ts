@@ -49,3 +49,26 @@ export function finishSay(f: Finished): string {
   if (f.unseen) lines.push(`まだ見ていない成果物が ${f.unseen}件 あります。`);
   return lines.join('\n').trim();
 }
+
+/**
+ * **フェーズが終わったときに言うこと。**
+ *
+ * 待つものは2つあって、言い方が違う（→ CLAUDE.md「言葉」）——
+ * **判断待ち＝あなたが決める** ／ **要確認＝あなたが成果物を見る**。
+ * どちらも無ければ会社が自分で進むので、そう言って進む。
+ *
+ * 成果物のほうが先に来る。◆ は「見たうえで決める」ことなので、
+ * 見ていないものが残っているうちは、決めろとは言わない。
+ */
+export function gateNote(phase: string, gate: boolean, unseen: number): { kind: string; body: string } {
+  if (unseen) {
+    return {
+      kind: '要確認',
+      body: `フェーズ「${phase}」が終わりました。成果物 ${unseen}件 を見て、次に進めてください`,
+    };
+  }
+  if (gate) {
+    return { kind: '判断待ち', body: `フェーズ「${phase}」が終わりました。決めて、次に進めてください` };
+  }
+  return { kind: '要確認', body: `フェーズ「${phase}」が終わりました。次に進みます` };
+}

@@ -1,7 +1,7 @@
 import { AGENT_COLOR, type EmployeeColor } from '@/lib/view/model';
 import { byName as rosterByName, crewFor } from '@/lib/roster';
-import { finishNote, finishSay, type Finished } from '@/lib/exec/finish';
-import { previewOf } from '@/lib/diagram/parse';
+import { finishNote, finishSay, gateNote, type Finished } from '@/lib/exec/finish';
+import { previewFor } from '@/lib/deliver/format';
 import { BUILTIN_SKILLS } from '@/lib/roster/skills';
 import { AppError } from '@/lib/errors';
 import type { Hire } from '@/lib/exec/types';
@@ -166,8 +166,8 @@ export const memoryStore: Store = {
     live.dels.unshift({
       id: `del-${Date.now().toString(36)}-${d.taskId}`, title: d.title, kind: d.kind,
       state: '要確認',
-      // **図は主線を書き出しにする**（supabase 版と同じ規則）
-      preview: previewOf(d.body) ?? d.body.replace(/^#.*\n/, '').slice(0, 90), body: d.body,
+      // 書き出しは形ごとに違うところから（supabase 版と同じ規則）
+      preview: previewFor(d.kind, d.body), body: d.body,
       by: live.tasks.find((t) => t.id === d.taskId)?.owner, when: 'たった今', taskId: d.taskId,
       version,
     });
@@ -295,6 +295,8 @@ export const memoryStore: Store = {
     notes.push({ kind, body });
     return true;
   },
+
+  async noticed(key) { return onceKeys.has(key); },
 
   async activeWorks() {
     return [...bag.values()].filter((d) => d.live?.status === 'active').map((d) => d.live!.id);
@@ -586,27 +588,29 @@ export const memoryStore: Store = {
 
   async closePhaseIfDone(workId, gates = []) {
     const live = [...bag.values()].find((d) => d.live?.id === workId)?.live;
-    if (!live) return { closed: [], hold: false };
+    if (!live) return { closed: [], hold: false, ready: false, at: null };
+    /** そのフェーズに、社長がまだ見ていない成果物が何件あるか（supabase 版と同じ数え方） */
+    const phaseOf = new Map(live.tasks.map((t) => [t.id, t.phaseId]));
+    const waiting = new Map<string, number>();
+    for (const d of live.dels ?? []) {
+      if (d.state !== '要確認') continue;
+      const pid = d.taskId ? phaseOf.get(d.taskId) : undefined;
+      if (pid) waiting.set(pid, (waiting.get(pid) ?? 0) + 1);
+    }
+
     const closed: string[] = [];
-    let hold = false;
     for (const ph of live.phases) {
       if (ph.state !== 'active') continue;
       const mine = live.tasks.filter((t) => t.phaseId === ph.id);
-      if (mine.length && mine.every((t) => t.state === 'done' || t.state === 'cancelled')) {
-        ph.state = 'review';
-        // **◆ が置かれたところだけ、社長を待つ**（supabase 版と同じ規則）
-        const wait = gates.includes(ph.name);
-        if (wait) hold = true;
-        notes.push({
-          kind: wait ? '判断待ち' : '要確認',
-          body: wait
-            ? `フェーズ「${ph.name}」が終わりました。見て、次に進めてください`
-            : `フェーズ「${ph.name}」が終わりました。次に進みます`,
-        });
-        closed.push(ph.name);
-      }
+      if (!mine.length || !mine.every((t) => t.state === 'done' || t.state === 'cancelled')) continue;
+      ph.state = 'review';
+      closed.push(ph.name);
+      notes.push(gateNote(ph.name, gates.includes(ph.name), waiting.get(ph.id) ?? 0));
     }
-    return { closed, hold };
+
+    const review = live.phases.filter((p) => p.state === 'review');
+    const hold = review.some((p) => gates.includes(p.name) || (waiting.get(p.id) ?? 0) > 0);
+    return { closed, hold, ready: review.length > 0 && !hold, at: review[0]?.name ?? null };
   },
 
   async planGates(workId) {

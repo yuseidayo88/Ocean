@@ -106,25 +106,30 @@ ok('聞かれていることが右ペインに出る', dpane.includes('対象の
 await ev(`[...document.querySelectorAll('aside button')].find(b => b.innerText.includes('K-POPファン層'))?.click()`);
 await wait(1000);
 /**
- * ③' **◆ が無いフェーズは、会社が自分で進む**（2026-08-25。社長の指示
- *    「あなたに聞くのは2回とか決めなくていい、AI が判断して適切な提案ができるまでしていい」）。
- *    決め打ちの計画は ◆ を 戦略 と プロダクト に置いている＝**調査には無い**。
+ * ③' **成果物ができたら、社長が見るまで進まない**（2026-08-25。社長の指示
+ *    「完全自動で動くというよりかは、成果物ができたら確認してもらって、
+ *    それで進めていいのか確認してもらう」）。
  *
- * **通知の1行では測らない** — すぐ次へ進むので、その行はすぐ入れ替わる。
- * 決めたことが文脈に入らないと fake は完走しないので、**次のフェーズのタスクが
- * 引かれたこと自体**が「決定が渡った」と「自分で進んだ」の両方の証拠になる。
+ *    決め打ちの計画は ◆ を 戦略 と プロダクト に置いている＝**調査には無い**。
+ *    それでも**成果物が 要確認 のあいだは待つ** — 見せる前に次へ行くと、
+ *    直したいところがあっても後戻りになる。
+ *    決めたことが文脈に入らないと fake は完走しないので、
+ *    **調査フェーズが閉じたこと自体**が「決定が渡った」の証拠にもなる。
  */
-const auto = await until((b) => b.includes('収益モデル'), 60);
-ok('決定が次の実行に渡って、調査フェーズが最後まで走った', auto.includes('収益モデル'), auto.slice(0, 80));
-const bar = await ev(`[...document.querySelectorAll('button')].some(b => b.innerText.includes('次のフェーズへ進める'))`);
-ok('◆ が無いフェーズは、押さなくても次へ進む（承認の帯が出ていない）', !bar, String(bar));
-const p2 = await until((b) => /フェーズ\n2 \/ /.test(b), 30);
-ok('フェーズが 2 に進んだ', /フェーズ\n2 \/ /.test(p2), p2.match(/フェーズ\n[^\n]*/)?.[0]);
+const shut1 = await until((b) => b.includes('フェーズ「調査」が終わりました'), 90);
+ok('決定が次の実行に渡って、調査フェーズが最後まで走った',
+   shut1.includes('フェーズ「調査」が終わりました'), shut1.slice(0, 80));
+ok('成果物が 要確認 のあいだは、◆ が無くても待つ',
+   shut1.includes('を見て、次に進めてください')
+   && await ev(`[...document.querySelectorAll('button')].some(b => b.innerText.includes('次のフェーズへ進める'))`),
+   shut1.match(/フェーズ「調査」[^\n]*/)?.[0]);
+ok('待っているあいだ、次のフェーズは始まっていない',
+   !(await text()).includes('収益モデル'));
 
-// ④ 成果物: 1つ承認、1つ差し戻し → 直しタスクが走る
+// ④ 成果物: 1つ承認、1つ差し戻し → 直しタスクが走る（**まだフェーズ1のうち**）
 await ev(`[...document.querySelectorAll('button')].find(b => b.className.includes('row') && b.innerText.includes('競合'))?.click()`);
 await wait(700);
-let pane = await ev(`document.querySelector('aside')?.innerText ?? ''`);
+const pane = await ev(`document.querySelector('aside')?.innerText ?? ''`);
 ok('成果物の本文と承認の口', pane.includes('承認して受け取る'), pane.slice(0, 50));
 await ev(`[...document.querySelectorAll('aside button')].find(b => b.innerText === '承認して受け取る')?.click()`);
 await wait(1000);
@@ -152,11 +157,53 @@ await ev(`document.querySelector('aside button')?.click()`); await wait(300);
 const gate2 = await until((b) => b.includes('を直す'), 40);
 ok('差し戻しが直しタスクになって積まれた', gate2.includes('を直す'), gate2.match(/[^\n]*を直す[^\n]*/)?.[0]);
 
-// ⑤ **◆ があるフェーズでは止まる。** 戦略が終わっても、押すまで先へは行かない
-const done2 = await until((b) => b.includes('フェーズ「戦略」が終わりました'), 60);
-ok('◆ があるフェーズは社長を待つ',
-   done2.includes('フェーズ「戦略」が終わりました') && done2.includes('見て、次に進めてください'),
+/** 要確認 の成果物を上から承認していく（**社長が見た**、の代わり） */
+const seeAll = async (max = 6) => {
+  for (let i = 0; i < max; i++) {
+    const opened = await ev(`(() => {
+      const b = [...document.querySelectorAll('button')].find(
+        (x) => x.className.includes('row') && x.innerText.includes('要確認'));
+      if (!b) return false; b.click(); return true; })()`);
+    if (!opened) return i;
+    await wait(700);
+    const did = await ev(`(() => {
+      const b = [...document.querySelectorAll('aside button')].find((x) => x.innerText === '承認して受け取る');
+      if (!b) return false; b.click(); return true; })()`);
+    await wait(900);
+    await ev(`document.querySelector('aside button')?.click()`); await wait(300);
+    if (!did) return i;
+  }
+  return max;
+};
+
+// **直したものまで見終われば、◆ が無いフェーズは押さなくても次へ進む**
+await until((b) => b.includes('フェーズ「調査」が終わりました'), 90);
+ok('直したものが 要確認 で戻ってくる', (await seeAll()) > 0);
+const auto = await until((b) => b.includes('収益モデル'), 90);
+ok('見終わると、◆ が無いフェーズは押さなくても次へ進む', auto.includes('収益モデル'), auto.slice(0, 80));
+const bar = await ev(`[...document.querySelectorAll('button')].some(b => b.innerText.includes('次のフェーズへ進める'))`);
+ok('進んだあとは承認の帯が出ていない', !bar, String(bar));
+const p2 = await until((b) => /フェーズ\n2 \/ /.test(b), 40);
+ok('フェーズが 2 に進んだ', /フェーズ\n2 \/ /.test(p2), p2.match(/フェーズ\n[^\n]*/)?.[0]);
+
+// ⑤ **◆ があるフェーズでは、成果物を見終わっても止まる。** 押すまで先へは行かない
+const done2 = await until((b) => b.includes('フェーズ「戦略」が終わりました'), 90);
+ok('フェーズ「戦略」が閉じた', done2.includes('フェーズ「戦略」が終わりました'),
    done2.match(/フェーズ「戦略」[^\n]*/)?.[0]);
+// **表（csv）の成果物**もここで出る（価格の帯 → 1行目が見出しの表）
+ok('表は表として読める（記号のまま出さない）',
+   await ev(`(() => {
+     const b = [...document.querySelectorAll('button')].find(
+       (x) => x.className.includes('row') && /価格/.test(x.innerText));
+     if (!b) return false; b.click(); return true; })()`) ? (
+     await wait(800), (await ev(`document.querySelectorAll('aside table').length`)) > 0
+   ) : false);
+await ev(`document.querySelector('aside button')?.click()`); await wait(300);
+await seeAll();
+await wait(4000);
+ok('◆ があるフェーズは、見終わっても社長を待つ',
+   (await ev(`[...document.querySelectorAll('button')].some(b => b.innerText.includes('次のフェーズへ進める'))`))
+   && !/フェーズ\n3 \/ /.test(await text()));
 await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('次のフェーズへ進める'))?.click()`);
 const p3 = await until((b) => /フェーズ\n3 \/ /.test(b), 40);
 ok('承認するとフェーズ 3 へ進む', /フェーズ\n3 \/ /.test(p3), p3.match(/フェーズ\n[^\n]*/)?.[0]);

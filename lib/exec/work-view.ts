@@ -63,6 +63,12 @@ export type WorkView = {
   active?: boolean;
   /** 承認待ちのフェーズ名（review）。あれば画面の上に行動の帯を出す */
   phaseGate?: string;
+  /**
+   * そのフェーズで、社長がまだ見ていない成果物の数。
+   * **0 でないうちは会社が勝手に進まない**（→ `app/actions/run.ts` の `gate`）ので、
+   * 帯もそう言う — 「成果物 N件 を見て」。
+   */
+  gateUnseen: number;
   /** まだ社長が見ていない成果物の数 */
   unseen: number;
   /** 社長が止めているか（止めているあいだ、会社はこの Work を拾わない） */
@@ -97,6 +103,7 @@ export function fromLive(w: LiveWork): WorkView {
   const activeIdx = w.phases.findIndex((p) => p.state === 'active' || p.state === 'review');
   const nowIdx = activeIdx >= 0 ? activeIdx : Math.max(0, w.phases.length - 1);
   const seq = new Map(w.phases.map((p) => [p.id, p.seq]));
+  const review = w.phases.find((p) => p.state === 'review');
 
   return {
     title: w.title, goal: w.goal,
@@ -121,7 +128,11 @@ export function fromLive(w: LiveWork): WorkView {
     decs: [],
     live: true,
     active: w.status === 'active' && w.tasks.some((t) => t.state === 'queued' || t.state === 'running'),
-    phaseGate: w.phases.find((p) => p.state === 'review')?.name,
+    phaseGate: review?.name,
+    gateUnseen: review
+      ? (w.dels ?? []).filter((d) => d.state === '要確認'
+          && !!d.taskId && w.tasks.find((t) => t.id === d.taskId)?.phaseId === review.id).length
+      : 0,
     finished: w.status === 'done',
     /** 終わったときに出す事実（**「すべて揃っています」と言い切らない**） */
     unseen: (w.dels ?? []).filter((d) => d.state === '要確認').length,

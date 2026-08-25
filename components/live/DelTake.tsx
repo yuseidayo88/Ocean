@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
+import { fileName, formatOf, printable } from '@/lib/deliver/format';
 import { T4, T5 } from '@/lib/design/tokens';
 
 /**
@@ -9,26 +10,49 @@ import { T4, T5 } from '@/lib/design/tokens';
  *
  * ここまで、調べさせて書かせたものは**アプリの中にしか無かった**。
  * 一人社長は、調査結果を人に見せ、価格表を計算に使い、LPの構成をそのまま書き出す —
- * **持ち出せない成果物は、無いのと同じ**。スキル（SKILL.md）には最初から
- * ⬇ が付いていたのに、いちばん大事な成果物に付いていなかった。
+ * **持ち出せない成果物は、無いのと同じ**。
  *
- * サーバーは要らない（本文はもう画面にある）。図は JSON のまま落とす —
- * 中身は archify の器なので、そのまま別の道具に渡せる。
+ * 出す形は `lib/deliver/format.ts` の1枚が決める（表は `.csv`、ページは `.html`、
+ * 図は `.json`、あとは `.md`）。**種類ごとに別のボタンを並べない** — 器は1つ。
+ *
+ * **PDF は刷って作る。** サーバーで PDF を組む道具は入れない（workerd に載らないし、
+ * 書体を抱えるとビルドが太る）。ブラウザの印刷には「PDF に保存」がもとから付いていて、
+ * それが**いちばん確かな PDF** — 画面の黒ではなく、白い紙の体裁で刷る（→ `printable`）。
  */
 export function DelTake({ title, body, kind }: { title: string; body: string; kind?: string }) {
   const [done, setDone] = useState(false);
   if (!body) return null;
 
-  const diagram = kind === 'diagram' || body.trim().startsWith('{');
-  const name = `${title.replace(/[\\/:*?"<>|]/g, '_')}.${diagram ? 'json' : 'md'}`;
+  const f = formatOf(kind, body);
+  const name = fileName(title, f);
 
   const save = () => {
-    const url = URL.createObjectURL(new Blob([body], {
-      type: diagram ? 'application/json' : 'text/markdown',
-    }));
+    const url = URL.createObjectURL(new Blob([body], { type: `${f.mime};charset=utf-8` }));
     const a = Object.assign(document.createElement('a'), { href: url, download: name });
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  /**
+   * 刷る。**新しい窓は開かない**（ブロックされると何も起きない）。
+   * 見えない iframe に1枚組んで、その中の窓に刷ってもらう。
+   * 刷り終わったら片づける — 残すと次に押したとき2枚になる。
+   */
+  const toPdf = () => {
+    const fr = document.createElement('iframe');
+    Object.assign(fr.style, {
+      position: 'fixed', right: '0', bottom: '0', width: '0', height: '0', border: '0', opacity: '0',
+    });
+    fr.srcdoc = printable(title, body, kind);
+    fr.onload = () => {
+      const w = fr.contentWindow;
+      if (!w) { fr.remove(); return; }
+      w.focus();
+      w.print();
+      // 印刷の窓が閉じるまで待つ（同期で消すと、刷る前に中身が無くなる）
+      window.setTimeout(() => fr.remove(), 1000);
+    };
+    document.body.appendChild(fr);
   };
 
   /** 押した瞬間だけ「コピーしました」。**押せたことが分からない、を作らない** */
@@ -45,6 +69,11 @@ export function DelTake({ title, body, kind }: { title: string; body: string; ki
         style={{ display: 'inline-flex', padding: 4 }}>
         <Icon name="copy" color={T4} size={14} />
       </button>
+      {f.print && (
+        <button className="btn" title="印刷して PDF にする" aria-label="PDF にする" onClick={toPdf}
+          style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 7px',
+                   borderRadius: 6, color: T5, fontSize: 11 }}>PDF</button>
+      )}
       <button className="icob" title={name} aria-label="ダウンロード" onClick={save}
         style={{ display: 'inline-flex', padding: 4 }}>
         <Icon name="download" color={T4} size={14} />

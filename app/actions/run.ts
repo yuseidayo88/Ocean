@@ -47,48 +47,68 @@ async function allowed(s: ReturnType<typeof store>, workId: string): Promise<nul
   return null;
 }
 
+/**
+ * **フェーズの関所。** タスクが出そろったフェーズを畳み、待つものが無ければ次を引く。
+ *
+ * 待つものは2つ（→ `lib/store/types.ts` の `PhaseGate`）——
+ * 計画の **◆**（社長でないと決められないところ）と、**まだ見ていない成果物**。
+ *
+ * 成果物のほうは 2026-08-25 に足した。社長の言葉で言うと
+ * 「完全自動で動くというよりかは、**成果物ができたら確認してもらって、
+ * それで進めていいのか確認してもらう**」——
+ * つまり**承認そのものが「進んでいい」の合図**で、押されるまで次のフェーズは始まらない。
+ * 見せる前に次へ進んでしまえば、直したいところがあっても後戻りになる。
+ *
+ * ◆ も未確認の成果物も無いフェーズは、これまでどおり会社が自分で進む。
+ */
+async function gate(s: ReturnType<typeof store>, workId: string): Promise<void> {
+  const gates = await s.planGates(workId).catch(() => []);
+  const shut = await s.closePhaseIfDone(workId, gates)
+    .catch(() => ({ closed: [], hold: false, ready: false, at: null }));
+  if (!shut.ready) return;
+
+  /**
+   * **引けなかったところを、何度も引き直さない。** ポンプは数秒ごとに来るので、
+   * 失敗するたびに引き直すと deep の1往復を延々と払うことになる。
+   * 「引けませんでした」の1通がそのまま**もう試した印**になる（立てずに読む）。
+   */
+  const key = `adv-${workId}-${shut.at ?? ''}`;
+  if (await s.noticed(key).catch(() => false)) return;
+
+  const r = await approvePhase(workId).catch(() => ({ ok: false as const, message: '' }));
+  /**
+   * **「次に進みます」と言ったのに進めなかった、を黙らない。**
+   * 引けなければフェーズは review のまま残るので、Work 画面の帯から社長が押せる。
+   * ただし、それを社長が知らないままだと会社が止まったように見える。
+   */
+  if (!r.ok) {
+    await s.noticeOnce(key, 'エラー',
+      `フェーズ「${shut.at}」のあと、次のフェーズを引けませんでした。Work から進めてください`)
+      .catch(() => {});
+  }
+}
+
 export async function pumpWork(workId: string): Promise<PumpResult> {
   try {
     const s = store();
     // 止まったままの実行があれば先に回収する（無ければ何もしない）。
     // これが無いと、サーバーが途中で入れ替わったとき running が残り、ポンプが永久に譲り続ける
     await s.reclaimStalled(workId).catch(() => {});
-    const next = await s.nextQueued(workId);
-    if (!next) return { ran: false, why: 'idle' };
     const work = await s.getWork(workId);
     if (!work || work.status !== 'active') return { ran: false, why: 'idle' };
+    const next = await s.nextQueued(workId);
+    /**
+     * **起こすタスクが無くても、関所は毎回見る。**
+     * 社長が最後の成果物を承認した瞬間が「進んでいい」の合図なので、
+     * ここで見ないと、承認したのに次のフェーズが始まらない。
+     */
+    if (!next) { await gate(s, workId); return { ran: false, why: 'idle' }; }
 
     const stop = await allowed(s, workId);
     if (stop) return { ran: false, why: stop };
 
     const outcome = await runTask(work, next.taskId);
-
-    /**
-     * フェーズのタスクが出そろったら畳む。
-     *
-     * **◆ を置かなかったフェーズは、会社が自分で進む**（2026-08-25。社長の指示
-     * 「あなたに聞くのは2回とか決めなくていい、AI が判断して適切な提案ができるまでしていい」）。
-     * 統括AIは計画のときに「社長でないと決められないところ」を ◆ として置く。
-     * **置かなかったところで止まるのは、その判断を無かったことにするのと同じ**で、
-     * しかも見ていないあいだ次の1時間がまるごと待ちになる。
-     * ◆ があるところでは、これまでどおり社長を待つ。
-     */
-    const gates = await s.planGates(workId).catch(() => []);
-    const shut = await s.closePhaseIfDone(workId, gates).catch(() => ({ closed: [], hold: false }));
-    if (shut.closed.length && !shut.hold) {
-      const r = await approvePhase(workId).catch(() => ({ ok: false as const, message: '' }));
-      /**
-       * **「次に進みます」と言ったのに進めなかった、を黙らない。**
-       * 引けなければフェーズは review のまま残るので、Work 画面の帯から社長が押せる。
-       * ただし、それを社長が知らないままだと会社が止まったように見える。
-       */
-      if (!r.ok) {
-        await s.addNotification({
-          kind: 'エラー', subjectType: 'work', subjectId: workId,
-          body: `フェーズ「${shut.closed[0]}」のあと、次のフェーズを引けませんでした。Work から進めてください`,
-        }).catch(() => {});
-      }
-    }
+    await gate(s, workId);
     return { ran: true, taskId: next.taskId, outcome };
   } catch (e) {
     // 取り合いに負けただけなら何も起きていない（もう一方のポンプが走らせている）

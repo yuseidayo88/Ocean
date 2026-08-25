@@ -26,18 +26,46 @@ export const logStep: ToolDef = {
 };
 
 /** 成果物。タスクの結論はここに書く */
+/**
+ * 成果物を書く。**出す形は社長の手もとで使える形にする**（2026-08-25。社長の指示
+ * 「文章だけでなく、LPやPDFや様々な出力できるようにしたい、CSVとかもそうだし」）。
+ *
+ * `kind` が形を決める（→ `lib/deliver/format.ts`）。書き方を間違えると
+ * 画面が読めない — たとえば `csv` なのに markdown の表を書くと、1列の表になる。
+ * だから**種類ごとに、本文の書き方まで説明に入れてある**。
+ */
 export const writeDeliverable: ToolDef = {
   name: 'write_deliverable',
   description:
     'タスクの成果物を書く。1タスクにつき1回、finish の前に必ず呼ぶ。'
-    + '本文は markdown。見出し・表・箇条書きを使い、社長がそのまま判断に使える形にする。'
+    + '**社長がそのまま使える形で出す** — 表計算に入れる数字は csv、'
+    + '公開するページは page（HTML）、読ませて判断してもらうものは report。'
     + '**根拠の無い数字を書かない** — 確かでないものは「要確認」と明記する。',
   input_schema: {
     type: 'object',
     properties: {
       title: { type: 'string', description: '4〜20文字の名詞。「競合比較表」のように' },
-      kind: { type: 'string', enum: ['report', 'table', 'doc', 'copy', 'code'], description: '種類' },
-      body: { type: 'string', description: 'markdown の本文。1000〜4000文字' },
+      kind: {
+        type: 'string',
+        enum: ['report', 'doc', 'copy', 'table', 'csv', 'page', 'code'],
+        description:
+          'report=調べたこと・提案（markdown） / doc=手順書・仕様（markdown） / '
+          + 'copy=広告や説明の文案（markdown） / table=説明のある比較表（markdown の表） / '
+          + 'csv=そのまま表計算に入れる数字だけの表 / page=公開できる1枚のHTML（LP・お知らせ） / '
+          + 'code=プログラム。**迷ったら report**',
+      },
+      body: {
+        type: 'string',
+        description:
+          '本文。**種類で書き方が変わる** — '
+          + 'markdown のもの（report / doc / copy / table）は見出し `##`・箇条書き `-`・'
+          + '表 `| a | b |` を使って 1000〜4000文字。 '
+          + 'csv は**1行目が見出し、2行目から数字**。説明文も markdown も混ぜない'
+          + '（カンマを含む値は "…" で囲む）。 '
+          + 'page は `<!doctype html>` から始まる**1枚で完結した HTML**。'
+          + 'CSS は `<style>` に書き、外部のファイル・画像・スクリプトは読み込まない'
+          + '（そのまま公開できることが条件。画像は色と文字で代わりを置く）。',
+      },
     },
     required: ['title', 'kind', 'body'],
   },

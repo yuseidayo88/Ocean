@@ -165,6 +165,53 @@ async function* fakeRun(input: RunInput): AsyncIterable<Chunk> {
     return;
   }
 
+  /**
+   * **表（csv）とページ（html）の道**。本物と同じ形で出す —
+   * 決め打ちの側だけ markdown で返していると、
+   * 「csv なのに markdown の表を書く」という本番の壊れ方が検査に出てこない。
+   */
+  if (/価格|表|一覧|比較/.test(task)) {
+    yield tool('log_step', { title: '数字を並べて突き合わせた', progress: 55 });
+    await wait(600);
+    yield tool('write_deliverable', {
+      title: (task.match(/(.+) を直す$/)?.[1] ?? task).slice(0, 18), kind: 'csv',
+      body: [
+        '項目,月額,含まれるもの,備考',
+        '入門,1980,"基本の機能, メール",要確認',
+        '標準,4980,"基本の機能, 相談",おすすめ',
+        '上級,9800,"すべて, 個別の相談",',
+      ].join('\n'),
+    });
+    await wait(300);
+    yield tool('finish', { summary: `${task} を表にした` });
+    yield { type: 'done', usage: { ...EMPTY_USAGE }, stopReason: 'tool_use' };
+    return;
+  }
+
+  if (/LP|ページ|サイト|ランディング/.test(task)) {
+    yield tool('log_step', { title: '見出しと申し込みの導線を決めた', progress: 55 });
+    await wait(600);
+    yield tool('write_deliverable', {
+      title: (task.match(/(.+) を直す$/)?.[1] ?? task).slice(0, 18), kind: 'page',
+      body: [
+        '<!doctype html><html lang="ja"><head><meta charset="utf-8">',
+        '<title>はじめる</title>',
+        '<style>body{font-family:system-ui,sans-serif;margin:0;color:#111}'
+        + '.h{padding:64px 32px;background:#0b1a2b;color:#fff}'
+        + '.h h1{font-size:34px;margin:0 0 12px;font-weight:400}'
+        + '.b{padding:40px 32px}.c{display:inline-block;padding:12px 20px;background:#1A73E8;color:#fff;border-radius:8px}</style>',
+        '</head><body>',
+        '<div class="h"><h1>はじめての一歩を、今日から。</h1><p>これは決め打ちの下書きです。</p></div>',
+        '<div class="b"><p>ここに約束を3つ並べます。</p><span class="c">申し込む</span></div>',
+        '</body></html>',
+      ].join(''),
+    });
+    await wait(300);
+    yield tool('finish', { summary: `${task} を1枚のページにした` });
+    yield { type: 'done', usage: { ...EMPTY_USAGE }, stopReason: 'tool_use' };
+    return;
+  }
+
   const steps: [string, number][] = [
     [`${task} の段取りを決めた`, 15],
     ['材料を集めて表に並べた', 45],

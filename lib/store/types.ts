@@ -51,6 +51,18 @@ export type LiveDeliverable = {
   at?: string;
 };
 
+/**
+ * フェーズの関所。`closePhaseIfDone` が返す。
+ *
+ * - `closed` … このひと呼びで active → review に畳んだフェーズ名（通知を立てた側）
+ * - `hold`  … review のフェーズが**社長を待っている**（◆ があるか、成果物が 要確認 のまま）
+ * - `ready` … review のフェーズがあって、待つものが何も残っていない（次を引いていい）
+ * - `at`    … いま review にいるフェーズ名（無ければ null）
+ *
+ * `hold` と `ready` は排他だが、review が1つも無ければ**どちらも false**。
+ */
+export type PhaseGate = { closed: string[]; hold: boolean; ready: boolean; at: string | null };
+
 /** 通知1件。通知の画面（片づける場所）が読む */
 export type Note = {
   id: string; kind: string; body: string;
@@ -206,13 +218,15 @@ export interface Store {
   /**
    * フェーズのタスクが全部 done なら、フェーズを review にして通知を立てる。
    *
-   * `gates` は計画の ◆（**社長でないと決められないところ**）の after_phase。
-   * 統括AIが ◆ を置かなかったフェーズは**会社が自分で進む**ので、
-   * 通知の言い方もそこで変える（「決めてください」と言って、勝手に進まない）。
+   * **社長を待つのは2つ** — 計画の ◆（`gates`＝社長でないと決められないところ）と、
+   * **まだ見ていない成果物**。どちらも無いフェーズは会社が自分で進む。
+   * 成果物ができたら社長が見て、承認がそのまま「進んでいい」の合図になる
+   * （2026-08-25 の社長の指示。→ `docs/design/06-work-and-scope.md`）。
    *
-   * 返すのは閉じたフェーズ名と、`hold`＝そのうち1つでも ◆ を持っていたか。
+   * review のフェーズは**閉じた直後でなくても毎回測り直す** —
+   * 社長が最後の1件を承認した瞬間に `ready` が立ち、ポンプが次を引く。
    */
-  closePhaseIfDone(workId: string, gates?: string[]): Promise<{ closed: string[]; hold: boolean }>;
+  closePhaseIfDone(workId: string, gates?: string[]): Promise<PhaseGate>;
   /** 計画の ◆ が置かれたフェーズ名（`plan_draft` の gates）。無ければ空 */
   planGates(workId: string): Promise<string[]>;
 
@@ -281,6 +295,12 @@ export interface Store {
    * 書けたら true。同時に来ても DB の一意 index が2通目を止める（0026）。
    */
   noticeOnce(key: string, kind: string, body: string): Promise<boolean>;
+  /**
+   * その鍵の通知がもう立っているか。**1往復を二度払わないための印**として読む —
+   * 次のフェーズを引けなかったことは1通しか出さないので、その1通がそのまま
+   * 「もう試した」の印になる（立てずに読むだけ）。
+   */
+  noticed(key: string): Promise<boolean>;
   /**
    * 動いている Work の id（active だけ・古い順）。
    * **会社ぜんぶを進めるポンプ**が回るのに使う。`listWorks` は1件ずつ組み立て直すので重い
