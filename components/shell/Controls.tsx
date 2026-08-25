@@ -15,11 +15,19 @@ import { BY_MAKER, EFFORT_WORD, GRADE_WORD, modelOf, type Effort } from '@/lib/a
  * 使われないまま見本として残っている状態だった。
  */
 
-/** 有効かどうかは青のトグルで示す（「有効」と文字で書かない） */
-export function Toggle({ on: init }: { on: boolean }) {
-  const [on, setOn] = useState(init);
+/**
+ * 有効かどうかは青のトグルで示す（「有効」と文字で書かない）。
+ *
+ * **自分では値を持たない。** 前は `useState` で写しを持っていたので、
+ * 保存に失敗して親が戻したときや、読み直して値が変わったときに、
+ * **つまみだけが古いまま**残った（画面が嘘をつく）。真実は親が持つ。
+ */
+export function Toggle({ on, onPick, label }: {
+  on: boolean; onPick?: (next: boolean) => void; label?: string;
+}) {
   return (
-    <button role="switch" aria-checked={on} onClick={() => setOn(!on)} style={{
+    <button role="switch" aria-checked={on} aria-label={label}
+      onClick={(e) => { e.stopPropagation(); onPick?.(!on); }} style={{
       width: 34, height: 20, borderRadius: 999, background: on ? BLUE : EDGE,
       display: 'inline-flex', alignItems: 'center', padding: 2, flexShrink: 0,
       transition: 'background-color .16s ease',

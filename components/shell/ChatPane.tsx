@@ -9,6 +9,7 @@ import { Orb } from '@/components/ui/Orb';
 import { threadGet, threadsList } from '@/app/actions/live';
 import type { ChatMsg } from '@/lib/store';
 import { useEffect, useState } from 'react';
+import { useStick } from '@/lib/use-stick';
 
 import { EXEC, RED_T, SEAM, T2, T4, T5 } from '@/lib/design/tokens';
 /**
@@ -36,6 +37,8 @@ export function ChatPane() {
   const { chat, closeChat, fresh } = useShell();
   const [msgs, setMsgs] = useState<ChatMsg[]>([]);
   const [title, setTitle] = useState('新しいチャット');
+  /** ここも会話はいつも下に貼り付く（画面と同じ1つの決まり） */
+  const [box, inner] = useStick<HTMLDivElement, HTMLDivElement>();
 
   const id = chat.thread;
   const rev = chat.rev;
@@ -90,10 +93,10 @@ export function ChatPane() {
         )}
       </span>
     }>
-      <div style={{
-        flex: 1, minHeight: 0, overflowY: 'auto', padding: '16px 18px 8px',
-        display: 'flex', flexDirection: 'column', gap: 16,
-      }}>
+      <div ref={box} className="sy" style={{ flex: 1, minHeight: 0, padding: '16px 18px 8px' }}>
+        <div ref={inner} style={{
+          display: 'flex', flexDirection: 'column', gap: 16, minHeight: '100%',
+        }}>
         {/* これまでの会話。**要約しない**（同じスレッドの続きなので、そのまま出す） */}
         {msgs.map((m, i) => (
           m.role === 'user'
@@ -134,6 +137,7 @@ export function ChatPane() {
         {!chat.busy && chat.fail && (
           <span style={{ color: RED_T, fontSize: 12.5 }}>{chat.fail}</span>
         )}
+        </div>
       </div>
 
       {/* 入力欄はここへ移る。全画面で1つ、という決まりは変わらない */}

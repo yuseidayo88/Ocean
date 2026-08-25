@@ -123,8 +123,15 @@ function grow(t: HTMLTextAreaElement, onH?: (h: number) => void) {
 }
 
 export function Composer({ placeholder, mode = NEW_CHAT, above, floating = true,
-                           veil = true, inPane = false, local = false, onSend, busy = false, onHeight }:
+                           veil = true, inPane = false, local = false, onSend, busy = false, onHeight,
+                           focusAt = 0 }:
   { placeholder: string; mode?: string; above?: React.ReactNode; floating?: boolean;
+    /**
+     * **カーソルをここへ連れてくる合図。** 数が変わるたびに入力欄へ焦点を移す。
+     * 「直したい」のように、**行き先がこの入力欄しかない**ボタンのためのもの
+     * （「下の入力欄に書いてください」と説明を置く代わりに、そこへ連れていく）。
+     */
+    focusAt?: number;
     /**
      * 下端を黒に溶かすか。**中身がスクロールして入力欄の裏に潜る画面だけ。**
      * 盤面（ワークフロー）は中身が入力欄の上に収まっていて潜らないので、
@@ -159,6 +166,9 @@ export function Composer({ placeholder, mode = NEW_CHAT, above, floating = true,
   const band = useRef<HTMLDivElement>(null);
   const pick = useRef<HTMLInputElement>(null);
   const { chat: talk, say, say5 } = useShell();
+
+  // 呼ばれたら入力欄へ（0 は初期値なので何もしない）
+  useEffect(() => { if (focusAt) box.current?.focus(); }, [focusAt]);
 
   // 帯の高さを測って返す（質問の板が出入りするたびに変わる）
   useEffect(() => {

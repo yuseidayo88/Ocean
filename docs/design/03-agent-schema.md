@@ -203,11 +203,17 @@ Claude Code の **Skills と CLAUDE.md の関係**と同じ。
 **保存ボタンは置かない。** モデルも思考の深さもスキルのトグルも、**切り替えたその場で効く**。
 
 ```sql
--- agent_prefs（0024）。employee_id が null なら統括AI
-employee_id uuid  -- null = 統括AI（employees に行を持たない）
-model       text  -- 通り道での名前（catalog の id）
-effort      text  -- none | low | medium | high | xhigh | max
+-- agent_prefs（0024 / 0025）。employee_id が null なら統括AI
+employee_id uuid     -- null = 統括AI（employees に行を持たない）
+model       text     -- 通り道での名前（catalog の id）
+effort      text     -- none | low | medium | high | xhigh | max
+paused      boolean  -- 止めているあいだ、新しいタスクは起こされない
 ```
+
+**一時停止を `employees.status` に持たせない。** あの列は「いま何をしているか」で、
+実行のたびに running → idle と書き換わる（＝止めた印が次の実行で消える）。
+止めるかどうかは社長が決める**設定**なので、モデルと深さと同じ場所に置く。
+走っている最中のものは最後までやる — 途中で切ると、書きかけの成果物が宙に浮く。
 
 実効値は2層。**下が勝つ。**
 
@@ -230,8 +236,8 @@ effort      text  -- none | low | medium | high | xhigh | max
 - **会社の既定（`accounts.defaults`）は置かなかった。** `accounts` に UPDATE の
   ポリシーが無い（社長に書かせない表）。1人1行の `agent_prefs` で足りる
 - **`employee_settings` は落とした**（0024）。0行・参照0か所で、`model_fixed` が
-  階層名（fast/standard/deep）に縛られた別設計だった。一時停止とルールを作るときは
-  この表に列を足す
+  階層名（fast/standard/deep）に縛られた別設計だった。**一時停止はここに足した**（0025）。
+  ルールを社長が足せるようにするときも、同じ表に列を足す
 
 ### いつか自動で選ぶなら
 

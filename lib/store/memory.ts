@@ -165,7 +165,9 @@ export const memoryStore: Store = {
   async nextQueued(workId) {
     const live = [...bag.values()].find((d) => d.live?.id === workId)?.live;
     if (!live || live.tasks.some((t) => t.state === 'running')) return null;
-    const next = live.tasks.find((t) => t.state === 'queued');
+    // **止めた社員のタスクは起こさない**（supabase 版と同じ規則）
+    const off = new Set([...prefs.values()].filter((p) => p.paused).map((p) => p.employeeId));
+    const next = live.tasks.find((t) => t.state === 'queued' && !(t.ownerId && off.has(t.ownerId)));
     return next ? { taskId: next.id } : null;
   },
 
@@ -361,6 +363,7 @@ export const memoryStore: Store = {
       employeeId,
       model: patch.model ?? cur.model,
       effort: patch.effort ?? cur.effort,
+      paused: patch.paused ?? cur.paused,
     });
   },
 
@@ -370,8 +373,11 @@ export const memoryStore: Store = {
 
   async addLearnings(employeeId, lines) {
     const cur = learned.get(employeeId) ?? [];
-    const next = [...cur, ...lines.map((l) => l.trim()).filter(Boolean)];
-    learned.set(employeeId, next.slice(-30)); // 上限30行。あふれたら古いものから
+    // **同じ学びを二度書かない。** 社員は似た仕事で同じことに気づくので、
+    // 放っておくと30行が同じ1行で埋まり、次の実行に渡せる中身が減る
+    const add = lines.map((l) => l.trim()).filter((l) => l && !cur.includes(l));
+    if (!add.length) return;
+    learned.set(employeeId, [...cur, ...add].slice(-30)); // 上限30行。あふれたら古いものから
   },
 
   async setLearnings(employeeId, lines) {

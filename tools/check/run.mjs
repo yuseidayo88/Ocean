@@ -175,6 +175,28 @@ const deep = await ev(`(() => {
 })()`);
 ok('選んだ深さが残る（いちばん深く）', deep === 'いちばん深く', String(deep));
 
+/**
+ * ⑤''' 一時停止。**押したら本当に止まる**（新しいタスクは起こされない）。
+ * 一覧の状態の語で見る — ペインの中の文には「一時停止」が説明としても出るので、
+ * 行のほうを読む。
+ */
+const stateOf = async () => ev(`(() => {
+  const r = [...document.querySelectorAll('.row')].find(x => x.innerText.includes('調査担当'));
+  return r ? ((r.innerText.match(/実行中|待機|一時停止/) || [''])[0]) : '';
+})()`);
+await ev(`[...document.querySelectorAll('.row')].find(r => r.innerText.includes('調査担当'))?.click()`);
+await wait(800);
+await ev(`[...document.querySelectorAll('aside button')].find(b => b.innerText === '一時停止')?.click()`);
+await wait(1000);
+ok('一時停止すると、一覧の状態もそう出る', (await stateOf()) === '一時停止', await stateOf());
+await send('Page.navigate', { url: `${BASE}/team` }); await wait(2000);
+ok('一時停止は読み直しても残る', (await stateOf()) === '一時停止', await stateOf());
+await ev(`[...document.querySelectorAll('.row')].find(r => r.innerText.includes('調査担当'))?.click()`);
+await wait(800);
+await ev(`[...document.querySelectorAll('aside button')].find(b => b.innerText === '再開する')?.click()`);
+await wait(1000);
+ok('再開すると戻る', (await stateOf()) === '待機', await stateOf());
+
 await send('Page.navigate', { url: `${BASE}/skills` }); await wait(2200);
 const sk = await text();
 ok('標準スキルが見えている', sk.includes('標準') && sk.includes('調査のまとめ方'), sk.slice(0, 80));

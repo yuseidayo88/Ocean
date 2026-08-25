@@ -9,6 +9,7 @@ import { Orb } from '@/components/ui/Orb';
 import { threadGet } from '@/app/actions/live';
 import { chatSay, chatTargets } from '@/app/actions/chat';
 import { streamReply } from '@/lib/chat/stream';
+import { useStick } from '@/lib/use-stick';
 import type { ChatMsg } from '@/lib/store';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -95,8 +96,8 @@ export function ChatView({ id, first }: { id: string; first: FirstLoad }) {
   /** この会話が宛てている先（入力欄のラベル）。Work に紐づいていればその名前 */
   const [to, setTo] = useState(first.gone ? NEW_CHAT : first.to);
   /** 送るところ（外が動く器・中が中身）。中身が伸びたら下に貼り直す */
-  const box = useRef<HTMLDivElement>(null);
-  const inner = useRef<HTMLDivElement>(null);
+  /** 会話はいつも下に貼り付く（右ペインと同じ1つの決まり → `lib/use-stick.ts`） */
+  const [box, inner] = useStick<HTMLDivElement, HTMLDivElement>();
   /** 返事を頼んだスレッド。開き直しで二度頼まない */
   const asked = useRef<string | null>(null);
 
@@ -146,27 +147,6 @@ export function ChatView({ id, first }: { id: string; first: FirstLoad }) {
     asked.current = id;
     void reply(id);
   }, [id, fresh, first, reply]);
-
-  /**
-   * 送るたび・返るたびに、いちばん下へ（会話は下が現在）。
-   *
-   * **1回では届かない。** 書体が届いたりカードの中が伸びたりして、
-   * 描き終わったあとから中身が高くなる。だから中身を測っておいて、**伸びたら貼り直す** —
-   * 流れている本文が1行ずつ伸びるあいだも、これが効いている。
-   * ただし社長が上を読んでいるあいだは動かさない（下の近くにいるときだけ）。
-   */
-  useEffect(() => {
-    const el = box.current, kid = inner.current;
-    if (!el || !kid) return;
-    let stick = true;
-    const pin = () => { if (stick) el.scrollTop = el.scrollHeight; };
-    const watch = () => { stick = el.scrollHeight - el.scrollTop - el.clientHeight < 80; };
-    pin();
-    el.addEventListener('scroll', watch, { passive: true });
-    const ro = new ResizeObserver(pin);
-    ro.observe(kid);
-    return () => { el.removeEventListener('scroll', watch); ro.disconnect(); };
-  }, [msgs.length, pending, wait, stage]);
 
   const send = (text: string) => {
     setPending(text); setFail('');

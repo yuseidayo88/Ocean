@@ -7,7 +7,6 @@ import { useOpen } from '@/lib/use-open';
 import { notFound, useParams } from 'next/navigation';
 import { Ask, Centre, Chips, Composer, ExecStatus, Pane, TopBar } from '@/components/shell/Chrome';
 import { AMBER, AMBER_T, BLUE, COMPOSER_H, DIM, EDGE, GREEN_T, HAIR, RED_T, SEAM, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
-import { useShell } from '@/components/shell/Shell';
 import { Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
 import { AGENT_COLOR } from '@/lib/view/model';
@@ -32,7 +31,6 @@ const GREYS = [`${DIM}`, '#333333', '#2C2C2C', '#242424'];
  * 似た画面を2つ作らないため。
  */
 export default function PlanPage() {
-  const { say5 } = useShell();
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
   // 右は閉じた状態から始まる。トップバーの板アイコンで出し入れする
@@ -43,6 +41,8 @@ export default function PlanPage() {
   const [gone, setGone] = useState(false);
   /** 押しているあいだ。**二度押しさせない**（承認は1回きり） */
   const [busy, setBusy] = useState<'' | 'approve' | 'revise' | 'answer'>('');
+  /** 「直したい」を押した回数。増えるたびに入力欄へカーソルが移る */
+  const [focus, setFocus] = useState(0);
   const [err, setErr] = useState('');
   /**
    * いま見ている質問。`-1` は「まだ選んでいない」＝ **答え終わっていない最初のもの**を出す。
@@ -292,7 +292,8 @@ export default function PlanPage() {
               }}>
                 {busy === 'approve' ? '始めています…' : '承認して始める'}
               </button>
-              <button onClick={() => say5('直したいところは、下の入力欄に書いてください')}
+              {/* **操作説明を出さない。** 書く場所は1つしか無いので、そこへ連れていく */}
+              <button onClick={() => setFocus((n) => n + 1)}
                       className="btn" style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 14px', borderRadius: 8, border: `1px solid ${EDGE}`, color: T3 }}>
                 直したい
               </button>
@@ -306,7 +307,7 @@ export default function PlanPage() {
           * **質問の板は入力欄と一体で浮く。** 答え終わっていないものがあるあいだだけ出す。
           */}
         <Composer placeholder="直したいところを書く、@ で資料を参照"
-                  onSend={revise} busy={!!busy} onHeight={setBandH}
+                  onSend={revise} busy={!!busy} onHeight={setBandH} focusAt={focus}
                   above={ASK ? (
                     <Ask
                       q={ASK.body} idx={askAt + 1} total={v.asks.length}

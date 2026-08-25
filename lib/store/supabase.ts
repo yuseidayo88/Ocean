@@ -419,9 +419,18 @@ export const supabaseStore: Store = {
   async nextQueued(workId) {
     const c = await db();
     const { data: tk } = await c.from('tasks')
-      .select('id, status, seq').eq('work_id', workId).in('status', ['queued', 'running']).order('seq');
+      .select('id, status, seq, assignee_employee_id')
+      .eq('work_id', workId).in('status', ['queued', 'running']).order('seq');
     if (!tk?.length || tk.some((t) => t.status === 'running')) return null;
-    return { taskId: tk[0].id as string };
+    /**
+     * **止めた社員のタスクは起こさない。** ふだんは0行しか返らない
+     * （設定は1人1行しかない小さな表）。
+     * 止めた人のぶんだけ飛ばして、次の人のタスクは動かす。
+     */
+    const { data: off } = await c.from('agent_prefs').select('employee_id').eq('paused', true);
+    const stopped = new Set((off ?? []).map((e) => e.employee_id as string));
+    const next = tk.find((t) => !(t.assignee_employee_id && stopped.has(t.assignee_employee_id as string)));
+    return next ? { taskId: next.id as string } : null;
   },
 
   async reclaimStalled(workId) {
@@ -857,18 +866,19 @@ export const supabaseStore: Store = {
 
   async listPrefs() {
     const c = await db();
-    const { data } = await c.from('agent_prefs').select('employee_id, model, effort');
+    const { data } = await c.from('agent_prefs').select('employee_id, model, effort, paused');
     return (data ?? []).map((x): AgentPref => ({
       employeeId: (x.employee_id ?? null) as string | null,
       model: (x.model ?? undefined) as string | undefined,
       effort: (x.effort ?? undefined) as AgentPref['effort'],
+      paused: !!x.paused,
     }));
   },
 
   async prefOf(employeeId) {
     const c = await db();
     // **統括AI は employee_id が null。** `.eq(null)` は当たらないので `.is` で引く
-    const q = c.from('agent_prefs').select('employee_id, model, effort');
+    const q = c.from('agent_prefs').select('employee_id, model, effort, paused');
     const { data } = await (employeeId ? q.eq('employee_id', employeeId) : q.is('employee_id', null))
       .maybeSingle();
     if (!data) return null;
@@ -876,6 +886,7 @@ export const supabaseStore: Store = {
       employeeId: (data.employee_id ?? null) as string | null,
       model: (data.model ?? undefined) as string | undefined,
       effort: (data.effort ?? undefined) as AgentPref['effort'],
+      paused: !!data.paused,
     };
   },
 
@@ -888,6 +899,7 @@ export const supabaseStore: Store = {
     const patchRow = {
       ...(patch.model !== undefined ? { model: patch.model } : {}),
       ...(patch.effort !== undefined ? { effort: patch.effort } : {}),
+      ...(patch.paused !== undefined ? { paused: patch.paused } : {}),
       updated_at: new Date().toISOString(),
     };
     if (row) {
@@ -911,10 +923,14 @@ export const supabaseStore: Store = {
   },
 
   async addLearnings(employeeId, lines) {
-    const add = lines.map((l) => l.trim()).filter(Boolean);
-    if (!add.length) return;
+    const raw = lines.map((l) => l.trim()).filter(Boolean);
+    if (!raw.length) return;
     const c = await db();
     const cur = await supabaseStore.learnings(employeeId);
+    // **同じ学びを二度書かない**（メモリ版と同じ規則）。似た仕事で同じことに気づくので、
+    // 放っておくと30行が同じ1行で埋まる
+    const add = raw.filter((l) => !cur.includes(l));
+    if (!add.length) return;
     const next = [...cur, ...add].slice(-30); // 上限30行。あふれたら古いものから
     const { data: row } = await c.from('agent_skills')
       .select('id').eq('employee_id', employeeId).eq('source', 'learned').maybeSingle();

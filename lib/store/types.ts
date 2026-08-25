@@ -104,7 +104,18 @@ export type SkillRow = {
  * 未設定のところは既定（`DEFAULT_PREF`）で走る — 空は「まだ選んでいない」であって
  * 「何も無い」ではない。
  */
-export type AgentPref = { employeeId: string | null; model?: string; effort?: Effort };
+export type AgentPref = {
+  employeeId: string | null; model?: string; effort?: Effort;
+  /**
+   * **一時停止しているか。** 止めているあいだ、その社員の新しいタスクは起こされない
+   * （`nextQueued` が飛ばす）。走っている最中のものは最後までやる —
+   * 途中で切ると、書きかけの成果物が宙に浮く。
+   *
+   * **`employees.status` には持たせない。** あの列は「いま何をしているか」で、
+   * 実行のたびに running → idle と書き換わる（＝止めた印が次の実行で消える）。
+   */
+  paused?: boolean;
+};
 
 /** 実行の1歩。デスクの工程の行と、タスクの右ペインに出る */
 export type RunStep = {
@@ -286,7 +297,7 @@ export interface Store {
   /** 1人ぶん。**実行の直前に読む** — 選んだものがその往復に効く */
   prefOf(employeeId: string | null): Promise<AgentPref | null>;
   /** 押したその場で効く（保存ボタンは無い）。渡した項目だけ書き換える */
-  setPref(employeeId: string | null, patch: { model?: string; effort?: Effort }): Promise<void>;
+  setPref(employeeId: string | null, patch: { model?: string; effort?: Effort; paused?: boolean }): Promise<void>;
 
   /** 会社の名前（パンくずの根）。登録時はメールが入っている */
   companyName(): Promise<string>;

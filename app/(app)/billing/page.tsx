@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Centre, TopBar } from '@/components/shell/Chrome';
+import { Centre, Composer, TopBar } from '@/components/shell/Chrome';
 import { billing } from '@/app/actions/run';
 import { COMPOSER_H, GREEN_T, HAIR, T1, T3, T4, T5 } from '@/lib/design/tokens';
 
@@ -75,6 +75,10 @@ export default function BillingPage() {
           </span>
         </div>
       </div>
+
+      {/* **入力欄は全画面で同じものを1つ。** 逃がす余白（`COMPOSER_H`）は取ってあったのに
+          入力欄だけが無く、下に 108px の空きが残っていた（下の余白を放置しない） */}
+      <Composer placeholder="統括AIに聞く" />
     </Centre>
   );
 }

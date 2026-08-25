@@ -74,14 +74,14 @@ export async function teamData(): Promise<{ staff: LiveEmployee[]; skills: Skill
 }
 
 /**
- * **モデルと深さを選ぶ**（メンバー画面。押したその場で効く＝保存ボタンは無い）。
+ * **その人の設定**（モデル・深さ・一時停止）。メンバー画面。押したその場で効く＝保存ボタンは無い。
  * `employeeId` が null なら統括AI。
  *
  * **知らない名前は受け取らない。** ここは外から叩ける口なので、
  * 一覧に無いモデル名をそのまま保存すると、次の実行がまるごと上流で弾かれる。
  */
 export async function prefSet(
-  employeeId: string | null, patch: { model?: string; effort?: string },
+  employeeId: string | null, patch: { model?: string; effort?: string; paused?: boolean },
 ): Promise<{ ok: boolean; message?: string }> {
   const model = patch.model !== undefined ? (modelOf(patch.model) ? patch.model : null) : undefined;
   const effort = patch.effort !== undefined
@@ -89,7 +89,11 @@ export async function prefSet(
     : undefined;
   if (model === null || effort === null) return { ok: false, message: '知らない設定です' };
   try {
-    await store().setPref(employeeId, { ...(model ? { model } : {}), ...(effort ? { effort } : {}) });
+    await store().setPref(employeeId, {
+      ...(model ? { model } : {}),
+      ...(effort ? { effort } : {}),
+      ...(patch.paused !== undefined ? { paused: patch.paused } : {}),
+    });
     return { ok: true };
   } catch (e) { return { ok: false, message: sayError(e, '設定を保存できませんでした') }; }
 }

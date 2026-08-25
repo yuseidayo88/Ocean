@@ -41,6 +41,8 @@ type Line = {
   model: string; effort: Effort;
   /** 定義の Critical Rules（社長は消せない）。設定のペインに出す */
   rules: string[];
+  /** 一時停止中か。**止めているあいだ、新しいタスクは起こされない** */
+  paused?: boolean;
   sub?: string;
   /** まだ採用していない人。**行は同じ形**で、暗さと右のボタンだけが違う */
   cand?: string;
@@ -63,7 +65,10 @@ const toLine = (e: LiveEmployee, p?: AgentPref): Line => {
   const d = definitionOf(e.definitionId);
   const w = prefWords('employee', p);
   return {
-    id: e.id, name: e.name, en: d?.en ?? '', state: e.state === 'running' ? '実行中' : '待機',
+    id: e.id, name: e.name, en: d?.en ?? '',
+    // **止めていることを隠さない。** 押した本人が、一覧を見て思い出せるように
+    state: p?.paused ? '一時停止' : e.state === 'running' ? '実行中' : '待機',
+    paused: !!p?.paused,
     color: e.color, seed: e.name.length * 7 + 3,
     lead: d?.mission ?? '', can: (d?.rules ?? []).slice(0, 3).map((r) => r.split('。')[0]),
     canMore: Math.max(0, (d?.rules.length ?? 0) - 3), model: w.model, effort: w.effort,
@@ -109,7 +114,7 @@ export default function TeamPage() {
    * 画面を先に変えて、裏で書く — 書けなかったときだけ言って、本物を読み直す。
    * `employeeId` が null なら統括AI。
    */
-  const pick = async (employeeId: string | null, patch: { model?: string; effort?: Effort }) => {
+  const pick = async (employeeId: string | null, patch: { model?: string; effort?: Effort; paused?: boolean }) => {
     setPrefs((xs) => [
       ...xs.filter((x) => x.employeeId !== employeeId),
       { ...(xs.find((x) => x.employeeId === employeeId) ?? { employeeId }), ...patch },
@@ -204,6 +209,7 @@ export default function TeamPage() {
           onPick={(patch) => pick(execOn ? null : sel?.id ?? null, patch)}
           skills={skills}
           onHire={sel?.cand ? () => take(sel) : undefined}
+          onPause={sel && !sel.cand ? (next) => pick(sel.id, { paused: next }) : undefined}
           onToggle={async (id, on) => {
             setSkills((xs) => xs.map((x) => (x.id === id ? { ...x, on } : x)));
             await skillToggle(id, on);
@@ -235,7 +241,7 @@ function Row({ l, on, onOpen, onHire, onPick, top }: {
       boxShadow: on ? `inset 3px 0 0 ${l.color}` : undefined,
       opacity: cand && !on ? 0.58 : undefined,
     }}>
-      <Orb color={l.color} size={40} seed={l.seed} dim={cand || l.state === '待機'} />
+      <Orb color={l.color} size={40} seed={l.seed} dim={cand || l.state !== '実行中'} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
@@ -312,12 +318,12 @@ function StateMark({ state }: { state: string }) {
  *
  * **保存ボタンを置かない**（トグルはその場で効く）。道具は社長に触らせない。
  */
-function SettingsPane({ who, l, skills, onToggle, onHire, onPick, onClose }: {
+function SettingsPane({ who, l, skills, onToggle, onHire, onPick, onPause, onClose }: {
   who: 'employee' | 'exec' | 'all' | 'candidate'; l: Line; skills: SkillRow[];
   onToggle: (id: string, on: boolean) => void; onHire?: () => void; onClose: () => void;
   onPick?: (patch: { model?: string; effort?: Effort }) => void;
+  onPause?: (next: boolean) => void;
 }) {
-  const { say5 } = useShell();
   const cand = who === 'candidate';
   // 全員に効くことを見ているときは、会社ぜんぶのスキルだけ
   const list = who === 'all' ? skills.filter((s) => s.scope === 'company') : skills;
@@ -371,7 +377,7 @@ function SettingsPane({ who, l, skills, onToggle, onHire, onPick, onClose }: {
                 <span style={{ color: T5, fontSize: 11, fontFamily: 'ui-monospace, monospace' }}>{s.filename}</span>
               </div>
               <div style={{ flex: 1 }} />
-              <span {...pressable(() => onToggle(s.id, !s.on))}><Toggle on={s.on} /></span>
+              <Toggle on={s.on} label={`${s.name} を使う`} onPick={(next) => onToggle(s.id, next)} />
             </div>
           ))}
         </Section>}
@@ -429,13 +435,18 @@ function SettingsPane({ who, l, skills, onToggle, onHire, onPick, onClose }: {
         {/* 保存ボタンは置かない。一時停止は保存ではないので最後の行に。
             **統括AI は止められない**ので、その行ごと出さない */}
         {who === 'employee' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 2 }}>
-            <span style={{ color: T3 }}>この社員を一時停止する</span>
-            <div style={{ flex: 1 }} />
-            <button onClick={() => say5('一時停止はまだ作っていません')} className="btn" style={{
-              display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px',
-              borderRadius: 8, border: `1px solid ${EDGE}`, color: T3, fontSize: 12,
-            }}>一時停止</button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ color: T3 }}>{l.paused ? 'この社員は一時停止中' : 'この社員を一時停止する'}</span>
+              <div style={{ flex: 1 }} />
+              <button onClick={() => onPause?.(!l.paused)} className="btn" style={{
+                display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px',
+                borderRadius: 8, border: `1px solid ${EDGE}`, color: T3, fontSize: 12,
+              }}>{l.paused ? '再開する' : '一時停止'}</button>
+            </div>
+            <span style={{ color: T5, fontSize: 11.5 }}>
+              止めているあいだ、新しいタスクは始まりません。いま走っているものは最後までやります
+            </span>
           </div>
         )}
       </div>

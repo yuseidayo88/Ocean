@@ -109,6 +109,7 @@ psql "$DATABASE_URL" -f supabase/migrations/0021_discovery_no_delete.sql
 psql "$DATABASE_URL" -f supabase/migrations/0022_thread_links.sql
 psql "$DATABASE_URL" -f supabase/migrations/0023_candidate_ending.sql
 psql "$DATABASE_URL" -f supabase/migrations/0024_agent_prefs.sql
+psql "$DATABASE_URL" -f supabase/migrations/0025_agent_paused.sql
 ```
 
 `0003` は RLS と、不変条件をデータベース側で守るためのトリガを入れます。
@@ -181,6 +182,7 @@ RLS の with check は `account_id = private.current_account_id()` のままな�
 | 承認と引き直しは必ず台帳に残る | トリガ `works_audit`（0008）。アプリは `audit_events` に書けない |
 | 質問とタスクの並びが決まる | `seq`（0009）。`created_at` は同じ insert 文で同着になる |
 | モデルと深さは1人1行 | 一意 index `agent_prefs_exec` / `agent_prefs_employee`（0024）。タブを2つ開いて同時に選んでも2行にならない。知らない深さは check で弾く（探針で実証） |
+| 止めた社員は動かない | `nextQueued` が `agent_prefs.paused` の人を飛ばす（0025）。**`employees.status` には持たせない** — あの列は実行が running / idle と書き換えるので、止めた印が次の実行で消える |
 
 ## 環境変数
 

@@ -123,9 +123,7 @@ export default function SkillsPage() {
                 <span style={{ width: 44, textAlign: 'right', color: T5, fontSize: 11 }} className="tnum">
                   {s.used ? `${s.used}回` : '—'}
                 </span>
-                <span {...pressable(() => toggle(s))} onClick={(e) => { e.stopPropagation(); toggle(s); }}>
-                  <Toggle on={s.on} />
-                </span>
+                <Toggle on={s.on} label={`${s.name} を使う`} onPick={() => toggle(s)} />
                 {/* ゴミ箱は自分で読み込んだものだけ。標準スキルは消せない */}
                 {s.source === 'user' && (
                   <button className="icob" title="削除" style={{ display: 'inline-flex', padding: 3 }}
