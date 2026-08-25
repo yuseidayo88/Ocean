@@ -7,20 +7,69 @@ import { homeData } from '@/app/actions/home';
 import type { HomeData } from '@/lib/live/home';
 import { Composer, Pills, TopBar } from '@/components/shell/Chrome';
 import { Icon } from '@/components/ui/Icon';
-import { COMPOSER_H } from '@/lib/design/tokens';
+import { Go as Link } from '@/components/ui/Go';
+import { AMBER_T, COMPOSER_H, RED_T } from '@/lib/design/tokens';
 import { Office } from '@/components/home/Office';
 import { OfficeLog, OfficeTeam } from '@/components/home/OfficeSides';
 import { Desk } from '@/components/home/Desk';
-import { Progress } from '@/components/home/Progress';
 import { Flow } from '@/components/home/Flow';
 
-/** ホームだけ右ペインなしの全幅。上部ピルで4ビュー切替 */
+/**
+ * ホームだけ右ペインなしの全幅。上部ピルでビュー切替。
+ *
+ * **進捗は畳んだ**（2026-08-26。社長の「てかこの画面いる？」）。
+ * あれが「ここにしか無いもの」として持っていたのは**日付だけ**で、
+ * 進み具合も判断待ちも予定との差も、**オフィスの輪がすでに言っている**
+ * （輪そのものが進捗の計器で、赤い点線が予定との差、橙の菱形が判断待ち）。
+ * 日付は Work 画面のフェーズの行へ移した — 会社ぜんぶのカレンダーは、
+ * 誰も守っていない見積り（計画の週数）を「遅れ N日」と言い切ることになっていた。
+ *
+ * **いちばん価値があったのは答えの1行**（判断待ち / 要確認 / 遅れ）なので、
+ * それはビューの外に出して**どのタブでも見える**ようにした。
+ */
 const VIEWS = [
   { key: 'office',   label: 'オフィス',     icon: <Icon name="team" size={14} /> },
   { key: 'desk',     label: 'デスク',       icon: <Icon name="panel" size={14} /> },
-  { key: 'progress', label: '進捗',         icon: <Icon name="check" size={14} /> },
   { key: 'flow',     label: 'ワークフロー', icon: <Icon name="roadmap" size={14} /> },
 ];
+
+/**
+ * **社長を待っているもの。** ビューの外に置く（2026-08-26）——
+ * これは進捗の画面でいちばん価値のあった1行で、
+ * **タブを選ばないと見えない**のがそもそもおかしかった。
+ *
+ * **出すのは放っておけないときだけ**（→ CLAUDE.md「数えた件数を出すのは、
+ * 放っておけないもの（判断待ち・要確認）だけ」）。無いときは何も置かない —
+ * 「ありません」と書くのは、無いことを1行ぶん使って言うことになる。
+ */
+function Waiting({ data }: { data: HomeData }) {
+  const { gates, review, late } = data;
+  /**
+   * ◆ の名前は**それだけのときに**出す。ほかにも待っているものがあるなら数だけ —
+   * 並べるとピルにぶつかるし、そもそも名前が要るのは「あと1つ」のときだけ。
+   */
+  const one = gates === 1 && !review && !late ? data.works.find((w) => w.gate)?.gate?.label : '';
+  // **枠は必ず出す**（3列の1つめ。消すとピルが真ん中でなくなる）。中身だけ空にする
+  return (
+    <div style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 16, overflow: 'hidden' }}>
+      {late > 0 && (
+        <span style={{ color: RED_T, fontSize: 13, whiteSpace: 'nowrap' }}>
+          {late}つが遅れています
+        </span>
+      )}
+      {gates > 0 && (
+        <Link href="/decisions" className="lnk" style={{ color: AMBER_T, fontSize: 13, whiteSpace: 'nowrap' }}>
+          判断待ちが {gates}件{one ? ` — ${one}` : ''} ›
+        </Link>
+      )}
+      {review > 0 && (
+        <Link href="/deliverables" className="lnk" style={{ color: AMBER_T, fontSize: 13, whiteSpace: 'nowrap' }}>
+          成果物 {review}件 を見る ›
+        </Link>
+      )}
+    </div>
+  );
+}
 
 /**
  * オフィス。上＝絵とログ / 下＝AI社員。
@@ -105,21 +154,25 @@ function Home() {
     <div style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column', background: '#000' }}>
       <TopBar title="ホーム" />
 
-      {/* 盤面のときはピルも絵の上に浮かせる（画面いっぱいにするため） */}
+      {/* 盤面のときはピルも絵の上に浮かせる（画面いっぱいにするため）。
+          **放っておけないことは、ピルの左に、どのビューでも出す** */}
+      {/* **3列**（帯 / ピル / 空）。ピルは真ん中に、帯は左で本当に切れる —
+          浮かせて重ねると、帯が伸びたときにピルにぶつかる */}
       <div style={{
-        flexShrink: 0, display: 'flex', justifyContent: 'center', padding: '16px 0 0',
+        flexShrink: 0, display: 'grid', gridTemplateColumns: '1fr auto 1fr',
+        alignItems: 'center', gap: 16, minHeight: 34, padding: '16px 30px 0',
         ...(bleed ? { position: 'absolute' as const, left: 0, right: 0, top: 44, zIndex: 2 } : null),
       }}>
+        <Waiting data={data} />
         <Pills items={VIEWS} active={view} onPick={setView} />
+        <span />
       </div>
 
       {/* 切り替えたときは、次の面がふわっと出る（key を変えて描き直す） */}
       <div key={view} className="rise" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-        {view === 'office' ? <OfficeView data={data} />
-          : view === 'flow' ? <FlowView data={data} />
+        {view === 'flow' ? <FlowView data={data} />
           : view === 'desk' ? <Desk lanes={data.lanes} idle={data.idle} />
-          : <Progress works={data.works} ticks={data.ticks} todayX={data.todayX}
-                      done={data.done} gates={data.gates} late={data.late} review={data.review} />}
+          : <OfficeView data={data} />}
       </div>
 
       {/* 盤面は中身が入力欄の上に収まっていて潜らない。**黒に溶かすとドットを切るだけ** */}

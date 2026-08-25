@@ -105,6 +105,24 @@ export function fromLive(w: LiveWork): WorkView {
   const seq = new Map(w.phases.map((p) => [p.id, p.seq]));
   const review = w.phases.find((p) => p.state === 'review');
 
+  /**
+   * フェーズの日付（2026-08-26）。**会社ぜんぶのカレンダー（ホームの進捗）は畳んだ**ので、
+   * 日付を持つのはここだけになった。出どころは**社長が承認した計画の週数**で、
+   * 週数の無い計画には**書かない**（でっち上げない）。
+   */
+  const DAY = 24 * 3600 * 1000;
+  const md = (t: number) => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()}`; };
+  const weeks = w.phases.reduce((a, p) => a + (p.weeks ?? 0), 0);
+  const begin = w.startedAt ? new Date(w.startedAt).getTime() : 0;
+  const dated = weeks > 0 && begin > 0;
+  let at = begin;
+  const span = new Map<string, { from: string; to: string }>();
+  for (const p of w.phases) {
+    const to = at + (p.weeks ?? 0) * 7 * DAY;
+    if (dated) span.set(p.id, { from: md(at), to: md(to) });
+    at = to;
+  }
+
   return {
     title: w.title, goal: w.goal,
     progress: w.tasks.length ? Math.round((w.tasks.filter((t) => t.state === 'done').length / w.tasks.length) * 100) : 0,
@@ -114,6 +132,7 @@ export function fromLive(w: LiveWork): WorkView {
       // `review`（全タスクが終わって社長待ち）も「いま」の側に置く。まだ済んでいない
       state: p.state === 'done' ? 'done' : (p.state === 'active' || p.state === 'review') ? 'now' : 'next',
       done: done(p.id), all: all(p.id),
+      ...(span.get(p.id) ?? {}),
     })),
     tasks: w.tasks.filter((t) => t.state !== 'done' && t.state !== 'cancelled').map((t) => ({
       id: t.id, title: t.title, phase: seq.get(t.phaseId) ?? 0,

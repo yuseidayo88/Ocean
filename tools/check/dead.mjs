@@ -14,7 +14,7 @@ const BASE = process.env.BASE ?? 'http://localhost:3300';
 const W = 1440, H = 860;
 
 /** 固定の行き先。**Work と会話の id は決め打ちにしない**（走らせるたびに変わる） */
-const PAGES = ['/home', '/home?view=desk', '/home?view=progress', '/home?view=flow',
+const PAGES = ['/home', '/home?view=desk', '/home?view=flow',
   '/tasks', '/inbox', '/team', '/deliverables', '/decisions', '/skills',
   '/work', '/start', '/chat/new'];
 

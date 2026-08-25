@@ -37,15 +37,11 @@ export type HomeData = {
   idle: { id: string; name: string; color: string }[];
   /** ワークフローの盤面（組み立ては `lib/live/flow.ts`。archify の作法と検査つき） */
   map: { works: MapWork[]; chips: MapChip[]; diags: string[] };
-  ticks: { x: number; label: string }[];
-  todayX: number;
-  done: { id: string; title: string; ended: string; phases: number }[];
   /** 判断待ち・遅れ・まだ見ていない成果物の数。**答えの1行が言う** */
   gates: number; late: number; review: number;
 };
 
 const DAY = 24 * 3600 * 1000;
-const md = (t: number) => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()}`; };
 
 /** フェーズの重み（弧とガントの幅）。週数があれば週数、無ければ等分 */
 const weight = (w: LiveWork) => {
@@ -94,19 +90,16 @@ export function buildHome(
   const finished = works.filter((w) => w.status === 'done');
   const now = Date.now();
 
-  /* ── 会社の時間軸（ガント）。開始の最小 〜 計画の終わりの最大 ── */
+  /**
+   * Work ごとの予定（計画の週数から）。**会社ぜんぶのカレンダーは畳んだ**ので
+   * （→ `app/(app)/home/page.tsx` の VIEWS）、ここで要るのは
+   * **遅れているかどうか**と、輪の「予定との差」の2つだけ。目盛りも座標も持たない。
+   */
   const spans = active.map((w) => {
     const start = w.startedAt ? new Date(w.startedAt).getTime() : now;
     const weeks = w.phases.reduce((a, p) => a + (p.weeks ?? 0), 0) || w.phases.length;
     return { w, start, end: start + weeks * 7 * DAY };
   });
-  const min = spans.length ? Math.min(...spans.map((s) => s.start)) : now;
-  const max = spans.length ? Math.max(...spans.map((s) => s.end), now + DAY) : now + 7 * DAY;
-  const range = Math.max(max - min, DAY);
-  const px = (t: number) => Math.max(0, Math.min(100, ((t - min) / range) * 100));
-  const todayX = px(now);
-  const ticks: { x: number; label: string }[] = [];
-  for (let i = 0; i <= 4; i++) ticks.push({ x: i * 25, label: md(min + (range * i) / 4) });
 
   /* ── Work ごとの絵 ── */
   const LABEL_DEG = [198, 225, 242, 210, 232];
@@ -116,28 +109,16 @@ export function buildHome(
     const gateTask = w.tasks.find((t) => t.state === 'needs_decision');
     const pct = workPct(w);
 
-    // ガントのフェーズ帯（%）と、遅れ（いま active の帯を今日が過ぎているか）
+    // フェーズの名前と状態だけ。**遅れ**は、いまのフェーズの予定の終わりを今日が過ぎているか
     let acc = 0;
     let lateDays = 0;
     const phases = w.phases.map((p, i) => {
-      const x = px(start + (acc / total) * (end - start));
       const to = start + ((acc + ws[i]) / total) * (end - start);
-      const xEnd = px(to);
       acc += ws[i];
       const st = p.state === 'done' || p.state === 'skipped' ? 'done'
         : p.state === 'active' || p.state === 'review' ? 'now' : 'next';
       if (st === 'now' && now > to) lateDays = Math.max(lateDays, Math.ceil((now - to) / DAY));
-      const ts = phaseTasks(w, p.id);
-      const hasWeeks = w.phases.some((q) => q.weeks);
-      return {
-        name: p.name, goal: p.goal, state: st as 'done' | 'now' | 'next',
-        x, w: Math.max(xEnd - x, 1.5),
-        done: ts.filter((t) => t.state === 'done').length, all: ts.length,
-        // 日付は計画（週数）があるときだけ書く。でっち上げない
-        from: hasWeeks ? md(start + ((acc - ws[i]) / total) * (end - start)) : '',
-        to: hasWeeks ? md(to) : '',
-        owner: undefined,
-      };
+      return { name: p.name, state: st as 'done' | 'now' | 'next' };
     });
 
     /* 輪。弧はフェーズごとに1本、担当の色。tip＝全体の進み。0 なら弧を引かない */
@@ -172,22 +153,17 @@ export function buildHome(
       : [];
 
     const phaseIndex = nowPhase?.seq ?? w.phases.length;
-    const restDays = Math.max(0, Math.ceil((end - now) / DAY));
-    const hasWeeks = w.phases.some((q) => q.weeks);
 
     return {
       id: w.id, title: w.title, goal: w.goal,
       phaseIndex, progress: pct,
       health: lateDays > 0 ? { late: lateDays } : '順調',
-      state: (gateTask ? '判断待ち' : running ? '実行中' : '待機') as State,
-      restDays, endDate: hasWeeks ? md(end) : '',
       phases,
       crew: nowOwner ? [{
-        id: nowOwner.id, x: Math.min(todayX + 2, 96), ring: tip,
+        id: nowOwner.id, ring: tip,
         name: nowOwner.name, color: nowOwner.color, dim: !running,
       }] : [],
-      gate: gateTask ? { x: todayX, label: gateTask.title } : undefined,
-      over: undefined,
+      gate: gateTask ? { label: gateTask.title } : undefined,
       ring: {
         segs, tip, behind,
         labelDeg: LABEL_DEG[wi % LABEL_DEG.length],
@@ -309,8 +285,6 @@ export function buildHome(
     events,
     staff, lanes, idle,
     map: board,
-    ticks, todayX,
-    done: finished.map((w) => ({ id: w.id, title: w.title, ended: '', phases: w.phases.length })),
     gates: view.filter((v) => v.gate).length,
     late: view.filter((v) => typeof v.health === 'object').length,
     // **社長を待っているもの**は2つ（◆ と、まだ見ていない成果物）。両方を答えの1行に出す

@@ -20,7 +20,7 @@ const W = Number(process.argv[3] || 1440), H = Number(process.argv[4] || 860);
  * 固定の行き先。**Work と会話の id は決め打ちにしない** —
  * ダミーを消したので id は走らせるたびに変わる。下で画面から拾う。
  */
-const PAGES = ['/home', '/home?view=desk', '/home?view=progress', '/home?view=flow',
+const PAGES = ['/home', '/home?view=desk', '/home?view=flow',
   '/tasks', '/tasks?done=1', '/inbox', '/team', '/deliverables', '/decisions', '/skills',
   '/work', '/start', '/chat/new'];
 

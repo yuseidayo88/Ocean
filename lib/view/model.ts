@@ -54,13 +54,12 @@ export function prefWords(who: 'exec' | 'employee', p?: { model?: string; effort
   return { model, effort, label: spec?.label ?? model, word: EFFORT_WORD[effort], spec };
 }
 
-export type Phase = {
-  name: string; goal: string; state: 'done' | 'now' | 'next';
-  x: number; w: number;              // 進捗のタイムライン上の位置（軸 0-100）
-  done: number; all: number;         // タスク
-  from: string; to: string;          // 日付
-  owner?: string;
-};
+/**
+ * ホームが読むフェーズ。**日付も座標も持たない**（2026-08-26）。
+ * 進捗のガントを畳んだので、位置（x/w）・日付（from/to）・タスクの数を
+ * 読む人がいなくなった。日付は Work 画面が自分で組む（→ `lib/exec/work-view.ts`）。
+ */
+export type Phase = { name: string; state: 'done' | 'now' | 'next' };
 
 /**
  * オフィスの輪。**1本の輪が1つの Work**、真上がはじまり、時計回り。
@@ -82,12 +81,14 @@ export type Ring = {
 
 export type Work = {
   id: string; title: string; goal: string;
-  phaseIndex: number; progress: number; health: Health; state: State; restDays: number; endDate: string;
+  phaseIndex: number; progress: number;
+  /** 遅れているか。**待っているものの帯**が数えるのに使う */
+  health: Health;
   phases: Phase[];
-  /** x = 進捗レーンの日付軸上の位置 / ring = オフィスの輪の上の位置。**別の座標系** */
-  crew: { id: string; x: number; ring: number; dim?: boolean; name: string; color: string }[];
-  gate?: { x: number; label: string };
-  over?: { x: number; w: number; label: string };
+  /** ring = オフィスの輪の上の位置（0-100） */
+  crew: { id: string; ring: number; dim?: boolean; name: string; color: string }[];
+  /** あなたが決めるところ。名前は帯が1件のときだけ出す */
+  gate?: { label: string };
   ring: Ring;
 };
 

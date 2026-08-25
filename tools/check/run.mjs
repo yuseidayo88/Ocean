@@ -470,7 +470,7 @@ ok('作ってある会話のカードは「計画を見る」になる',
 // ⑥ 埋まった状態のレイアウト。ダミーを消したので、**ここでしか測れない**
 //    （ホーム4ビューは Work が動いてはじめて絵になる）
 const { scan } = await import('./_probe.mjs');
-const SWEEP = ['/home', '/home?view=desk', '/home?view=progress', '/home?view=flow',
+const SWEEP = ['/home', '/home?view=desk', '/home?view=flow',
                '/tasks', '/team', '/deliverables', '/decisions', '/inbox'];
 let cut = 0;
 for (const u of SWEEP) {
