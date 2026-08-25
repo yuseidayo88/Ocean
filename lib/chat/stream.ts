@@ -20,7 +20,13 @@ export async function streamReply(
   onThink?: (chunk: string) => void,
 ): Promise<string | null> {
   let fail: string | null = null;
-  let reached = false;        // 流す道が本当に応えたか（応えなければ落とす）
+  /**
+   * **終わりの合図（done / err）だけを「応えた」と数える。**
+   * 途中の s / th / t で数えると、関数が途中で切られたとき（done も err も来ない）
+   * を成功と誤読して、返事が黙って消える。合図無しで閉じたら、流さない道に落ちる —
+   * 落ちる先は先に会話を読み直すので、書き終わっていれば二度払わない。
+   */
+  let reached = false;
   let drop = false;           // 「この道では返せない」と言われた
   try {
     const res = await fetch('/api/chat', {
@@ -43,9 +49,9 @@ export async function streamReply(
             const m = JSON.parse(row) as
               { s?: string; t?: string; th?: string; done?: boolean; err?: string; fallback?: boolean };
             if (m.fallback) { drop = true; break; }
-            if (m.s) { reached = true; onStage?.(m.s); }
-            if (m.th) { reached = true; onThink?.(m.th); }
-            if (m.t) { reached = true; onText(m.t); }
+            if (m.s) onStage?.(m.s);
+            if (m.th) onThink?.(m.th);
+            if (m.t) onText(m.t);
             if (m.done) reached = true;
             if (m.err) { reached = true; fail = m.err; }
           } catch { /* 壊れた行は捨てる */ }

@@ -166,8 +166,9 @@ await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.include
 await wait(1200);
 // 3問め（最後）＝分野。答えると3問ぶんまとめて送られ、**続きの仕掛け**が候補まで出す
 await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('学び・教える'))?.click()`);
-// **候補カードだけが持つ言葉で待つ。** 「おすすめ」は質問の選択肢にも出るので当てにならない
-const cands = await until((b) => b.includes('条件に合う道'), 20, 800);
+// **候補カードだけが持つ言葉で待つ。** 「条件に合う道」は進行の帯（〇〇しています）にも
+// 出るので、カードにしか無い「推さない理由」で待つ
+const cands = await until((b) => b.includes('推さない理由'), 20, 800);
 ok('分野と条件がそろうと、候補のカードが会話に出る',
    cands.includes('条件に合う道') && cands.includes('教材販売') && cands.includes('推さない理由'),
    cands.slice(-160));

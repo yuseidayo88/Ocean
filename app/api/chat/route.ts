@@ -27,6 +27,12 @@ import { replyTo } from '@/lib/exec/reply';
  */
 
 export const dynamic = 'force-dynamic';
+/**
+ * 続きの輪（本往復＋写す＋出す×2）まで含めて待てる長さにする。
+ * layout の maxDuration は**このセグメントには効かない** — 無いと Vercel の既定で
+ * 途中で切られ、返事が黙って消える。
+ */
+export const maxDuration = 300;
 
 export async function POST(req: Request) {
   let threadId = '';

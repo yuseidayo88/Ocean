@@ -303,6 +303,13 @@ export async function chatStep(state: ChatState, history: Msg[], opts: ChatOpts 
   // **黙って何も起きない、を作らない**（押しても画面が変わらない、の禁止）
   const cards = cardWords(out);
   if (!out.text && !cards.length) {
+    /**
+     * **絞られた往復（push）の空振りは、エラーではない。**
+     * required でも引数が空で来ることはある（写すものが無かった・JSON が途切れた）。
+     * ここで投げると、**もう書き終わった正常な返事ごと**「うまく応えられませんでした」になる。
+     * 空のまま返して、続きの輪（→ reply.ts）に次の一手を出させる。
+     */
+    if (state.push) return out;
     throw new AppError('upstream', `empty chat turn (stop=${stop})`,
       undefined, '統括AIが応えませんでした。もう一度お試しください');
   }

@@ -750,7 +750,9 @@ export const supabaseStore: Store = {
       },
       messages: (m ?? []).map((x): ChatMsg => ({
         role: x.role as ChatMsg['role'], body: x.body as string, at: x.created_at as string,
-        card: (x.refs ?? undefined) as ChatMsg['card'],
+        // 既定値の [] はカードではない。**kind を持つ object のときだけ**カードとして返す
+        card: (x.refs && !Array.isArray(x.refs) && typeof x.refs === 'object' && 'kind' in (x.refs as object)
+          ? x.refs : undefined) as ChatMsg['card'],
       })),
     };
   },
@@ -764,9 +766,13 @@ export const supabaseStore: Store = {
       if (error || !row) throw new AppError('unknown', error?.message ?? 'thread insert failed');
       id = row.id as string;
     }
-    // カードは refs に置く（0002 から空いている jsonb。カードは id しか持たないので軽い）
+    /**
+     * カードは refs に置く（0002 から空いている jsonb。カードは id しか持たないので軽い）。
+     * **列は `not null default '[]'`** — null を明示して挿すと 23502 で**全発言が落ちる**
+     * （supabase-js は undefined のキーは落とすが、null は残す）。無いときは [] を入れる。
+     */
     const { error } = await c.from('chat_messages')
-      .insert({ thread_id: id, role, body, refs: card ?? null });
+      .insert({ thread_id: id, role, body, refs: card ?? [] });
     if (error) throw new AppError('unknown', error.message);
     await c.from('chat_threads').update({ last_message_at: new Date().toISOString() }).eq('id', id);
     return id;

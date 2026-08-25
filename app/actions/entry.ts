@@ -30,6 +30,13 @@ export async function adoptCandidate(
     const d = await s.getDiscovery(sessionId);
     const c = d?.candidates.find((x) => x.id === candidateId);
     if (!d || !c) return { ok: false, need: 'error', message: 'その候補は見つかりませんでした' };
+    /**
+     * **もう採用しているなら、そちらへ。** 古い表示のタブから別の候補を押しても、
+     * 2本目の Work を作らない（deep の計画を二度払わない）。
+     * ※ 同時押しのミリ秒の窓は残る — 完全に閉じるにはストア側の atomic claim（台帳に記載）。
+     */
+    const took = d.candidates.find((x) => x.adoptedWorkId);
+    if (took?.adoptedWorkId) return { ok: true, id: took.adoptedWorkId, real: true };
     const goal = [
       `${c.name}を立ち上げたい`,
       /**

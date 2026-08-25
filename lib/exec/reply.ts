@@ -1,7 +1,7 @@
 import { chatStep, type ChatOut, type ChatState } from './chat';
 import { store, type ChatCard, type LiveWork } from '@/lib/store';
 import type { Conditions } from './types';
-import { isOpener } from './openers';
+import { isOpener, OPENER } from './openers';
 import { sayError } from '@/lib/errors';
 
 /**
@@ -67,6 +67,15 @@ export async function replyTo(
     const t = await s.getThread(id);
     if (!t) return { ok: false, message: 'このチャットは見つかりませんでした', missing: true };
 
+    /**
+     * **もう返っているなら、返さない。**
+     * 返事の途中でリロードすると、新しい画面も「返事がまだ」と見て頼み直す。
+     * 最後の発言が社長のものでないなら、この往復にやることは無い（二度払わない）。
+     * ※ 同時に2本走る数秒の窓は残る — 完全に閉じるにはストア側の atomic claim が要る（台帳に記載）。
+     */
+    const tail = t.messages[t.messages.length - 1];
+    if (!tail || tail.role !== 'user') return { ok: true };
+
     // いまのスレッドの状態を畳む
     const disc = t.thread.discoveryId ? await s.getDiscovery(t.thread.discoveryId) : null;
     const prof = t.thread.profileId ? await s.getProfile(t.thread.profileId) : null;
@@ -88,6 +97,19 @@ export async function replyTo(
       discoveryId: t.thread.discoveryId,
       profileId: t.thread.profileId,
     };
+
+    /**
+     * **探索の器が無い探索スレッドは、ここで作り直す。**
+     * 入口（chatStart）の createDiscovery が落ちていても（RLS・セッション切れ）、
+     * 「続きの保証」を眠らせない — 最初の一言が探索の口上なら、器はこのスレッドのもの。
+     */
+    if (!state.discoveryId && t.messages[0]?.role === 'user' && t.messages[0].body === OPENER.discovery) {
+      try {
+        const sid = await s.createDiscovery();
+        await s.linkThread(id, { discoveryId: sid });
+        state.discoveryId = sid;
+      } catch { /* 作れなければ、従来どおり条件が書かれた往復で作られる */ }
+    }
 
     const history = t.messages.slice(-10).map((m) => ({
       role: (m.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
@@ -161,31 +183,51 @@ export async function replyTo(
      * 最大3往復（写す＋出す＋保険1回）。fast の浅い往復なので、体感は1呼吸。
      */
     if (state.discoveryId && !state.proposed) {
-      const answered = !!last && last.role === 'user' && /→/.test(last.body);
+      /**
+       * 「質問 → 答え」の板の形だけを答えと見る（`改行 ＋ →`）。
+       * `→` 1文字で判定すると「英会話→教材販売の流れ」のような**ふつうの発言**まで
+       * 写す往復に送られ、写すものが無いのに空振りのモデル呼び出しが増える。
+       */
+      const answered = !!last && last.role === 'user' && /\n→ /.test(last.body);
 
-      // 1. 答えが届いたのに、条件に写っていない
-      if (answered && !Object.keys(out.conditions).length && !card) {
+      /**
+       * 1. 答えが届いたのに、条件に写っていない → 写す。
+       * **カードが出ていても写す** — 写し損ねたまま進むと、次の往復の
+       * 「集まっている条件」が空のままで、同じ質問の聞き直しと canPropose の空振りが続く。
+       * 倒れても止めない（写せなかっただけ。続きの輪が仕事をする）。
+       */
+      if (answered && !Object.keys(out.conditions).length) {
         onStage?.('答えを書き留めています');
-        const rec = await chatStep(
-          { ...state, push: 'record' },
-          [...history, ...(saidSoFar ? [{ role: 'assistant' as const, content: saidSoFar }] : [])],
-          { onText: undefined, onStage, onThink },   // 写すだけの往復の本文は画面に流さない
-        );
-        card = (await absorb(rec)) ?? card;
+        try {
+          const rec = await chatStep(
+            { ...state, push: 'record' },
+            [...history, ...(saidSoFar ? [{ role: 'assistant' as const, content: saidSoFar }] : [])],
+            { onText: undefined, onStage, onThink },   // 写すだけの往復の本文は画面に流さない
+          );
+          card = (await absorb(rec)) ?? card;
+        } catch { /* 写せなかった。答えは history に残っているので、続きの往復が読む */ }
       }
 
       // 2. まだ次の一手が出ていない → 候補か質問を、道具を絞って必ず出す
+      let lastFail: unknown;
       for (let i = 0; !card && i < 2; i++) {
         const ready = canPropose(state.conditions);
         onStage?.(ready ? '条件に合う道を組み立てています' : '聞くことをまとめています');
-        const more = await chatStep(
-          { ...state, needCard: true, push: ready ? 'candidates' : 'ask' },
-          [...history, ...(saidSoFar ? [{ role: 'assistant' as const, content: saidSoFar }] : [])],
-          { onText, onStage, onThink },
-        );
-        card = await absorb(more);
-        saidSoFar = saidSoFar || more.text;
+        try {
+          const more = await chatStep(
+            { ...state, needCard: true, push: ready ? 'candidates' : 'ask' },
+            [...history, ...(saidSoFar ? [{ role: 'assistant' as const, content: saidSoFar }] : [])],
+            { onText, onStage, onThink },
+          );
+          card = await absorb(more);
+          saidSoFar = saidSoFar || more.text;
+        } catch (e) { lastFail = e; }
       }
+      /**
+       * 何も書けずに終わるなら、それは失敗として言う（黙って終わらせない）。
+       * 本文かカードのどちらかが書けていれば、社長の画面には返事がある — 成功でよい。
+       */
+      if (!card && !saidSoFar && lastFail) throw lastFail;
     }
 
     return { ok: true };
