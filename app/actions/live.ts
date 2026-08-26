@@ -87,7 +87,16 @@ export async function founderSet(lines: string[]): Promise<void> {
  * 前は レール（3本）と 会社名 が別々のサーバーアクションで、**画面を開くたびに
  * 往復が2回**あった。器の中身は1つのまとまりなので、1回で返す。
  */
-export type RailData = { threads: ChatThread[]; unread: number; staff: number; company: string };
+export type RailData = {
+  threads: ChatThread[]; unread: number; staff: number; company: string;
+  /**
+   * **いまどのアカウントで入っているか**（2026-08-26）。
+   * 左下は「わたし」なのに、出ていたのは決め打ちの `Y あなた` だけで、
+   * **どのメールで入っているのかが画面のどこにも無かった**（Google とメールの2つの入り方があるのに）。
+   * 名前は「あなた」のまま — 出すのは**押して開いたときの1行**だけ。
+   */
+  email?: string;
+};
 
 /** メンバーの画面が要るもの。**1回で取る**（在籍・スキル・設定は一緒に出る） */
 export async function teamData(): Promise<{ staff: LiveEmployee[]; skills: SkillRow[]; prefs: AgentPref[] }> {
@@ -165,10 +174,24 @@ export async function rulesSet(
 export async function railData(): Promise<RailData> {
   try {
     const s = store();
-    const [threads, notes, staff, company] = await Promise.all([
-      s.listThreads(), s.listNotes(), s.listEmployees(), s.companyName(),
+    const [threads, notes, staff, company, email] = await Promise.all([
+      s.listThreads(), s.listNotes(), s.listEmployees(), s.companyName(), signedInAs(),
     ]);
-    return { threads, unread: notes.filter((n) => !n.read).length, staff: staff.length, company };
+    return { threads, unread: notes.filter((n) => !n.read).length, staff: staff.length, company, email };
   } catch { return { threads: [], unread: 0, staff: 0, company: 'あなたの会社' }; }
+}
+
+/**
+ * 入っているアカウントのメール。**手もとで JWT を検証する**ので往復が要らない
+ * （middleware と同じ `getClaims`）。デモや未設定の環境では空。
+ */
+async function signedInAs(): Promise<string | undefined> {
+  try {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return undefined;
+    const { createClient } = await import('@/lib/supabase/server');
+    const c = await createClient();
+    const { data } = await c.auth.getClaims();
+    return (data?.claims?.email as string | undefined) || undefined;
+  } catch { return undefined; }
 }
 

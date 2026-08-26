@@ -255,11 +255,44 @@ export function Rail({ initial, warn }: { initial: RailData; warn?: string | nul
 
       {account && (
         <Pop pos={{ bottom: 56, left: 12, right: 24, width: 'auto' }}>
-          <PopRow label="設定" />
+          {/**
+            * **どのアカウントで入っているか**（2026-08-26）。
+            * ここは「わたし」のメニューなのに、出ていたのは決め打ちの `Y あなた` だけで、
+            * **入っているメールが画面のどこにも無かった**（Google とメールの2つの入り方があるのに）。
+            * 押すものではないので、行にしない — 素の1行。
+            */}
+          {initial.email && (
+            <>
+              <span style={{
+                display: 'block', padding: '4px 10px 8px', color: T5, fontSize: 11.5,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>{initial.email}</span>
+              <Hair />
+            </>
+          )}
+          {/**
+            * **「設定」は置かない**（2026-08-26 に外した）。押しても何も起きない行だった —
+            * 「わたし」の設定という画面は無く、会社の設定は**メンバーの右ペイン**にある
+            * （設定は全部、右ペインで開く。画面ごと移動しない）。
+            * 押せる顔をしていて何も起きないものを置かない。
+            */}
           {/* 請求は本物の画面がある（Phase 11）。トークンの数字はあの画面だけに出す */}
           <PopRow label="請求" onClick={() => { setAccount(false); router.push('/billing' as Route); }} />
           <Hair />
-          <PopRow label="ログアウト" color={T3} />
+          {/**
+            * **ログアウトが本当に効く**（2026-08-26）。前は `onClick` が無く、
+            * **押しても何も起きなかった** — 会社から出る道が、画面のどこにも無かった。
+            * 出たあとは入口へ（`/login` は入っている人を `/home` へ返すので、
+            * 先にセッションを捨ててから移る）。
+            */}
+          <PopRow label="ログアウト" color={T3} onClick={async () => {
+            setAccount(false);
+            try {
+              const { createClient } = await import('@/lib/supabase/client');
+              await createClient().auth.signOut();
+            } catch { /* 鍵が無い環境（デモ）では、そもそも入っていない */ }
+            router.replace('/login' as Route);
+          }} />
         </Pop>
       )}
     </nav>

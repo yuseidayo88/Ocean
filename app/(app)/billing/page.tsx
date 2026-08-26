@@ -30,7 +30,13 @@ export default function BillingPage() {
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5, borderRight: `1px solid ${HAIR}` }}>
             <span style={{ color: T4, fontSize: 12 }}>プラン</span>
             <span style={{ fontSize: 24, lineHeight: '30px' }}>トライアル</span>
-            <span style={{ color: T5, fontSize: 11 }}>7日間 · 1人1回</span>
+            {/**
+              * **「7日間」とは言わない**（2026-08-26 に外した）。
+              * 期限で切る仕組みは**どこにも実装されていない** — 実際に効いているのは
+              * 会社を作ったときの1回の枠（`0003_rls.sql` の grant）と、
+              * 右の「1日の上限」だけ。**動いているふりをしない。**
+              */}
+            <span style={{ color: T5, fontSize: 11 }}>はじめの枠 · 1人1回</span>
           </div>
           <div style={{ flex: 1.4, display: 'flex', flexDirection: 'column', gap: 5 }}>
             <span style={{ color: T4, fontSize: 12 }}>残りのトークン</span>

@@ -548,6 +548,24 @@ ok('直したものは本当に保存される', saved.includes('社長が書き
  * **標準スキルは切れるが消せない＝書き換えもできない**（会社の土台）。
  * 押せる顔をしていて何も起きない、を作らない — 読むだけの `<pre>` のまま。
  */
+/**
+ * **ログアウトが本当に効く**（2026-08-26）。前は `onClick` が無く、**押しても
+ * 何も起きなかった** — 会社から出る道が、画面のどこにも無かった。
+ * ついでに「設定」（押しても何も起きない行）は外した。
+ */
+await ev(`[...document.querySelectorAll('nav button')].find(b => b.innerText.includes('あなた'))?.click()`);
+await wait(600);
+const menu = await ev(`document.body.innerText`);
+ok('「わたし」のメニューに、死んだ行が無い',
+   /請求/.test(menu) && /ログアウト/.test(menu) && !/\n設定\n/.test(menu),
+   menu.match(/あなた[\s\S]{0,40}/)?.[0]?.replace(/\n/g, ' '));
+await ev(`[...document.querySelectorAll('button')].find(b => b.innerText === 'ログアウト')?.click()`);
+{
+  let at = '';
+  for (let i = 0; i < 12 && !/\/login/.test(at); i++) { await wait(500); at = await ev('location.pathname'); }
+  ok('ログアウトすると入口へ戻る', /\/login/.test(at), at);
+}
+await send('Page.navigate', { url: `${BASE}/skills` }); await wait(2200);
 await ev(`[...document.querySelectorAll('.row')].find(r => r.innerText.includes('調査のまとめ方'))?.click()`);
 await wait(900);
 ok('標準スキルは読むだけ（書き換えの口を出さない）',
