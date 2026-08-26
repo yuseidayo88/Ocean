@@ -162,7 +162,6 @@ export function Desk({ lanes, idle }: {
                   <Orb color={l.color} size={30} seed={l.name.length * 7 + 3} dim={wait} />
                   <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.name}</span>
-                    {l.role && <span style={{ color: T5, fontSize: 11, whiteSpace: 'nowrap' }}>{l.role}</span>}
                   </div>
                   <div style={{ flex: 1 }} />
                   {/* 例外だけピル。ふつうの状態は点で足りる */}

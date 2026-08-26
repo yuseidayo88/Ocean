@@ -242,7 +242,12 @@ export function buildHome(
       now: at ? at.t.title : '仕事を待っています',
       model: wordsFor(e.id, 'employee').label,
       desk: {
-        el: '',
+        /**
+         * **経過**（2026-08-26）。オフィスのカードもデスクのレーンも
+         * 「いま何をしているか ＋ 経過」で設計されているのに、**ここは空のまま**だった。
+         * 出どころは歩みの1本目の時刻 — 走り出してからどれだけ経ったか。
+         */
+        el: at ? dur(ts[0]?.at, new Date().toISOString()) : '',
         step: { done: ts.length, all: at ? ts.length + 1 : ts.length, name: stepName },
         produce, wait: my.review,
       },
@@ -253,7 +258,7 @@ export function buildHome(
         ? { kind: 'text', file: my.title, lines: (my.preview ?? '').split(/(?<=。)/).filter(Boolean).slice(0, 3) }
         : { kind: 'facts', cap: '歩み', n: ts.length, items: ts.slice(-3).map((x) => x.summary ?? '').filter(Boolean) };
       lanes.push({
-        id: e.id, name: e.name, color: e.color, role: undefined,
+        id: e.id, name: e.name, color: e.color,
         state: '実行中',
         line: last?.summary ? `${last.summary}` : `「${at.t.title}」に取りかかっています`,
         steps: ts.slice(-4).map((x, i, arr): [string, string] => [
@@ -261,7 +266,7 @@ export function buildHome(
         ]),
         body,
         task: at.t.title, taskId: at.t.id, pct: at.t.progress ?? 0,
-        elapsed: '',
+        elapsed: dur(ts[0]?.at, new Date().toISOString()),
       });
     } else {
       idle.push({ id: e.id, name: e.name, color: e.color });

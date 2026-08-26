@@ -73,8 +73,10 @@ const toLine = (e: LiveEmployee, p?: AgentPref): Line => {
     state: p?.paused ? '一時停止' : e.state === 'running' ? '実行中' : '待機',
     paused: !!p?.paused,
     color: e.color, seed: e.name.length * 7 + 3,
-    lead: d?.mission ?? '', can: (d?.rules ?? []).slice(0, 3).map((r) => r.split('。')[0]),
-    canMore: Math.max(0, (d?.rules.length ?? 0) - 3), model: w.model, effort: w.effort,
+    // **3段めは「頼めること」**（2026-08-26）。前はここに Critical Rules を入れていたので、
+    // 守ることが「できること」として並び、しかも設定ペインのルールと二度言っていた
+    lead: d?.mission ?? '', can: (d?.can ?? []).slice(0, 3),
+    canMore: Math.max(0, (d?.can.length ?? 0) - 3), model: w.model, effort: w.effort,
     rules: d?.rules ?? [],
     sub: e.hiredAt ? `${e.hiredAt.slice(0, 10)} から在籍` : undefined,
   };
@@ -89,8 +91,8 @@ const toCand = (d: Definition): Line => {
   return {
     id: `d-${d.slug}`, name: d.name, en: d.en, state: '', color: AGENT_COLOR[d.color],
     seed: d.name.length * 9 + 5, lead: d.mission,
-    can: d.rules.slice(0, 3).map((r) => r.split('。')[0]),
-    canMore: Math.max(0, d.rules.length - 3), model: w.model, effort: w.effort,
+    can: d.can.slice(0, 3),
+    canMore: Math.max(0, d.can.length - 3), model: w.model, effort: w.effort,
     rules: d.rules, cand: d.slug,
   };
 };

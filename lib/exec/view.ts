@@ -113,10 +113,13 @@ export function fromDraft(d: DraftWork): PlanView {
      * （「直近のフェーズだけタスクを引いています」— それは仕組みの説明で、
      * 画面がもう言っている）。社長は**根拠がゼロのロードマップを承認していた**。
      *
-     * 入れ物の判定の理由（`container.reason`）は先頭に残す —
-     * 「なぜ Work にしたか」も、この計画の理由の一部だから。
+     * **入れ物の判定の理由（`container.reason`）は出さない**（2026-08-26 に外した）。
+     * 「終わりが言えて、単独で価値があり、3ヶ月に収まるので Work にします」は
+     * **仕組みの説明**で、見出しの「なぜこの順番か」に答えていない。
+     * そもそも社長には「これは Work ですか？」と聞かないと決めてある —
+     * 入れ物の判定は会社の側の話で、承認の材料ではない。
      */
-    why: [d.container.reason, ...(d.plan.why ?? [])].filter(Boolean),
+    why: (d.plan.why ?? []).filter(Boolean),
     // 下の3つは**統括AIが言っていないなら節ごと出さない**（画面が空節を描かない）
     timeNote: d.plan.timeNote,
     facts: (d.plan.assumes ?? []).map((a) => [a.label, a.value] as [string, string]),

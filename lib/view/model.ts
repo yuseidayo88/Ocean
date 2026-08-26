@@ -202,8 +202,8 @@ export type DeskBody =
 
 export type Lane = {
   id: string; state: State; line: string;
-  /** 誰のレーンか。名前と色はここに埋める */
-  name: string; color: string; role?: string;
+  /** 誰のレーンか。名前と色はここに埋める（**役目は名前がもう言っている**ので持たない） */
+  name: string; color: string;
   steps: [string, string][];
   body: DeskBody;
   /** レーンの足もと。タスク名 ＋ 進み具合 ＋ かかった時間 */

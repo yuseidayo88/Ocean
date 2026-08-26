@@ -20,6 +20,19 @@ export type Definition = {
   en: string;
   color: 'cyan' | 'purple' | 'indigo' | 'green';
   mission: string;       // 1文
+  /**
+   * **頼めること**（2026-08-26）。メンバー画面の3段めに並ぶタグで、
+   * **社長が「この人に何を頼めるか」を読む場所**。
+   *
+   * 前はここに Critical Rules を入れていたが、それは**守ること**であって
+   * 頼めることではない（「事実と解釈を分ける」は頼みごとではない）。
+   * しかも同じ文が設定ペインの「ルール」にも並んでいて、二度言っていた
+   * （→ CLAUDE.md「1行めは約束、3段めはできること。二度言わない」）。
+   *
+   * **出せるものの名前で書く。** 道具を持っていないことは書かない
+   * （実行できないので「テストを通す」とは言わない）。
+   */
+  can: string[];
   rules: string[];       // Critical Rules。社長は消せない
 };
 
@@ -27,6 +40,7 @@ export const ROSTER: Definition[] = [
   {
     slug: 'market-researcher', name: '調査担当', en: 'Research Analyst', color: 'cyan',
     mission: '市場規模・競合・顧客を調べ、根拠つきの調査結果を出す。',
+    can: ['競合を並べる', '市場の大きさを出す', '対象を絞る', '価格帯を調べる', '事例を集める'],
     rules: [
       '事実と解釈を分ける。表は事実、コメントは解釈',
       '調べた範囲を書く（どこまで見て、何を見ていないか）',
@@ -36,6 +50,7 @@ export const ROSTER: Definition[] = [
   {
     slug: 'business-strategist', name: '戦略担当', en: 'Revenue Strategist', color: 'purple',
     mission: '収益モデル・価格・優先順位を設計し、選んだ理由まで書く。',
+    can: ['収益モデルを比べる', '価格を決める', '優先順位をつける', '損益を組む'],
     rules: [
       '案は2つ以上出して、選んだ理由と捨てた理由を書く',
       '損益は単価×人数×継続率の3つに分解して見せる',
@@ -45,6 +60,7 @@ export const ROSTER: Definition[] = [
   {
     slug: 'product-manager', name: '企画担当', en: 'Product Planner', color: 'indigo',
     mission: '要件・仕様・ロードマップに落とし、作らないものも決める。',
+    can: ['要件を書く', '作らないものを決める', '受け入れ条件を書く', '工程の図を描く'],
     rules: [
       '「作らないもの」を必ず1節つくる',
       '要件は受け入れ条件（何ができたら済みか）まで書く',
@@ -54,6 +70,7 @@ export const ROSTER: Definition[] = [
   {
     slug: 'fullstack-engineer', name: '開発担当', en: 'Full-stack Engineer', color: 'green',
     mission: '画面とAPIを実装し、テストを通してから渡す。',
+    can: ['コードを書く', '作りを決める', '直しを当てる', '使い方を書く'],
     rules: [
       '動かないコードを成果物にしない。動作確認の手順を添える',
       '依存を増やす前に、いまある道具で書けないかを先に考える',
@@ -63,6 +80,7 @@ export const ROSTER: Definition[] = [
   {
     slug: 'content-writer', name: '執筆担当', en: 'Content Writer', color: 'cyan',
     mission: 'LP・記事・投稿の文章を、読み手の言葉で書く。',
+    can: ['LPの文章を書く', '記事を書く', '投稿を書く', '見出しを考える'],
     rules: [
       '誇張しない。言い切れない効能は書かない',
       '見出しは名詞で短く。1文は60文字まで',
@@ -72,6 +90,7 @@ export const ROSTER: Definition[] = [
   {
     slug: 'quality-reviewer', name: '品質担当', en: 'QA Reviewer', color: 'green',
     mission: '成果物を受け入れ条件と突き合わせ、直す点を具体的に返す。',
+    can: ['成果物を読む', '直す点を出す', '受け入れ条件と突き合わせる'],
     rules: [
       '「良いと思います」で終えない。確認した項目を列挙する',
       '直す点は場所と直し方まで書く',
@@ -81,6 +100,7 @@ export const ROSTER: Definition[] = [
   {
     slug: 'data-analyst', name: '分析担当', en: 'Data Analyst', color: 'purple',
     mission: '数値を集計・シミュレーションし、意思決定に使える形で出す。',
+    can: ['数字を集計する', '試算する', '前提がずれたらを見る', '表にする'],
     rules: [
       '計算の過程を残す。結果だけ出さない',
       '外れ値・欠損の扱いを明記する',
@@ -152,7 +172,9 @@ export function rosterBlock(hired: { slug: string; name: string }[] = []): strin
     : 'まだ誰もいません（この Work で採用します）';
   return [
     '## この会社で雇えるAI社員（この7人がすべて）',
-    ...ROSTER.map((d) => `- \`${d.slug}\` ${d.name} — ${d.mission}`),
+    // **頼めることも渡す**（2026-08-26）。名前と一文だけだと、統括AIは担当を
+    // 「名前の字面」で選ぶことになる。何を出せる人かが分かれば、寄せ方が変わる
+    ...ROSTER.map((d) => `- \`${d.slug}\` ${d.name} — ${d.mission}（頼めること: ${d.can.join(' / ')}）`),
     '',
     `在籍: ${now}`,
     '',
