@@ -73,6 +73,32 @@ export default function InboxPage() {
 
   const settle = async (n: Note) => { await readNote(n.id); reload(); if (next && next.id !== n.id) setOpen(next.id); };
 
+  /**
+   * **いま社長にできること**（`inboxAct`）。画面が1回だけ取りに行き、
+   * 右の中身にも「開く」の行き先にも同じものを使う。
+   * 前の通知のぶんが残らないよう、**どの通知のものか**を一緒に持つ。
+   */
+  const [act, setAct] = useState<{ id: string; act: InboxAct } | null>(null);
+  const itemId = item?.id, itemType = item?.subjectType, itemSub = item?.subjectId;
+  useEffect(() => {
+    if (!itemId) return;
+    let on = true;
+    inboxAct(itemType, itemSub).then((a) => { if (on) setAct({ id: itemId, act: a }); });
+    return () => { on = false; };
+  }, [itemId, itemType, itemSub]);
+  const cur = act && act.id === itemId ? act.act : null;
+
+  /**
+   * **「開く」は、その用件そのものへ**（2026-08-26）。
+   * 前は通知の subject（タスク）だけを見て `/tasks?open=…` に落としていたので、
+   * **いちばん多い「成果物ができました」でタスクの歩みが開いていた** — 用件は成果物なのに。
+   */
+  const openTo: Route | null = cur
+    ? cur.kind === 'deliverable' ? openHref('/deliverables', cur.delId)
+      : cur.kind === 'decision' ? openHref(`/work/${cur.workId}`, cur.taskId)
+      : openHref('/tasks', cur.taskId)
+    : (item ? hrefOf(item) : null);
+
   return (
     <Centre>
       <TopBar title="通知" right={
@@ -153,7 +179,7 @@ export default function InboxPage() {
                   * 止まったものから戻る）を、そのまま**ここに出す**。
                   * `key` は通知の id — 次の通知に移ったとき、前の行動が残らない。
                   */}
-                <Settle key={item.id} note={item} onDone={() => settle(item)} />
+                <Settle key={item.id} act={cur} onDone={() => settle(item)} />
               </div>
 
               {/* 行動の行。入力欄に隠さない */}
@@ -161,8 +187,8 @@ export default function InboxPage() {
                 flexShrink: 0, display: 'flex', alignItems: 'center', gap: 11, height: 56,
                 padding: '0 28px', marginBottom: COMPOSER_H, borderTop: `1px solid ${SEAM}`,
               }}>
-                {hrefOf(item) && (
-                  <Link href={hrefOf(item)!} className="solid" style={{
+                {openTo && (
+                  <Link href={openTo} className="solid" style={{
                     display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 16px',
                     borderRadius: 8, background: BLUE, color: '#fff',
                   }}>開く</Link>
@@ -218,15 +244,8 @@ export default function InboxPage() {
  *   （行動をでっち上げない）。下の「開く」だけが残る
  * - **終わったら、その通知を済みにして次へ。** それがこの画面の動き方
  */
-function Settle({ note, onDone }: { note: Note; onDone: () => void }) {
-  const [act, setAct] = useState<InboxAct | 'loading'>('loading');
-  useEffect(() => {
-    let on = true;
-    inboxAct(note.subjectType, note.subjectId).then((a) => { if (on) setAct(a); });
-    return () => { on = false; };
-  }, [note.subjectType, note.subjectId]);
-
-  if (act === 'loading' || !act) return null;
+function Settle({ act, onDone }: { act: InboxAct; onDone: () => void }) {
+  if (!act) return null;
 
   const head = act.kind === 'decision' ? '決める'
     : act.kind === 'deliverable' ? '成果物' : '止まっています';

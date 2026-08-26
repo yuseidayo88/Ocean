@@ -403,6 +403,14 @@ for (let i = 0; i < 12 && !inbox.includes('承認して受け取る'); i++) {
 ok('通知の画面で、成果物をその場で見て承認できる',
    inbox.includes('承認して受け取る') && inbox.includes('直してほしい'),
    inbox.match(/[^\n]*承認して受け取る[^\n]*/)?.[0] ?? '(行動が出ていない)');
+/**
+ * **「開く」は、その用件そのものへ**（2026-08-26）。前は通知の subject（タスク）だけを見て
+ * `/tasks?open=…` に落としていたので、いちばん多い「成果物ができました」で
+ * **タスクの歩みが開いていた** — 用件は成果物なのに。
+ */
+ok('通知の「開く」は、その成果物へ行く',
+   await ev(`[...document.querySelectorAll('a[href^="/deliverables?open="]')].length > 0`),
+   (await ev(`[...document.querySelectorAll('a')].map(a => a.getAttribute('href')).filter(Boolean).join(' ')`))?.slice(-120));
 await send('Page.navigate', { url: `${BASE}/team` }); await wait(2200);
 /**
  * **開くまで押し直す**（この検査の他のところと同じ作法）。

@@ -45,8 +45,10 @@ async function fetchAll(): Promise<Hit[]> {
   return [
     ...PAGES,
     ...works.map((w): Hit => ({ id: w.id, icon: 'work', label: w.title, sub: w.goal, href: `/work/${w.id}` as Route, kind: 'Work' })),
+    // **そのタスクを開く**（2026-08-26）。前は Work の画面の頭に落としていたので、
+    // 名前で探して飛んだのに、そこから自分でもう一度探すことになっていた
     ...works.flatMap((w) => w.tasks.map((t): Hit => ({
-      id: t.id, icon: 'task', label: t.title, sub: w.title, href: `/work/${w.id}` as Route, kind: 'タスク',
+      id: t.id, icon: 'task', label: t.title, sub: w.title, href: openHref(`/work/${w.id}`, t.id), kind: 'タスク',
     }))),
     ...dels.map((d): Hit => ({ id: d.id, icon: 'deliv', label: d.title, sub: d.state, href: openHref('/deliverables', d.id), kind: '成果物' })),
     ...staff.map((e): Hit => ({ id: e.id, icon: 'team', label: e.name, sub: '', href: openHref('/team', e.id), kind: 'メンバー' })),

@@ -224,7 +224,7 @@ export async function taskWhy(taskId: string): Promise<string> {
  * どれでもなければ `null`（**行動をでっち上げない**。「開く」だけが残る）。
  */
 export type InboxAct =
-  | { kind: 'decision'; taskId: string }
+  | { kind: 'decision'; taskId: string; workId: string }
   | { kind: 'deliverable'; delId: string; workId: string; taskId: string;
       title: string; state: string; body: string; delKind: string }
   | { kind: 'stuck'; taskId: string }
@@ -236,7 +236,7 @@ export async function inboxAct(subjectType?: string, subjectId?: string): Promis
     for (const w of await store().listWorks()) {
       const t = w.tasks.find((x) => x.id === subjectId);
       if (!t) continue;
-      if (t.state === 'needs_decision') return { kind: 'decision', taskId: t.id };
+      if (t.state === 'needs_decision') return { kind: 'decision', taskId: t.id, workId: w.id };
       const d = (w.dels ?? []).find((x) => x.taskId === t.id && x.state === '要確認');
       if (d) {
         return {

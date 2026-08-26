@@ -2,6 +2,7 @@
 
 import { Go as Link } from '@/components/ui/Go';
 import { useEffect, useState } from 'react';
+import { useOpen } from '@/lib/use-open';
 import { Centre, Composer, TopBar } from '@/components/shell/Chrome';
 import { Dot, Icon } from '@/components/ui/Icon';
 import { decide, listDecisions } from '@/app/actions/run';
@@ -16,10 +17,22 @@ import { AMBER, AMBER_T, COMPOSER_H, GREEN, GREEN_T, HAIR, SEAM, T1, T2, T3, T4,
  */
 
 /** 本物の決定の1件。開いている判断はその場で決められる */
-function LiveRow({ d, last, onDecide }: { d: LiveDecision; last: boolean; onDecide: (id: string, label: string) => void }) {
+function LiveRow({ d, last, on, onDecide }: {
+  d: LiveDecision; last: boolean; on: boolean; onDecide: (id: string, label: string) => void;
+}) {
   const wait = d.status === 'open';
   return (
-    <div style={{ display: 'flex', gap: 16 }}>
+    /**
+     * **`?open=` で指された1件は、明るくする**（2026-08-26）。
+     * ⌘K は前から `openHref('/decisions', id)` で飛ばしていたのに、
+     * **この画面が `?open=` を読んでいなかった** — 名前で探して飛んでも、
+     * 台帳のどこにも印が無く、社長がもう一度目で探すことになっていた。
+     */
+    <div id={`dec-${d.id}`} style={{
+      display: 'flex', gap: 16, borderRadius: 8,
+      background: on ? '#0C0C0C' : undefined,
+      boxShadow: on ? `inset 3px 0 0 ${wait ? AMBER : GREEN}` : undefined,
+    }}>
       <span style={{ width: 58, flexShrink: 0, textAlign: 'right', color: T5, fontSize: 11, paddingTop: 14 }}>
         {ago(d.when)}
       </span>
@@ -99,8 +112,14 @@ function LiveRow({ d, last, onDecide }: { d: LiveDecision; last: boolean; onDeci
 export default function DecisionsPage() {
   /** 本物の決定（AI社員が聞いた・社長が決めたもの）だけ。台帳は追記のみ */
   const [live, setLive] = useState<LiveDecision[] | null>(null);
+  const [openId] = useOpen();
   const reload = () => { listDecisions().then(setLive); };
   useEffect(reload, []);
+  // 指された1件まで送る（読み込みが終わってから。**state は触らない**）
+  useEffect(() => {
+    if (!openId || live === null) return;
+    document.getElementById(`dec-${openId}`)?.scrollIntoView({ block: 'center' });
+  }, [openId, live]);
   const onDecide = async (id: string, label: string) => { await decide(id, label); wakePump(); reload(); };
 
   const all = live ?? [];
@@ -137,7 +156,7 @@ export default function DecisionsPage() {
           </div>
         )}
         {all.map((d, i) => (
-          <LiveRow key={d.id} d={d} last={i === all.length - 1} onDecide={onDecide} />
+          <LiveRow key={d.id} d={d} last={i === all.length - 1} on={d.id === openId} onDecide={onDecide} />
         ))}
       </div>
 

@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import type { Route } from 'next';
 import { useParam } from '@/lib/use-open';
 import { homeData } from '@/app/actions/home';
 import type { HomeData } from '@/lib/live/home';
@@ -72,8 +73,10 @@ function Waiting({ data }: { data: HomeData }) {
           判断待ちが {gates}件{one ? ` — ${one}` : ''} ›
         </Link>
       )}
+      {/* **数えたものへ、そのまま連れていく**（2026-08-26）。前は成果物ぜんぶの画面に
+          落としていたので、社長が「まだ見ていない N件」を目で探す必要があった */}
       {review > 0 && (
-        <Link href="/deliverables" className="lnk" style={{ color: AMBER_T, fontSize: 13, whiteSpace: 'nowrap' }}>
+        <Link href={'/deliverables?only=review' as Route} className="lnk" style={{ color: AMBER_T, fontSize: 13, whiteSpace: 'nowrap' }}>
           成果物 {review}件 を見る ›
         </Link>
       )}
