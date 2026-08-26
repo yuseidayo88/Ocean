@@ -86,6 +86,21 @@ for (const path of PAGES) {
   for (let i = 0; i < items.length; i++) {
     const it = items[i];
     if (it.href && !it.href.startsWith('#')) { liveAll++; continue; }   // <a href> は行き先がある
+    /**
+     * **もう無いものを「死」と数えない**（2026-08-26）。
+     *
+     * 候補は画面をひらいた時点で1回だけ集めている。前の当たりで画面が進むと
+     * （判断に答える、行を選ぶ等）、あとの候補は**その場所から消えている** —
+     * そこを押しても何も起きないのは当たり前で、「押せる顔をしているのに死んでいる」
+     * とは違う。実際 `/decisions` で、答えたあとの選択肢2つを毎回そう数えていた。
+     *
+     * 名前を持つものだけ見る（`button@中央` のような合成名は突き合わせられない）。
+     */
+    if (!it.label.includes('@')) {
+      const now = await ev(`(() => { const e = document.elementFromPoint(${it.x}, ${it.y});
+        return e ? (e.textContent || '').trim().replace(/\\s+/g, ' ') : ''; })()`);
+      if (!now || !now.includes(it.label.slice(0, 6))) continue;   // もう別のものが居る
+    }
     const before = await ev(STATE);
     for (const type of ['mousePressed', 'mouseReleased'])
       await send('Input.dispatchMouseEvent', { type, x: it.x, y: it.y, button: 'left', clickCount: 1 });
