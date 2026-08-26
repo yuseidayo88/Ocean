@@ -1421,7 +1421,7 @@ export const supabaseStore: Store = {
       .select('id, status, constraints, is_real').eq('id', id).maybeSingle();
     if (!s) return null;
     const { data: rows } = await c.from('discovery_candidates')
-      .select('id, name, summary, ending, fit, why, recommended, not_chosen_why, adopted_work_id, created_at')
+      .select('id, name, summary, ending, fit, why, recommended, not_chosen_why, adopted_work_id, who, first_one, unsure, hours_per_week, created_at')
       .eq('session_id', id).order('created_at', { ascending: false }).limit(30);
     // **最新の束だけ。** 1回の提案は1文で入るので created_at が同着 — 先頭と同じ時刻の行が今の束
     const latest = rows?.length ? rows.filter((r) => r.created_at === rows[0].created_at) : [];
@@ -1444,10 +1444,14 @@ export const supabaseStore: Store = {
         id: r.id as string, name: r.name as string, summary: r.summary as string,
         ending: (r.ending ?? '') as string,
         why: Array.isArray(r.why) ? r.why.map(String) : [],
-        fit: { speed: fitOf(r.fit, 'speed'), cost: fitOf(r.fit, 'cost'), strength: fitOf(r.fit, 'strength') },
+        fit: { demand: fitOf(r.fit, 'demand'), solo: fitOf(r.fit, 'solo'), speed: fitOf(r.fit, 'speed') },
         recommended: !!r.recommended,
         notChosenWhy: (r.not_chosen_why ?? undefined) as string | undefined,
         adoptedWorkId: (r.adopted_work_id ?? undefined) as string | undefined,
+        who: (r.who || undefined) as string | undefined,
+        firstOne: (r.first_one || undefined) as string | undefined,
+        unsure: (r.unsure || undefined) as string | undefined,
+        hoursPerWeek: (r.hours_per_week ?? 0) as number,
       }))),
     };
   },
@@ -1474,6 +1478,8 @@ export const supabaseStore: Store = {
     const { error } = await c.from('discovery_candidates').insert(cands.map((x) => ({
       session_id: id, name: x.name, summary: x.summary, ending: x.ending, why: x.why,
       fit: x.fit, recommended: x.recommended, not_chosen_why: x.notChosenWhy ?? null,
+      who: x.who ?? '', first_one: x.firstOne ?? '', unsure: x.unsure ?? '',
+      hours_per_week: x.hoursPerWeek ?? 0,
     })));
     if (error) throw new AppError('unknown', error.message);
     const { error: e2 } = await c.from('discovery_sessions').update({ status: 'proposed' }).eq('id', id);

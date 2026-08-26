@@ -214,8 +214,13 @@ function EndAsk({ body, options, busy, onPick }: {
 
 /* ══════════════ 候補をくらべる ══════════════ */
 
-const AXES: [string, 'speed' | 'cost' | 'strength'][] = [
-  ['立ち上がりの速さ', 'speed'], ['初期費用の低さ', 'cost'], ['強みとの相性', 'strength'],
+/**
+ * **軸を入れ替えた**（2026-08-26。社長の「実際に需要があって個人1人でもできるような仕事」）。
+ * 前は 速さ / 安さ / 得意との相性 で、**需要も「1人で回せるか」も入っていなかった**。
+ * 「初期費用の低さ」は落とした — **お金がかかることは「1人で回せる」に吸収される**。
+ */
+const AXES: [string, 'demand' | 'solo' | 'speed'][] = [
+  ['欲しい人がいる', 'demand'], ['1人で回せる', 'solo'], ['最初の1件まで', 'speed'],
 ];
 
 /**
@@ -325,13 +330,18 @@ function CandidatesCard({ id, live, threadId, onSend }: {
                 {pick && <Icon name="chev" color={T5} size={12} />}
               </div>
               <span style={{ color: T2, fontSize: 12.5, lineHeight: '20px' }}>{c.summary}</span>
-              {/* **何ができたら完了か。** 選ぶ前に読める（あとで聞き返さない） */}
-              {c.ending && (
-                <span style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
-                  <span style={{ color: T5, fontSize: 10.5, flexShrink: 0 }}>完了</span>
-                  <span style={{ color: T3, fontSize: 12, lineHeight: '18px' }}>{c.ending}</span>
+              {/**
+                * **選ぶ前に読めるものを増やした**（2026-08-26）。
+                * 「誰が買うのか」「最初の1人をどこで見つけるか」が書けない候補は、
+                * そもそも始められない。**ラベルは2〜4文字で左に揃える**（表と同じ読み方）。
+                */}
+              {([['完了', c.ending], ['誰が', c.who], ['最初の1人', c.firstOne]] as const)
+                .filter(([, v]) => !!v).map(([label, v]) => (
+                <span key={label} style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                  <span style={{ color: T5, fontSize: 10.5, flexShrink: 0, width: 48 }}>{label}</span>
+                  <span style={{ color: T3, fontSize: 12, lineHeight: '18px' }}>{v}</span>
                 </span>
-              )}
+              ))}
               <div style={{ display: 'flex', gap: 16 }}>
                 {AXES.map(([label, key]) => (
                   <span key={key} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -340,6 +350,19 @@ function CandidatesCard({ id, live, threadId, onSend }: {
                   </span>
                 ))}
               </div>
+              {/**
+                * **確かめていないことを、候補の顔に出す**（2026-08-26）。
+                * 統括AIは Web を見ていないので、需要は記憶から言っているだけ。
+                * **黙って自信ありげに出すほうが危ない** — AI社員の憲法の「未確認」と同じ作法。
+                * 週に何時間要るかも一緒に出す（社長はひとりで、時間がいちばん足りない）。
+                */}
+              {(c.unsure || !!c.hoursPerWeek) && (
+                <span style={{ color: T5, fontSize: 11.5, lineHeight: '17px' }}>
+                  {c.hoursPerWeek ? `週およそ ${c.hoursPerWeek}時間` : ''}
+                  {c.hoursPerWeek && c.unsure ? ' · ' : ''}
+                  {c.unsure ? `まだ確かめていない — ${c.unsure}` : ''}
+                </span>
+              )}
               {/* **選ばなかった理由も残す。** なぜその道を選んだかは、選ばなかった道と並べて意味になる */}
               {!c.recommended && c.notChosenWhy && (
                 <span style={{ color: T5, fontSize: 11.5, lineHeight: '17px' }}>推さない理由 — {c.notChosenWhy}</span>

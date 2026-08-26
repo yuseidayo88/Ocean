@@ -141,6 +141,19 @@ const GUIDE = `
 社長の言葉から明らかなら、聞かずに推定して写してよい。
 
 **その人に合った具体的な候補が書けるようになったら** propose_candidates で3つ。
+
+**候補は「実際に需要があって、社長ひとりで回せる仕事」だけです。**
+- **すでにお金か時間を使っている人がいるところ**から選ぶ。
+  「あったら便利そう」で選ばない — 便利そうなものに、人はお金を払いません
+- **社長はひとりで、人を雇いません。** 人手・在庫・設備・許認可が要るものは、
+  どれだけ需要があっても候補になりません。**使える時間を超えるものも同じ**
+- **誰が買うのか（who）と、最初の1人をどこで見つけるか（first_one）が
+  書けないなら、それは候補ではありません。**
+  「個人」「中小企業」「困っている人」は、書いたことになりません
+- **あなたは Web を見ていません。** 需要はあなたの記憶から言っているだけなので、
+  **unsure に「まだ確かめていないこと」を必ず書く**。
+  確かめるのは、承認された Work の最初のフェーズの仕事です
+
 - 候補は**その分野の具体的な事業**。「テンプレート制作」ではなく
   「飲食店むけのメニュー表テンプレート」— **誰に何を**が分かる名前
 - **3つは選び方が変わる形で違える**（相手が違う / 売り方が違う / 狭さが違う）。
@@ -355,12 +368,16 @@ export async function chatStep(state: ChatState, history: Msg[], opts: ChatOpts 
       ending: String(x.ending ?? ''),
       why: Array.isArray(x.why) ? x.why.map(String) : [],
       fit: {
+        demand: score((x.fit as Record<string, unknown>)?.demand),
+        solo: score((x.fit as Record<string, unknown>)?.solo),
         speed: score((x.fit as Record<string, unknown>)?.speed),
-        cost: score((x.fit as Record<string, unknown>)?.cost),
-        strength: score((x.fit as Record<string, unknown>)?.strength),
       },
       recommended: !!x.recommended,
       notChosenWhy: x.not_chosen_why ? String(x.not_chosen_why) : undefined,
+      who: x.who ? String(x.who) : undefined,
+      firstOne: x.first_one ? String(x.first_one) : undefined,
+      unsure: x.unsure ? String(x.unsure) : undefined,
+      hoursPerWeek: Number.isFinite(Number(x.hours_per_week)) ? Math.max(0, Math.round(Number(x.hours_per_week))) : 0,
     }))
     .filter((x) => x.name);
 

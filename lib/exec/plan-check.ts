@@ -18,7 +18,17 @@ import type { Plan } from './types';
 export type PlanDiag = { rule: string; say: string; fatal: boolean };
 
 /** 社長が渡している条件のうち、計画が守るべきもの */
-export type PlanLimits = { hoursPerWeek?: number | null; deadline?: string | null };
+export type PlanLimits = {
+  hoursPerWeek?: number | null; deadline?: string | null;
+  /** **需要がまだ確かめられていない**（候補から立った Work）。最初のフェーズで確かめさせる */
+  unproven?: boolean;
+};
+
+/**
+ * **外に出して確かめる**言葉。読んだだけの調査と分けるための印。
+ * 「市場を調べる」「競合を並べる」では当たらない — そこが狙い。
+ */
+const PROVE = /公開|出す|出し|聞く|聞い|ヒアリング|申し込|申込|反応|試作|見せ|配る|募|先行|テスト販売|検証/;
 
 /**
  * **他人が動くのを待つフェーズ**の言葉（2026-08-26。社長の
@@ -123,6 +133,26 @@ export function checkPlan(plan: Plan, limits: PlanLimits = {}): PlanDiag[] {
     if (perPhase) {
       d.push({ rule: 'hours', fatal: false,
         say: `週 ${limits.hoursPerWeek}時間 と聞いているのに、半週で終わるフェーズが ${perPhase} つあります。使える時間の中で回る週数にしてください` });
+    }
+  }
+  /**
+   * **まだ誰も買っていない事業は、最初のフェーズで需要を確かめる**（2026-08-26。社長の
+   * 「実際に需要があって個人1人でもできるような仕事」）。
+   *
+   * 統括AIは Web を見ていないので、候補の需要は**記憶から言っただけ**。
+   * 机の上の調査で終わると、**誰も欲しがっていないものを10週かけて作る**ことになる。
+   *
+   * **fatal にしない。** 言葉で見分けるので取りこぼすし、
+   * **すでに売れている事業には要らない**（そこで止めると、正しい計画が通らなくなる）。
+   */
+  if (limits.unproven && plan.phases.length) {
+    const first = plan.phases[0];
+    if (!PROVE.test(`${first.name} ${first.goal}`)) {
+      d.push({ rule: 'prove', fatal: false,
+        say: `まだ誰が欲しがるか確かめられていないのに、最初のフェーズ「${first.name}」が`
+          + `「${first.goal}」で終わっています。**外に出して確かめる**形にしてください — `
+          + '見せられるものを作って公開する / その相手に直接聞く / 先行の申し込みを取る。'
+          + '読んだだけでは、誰も欲しがっていません' });
     }
   }
   if (!plan.assumes.length) {

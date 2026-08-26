@@ -36,7 +36,17 @@ export const proposeCandidates: ToolDef = {
   description:
     '条件に合う事業の候補を**ちょうど3つ**出す。1つだけ recommended を立てる。'
     + '推す候補には why（推す理由）を3つ、推さない2つには not_chosen_why を必ず書く。'
-    + 'fit は 0〜100 の3スコア — speed=立ち上がりの速さ / cost=初期費用の低さ / strength=強みとの相性。',
+    + 'fit は 0〜100 の3スコア — '
+    + '**demand=欲しがっている人がいるか** / **solo=1人で回せるか** / speed=最初の1件までの近さ。'
+    + '\n\n**社長はひとりです。人を雇いません。**'
+    + 'だから **hours_per_week が社長の使える時間を超える候補は出さないでください**'
+    + '（範囲を狭めて、時間の中に収まる形にする）。'
+    + '\n**抽象に逃げない。** who（誰が買うか）と first_one（最初の1人をどこで見つけるか）が'
+    + '書けない候補は、候補ではありません — '
+    + '「個人」「中小企業」「困っている人」は書いたことになりません。'
+    + '\n**あなたは Web を見ていません。** 需要は自分の記憶から言っているだけなので、'
+    + '**unsure に「まだ確かめていないこと」を必ず書いてください**（そのうえで、'
+    + '承認された Work の最初のフェーズで確かめます）。',
   input_schema: {
     type: 'object',
     properties: {
@@ -49,17 +59,40 @@ export const proposeCandidates: ToolDef = {
             summary: { type: 'string', description: 'なぜこの条件に合うか。1〜2文' },
             ending: { type: 'string', description: '**何ができたら完了か。** 1文で、見れば分かる状態を書く（「最初の1件が売れている」）。社長はこれを見て承認する' },
             why: { type: 'array', items: { type: 'string' }, description: '推す理由（recommended のとき3つ）' },
+            who: {
+              type: 'string',
+              description: '**誰が買うのか。** 具体的に（「飲食店の店長」ではなく'
+                + '「席が10〜20の個人店で、メニューを自分で作り直している店主」）。'
+                + '**いま何にお金や時間を使っている人か**まで書く。20〜50文字',
+            },
+            first_one: {
+              type: 'string',
+              description: '**最初の1人を、どこでどうやって見つけるか。** 具体的な場所とやり方を1文。'
+                + 'ここが書けない候補は始められません',
+            },
+            unsure: {
+              type: 'string',
+              description: '**まだ確かめていないこと。** あなたは Web を見ていないので、'
+                + '需要は記憶から言っているだけです。何が確かめられていないかを1文で',
+            },
+            hours_per_week: {
+              type: 'number',
+              description: '**この事業を回すのに週に何時間要るか。** '
+                + '社長の使える時間を超えないこと（超えるなら範囲を狭める）',
+            },
             fit: {
               type: 'object',
               properties: {
-                speed: { type: 'number' }, cost: { type: 'number' }, strength: { type: 'number' },
+                demand: { type: 'number', description: '欲しがっている人がいるか（すでにお金や時間を使っている人がいるほど高い）' },
+                solo: { type: 'number', description: '1人で回せるか（人手・在庫・設備が要るほど低い）' },
+                speed: { type: 'number', description: '最初の1件までの近さ' },
               },
-              required: ['speed', 'cost', 'strength'],
+              required: ['demand', 'solo', 'speed'],
             },
             recommended: { type: 'boolean' },
             not_chosen_why: { type: 'string', description: '推さない理由。1文' },
           },
-          required: ['name', 'summary', 'ending', 'fit', 'recommended'],
+          required: ['name', 'summary', 'ending', 'who', 'first_one', 'unsure', 'hours_per_week', 'fit', 'recommended'],
         },
       },
     },

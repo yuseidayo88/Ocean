@@ -54,11 +54,31 @@ export async function adoptCandidate(
       d.conditions.budgetJpy ? `使えるお金: 〜${Math.round(d.conditions.budgetJpy / 10000)}万円` : '',
       d.conditions.strengths.length ? `得意: ${d.conditions.strengths.join('・')}` : '',
       d.conditions.avoid.length ? `やりたくない: ${d.conditions.avoid.join('・')}` : '',
+      /**
+       * **需要は仮説のまま渡す**（2026-08-26。社長の「実際に需要があって〜」）。
+       * 統括AIは Web を見ていないので、候補の需要は**記憶から言っただけ**。
+       * だから「誰が / 最初の1人 / まだ確かめていないこと」をそのまま渡して、
+       * **最初のフェーズで確かめさせる** — 机の上では確かめられないから。
+       */
+      c.who ? `誰が買うと見ているか: ${c.who}` : '',
+      c.firstOne ? `最初の1人を見つける当て: ${c.firstOne}` : '',
+      c.unsure ? `**まだ確かめていないこと: ${c.unsure}**` : '',
+      c.hoursPerWeek ? `この事業に要ると見ている時間: 週${c.hoursPerWeek}時間` : '',
       '',
       '**計画は、この条件で本当に回る形にしてください。**'
       + '使える時間を超える週を作らない。やりたくないことを含む道は引かない。',
+      '**需要はまだ確かめられていません。**'
+      + '最初のフェーズは、**外に出して確かめる**ものにしてください'
+      + '（見せられるものを作って公開する / 声を聞く / 先行の申し込みを取る）。'
+      + '机の上の調査だけで終わらせない。',
     ].filter(Boolean).join('\n');
-    const r = await startWork(goal, ctx);
+    /**
+     * **候補から立った Work は、需要がまだ確かめられていない。**
+     * `checkPlan` がそれを見て、最初のフェーズが「外に出して確かめる」形になっているかを見る。
+     */
+    const r = await startWork(goal, ctx, {
+      hoursPerWeek: d.conditions.hoursPerWeek ?? null, unproven: true,
+    });
     if (r.ok) {
       await s.adoptCandidate(sessionId, candidateId, r.id);
       /**

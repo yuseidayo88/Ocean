@@ -922,11 +922,12 @@ const g4 = globalThis as unknown as { __disc?: Map<string, DiscRow>; __profiles?
 const disc = (g4.__disc ??= new Map<string, DiscRow>());
 const profiles = (g4.__profiles ??= new Map<string, ProfRow>());
 
-/** 候補の並びは双子で同じに — 推し → 相性の高い順 → 名前（挿入順に頼らない） */
-export const sortCands = <T extends { recommended: boolean; fit: { strength: number }; name: string }>(xs: T[]): T[] =>
+/** 候補の並びは双子で同じに — 推し → **需要の高い順** → 名前（挿入順に頼らない） */
+export const sortCands = <T extends { recommended: boolean; fit: { demand: number }; name: string }>(xs: T[]): T[] =>
   [...xs].sort((a, b) =>
     Number(b.recommended) - Number(a.recommended)
-    || b.fit.strength - a.fit.strength
+    // **需要の高い順**（2026-08-26。前は「得意との相性」で並べていた）
+    || b.fit.demand - a.fit.demand
     || a.name.localeCompare(b.name, 'ja'));
 
 function findTask(taskId: string) {

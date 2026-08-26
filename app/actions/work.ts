@@ -3,6 +3,7 @@
 import { draftWork } from '@/lib/exec/run';
 import { store, type DraftWork, type LiveWork } from '@/lib/store';
 import type { Draft } from '@/lib/exec/types';
+import type { PlanLimits } from '@/lib/exec/plan-check';
 import { sayError } from '@/lib/errors';
 
 /**
@@ -26,13 +27,15 @@ export type StartResult =
  * 「◯◯を立ち上げたい 終わり: … 背景: … 分野: … 使える時間: … やりたくない: …」が
  * **社長が書いた言葉として吹き出しに出ていた**。読めたものではないし、嘘でもある。
  */
-export async function startWork(goal: string, ctx = ''): Promise<StartResult> {
+export async function startWork(
+  goal: string, ctx = '', limits: PlanLimits = {},
+): Promise<StartResult> {
   const text = goal.trim();
   if (!text) return { ok: false, need: 'error', message: 'やりたいことを書いてください' };
 
   let out: { draft: Draft; real: boolean };
   try {
-    out = await draftWork(text, ctx);
+    out = await draftWork(text, ctx, limits);
   } catch (e) {
     return { ok: false, need: 'error', message: sayError(e, '統括AIが応えませんでした') };
   }

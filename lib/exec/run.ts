@@ -2,7 +2,7 @@ import type { Msg, ModelProvider } from '@/lib/ai';
 import { CONSTITUTION } from './constitution';
 import { PHASE5_TOOLS } from './tools';
 import { checkStop, toOptions, toQuestions } from './parse';
-import { checkPlan, sayPlanDiags } from './plan-check';
+import { checkPlan, sayPlanDiags, type PlanLimits } from './plan-check';
 import type { Container, Draft, Hire, Plan } from './types';
 import { AppError } from '@/lib/errors';
 import { crewFor, rosterBlock, slugOf } from '@/lib/roster';
@@ -73,7 +73,13 @@ async function memoryBlock(): Promise<string> {
 
 export type RunResult = { draft: Draft; real: boolean };
 
-export async function draftWork(goal: string, ctx = ''): Promise<RunResult> {
+/**
+ * **社長が渡している条件を、機械の検査にも渡す**（2026-08-26）。
+ * `PlanLimits` は前からあったのに、**誰も埋めていなかった** —
+ * `checkPlan(plan)` を引数なしで呼んでいたので、
+ * 「使える時間の中で回る形にする」の検査は一度も動いていない。
+ */
+export async function draftWork(goal: string, ctx = '', limits: PlanLimits = {}): Promise<RunResult> {
   const { p, real } = pickProvider();
   // **統括AIの設定で走る**（メンバー画面のいちばん上の行）
   const pref = await execPref();
@@ -163,7 +169,7 @@ export async function draftWork(goal: string, ctx = ''): Promise<RunResult> {
    * それでも合わなければ、**直ったところだけ受け取って**社長に出す —
    * 引き直しは deep の1往復なので、何度も払わない。
    */
-  const diags = checkPlan(plan);
+  const diags = checkPlan(plan, limits);
   if (diags.length) {
     const again = await drawPlan(p, goal, ctx, container, pref, sayPlanDiags(diags), plan);
     // **元より悪くしない。** 引き直しが空で返ったら、元の計画を使う

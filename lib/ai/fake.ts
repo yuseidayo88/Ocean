@@ -489,7 +489,17 @@ function plan(goal: string, fixed = false) {
      * 行儀よく書くと、`checkPlan` → 引き直しが動いているか永久に分からない。
      */
     phases: [
-      { name: '調査', goal: '市場・競合・対象が確かめられている', weeks: 2, owner: '調査担当' },
+      /**
+       * **1回目は机の上で終わらせる**（2026-08-26）。
+       * まだ誰も買っていない事業で「市場を調べる」だけで終わると、
+       * **誰も欲しがっていないものを10週かけて作る**ことになる。
+       * `checkPlan` の `prove` がそれを見つけて、外に出す形に直させる。
+       * 行儀よく書くと、その検査が動いているか永久に分からない。
+       */
+      { name: '調査',
+        goal: fixed ? '相手10人に直接聞いて、お金を払う人がいるか確かめられている'
+                    : '市場・競合・対象が確かめられている',
+        weeks: 2, owner: '調査担当' },
       { name: '戦略', goal: '収益モデルと価格が決まっている', weeks: 2, owner: '戦略担当' },
       { name: 'プロダクト', goal: 'いちばん小さい形が動いている', weeks: fixed ? 4 : 6, owner: '開発担当' },
       { name: 'ローンチ',
@@ -793,24 +803,42 @@ function fakeCands(merged: Record<string, unknown>) {
   const hours = merged.hours_per_week ?? 10;
   const avoid = merged.avoid as string[] | undefined;
   const edge = strong ? `${strong}の経験がそのまま差になります。` : '小さく始めて、続けながら形にできます。';
+  /**
+   * **軸は 需要 / 1人で回せる / 最初の1件まで**（2026-08-26）。
+   * `who` と `first_one` を必ず持たせる — 本物にもそれを required で書かせているので、
+   * **決め打ちが空のままだと、画面が空でも検査は通ってしまう**。
+   * `unsure` も必ず書く（統括AIは Web を見ていない、という正直さの印）。
+   */
   return [
     { name: `${of}オンライン講座`.slice(0, 24),
       summary: `${edge}在庫を持たず、週${hours}時間から始められます。`,
       ending: '最初の受講者が1人、最後まで受け終わっている',
+      who: `${field || 'その分野'}を独学ではじめて、途中で止まっている社会人`,
+      first_one: `${field || 'その分野'}の学習者が集まっている掲示板とSNSで、3人に直接声をかける`,
+      unsure: '独学で止まった人が、お金を払ってでも再開したいのかは確かめていません',
+      hours_per_week: Math.min(Number(hours) || 10, 10),
       why: [strong ? `${strong}の経験が、そのまま他社との差になります` : '小さく始められて、途中でやめても損が小さい',
             '在庫を持たないので、外したときの損が小さい',
             '週の時間内で、最初の形まで2ヶ月の見込み'],
-      fit: { speed: 86, cost: 92, strength: 94 }, recommended: true },
+      fit: { demand: 78, solo: 92, speed: 86 }, recommended: true },
     { name: `${of}教材販売`.slice(0, 24),
       summary: '作れば売れ続けますが、最初の1本を作り切るまでが長い。',
       ending: '教材が1本できて、販売ページで買える状態になっている',
-      why: [], fit: { speed: 42, cost: 88, strength: 70 }, recommended: false,
+      who: `${field || 'その分野'}を独学したいが、何から手を付けるか分からない人`,
+      first_one: '同じ教材を探している人が集まる場所に、目次だけ先に出して反応を見る',
+      unsure: '既にある無料の教材で足りてしまうかどうかは確かめていません',
+      hours_per_week: Math.min(Number(hours) || 10, 8),
+      why: [], fit: { demand: 55, solo: 88, speed: 42 }, recommended: false,
       not_chosen_why: '最初の1本が長く、途中で判断材料が出ない' },
     { name: `企業むけ ${of}研修`.slice(0, 24),
       summary: '単価は高いが、営業に人前へ出る時間が要ります。',
       ending: '1社で研修を1回やり終えて、次の相談が来ている',
-      why: [], fit: { speed: 64, cost: 76, strength: 48 }, recommended: false,
-      not_chosen_why: avoid?.length ? `「${avoid[0]}」を外したいという条件に合わない` : '営業の時間が条件に合わない' },
+      who: `社員の${field || 'その分野'}の力を上げたい、社員30〜100人の会社の人事`,
+      first_one: '知り合いの会社1社に、無料で1回やらせてもらえないか頼む',
+      unsure: '決裁が下りる予算枠があるかは確かめていません',
+      hours_per_week: 20,
+      why: [], fit: { demand: 71, solo: 38, speed: 64 }, recommended: false,
+      not_chosen_why: avoid?.length ? `「${avoid[0]}」を外したいという条件に合わない` : '営業に人前へ出る時間が、使える時間に収まらない' },
   ];
 }
 

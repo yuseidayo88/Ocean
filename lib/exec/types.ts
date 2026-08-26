@@ -85,8 +85,23 @@ export type Conditions = {
   deadline?: string | null;
 };
 
-/** fit も構造（3スコア）。画面では棒で並べる — 文章で「相性が良いです」と書かない */
-export type Fit = { speed: number; cost: number; strength: number };
+/**
+ * fit も構造（3スコア）。画面では棒で並べる — 文章で「相性が良いです」と書かない。
+ *
+ * **軸を入れ替えた**（2026-08-26。社長の「実際に需要があって個人1人でもできるような仕事」）。
+ * 前は speed（速さ）/ cost（安さ）/ strength（得意との相性）で、
+ * **「誰かが欲しがっているか」も「1人で回せるか」も入っていなかった** —
+ * だから抽象的で当たり障りのない案に寄っていた。
+ * cost は落とした（**お金がかかることは「1人で回せない」に吸収される**）。
+ */
+export type Fit = {
+  /** 欲しがっている人がいるか（すでにお金や時間を使っている人がいるか） */
+  demand: number;
+  /** 1人で回せるか（人を雇わず、社長の使える時間で回るか） */
+  solo: number;
+  /** 最初の1件までの近さ */
+  speed: number;
+};
 
 export type CandidateDraft = {
   name: string; summary: string;
@@ -95,6 +110,14 @@ export type CandidateDraft = {
   why: string[];
   fit: Fit; recommended: boolean;
   notChosenWhy?: string;
+  /** **誰が買うのか。**「個人」「中小企業」では書いたことにならない */
+  who?: string;
+  /** **最初の1人をどこで見つけるか。** ここが書けない候補は、始められない */
+  firstOne?: string;
+  /** **確かめていないこと。** 統括AIは Web に出られないので、需要は記憶から言うしかない */
+  unsure?: string;
+  /** 週に何時間要るか。社長の使える時間と突き合わせる。0 は「書かれていない」 */
+  hoursPerWeek?: number;
 };
 
 /** 診断の数字の帯1つ。missing = 測れていない（それ自体が診断） */
