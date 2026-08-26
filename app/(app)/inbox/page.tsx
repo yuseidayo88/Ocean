@@ -6,6 +6,11 @@ import { openHref, useOpen, useParam } from '@/lib/use-open';
 import { Centre, Composer, TopBar } from '@/components/shell/Chrome';
 import { Icon } from '@/components/ui/Icon';
 import { notesList, readNote } from '@/app/actions/live';
+import { inboxAct, type InboxAct } from '@/app/actions/run';
+import { DecisionPick } from '@/components/live/DecisionPick';
+import { StuckActions } from '@/components/live/StuckActions';
+import { DelActions } from '@/components/live/DelActions';
+import { DelBody } from '@/components/live/DelBody';
 import type { Note } from '@/lib/store';
 import { pressable } from '@/lib/a11y';
 import { useEffect, useState } from 'react';
@@ -151,6 +156,13 @@ export default function InboxPage() {
                 <span style={{ display: 'block', fontSize: 19 }}>{split(item.body).title}</span>
                 <span style={{ display: 'block', color: T5, fontSize: 12, paddingTop: 7 }}>{item.kind} · {ago(item.at)}</span>
                 <p style={{ color: T2, fontSize: 13.5, lineHeight: '23px', margin: '18px 0 0' }}>{item.body}</p>
+                {/**
+                  * **この画面から出ずに終わる**を、本当にする（2026-08-26）。
+                  * 通知が指しているタスクにいま社長ができること（判断 / 成果物を見る /
+                  * 止まったものから戻る）を、そのまま**ここに出す**。
+                  * `key` は通知の id — 次の通知に移ったとき、前の行動が残らない。
+                  */}
+                <Settle key={item.id} note={item} onDone={() => settle(item)} />
               </div>
 
               {/* 行動の行。入力欄に隠さない */}
@@ -195,5 +207,56 @@ export default function InboxPage() {
 
       <Composer placeholder="統括AIに聞く" />
     </Centre>
+  );
+}
+
+/**
+ * **通知1件を、この画面の中で終わらせる**（2026-08-26）。
+ *
+ * 前の通知の画面は、自分で「開いて、済ませて、次へ」と書いておきながら、
+ * 行動は **「開く」（別の画面へ飛ぶ）と「済みにする」（既読にするだけ）** の2つしか無かった。
+ * 社長の仕事は4つあって、そのうち**判断する**と**成果物を見る**は、
+ * ぜんぶこの画面に積まれてくる。それを別の画面まで持って行かせていた。
+ *
+ * ## 決めごと
+ *
+ * - **器を作らない。** 判断は `DecisionPick`、成果物は `DelBody` ＋ `DelActions`、
+ *   止まったものは `StuckActions` — **どれも Work 画面と同じ部品**。
+ *   ここだけ別の形にすると、同じことを2通りの見え方で覚えることになる
+ * - **できることが無ければ、何も出さない。** その通知の用はもう済んでいる
+ *   （行動をでっち上げない）。下の「開く」だけが残る
+ * - **終わったら、その通知を済みにして次へ。** それがこの画面の動き方
+ */
+function Settle({ note, onDone }: { note: Note; onDone: () => void }) {
+  const [act, setAct] = useState<InboxAct | 'loading'>('loading');
+  useEffect(() => {
+    let on = true;
+    inboxAct(note.subjectType, note.subjectId).then((a) => { if (on) setAct(a); });
+    return () => { on = false; };
+  }, [note.subjectType, note.subjectId]);
+
+  if (act === 'loading' || !act) return null;
+
+  const head = act.kind === 'decision' ? '決める'
+    : act.kind === 'deliverable' ? '成果物' : '止まっています';
+
+  return (
+    <div style={{ paddingTop: 26 }}>
+      <div style={{ paddingBottom: 10 }}><span style={{ color: T3 }}>{head}</span></div>
+      {act.kind === 'decision' && <DecisionPick taskId={act.taskId} onDone={onDone} />}
+      {act.kind === 'stuck' && <StuckActions taskId={act.taskId} onDone={onDone} />}
+      {act.kind === 'deliverable' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* **中身を出す。** 見ずに承認させない — 要確認 は「あなたが成果物を見る」ということ */}
+          <DelBody body={act.body} kind={act.delKind} />
+          {/* `DelActions` はペインの足として作ってあり、内側に 16px を持っている。
+              横だけ打ち消して、ボタンの左端を本文にそろえる */}
+          <div style={{ margin: '0 -16px' }}>
+            <DelActions delId={act.delId} workId={act.workId} taskId={act.taskId}
+              title={act.title} state={act.state} onDone={onDone} />
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

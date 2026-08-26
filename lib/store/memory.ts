@@ -152,6 +152,7 @@ export const memoryStore: Store = {
     if (!r) return;
     r.status = res.status;
     r.model = res.model;
+    r.error = res.error;
     if (res.status === 'failed') r.fails = (r.fails ?? 0) + 1;
     const { task } = findTask(r.taskId);
     if (res.status === 'done') { task.state = 'done'; task.progress = 100; }
@@ -182,6 +183,32 @@ export const memoryStore: Store = {
 
   async getSteps(taskId) {
     return runs.get(`run-${taskId}`)?.steps ?? [];
+  },
+
+  /**
+   * **止まったタスクから戻る**（→ `lib/store/types.ts` の同じ名前）。
+   * 双子なので supabase 版とまったく同じ取り決め — 動くのは止まっているものだけ。
+   */
+  async retryTask(taskId) {
+    const { task } = findTask(taskId);
+    if (task.state !== 'blocked' && task.state !== 'failed') return false;
+    task.state = 'queued';
+    // 進捗には触れない（supabase 版と同じ — あちらは引き金しか書けない）
+    // **社長が押した走り直しは、数え直しから**（`reclaimStalled` の「二度目は止める」に引っかからない）
+    const r = runs.get(`run-${taskId}`);
+    if (r) { r.fails = 0; r.error = undefined; }
+    return true;
+  },
+
+  async skipTask(taskId) {
+    const { task } = findTask(taskId);
+    if (task.state !== 'blocked' && task.state !== 'failed') return false;
+    task.state = 'cancelled';
+    return true;
+  },
+
+  async taskWhy(taskId) {
+    return runs.get(`run-${taskId}`)?.error ?? '';
   },
 
   async nextQueued(workId) {
@@ -592,16 +619,20 @@ export const memoryStore: Store = {
     const del = lives.flatMap((w) => w.dels ?? []).filter((x) => x.state === '要確認').length;
     const open = decisions.filter((x) => x.status === 'open').length;
     const stop = lives.filter((w) => w.status === 'paused').length;
-    if (ran + del + open + stop === 0) return false; // 動きが無かった朝は黙る
+    // 止まったタスク（supabase 版と同じ規則。1つ残るとフェーズは閉じない）
+    const dead = lives.flatMap((w) => w.tasks)
+      .filter((t) => t.state === 'blocked' || t.state === 'failed').length;
+    if (ran + del + open + stop + dead === 0) return false; // 動きが無かった朝は黙る
 
     const parts: string[] = [];
     if (ran) parts.push(`きのうから実行が ${ran}件 終わりました`);
+    if (dead) parts.push(`止まっているタスクが ${dead}件`);
     if (del) parts.push(`見てほしい成果物が ${del}件`);
     if (open) parts.push(`判断待ちが ${open}件`);
     if (stop) parts.push(`止まっている Work が ${stop}件`);
     morningDays.add(today);
     notes.push({
-      kind: open ? '判断待ち' : del || ran ? '要確認' : 'エラー',
+      kind: dead ? 'エラー' : open ? '判断待ち' : del || ran ? '要確認' : 'エラー',
       body: `朝の報告 — ${parts.join('、')}`, at: new Date().toISOString(),
     });
     return true;
@@ -891,7 +922,9 @@ export const memoryStore: Store = {
 /** run と通知の置き場（メモリ版だけの裏方） */
 const g2 = globalThis as unknown as {
   __runs?: Map<string, { taskId: string; workId: string; steps: RunStep[];
-    status?: 'running' | 'done' | 'failed'; startedAt?: string; fails?: number; model?: string }>;
+    status?: 'running' | 'done' | 'failed'; startedAt?: string; fails?: number; model?: string;
+    /** 止まった理由（`taskWhy` が読む。supabase 版の `runs.error` と同じもの） */
+    error?: string }>;
   __notes?: { kind: string; body: string; at?: string; subjectType?: string; subjectId?: string }[];
   __notesRead?: Set<number>;
   __onceKeys?: Set<string>;

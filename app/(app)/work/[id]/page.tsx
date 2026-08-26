@@ -13,10 +13,11 @@ import { Orb } from '@/components/ui/Orb';
 import { AMBER_T, BLUE, COMPOSER_H, DIM, FAINT, GREEN, GREEN_T, HAIR, MUTE, RAIL, RED, RED_T, SEAM, SUNK, T1, T2, T3, T4, T5, WELL } from '@/lib/design/tokens';
 import { fromLive, type WorkView } from '@/lib/exec/work-view';
 import { getWork } from '@/app/actions/work';
-import { approvePhase, decide, holdWork, taskDecision, taskSteps } from '@/app/actions/run';
+import { approvePhase, holdWork, taskSteps } from '@/app/actions/run';
 import { wakePump } from '@/lib/pump';
-import type { LiveDecision } from '@/lib/store';
 import { DelActions } from '@/components/live/DelActions';
+import { DecisionPick } from '@/components/live/DecisionPick';
+import { StuckActions } from '@/components/live/StuckActions';
 import { DelBody } from '@/components/live/DelBody';
 import { DelTake } from '@/components/live/DelTake';
 import type { RunStep } from '@/lib/store';
@@ -103,53 +104,6 @@ function PhaseGate({ name, unseen, workId, onDone }:
         background: busy ? SEAM : BLUE, color: busy ? T5 : '#fff', fontSize: 12.5, flexShrink: 0,
         cursor: busy ? 'default' : 'pointer',
       }}>{busy ? '次のタスクを引いています…' : '次のフェーズへ進める'}</button>
-    </div>
-  );
-}
-
-/**
- * 判断（右ペイン・Phase 9）。統括AIが止まって聞いていることに、その場で答える。
- * 選ぶと decisions が decided になり、タスクが走り直す。
- */
-function DecisionPane({ taskId, onDone }: { taskId: string; onDone: () => void }) {
-  const [dec, setDec] = useState<LiveDecision | null | 'loading'>('loading');
-  const [busy, setBusy] = useState(false);
-  useEffect(() => { taskDecision(taskId).then(setDec); }, [taskId]);
-
-  if (dec === 'loading') return <span style={{ color: T5, fontSize: 12.5 }}>読み込んでいます…</span>;
-  if (!dec) return <span style={{ color: T5, fontSize: 12.5 }}>聞かれていることが見つかりませんでした。</span>;
-
-  const pick = async (label: string) => {
-    setBusy(true);
-    await decide(dec.id, label);
-    wakePump(); // 待っていたタスクが queued に戻った
-    setBusy(false); onDone();
-  };
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', opacity: busy ? 0.6 : 1, pointerEvents: busy ? 'none' : undefined }}>
-      <span style={{ fontSize: 14, color: T1 }}>{dec.question}</span>
-      {dec.why && <span style={{ color: T4, fontSize: 12.5, lineHeight: '19px', paddingTop: 6 }}>{dec.why}</span>}
-      <div style={{ paddingTop: 12 }}>
-        {dec.options.map((o, i) => (
-          <button key={o.label} onClick={() => pick(o.label)} className="row" style={{
-            display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 10px', margin: '0 -10px',
-            borderRadius: 8, textAlign: 'left',
-            borderBottom: i === dec.options.length - 1 ? undefined : `1px solid ${HAIR}`,
-          }}>
-            <span style={{
-              width: 20, height: 20, borderRadius: 5, background: SEAM, color: T4,
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, flexShrink: 0,
-            }}>{i + 1}</span>
-            <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {o.label}
-                {o.recommended && <span style={{ color: GREEN_T, fontSize: 11 }}>推奨</span>}
-              </span>
-              {o.description && <span style={{ color: T5, fontSize: 12 }}>{o.description}</span>}
-            </div>
-          </button>
-        ))}
-      </div>
     </div>
   );
 }
@@ -513,8 +467,16 @@ export default function WorkPage() {
             )}
           </div>
           {openTask.state === '判断待ち' ? (
-            <DecisionPane taskId={openTask.id}
+            <DecisionPick taskId={openTask.id}
               onDone={() => { setOpen(null); getWork(id).then((r) => r && setW(fromLive(r))); }} />
+          ) : openTask.state === '停止' ? (
+            /**
+             * **止まったタスクは、ここから戻れる**（2026-08-26）。
+             * 止まったものが1つ残るとフェーズは永久に閉じず、この Work は二度と進まない。
+             * 歩みを見せるだけでは、社長にできることが1つも無い。
+             */
+            <StuckActions key={openTask.id} taskId={openTask.id}
+              onDone={() => { getWork(id).then((r) => r && setW(fromLive(r))); }} />
           ) : (
             <StepsPane taskId={openTask.id} running={openTask.state === '実行中'} />
           )}

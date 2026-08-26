@@ -43,15 +43,25 @@ const VIEWS = [
  * 「ありません」と書くのは、無いことを1行ぶん使って言うことになる。
  */
 function Waiting({ data }: { data: HomeData }) {
-  const { gates, review, late } = data;
+  const { gates, review, late, stuck } = data;
   /**
    * ◆ の名前は**それだけのときに**出す。ほかにも待っているものがあるなら数だけ —
    * 並べるとピルにぶつかるし、そもそも名前が要るのは「あと1つ」のときだけ。
    */
-  const one = gates === 1 && !review && !late ? data.works.find((w) => w.gate)?.gate?.label : '';
+  const one = gates === 1 && !review && !late && !stuck ? data.works.find((w) => w.gate)?.gate?.label : '';
   // **枠は必ず出す**（3列の1つめ。消すとピルが真ん中でなくなる）。中身だけ空にする
   return (
     <div style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 16, overflow: 'hidden' }}>
+      {/**
+        * **止まっているのがいちばん先**（2026-08-26）。判断待ちも要確認も「あなたの番」だが、
+        * 止まっている Work は**誰の番でもなく、放っておくと永久に動かない**。
+        * 前はここに何も出ておらず、会社が死んでいても絵はいつもどおり回っていた。
+        */}
+      {stuck > 0 && (
+        <Link href="/tasks" className="lnk" style={{ color: RED_T, fontSize: 13, whiteSpace: 'nowrap' }}>
+          {stuck}つが止まっています ›
+        </Link>
+      )}
       {late > 0 && (
         <span style={{ color: RED_T, fontSize: 13, whiteSpace: 'nowrap' }}>
           {late}つが遅れています

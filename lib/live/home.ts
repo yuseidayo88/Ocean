@@ -39,6 +39,15 @@ export type HomeData = {
   map: { works: MapWork[]; chips: MapChip[]; diags: string[] };
   /** 判断待ち・遅れ・まだ見ていない成果物の数。**答えの1行が言う** */
   gates: number; late: number; review: number;
+  /**
+   * **止まっている Work の数**（2026-08-26）。
+   *
+   * 実行が失敗したタスク（`blocked`）が1つ残ると、そのフェーズは永久に閉じず、
+   * その Work は二度と進まない。それなのに**ホームは何も言っていなかった** —
+   * 会社が死んでいるのに、絵はいつもどおり回っていた。
+   * 遅れ（`late`）は見込みとの差で、こちらは**いま止まっている**という事実。別のもの。
+   */
+  stuck: number;
 };
 
 const DAY = 24 * 3600 * 1000;
@@ -287,6 +296,8 @@ export function buildHome(
     map: board,
     gates: view.filter((v) => v.gate).length,
     late: view.filter((v) => typeof v.health === 'object').length,
+    // **止まっているのは、遅れているのとは違う。** 遅れは見込みとの差、止まっているのは事実
+    stuck: active.filter((w) => w.tasks.some((t) => t.state === 'blocked' || t.state === 'failed')).length,
     // **社長を待っているもの**は2つ（◆ と、まだ見ていない成果物）。両方を答えの1行に出す
     review: active.reduce((a, w) => a + (w.dels ?? []).filter((d) => d.state === '要確認').length, 0),
   };

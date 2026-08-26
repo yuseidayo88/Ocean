@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Centre, Composer, TopBar } from '@/components/shell/Chrome';
 import { billing } from '@/app/actions/run';
-import { COMPOSER_H, GREEN_T, HAIR, T1, T3, T4, T5 } from '@/lib/design/tokens';
+import { COMPOSER_H, DIM, GREEN_T, HAIR, T1, T3, T4, T5 } from '@/lib/design/tokens';
 
 /**
  * 請求・プラン。**トークンの数字を出していいのはこの画面だけ**（→ CLAUDE.md）。
@@ -87,6 +87,30 @@ export default function BillingPage() {
             )}
           </div>
         </div>
+
+        {/**
+          * **閉じているあいだ、会社は進むのか**（2026-08-26）。
+          *
+          * 「見ていなくても会社が進む」がこの製品の売りで、それを本当にしているのは
+          * 1時間ごとの Cron。**鍵が3つそろっていないと何もしない** —
+          * つまり画面を開いているあいだしか進まない。それが今までどこにも出ていなかった。
+          *
+          * 上限（きょうはここまで）だけ出して、進むかどうかを出さないのは片側だけ言っている。
+          * **点＋素の文字**で足りる（ふつうの状態なのでピルにしない）。
+          */}
+        {data && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, maxWidth: 760, paddingTop: 22 }}>
+            <span style={{
+              width: 7, height: 7, borderRadius: 999, flexShrink: 0,
+              background: data.awake ? GREEN_T : DIM,
+            }} />
+            <span style={{ color: T4, fontSize: 12.5 }}>
+              {data.awake
+                ? '閉じているあいだも、1時間ごとに会社が進みます'
+                : '閉じているあいだは進みません — いまは画面を開いているときだけ動きます'}
+            </span>
+          </div>
+        )}
 
         <div style={{ maxWidth: 640, paddingTop: 40 }}>
           <span style={{ color: T3, display: 'block', paddingBottom: 8 }}>これまでの出入り</span>

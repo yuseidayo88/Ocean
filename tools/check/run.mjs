@@ -144,7 +144,37 @@ const away = await until((b) => b.includes('対象を1つに絞る の段取り�
 ok('Work を開いていなくても会社が進む（ホームで待つあいだに走った）',
    away.includes('対象を1つに絞る の段取りを決めた'),
    (await ev('location.pathname')) + ' / ' + (away.match(/[^\n]*絞る[^\n]*/)?.[0] ?? away.slice(0, 60)));
+/**
+ * ②' **止まったタスクから戻れる**（2026-08-26）。
+ *
+ *     決め打ちの社員は「市場の大きさを出す」を**1回だけわざと落とす**
+ *     （道具を1つも使わずに終わる＝本物のモデルがいちばんよくやる壊れ方）。
+ *     止まったタスクが1つ残るとフェーズは閉じないので、**ここを通らないと先へ進めない** —
+ *     この検査そのものが、戻り道が本当にあることの証明になっている。
+ */
+const dead = await until((b) => /つが止まっています/.test(b), 30, 900);
+ok('止まっていることが、ホームの帯に出る',
+   /つが止まっています/.test(dead), dead.match(/[^\n]*止まっています[^\n]*/)?.[0] ?? dead.slice(0, 60));
 await send('Page.navigate', { url: workUrl }); await wait(1500);
+// **開くまで押し直す**（この検査の他のところと同じ作法）
+let spane = '';
+for (let i = 0; i < 12 && !spane.includes('もう一度やる'); i++) {
+  await ev(`[...document.querySelectorAll('button')].find(
+    (x) => x.className.includes('row') && x.innerText.includes('市場の大きさを出す'))?.click()`);
+  await wait(700);
+  spane = (await ev(`document.querySelector('aside')?.innerText ?? ''`)) || '';
+}
+ok('止まったタスクに、理由と戻り道がある',
+   spane.includes('止まった理由') && spane.includes('もう一度やる') && spane.includes('これは飛ばす'),
+   spane.replace(/\n/g, ' ').slice(0, 90));
+await ev(`[...document.querySelectorAll('aside button')].find(b => b.innerText === 'もう一度やる')?.click()`);
+await wait(1200);
+await ev(`document.querySelector('aside button')?.click()`); await wait(300);
+const rerun = await until((b) => !/市場の大きさを出す[\s\S]{0,30}停止/.test(b), 40);
+ok('もう一度やると、止まっていたタスクが走り直す',
+   !/市場の大きさを出す[\s\S]{0,30}停止/.test(rerun),
+   rerun.match(/市場の大きさを出す[\s\S]{0,30}/)?.[0]?.replace(/\n/g, ' ') ?? '(消えた)');
+
 /**
  * ③' **成果物ができたら、社長が見るまで進まない**（2026-08-25。社長の指示
  *    「完全自動で動くというよりかは、成果物ができたら確認してもらって、
@@ -317,6 +347,21 @@ ok('品質担当が、社長に出す前に差し戻す',
 ok('直した版は素通しして、社長のところへ出る',
    qaBack.includes('対象を1つに絞る ができました'),
    qaBack.match(/[^\n]*対象を1つに絞る ができました[^\n]*/)?.[0] ?? '(出ていない)');
+/**
+ * **通知の画面から出ずに終わる**（2026-08-26）。
+ * この画面は自分で「開いて、済ませて、次へ」と書いておきながら、
+ * 行動は「開く（別の画面へ飛ぶ）」と「済みにする（既読にするだけ）」の2つしか無かった。
+ * 社長の仕事4つのうち**判断する**と**成果物を見る**は、ぜんぶここに積まれてくる。
+ */
+let inbox = '';
+for (let i = 0; i < 12 && !inbox.includes('承認して受け取る'); i++) {
+  await ev(`[...document.querySelectorAll('.row')].find(r => /ができました/.test(r.innerText))?.click()`);
+  await wait(800);
+  inbox = await text();
+}
+ok('通知の画面で、成果物をその場で見て承認できる',
+   inbox.includes('承認して受け取る') && inbox.includes('直してほしい'),
+   inbox.match(/[^\n]*承認して受け取る[^\n]*/)?.[0] ?? '(行動が出ていない)');
 await send('Page.navigate', { url: `${BASE}/team` }); await wait(2200);
 /**
  * **開くまで押し直す**（この検査の他のところと同じ作法）。

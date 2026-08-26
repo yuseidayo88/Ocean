@@ -10,7 +10,8 @@ import { taskSteps } from '@/app/actions/run';
 import type { LiveWork, RunStep } from '@/lib/store';
 import { pressable } from '@/lib/a11y';
 import { useEffect, useState } from 'react';
-import { AMBER, AMBER_T, COMPOSER_H, DIM, GREEN, HAIR, RED_T, RULE, SUNK, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
+import { AMBER, AMBER_T, COMPOSER_H, DIM, GREEN, HAIR, RED, RED_T, RULE, SUNK, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
+import { StuckActions } from '@/components/live/StuckActions';
 /**
  * タスク＝**状態で束ねる**。
  *
@@ -49,6 +50,8 @@ function Mark({ s }: { s: string }) {
   if (s === 'running') return <span style={{ width: 7, height: 7, borderRadius: 999, background: GREEN, display: 'inline-block' }} />;
   if (s === 'done') return <Icon name="check" color={DIM} size={12} width={2} />;
   if (s === 'blocked' || s === 'failed') return <span style={{ width: 7, height: 7, borderRadius: 999, background: RED_T, display: 'inline-block' }} />;
+  // 取消＝社長が飛ばしたもの。**完了の ✓ と見分ける**（打ち消しの横線）
+  if (s === 'cancelled') return <span style={{ width: 9, height: 1, background: DIM, display: 'inline-block' }} />;
   return <span style={{ width: 7, height: 7, borderRadius: 999, border: '1px solid #333', display: 'inline-block' }} />;
 }
 
@@ -58,6 +61,7 @@ export default function TasksPage() {
   const [doneOpen, setDoneOpen] = useParam('done', '');
   const [rows, setRows] = useState<Row[] | null>(null);
 
+  const reload = () => { worksList().then((ws) => setRows(flatten(ws))); };
   useEffect(() => {
     let on = true;
     worksList().then((ws) => { if (on) setRows(flatten(ws)); });
@@ -70,7 +74,13 @@ export default function TasksPage() {
   const running = all.filter((t) => t.state === 'running');
   const queued = all.filter((t) => t.state === 'queued');
   const stuck = all.filter((t) => t.state === 'blocked' || t.state === 'failed');
-  const done = all.filter((t) => t.state === 'done');
+  /**
+   * **飛ばしたものも「終わったもの」に入れる**（2026-08-26）。
+   * 社長が「これは飛ばす」を押すとタスクは `cancelled` になる。
+   * 束のどれにも入れないと**画面のどこにも出ないのに「やること」に数えられる**
+   * （行の状態は 取消 と出るので、完了と見間違えない）。
+   */
+  const done = all.filter((t) => t.state === 'done' || t.state === 'cancelled');
   const liveCount = all.length - done.length;
 
   const bunches: { key: string; label: string; amber?: boolean; items: Row[] }[] = [
@@ -145,7 +155,7 @@ export default function TasksPage() {
       <Composer placeholder="統括AIに頼む" />
     </Centre>
 
-    {open && <TaskPane t={open} onClose={() => setOpen(null)} />}
+    {open && <TaskPane t={open} onClose={() => setOpen(null)} onChanged={reload} />}
     </>
   );
 }
@@ -209,7 +219,7 @@ function GateBand({ t, on }: { t: Row; on: boolean }) {
 }
 
 /** 1行を開いた先。フィールドと、実行の歩み（run_steps）。無いものは出さない */
-function TaskPane({ t, onClose }: { t: Row; onClose: () => void }) {
+function TaskPane({ t, onClose, onChanged }: { t: Row; onClose: () => void; onChanged: () => void }) {
   const [steps, setSteps] = useState<RunStep[]>([]);
   useEffect(() => {
     let on = true;
@@ -218,19 +228,22 @@ function TaskPane({ t, onClose }: { t: Row; onClose: () => void }) {
   }, [t.id]);
 
   const gate = t.state === 'needs_decision';
+  /** **止まっている。** ここだけは行動がある — 戻り道が無いと Work ごと死ぬ */
+  const stuck = t.state === 'blocked' || t.state === 'failed';
   const barColor = gate ? AMBER : t.state === 'done' ? `${GREEN}` : T4;
   return (
     <Pane width={420} onClose={onClose}
-      dot={gate ? AMBER : t.state === 'done' ? `${GREEN}` : T5}
+      dot={gate ? AMBER : stuck ? RED : t.state === 'done' ? `${GREEN}` : T5}
       title={t.title}>
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '14px 18px 20px' }}>
         <PaneHead top>フィールド</PaneHead>
         <PaneRow icon="check" label="状態">
-          {gate ? (
+          {gate || stuck ? (
             <span style={{
               display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 9px', borderRadius: 6,
-              background: 'rgba(227,116,0,0.18)', color: AMBER_T, fontSize: 12,
-            }}>判断待ち</span>
+              background: gate ? 'rgba(227,116,0,0.18)' : 'rgba(217,48,37,0.18)',
+              color: gate ? AMBER_T : RED_T, fontSize: 12,
+            }}>{gate ? '判断待ち' : '停止'}</span>
           ) : <span style={{ color: T1, fontSize: 12.5 }}>{WORD[t.state] ?? t.state}</span>}
         </PaneRow>
         <PaneRow icon="bars" label="進捗">
@@ -244,6 +257,16 @@ function TaskPane({ t, onClose }: { t: Row; onClose: () => void }) {
         {t.owner && <PaneRow icon="team" label="担当"><span style={{ color: T1, fontSize: 12.5 }}>{t.owner}</span></PaneRow>}
         <PaneRow icon="work" label="Work"><span style={{ color: T1, fontSize: 12.5 }}>{t.workTitle}</span></PaneRow>
         {t.phase && <PaneRow icon="roadmap" label="フェーズ"><span style={{ color: T1, fontSize: 12.5 }}>{t.phase}</span></PaneRow>}
+
+        {/**
+          * **止まったタスクは、ここから戻れる**（2026-08-26 → `components/live/StuckActions.tsx`）。
+          * 前はここに理由も行動も無く、フェーズは永久に閉じなかった。
+          * 押したら一覧も読み直す — 状態が変わったのに、開いているペインだけ古い、を作らない。
+          */}
+        {stuck && <>
+          <PaneHead>止まっています</PaneHead>
+          <StuckActions key={t.id} taskId={t.id} onDone={onChanged} />
+        </>}
 
         {steps.length > 0 && <>
           <PaneHead>歩み</PaneHead>
@@ -259,7 +282,7 @@ function TaskPane({ t, onClose }: { t: Row; onClose: () => void }) {
             ))}
           </div>
         </>}
-        {steps.length === 0 && !gate && (
+        {steps.length === 0 && !gate && !stuck && (
           <span style={{ display: 'block', paddingTop: 16, color: T5, fontSize: 12.5 }}>まだ動いていません。</span>
         )}
       </div>

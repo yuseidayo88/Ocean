@@ -175,6 +175,8 @@ export class FakeProvider implements ModelProvider {
 }
 
 let n = 0;
+/** **1回だけわざと失敗させる**ための覚え（タスク名）。→ `fakeRun` の同じ名前 */
+const brokeOnce = new Set<string>();
 const tool = (name: string, inputValue: unknown): Chunk =>
   ({ type: 'tool_use', id: `fake-${++n}`, name, input: inputValue });
 
@@ -213,6 +215,27 @@ async function* fakeRun(input: RunInput): AsyncIterable<Chunk> {
     });
     yield tool('finish', { summary: `${task} を終えた（つないだ道具を1つ読んだ）` });
     yield { type: 'done', usage: { ...EMPTY_USAGE }, stopReason: 'tool_use' };
+    return;
+  }
+
+  /**
+   * **1回だけ、わざと失敗する道**（2026-08-26）。
+   *
+   * **道具を1つも使わずに終わる** — 本物のモデルがいちばんよくやる壊れ方で、
+   * worker はこれを `blocked` に落とす。止まったタスクが1つでも残ると
+   * `closePhaseIfDone` はそのフェーズを閉じないので、**社長が押すまで会社は進まない**。
+   *
+   * 行儀よく書くと、**止まったタスクから戻る道が動いているか永久に分からない**
+   * （図の1回目・計画の1回目・品質担当の差し戻しと同じ考え方）。
+   * 2回目（＝社長が「もう一度やる」を押したあと）は、ふつうに書いて終わる。
+   */
+  // **その1本だけ。** 「◯◯ を直す」まで落とすと、直しタスクが止まって
+  // フェーズが閉じず、検査が本筋と関係のないところで止まる（実際そうなった）
+  if (task === '市場の大きさを出す' && !brokeOnce.has(task)) {
+    brokeOnce.add(task);
+    yield tool('log_step', { title: '統計を探した', progress: 20 });
+    await wait(400);
+    yield { type: 'done', usage: { ...EMPTY_USAGE }, stopReason: 'end_turn' };
     return;
   }
 

@@ -172,7 +172,9 @@ function lead(w: LiveWork, nowIdx: number): string {
   const blocked = w.tasks.find((t) => t.state === 'blocked');
   if (w.status !== 'active') return 'まだ始まっていません。';
   if (deciding) return `「${deciding.title}」で判断を待っています。決まれば続きが動きます。`;
-  if (blocked) return `「${blocked.title}」が止まっています。通知から見てください。`;
+  // **行き先のある1行にする**（2026-08-26）。前は「通知から見てください」と言っていたが、
+  // 通知にも行動は無かった。いまは開けば、もう一度やるか飛ばすかを選べる
+  if (blocked) return `「${blocked.title}」が止まっています。開いて、もう一度やるか飛ばすかを決めてください。`;
   if (running) return `「${phase}」を進めています。いまは ${running.owner ?? 'AI社員'} が「${running.title}」の途中です。`;
   if (w.tasks.some((t) => t.state === 'queued')) return `「${phase}」のタスクが並んでいます。画面を開いているあいだ、順に動きます。`;
   if (w.tasks.length && w.tasks.every((t) => t.state === 'done' || t.state === 'cancelled'))

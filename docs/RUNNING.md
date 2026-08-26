@@ -184,6 +184,8 @@ RLS の with check は `account_id = private.current_account_id()` のままな�
 | 同じタスクは同時に1回しか走らない | `startRun` の atomic claim — queued → running に**置き換えられた者だけ**が走る（負けたポンプは conflict で静かに引く） |
 | 標準スキルと学びは二重に作られない | 一意 index `agent_skills_company_file` / `agent_skills_employee_file`（0017）。播種と learnings.md の1枚を同時アクセスから守る |
 | 止まった実行は回収される | `reclaimStalled` — 10分を超えた running は失効（サーバーが入れ替わった）。ポンプが先に回収してから次を起こす。はじめてなら積み直してもう一度、二度目は blocked ＋ エラー通知 |
+| 止まったタスクから戻れる | `retryTask` / `skipTask` — **blocked は行き止まりではない**（2026-08-26）。止まったものが1つ残るとフェーズは閉じず Work は二度と進まないので、社長が「もう一度やる」（→ queued）か「これは飛ばす」（→ cancelled。関門はこれを済んだものとして数える）を押せる。理由は `runs.error`（`taskWhy`）。動くのは blocked / failed のものだけ |
+| 閉じているあいだ進むかどうかが見える | `/billing` の点＋1行。`CRON_SECRET` / `RUNNER_EMAIL` / `RUNNER_PASSWORD` が3つそろっていなければ「閉じているあいだは進みません」と正直に出す（鍵の中身は返さない） |
 | 質問はスレッドに属する | `questions.thread_id` NOT NULL（Work のスレッドを先に作る） |
 | 承認と引き直しは必ず台帳に残る | トリガ `works_audit`（0008）。アプリは `audit_events` に書けない |
 | 質問とタスクの並びが決まる | `seq`（0009）。`created_at` は同じ insert 文で同着になる |

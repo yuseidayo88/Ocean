@@ -428,6 +428,40 @@ export const supabaseStore: Store = {
     }));
   },
 
+  /**
+   * **止まったタスクから戻る**（→ `lib/store/types.ts` の同じ名前）。
+   *
+   * どちらも **`blocked` / `failed` のものだけ動く**。走っているタスクを積み直したり、
+   * もう終わったタスクを取り消したりしない — 二度押しも、2つのタブから同時に押されても、
+   * 変わるのは1回だけ（承認・差し戻しと同じ atomic な置き換え）。
+   */
+  async retryTask(taskId) {
+    const c = await db();
+    const { data } = await c.from('tasks')
+      // **進捗には触れない。** `tasks.progress` は導出値で、アプリからは書けない
+      // （0003 の `tasks_progress_is_derived`）。走り直しが log_step を出せば、そこで上書きされる
+      .update({ status: 'queued' })
+      .eq('id', taskId).in('status', ['blocked', 'failed']).select('id');
+    return !!data?.length;
+  },
+
+  async skipTask(taskId) {
+    const c = await db();
+    // **cancelled は「済んだもの」として数えられる**（`closePhaseIfDone`）。だから先へ進む
+    const { data } = await c.from('tasks')
+      .update({ status: 'cancelled' })
+      .eq('id', taskId).in('status', ['blocked', 'failed']).select('id');
+    return !!data?.length;
+  },
+
+  async taskWhy(taskId) {
+    const c = await db();
+    const { data } = await c.from('runs')
+      .select('error').eq('task_id', taskId)
+      .order('started_at', { ascending: false }).limit(1).maybeSingle();
+    return (data?.error as string | null) ?? '';
+  },
+
   async nextQueued(workId) {
     const c = await db();
     const { data: tk } = await c.from('tasks')
@@ -1315,25 +1349,30 @@ export const supabaseStore: Store = {
     if (had) return false;
 
     const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-    const [{ data: doneRuns }, { data: dels }, { data: opens }, { data: paused }] = await Promise.all([
+    const [{ data: doneRuns }, { data: dels }, { data: opens }, { data: paused }, { data: stuck }] = await Promise.all([
       c.from('runs').select('id').eq('status', 'done').gte('ended_at', since),
       c.from('deliverables').select('id').eq('status', 'review').gte('created_at', since),
       c.from('decisions').select('id').eq('status', 'open'),
       c.from('works').select('id').eq('status', 'paused'),
+      // **止まったタスク**（2026-08-26）。1つ残るとフェーズは閉じず、その Work は進まない。
+      // 朝いちばんに言うべきことで、ここに無かったのがおかしかった
+      c.from('tasks').select('id').in('status', ['blocked', 'failed']),
     ]);
     const ran = doneRuns?.length ?? 0, del = dels?.length ?? 0,
-          open = opens?.length ?? 0, stop = paused?.length ?? 0;
+          open = opens?.length ?? 0, stop = paused?.length ?? 0, dead = stuck?.length ?? 0;
     // **動きが無かった朝は黙る。** 空の報告は報告ではない
-    if (ran + del + open + stop === 0) return false;
+    if (ran + del + open + stop + dead === 0) return false;
 
     const parts: string[] = [];
     if (ran) parts.push(`きのうから実行が ${ran}件 終わりました`);
+    // **止まっているものが先。** 誰の番でもなく、放っておくと永久に動かない
+    if (dead) parts.push(`止まっているタスクが ${dead}件`);
     if (del) parts.push(`見てほしい成果物が ${del}件`);
     if (open) parts.push(`判断待ちが ${open}件`);
     if (stop) parts.push(`止まっている Work が ${stop}件`);
     const { error } = await c.from('notifications').insert({
       // いちばん強い用件で名乗る — 判断待ち（あなたが決める）＞ 要確認 ＞ エラー
-      kind: open ? '判断待ち' : del || ran ? '要確認' : 'エラー',
+      kind: dead ? 'エラー' : open ? '判断待ち' : del || ran ? '要確認' : 'エラー',
       body: `朝の報告 — ${parts.join('、')}`, group_key: key,
     });
     // 同時に開いたタブが2つあっても、0015 の一意 index が2通目を止める

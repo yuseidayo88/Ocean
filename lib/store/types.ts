@@ -254,6 +254,25 @@ export interface Store {
   /** タスクの歩み（右ペインが読む） */
   getSteps(taskId: string): Promise<RunStep[]>;
   /**
+   * **止まったタスクから戻る**（2026-08-26）。
+   *
+   * ここまで、実行が失敗した（`blocked`）タスクには**戻り道が1本も無かった**。
+   * `closePhaseIfDone` は「そのフェーズのタスクが全部 done か cancelled」で閉じるので、
+   * blocked が1つ残ると**そのフェーズは永久に閉じず、Work は二度と進まない**。
+   * 通知は「途中で止まりました」と言うが、押した先の画面には行動が1つも無かった。
+   *
+   * モデルは失敗する。**失敗そのものは直せないが、失敗から戻れないのは直せる。**
+   *
+   * - `retryTask` — もう一度やる。`blocked` / `failed` のものだけ `queued` に戻す
+   *   （二度押し・同時押しで、走っているタスクを積み直さない）
+   * - `skipTask` — これは飛ばす。`cancelled` に落とす。
+   *   フェーズの関門は cancelled を「済んだもの」として数えるので、**そこから先へ進む**
+   * - `taskWhy` — 止まった理由（最後の実行の `error`）。**無ければ空**（でっち上げない）
+   */
+  retryTask(taskId: string): Promise<boolean>;
+  skipTask(taskId: string): Promise<boolean>;
+  taskWhy(taskId: string): Promise<string>;
+  /**
    * **いま起こせる queued のタスクを、ぜんぶ**（2026-08-26。社長の
    * 「他のAIが全員動き出すみたいなかんじ」）。
    *

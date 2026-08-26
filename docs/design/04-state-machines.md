@@ -67,11 +67,23 @@ stateDiagram-v2
   needs_decision --> running: 決定が入った
   failed --> queued: 統括AIが組み直して1回だけ再試行
   failed --> blocked: 2回目の失敗
-  blocked --> queued: あなたが方針を示した
+  blocked --> queued: あなたが「もう一度やる」
+  blocked --> cancelled: あなたが「これは飛ばす」
   queued --> cancelled
   running --> cancelled
   done --> [*]
 ```
+
+**`blocked` は行き止まりではない**（2026-08-26 に本当にした）。
+それまで `blocked --> queued` は図にあるだけで、**画面にも store にも操作が無かった** —
+`closePhaseIfDone` は「そのフェーズのタスクが全部 done か cancelled」で閉じるので、
+止まったものが1つ残ると**そのフェーズは永久に閉じず、Work は二度と進まない**。
+
+- **もう一度やる**（`retryTask`）— `queued` に戻す。ポンプがすぐ起こす（`wakePump()`）
+- **これは飛ばす**（`skipTask`）— `cancelled` に落とす。
+  関門は cancelled を「済んだもの」として数えるので、**そこから先へ進む**
+- どちらも **`blocked` / `failed` のものだけ動く**。止まった理由（`runs.error`）は
+  `taskWhy` で読めて、行動の前に必ず出す（→ `components/live/StuckActions.tsx`）
 
 | 状態 | 表示 | 色帯（行の左3px） | 進捗 |
 |---|---|---|---|

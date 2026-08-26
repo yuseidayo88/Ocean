@@ -179,6 +179,78 @@ export async function taskSteps(taskId: string): Promise<RunStep[]> {
   return store().getSteps(taskId);
 }
 
+/**
+ * **止まったタスクから戻る**（2026-08-26 → `lib/store/types.ts`）。
+ *
+ * blocked が1つ残るとフェーズは永久に閉じず、Work は二度と進まない。
+ * モデルは失敗する — **失敗そのものは直せないが、失敗から戻れないのは直せる。**
+ *
+ * どちらも押したあと `wakePump()`（呼ぶ側）で会社を起こす。
+ * 待つ理由が無い操作で、次のポンプ（静かなときは15秒）まで待たせない。
+ */
+export async function retryTask(taskId: string): Promise<{ ok: boolean; message?: string }> {
+  try {
+    const ok = await store().retryTask(taskId);
+    return ok ? { ok: true } : { ok: false, message: 'このタスクはもう止まっていません' };
+  } catch (e) {
+    return { ok: false, message: sayError(e, 'やり直せませんでした') };
+  }
+}
+
+export async function skipTask(taskId: string): Promise<{ ok: boolean; message?: string }> {
+  try {
+    const ok = await store().skipTask(taskId);
+    return ok ? { ok: true } : { ok: false, message: 'このタスクはもう止まっていません' };
+  } catch (e) {
+    return { ok: false, message: sayError(e, '飛ばせませんでした') };
+  }
+}
+
+/** 止まった理由（最後の実行の error）。**無ければ空**（でっち上げない） */
+export async function taskWhy(taskId: string): Promise<string> {
+  try { return await store().taskWhy(taskId); } catch { return ''; }
+}
+
+/**
+ * **通知の画面から出ずに終わらせる**（2026-08-26）。
+ *
+ * 通知の画面は「開いて、済ませて、次へ」と自分で書いているのに、
+ * **行動は「開く」（＝別の画面へ飛ぶ）と「済みにする」（＝既読にするだけ）の2つ**しかなかった。
+ * 判断も承認も差し戻しも、どれも別の画面へ行かないと終わらない。
+ * 社長の仕事は4つで、うち2つ（判断する・成果物を見る）がこの画面に集まってくるのに、である。
+ *
+ * だから通知が指しているタスクから、**いま社長にできること**を引く。
+ * **順番は「あなたの番」の強い順** — 判断 ＞ 成果物 ＞ 止まっている。
+ * どれでもなければ `null`（**行動をでっち上げない**。「開く」だけが残る）。
+ */
+export type InboxAct =
+  | { kind: 'decision'; taskId: string }
+  | { kind: 'deliverable'; delId: string; workId: string; taskId: string;
+      title: string; state: string; body: string; delKind: string }
+  | { kind: 'stuck'; taskId: string }
+  | null;
+
+export async function inboxAct(subjectType?: string, subjectId?: string): Promise<InboxAct> {
+  if (subjectType !== 'task' || !subjectId) return null;
+  try {
+    for (const w of await store().listWorks()) {
+      const t = w.tasks.find((x) => x.id === subjectId);
+      if (!t) continue;
+      if (t.state === 'needs_decision') return { kind: 'decision', taskId: t.id };
+      const d = (w.dels ?? []).find((x) => x.taskId === t.id && x.state === '要確認');
+      if (d) {
+        return {
+          kind: 'deliverable', delId: d.id, workId: w.id, taskId: t.id,
+          title: d.title, state: d.state, body: d.body ?? d.preview ?? '', delKind: d.kind,
+        };
+      }
+      if (t.state === 'blocked' || t.state === 'failed') return { kind: 'stuck', taskId: t.id };
+      return null;                              // その通知の用は、もう済んでいる
+    }
+    return null;
+  } catch { return null; }
+}
+
 
 /* ══════════════ レビューと承認（Phase 8）══════════════ */
 
@@ -316,8 +388,21 @@ export async function billing(): Promise<{
   /** きょう使ったぶん / 1日の上限。**null = 数えていない**（デモ） */
   todayTokens: number | null;
   capTokens: number | null;
+  /**
+   * **閉じているあいだも会社が進むか**（2026-08-26）。
+   *
+   * この製品の売りは「見ていなくても会社が進む」で、それを本当にしているのは
+   * 1時間ごとの Cron（`/api/cron`）。鍵が3つそろっていないと **503 で何もしない** —
+   * つまり**開いているあいだしか進まない**。それが画面のどこにも出ていなかった。
+   *
+   * 1日の上限のすぐ隣に置く。どちらも「目を離しているあいだ、何が起きるか」の話で、
+   * 上限だけ出して「進むかどうか」を出さないのは、片側だけ言っていることになる。
+   * **鍵の中身は返さない**（`/api/health` と同じ作法）。
+   */
+  awake: boolean;
   rows: { deltaTokens: number; reason: string; when?: string }[];
 }> {
+  const awake = Boolean(process.env.CRON_SECRET && process.env.RUNNER_EMAIL && process.env.RUNNER_PASSWORD);
   try {
     const s = store();
     const [cents, rows, today] = await Promise.all([
@@ -329,10 +414,11 @@ export async function billing(): Promise<{
       balanceTokens: cents === null ? null : cents * 1000,
       todayTokens: today === null ? null : today * 1000,
       capTokens: cap > 0 ? cap * 1000 : null,
+      awake,
       rows: rows.map((r) => ({ deltaTokens: r.deltaCents * 1000, reason: r.reason, when: r.when })),
     };
   } catch {
-    return { balanceTokens: null, todayTokens: null, capTokens: null, rows: [] };
+    return { balanceTokens: null, todayTokens: null, capTokens: null, awake, rows: [] };
   }
 }
 /* ══════════════ 朝の報告 ══════════════ */
