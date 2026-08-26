@@ -84,12 +84,24 @@ export type NextTask = {
 };
 
 export async function draftNextTasks(
-  work: LiveWork, nextPhase: { name: string; goal: string },
+  work: LiveWork,
+  /** `owner` は**社長が承認した計画**のこのフェーズの担当。`gate` はこのフェーズの ◆ */
+  nextPhase: { name: string; goal: string; owner?: string; gate?: string },
   decided: { question: string; chosen?: string }[],
 ): Promise<NextTask[]> {
   const p = hasKey('deep') ? providerFor('deep') : new FakeProvider();
   const pref = await execPref();   // 統括AIの設定（メンバー画面）
-  const dels = (work.dels ?? []).slice(0, 4);
+  /**
+   * **中身を渡す。書き出しではない**（2026-08-26）。
+   *
+   * 前は `preview` を **120文字**で切って渡していた。つまり
+   * **次に何をするかを決める統括AIが、いちばん少なく読んでいた** —
+   * AI社員のほうは同じ成果物を 3,000文字ぶん受け取っているのに。
+   * 引き継ぎは「タイトルを見て察する」ことではないので、本文を渡す。
+   *
+   * **差し戻されたものは渡さない**（実行と同じ規則。直っていないものを土台にさせない）。
+   */
+  const dels = (work.dels ?? []).filter((d) => d.state !== '差し戻し').slice(0, 3);
 
   // **名簿を渡す。** 渡さないと、この会社に居ない担当名が書かれる（run.ts と同じ穴）
   const roster = rosterBlock((await store().listEmployees().catch(() => []))
@@ -103,9 +115,20 @@ export async function draftNextTasks(
       `会社のゴール: ${work.goal}`,
       `次のフェーズ: ${nextPhase.name} — ${nextPhase.goal}`,
       ...(decided.length ? ['', '社長の決定:', ...decided.map((d) => `- ${d.question} → ${d.chosen}`)] : []),
-      ...(dels.length ? ['', 'ここまでの成果物:', ...dels.map((d) => `- ${d.title}: ${(d.preview ?? '').slice(0, 120)}`)] : []),
+      ...(nextPhase.gate
+        ? ['', `このフェーズの終わりに、社長に聞くことになっています: ${nextPhase.gate}`,
+           '**そこで決められる形になるように**タスクを引いてください。']
+        : []),
+      ...(dels.length
+        ? ['', 'ここまでの成果物（**読んで、この上に積む**）:',
+           ...dels.map((d) => `--- ${d.title} ---\n${(d.body ?? d.preview ?? '').slice(0, 2500)}`)]
+        : []),
       '',
       'draft_phase_tasks を1回呼んで、このフェーズのタスクを引いてください。',
+      ...(nextPhase.owner
+        ? [`**社長が承認した計画では、このフェーズの担当は「${nextPhase.owner}」です。**`
+           + '理由が無ければその人に寄せてください（別の担当が要るタスクだけ、別の人にする）。']
+        : []),
       '**ここまでの成果物を読んで、AI社員には決められないことが見つかったら、'
       + 'そのタスクに ask を付けてください**（誰に売るか・いくらにするか・どこまで作るか）。'
       + '無いなら付けない — 付けたタスクはそこで待ちます。',

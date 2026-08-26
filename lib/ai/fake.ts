@@ -51,8 +51,18 @@ export class FakeProvider implements ModelProvider {
 
     // ══ 次のフェーズのタスク（Phase 9）══
     if (want.has('draft_phase_tasks')) {
-      const phase = lastText(input).match(/次のフェーズ: (.+?) —/)?.[1] ?? '';
-      yield tool('draft_phase_tasks', { tasks: nextTasks(phase) });
+      const said = lastText(input);
+      const phase = said.match(/次のフェーズ: (.+?) —/)?.[1] ?? '';
+      /**
+       * **承認した計画の担当に寄せる**（2026-08-26）。本物のモデルは依頼文の
+       * 「このフェーズの担当は『◯◯担当』です」を読んで寄せるので、決め打ちも同じにする。
+       * 決め打ちが 企画担当 を書き続けていると、**引き継ぎが起きているかを検査できない**
+       * （実際、採用した開発担当が最後まで働かなかった）。
+       */
+      const owner = said.match(/このフェーズの担当は「(.+?)」/)?.[1];
+      /** **前の成果物を読んだ印。** 引き継ぎが起きたことが、引いたタスクに残る */
+      const from = said.match(/--- (.+?) ---/)?.[1];
+      yield tool('draft_phase_tasks', { tasks: nextTasks(phase, owner, from) });
       yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
       return;
     }
@@ -1116,7 +1126,7 @@ async function* fakeDiagnose(input: RunInput): AsyncIterable<Chunk> {
 }
 
 /** 次のフェーズのタスク（決め打ち）。フェーズ名で中身を変える */
-function nextTasks(phase: string) {
+function nextTasks(phase: string, owner?: string, from?: string) {
   if (/戦略/.test(phase)) {
     return [
       { title: '収益モデルを比べる', intent: '売切り / 月額 / 回数券の3案。継続率の前提つきで損益を並べる', owner_hint: '戦略担当',
@@ -1141,15 +1151,28 @@ function nextTasks(phase: string) {
     ];
   }
   if (/プロダクト|MVP/.test(phase)) {
+    /**
+     * **承認した計画の担当に寄せる**（2026-08-26）。計画は「プロダクト = 開発担当」と
+     * 書いて社長が承認しているのに、前はここが 企画担当 を決め打ちしていた —
+     * 本物のモデルは依頼文の「このフェーズの担当は『◯◯担当』です」を読んで寄せるので、
+     * 決め打ちが違う人を書き続けると、**承認した計画が守られているかを検査できない**。
+     */
     return [
-      { title: 'MVPの要件を書く', intent: '作らないものを先に決めてから、受け入れ条件つきで要件に落とす', owner_hint: '企画担当' },
-      { title: 'LPの構成を書く', intent: '見出し・価格表・申込みの3節。決めた価格と対象に沿う', owner_hint: '企画担当' },
+      { title: 'MVPの要件を書く', intent: '作らないものを先に決めてから、受け入れ条件つきで要件に落とす',
+        owner_hint: owner || '企画担当' },
+      { title: 'LPの構成を書く', intent: '見出し・価格表・申込みの3節。決めた価格と対象に沿う',
+        owner_hint: owner || '企画担当' },
     ];
   }
   return [
-    // **担当は必ず書く**（本物も required。書かないと先頭の社員に落ちる、を作らない）
-    { title: `${phase || '次'}の段取りを引く`, intent: 'このフェーズでやることを3件に分けて、順番を決める',
-      owner_hint: '企画担当' },
+    // **担当は必ず書く**（本物も required。書かないと先頭の社員に落ちる、を作らない）。
+    // **承認した計画の担当に寄せる** — 前は 企画担当 と書き続けていたので、
+    // 計画で「仕上げ = 開発担当」と決めたのに、その人に仕事が行かなかった
+    { title: `${phase || '次'}の段取りを引く`,
+      intent: from
+        ? `「${from}」を土台に、このフェーズでやることを3件に分けて、順番を決める`
+        : 'このフェーズでやることを3件に分けて、順番を決める',
+      owner_hint: owner || '企画担当' },
   ];
 }
 

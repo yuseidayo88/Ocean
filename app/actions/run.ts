@@ -396,9 +396,20 @@ export async function approvePhase(workId: string): Promise<{ ok: boolean; next?
     if (!review) return { ok: false, message: '承認を待っているフェーズがありません' };
 
     const after = work.phases.find((p) => p.seq === review.seq + 1);
+    /**
+     * **承認した計画のとおりに引く**（2026-08-26）。
+     *
+     * 前は `name` と `goal` しか渡していなかったので、計画に
+     * 「仕上げ = 開発担当」と書いて社長が承認しても、**タスクを引くときは誰も知らず**、
+     * 別の人に振られていた（ロゴの例で、採用した開発担当が最後まで働かなかった）。
+     * このフェーズの ◆ も一緒に渡す — そこで決められる形にタスクを引いてもらうため。
+     */
+    const gates = await s.planGates(workId).catch(() => []);
     const tasks = after
-      ? await draftNextTasks(work, { name: after.name, goal: after.goal },
-          (await s.listDecisions(workId)).filter((d) => d.status === 'decided'))
+      ? await draftNextTasks(work, {
+          name: after.name, goal: after.goal, owner: after.owner,
+          gate: gates.find((g) => g.afterPhase === after.name)?.question,
+        }, (await s.listDecisions(workId)).filter((d) => d.status === 'decided'))
       : [];
     const next = await s.advancePhase(workId, tasks);
     return { ok: true, next };

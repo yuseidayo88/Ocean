@@ -42,6 +42,8 @@ function live(d: DraftWork, ids: Map<string, string>): LiveWork {
       id: `${d.id}-p${i + 1}`, seq: i + 1, name: p.name, goal: p.goal,
       state: i === 0 ? 'active' : 'planned',
       weeks: p.weeks,
+      // **社長が承認した担当**（次のフェーズを引く統括AIに渡すため）
+      owner: p.owner || undefined,
       // 見込みと突き合わせるために、始まった時刻を持つ（supabase の `phases.started_at`）
       startedAt: i === 0 ? new Date().toISOString() : undefined,
     })),

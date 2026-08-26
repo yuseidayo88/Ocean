@@ -290,6 +290,9 @@ export const supabaseStore: Store = {
         id: p.id as string, seq: p.seq as number, name: p.name as string,
         goal: (p.goal ?? '') as string, state: p.status as LiveWork['phases'][number]['state'],
         weeks: (w.plan_draft as unknown as DraftBody | null)?.plan?.phases?.[(p.seq as number) - 1]?.weeks,
+        // **社長が承認した担当**（次のフェーズを引く統括AIに渡すため）
+        owner: (w.plan_draft as unknown as DraftBody | null)
+          ?.plan?.phases?.[(p.seq as number) - 1]?.owner || undefined,
         startedAt: (p.started_at ?? undefined) as string | undefined,
       })),
       tasks: (tk ?? []).map((t) => ({
