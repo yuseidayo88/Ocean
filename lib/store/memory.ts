@@ -103,9 +103,14 @@ export const memoryStore: Store = {
     if (d.approved) return;                      // 二度押しは何もしない
     /**
      * 採用する人を決める。**`hires` だけを見ない**（Supabase 版と同じ規則）—
-     * 統括AIが空で返しても、タスクの担当名から採る（→ `lib/roster` の `crewFor`）。
+     * 統括AIが空で返しても、タスクの担当名と**フェーズの担当**から採る
+     * （→ `lib/roster` の `crewFor`）。社長の「まず必要な社員全員採用して」は、
+     * `hires` が空で返った計画でも守られないといけない。
      */
-    const hires: Hire[] = crewFor(d.hires, d.plan.firstPhaseTasks.map((t) => t.ownerHint))
+    const hires: Hire[] = crewFor(d.hires, [
+      ...d.plan.firstPhaseTasks.map((t) => t.ownerHint),
+      ...d.plan.phases.map((ph) => ph.owner),
+    ])
       .map((c) => {
         const src = d.hires.find((h) => h.displayName === c.displayName);
         return { ...c, why: src?.why ?? 'このフェーズのタスクの担当',

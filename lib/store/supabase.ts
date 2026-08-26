@@ -150,8 +150,14 @@ export const supabaseStore: Store = {
      * **`hires` だけを見ない**（2026-08-25）。統括AIが空で返しても、
      * タスクの担当名から採る。名簿に無い名前は落とす（→ `lib/roster` の `crewFor`）。
      * 本番の最初の Work がこれで「誰も採用されないまま承認された」。
+     *
+     * **フェーズの担当も見る**（2026-08-26。社長の「まず必要な社員全員採用して」）。
+     * `hires` にはふつう入っているが、それだけを頼りにしない。
      */
-    const hires = crewFor(d?.hires ?? [], (d?.plan.firstPhaseTasks ?? []).map((t) => t.ownerHint));
+    const hires = crewFor(d?.hires ?? [], [
+      ...(d?.plan.firstPhaseTasks ?? []).map((t) => t.ownerHint),
+      ...(d?.plan.phases ?? []).map((ph) => ph.owner),
+    ]);
     let crew: Crew[] = [];
     if (hires.length) {
       const { data: had } = await c
@@ -837,7 +843,10 @@ export const supabaseStore: Store = {
     if (!me) return 0;
     const { data, error } = await c.rpc('account_balance_cents', { a: me.account_id });
     if (error) throw new AppError('unknown', error.message);
-    return (data ?? 0) as number;
+    // **`numeric` は文字列で返ることがある**（0034 で端数を持たせた）。
+    // 型は number と言っているので、**store の境目で数に直す** — 足し算のたびに
+    // 暗黙の変換に頼ると、どこかで `+` に当たって文字列がつながる
+    return Number(data ?? 0);
   },
 
   async ledger() {
@@ -848,7 +857,7 @@ export const supabaseStore: Store = {
       .select('delta_cents, reason, created_at, works(title)')
       .order('created_at', { ascending: false }).limit(60);
     return (data ?? []).map((r) => ({
-      deltaCents: r.delta_cents as number, reason: r.reason as string, when: r.created_at as string,
+      deltaCents: Number(r.delta_cents), reason: r.reason as string, when: r.created_at as string,
       workTitle: (r.works as { title?: string } | null)?.title ?? undefined,
     }));
   },
@@ -1414,7 +1423,7 @@ export const supabaseStore: Store = {
     // consume は必ず負の1行（引き金 `run_ledger` → 0014）。**使ったぶんは正の数で返す**
     const { data } = await c.from('token_ledger')
       .select('delta_cents').eq('reason', 'consume').gte('created_at', iso);
-    return (data ?? []).reduce((n, r) => n - (r.delta_cents as number), 0);
+    return (data ?? []).reduce((n, r) => n - Number(r.delta_cents), 0);
   },
 
   async noticeOnce(key, kind, body) {

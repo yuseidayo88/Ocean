@@ -79,6 +79,16 @@ export class FakeProvider implements ModelProvider {
         return;
       }
       /**
+       * **書かなかったときの頼み直し**（`lib/run/worker.ts` の `rewrite`）。
+       * AI社員の実行は `log_step` で見分けているが、この往復は
+       * **`write_deliverable` 1つしか渡らない**ので、そこでは拾えない。
+       * 中身は `fakeRun` が持っている（本番と同じ壊れ方をする側と1か所にまとめる）。
+       */
+      if (only === 'write_deliverable') {
+        yield* fakeRun(input);
+        return;
+      }
+      /**
        * **図の描き直し**（`lib/run/worker.ts` の `redraw`）。
        * 1回目はわざと壊してあるので、ここで**指されたところだけ**直した形を返す。
        * 本物と同じ壊れ方を通さないと、直す仕掛けが動いているか分からない。
@@ -177,6 +187,8 @@ export class FakeProvider implements ModelProvider {
 let n = 0;
 /** **1回だけわざと失敗させる**ための覚え（タスク名）。→ `fakeRun` の同じ名前 */
 const brokeOnce = new Set<string>();
+/** **1回だけ、成果物を書かずに終える**ための覚え（本番でいちばん多い壊れ方） */
+const skippedOnce = new Set<string>();
 const tool = (name: string, inputValue: unknown): Chunk =>
   ({ type: 'tool_use', id: `fake-${++n}`, name, input: inputValue });
 
@@ -214,6 +226,58 @@ async function* fakeRun(input: RunInput): AsyncIterable<Chunk> {
              '> これは決め打ちの成果物です。'].join('\n'),
     });
     yield tool('finish', { summary: `${task} を終えた（つないだ道具を1つ読んだ）` });
+    yield { type: 'done', usage: { ...EMPTY_USAGE }, stopReason: 'tool_use' };
+    return;
+  }
+
+  /**
+   * **書かずに終わる道**（2026-08-26）。**本番でいちばんよく起きる壊れ方。**
+   *
+   * 最初の会社では、**6回の実行が6回とも**これだった — 速いモデル（standard）は、
+   * 道具を渡されても本文で答えて終わる（出力 約100トークン・道具は1つも呼ばず）。
+   * `write_skill` はこの往復で呼んでいる（worker は書いたものを、
+   * 成果物が無くても残す）ので、**手順書の輪はここで切れない**。
+   *
+   * 行儀よく書くと、**押し直しの往復（`rewrite`）が動いているか永久に分からない**。
+   */
+  const pushed = text.includes('まだ成果物が書かれていません');
+  if (task === '競合を並べて比べる' && !pushed && !skippedOnce.has(task)) {
+    skippedOnce.add(task);
+    yield tool('log_step', { title: '競合を10社集めた', progress: 35 });
+    await wait(900);                    // 画面のポーリングが 35% を捕まえられるように
+    // **学びと手順書はこの往復で書く。** worker は往復のあとに残すので、
+    // 成果物が無くても落ちない（輪をここで切らない）
+    yield tool('note_learning', { lesson: '数字は事実・推計・要確認の3束に分けてから出す' });
+    yield tool('write_skill', {
+      filename: 'compare-rivals.md', name: '競合の並べ方',
+      when: '競合を比べる仕事のとき',
+      body: ['# 競合の並べ方', '', '1. 5〜8社に絞る（多いと読めない）',
+             '2. 価格 / 対象 / 強み / 弱み の4軸で表にする',
+             '3. セルごとに出どころを残す。無いセルは「要確認」と書く'].join('\n'),
+    });
+    await wait(400);
+    yield { type: 'done', usage: { ...EMPTY_USAGE }, stopReason: 'end_turn' };
+    return;
+  }
+
+  /**
+   * **押し直された往復**（worker の `rewrite`）。渡された道具は `write_deliverable` 1つだけ。
+   * **道具が1つなら、出力は必ずその形になる** — 本物もそうなので、素直に書く。
+   *
+   * ただし `市場の大きさを出す` だけは**押し直しても書かない**。
+   * モデルが本当に詰まることはあるので、**止まったタスクから戻る道**
+   * （社長の「もう一度やる / これは飛ばす」）は生きていないといけない。
+   */
+  if (pushed) {
+    if (task === '市場の大きさを出す') {
+      yield { type: 'done', usage: { ...EMPTY_USAGE }, stopReason: 'end_turn' };
+      return;
+    }
+    yield tool('write_deliverable', {
+      title: task.slice(0, 18), kind: 'report',
+      body: [`# ${task}`, '', '## 分かっていること', '',
+             '- 頼み直されてから書いたものです', '', '> これは決め打ちの成果物です。'].join('\n'),
+    });
     yield { type: 'done', usage: { ...EMPTY_USAGE }, stopReason: 'tool_use' };
     return;
   }

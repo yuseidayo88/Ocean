@@ -411,12 +411,14 @@ export async function billing(): Promise<{
     // 1トークン = $0.00001 → 1セント = 1,000トークン（→ docs/design/05）
     const cap = capCents();
     return {
-      balanceTokens: cents === null ? null : cents * 1000,
-      todayTokens: today === null ? null : today * 1000,
-      capTokens: cap > 0 ? cap * 1000 : null,
+      // **セントは端数を持つ**（0034）。トークンに直すのは表示のときだけなので、
+      // ここで丸める（0.057 セント → 57 トークン）
+      balanceTokens: cents === null ? null : Math.round(cents * 1000),
+      todayTokens: today === null ? null : Math.round(today * 1000),
+      capTokens: cap > 0 ? Math.round(cap * 1000) : null,
       awake,
       rows: rows.map((r) => ({
-        deltaTokens: r.deltaCents * 1000, reason: r.reason, when: r.when, workTitle: r.workTitle,
+        deltaTokens: Math.round(r.deltaCents * 1000), reason: r.reason, when: r.when, workTitle: r.workTitle,
       })),
     };
   } catch {

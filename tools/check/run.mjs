@@ -138,7 +138,8 @@ for (let i = 0; i < 40 && !(sawFlow && sawPair); i++) {
   if (!opened) { await wait(400); continue; }
   await wait(600);
   const pane = await ev(`document.querySelector('aside')?.innerText ?? ''`);
-  if (/段取り|集めて|振り分け/.test(pane)) sawFlow = true;
+  // 決め打ちの社員が出す歩みの語（タスクによって違う）。**どれか1つ読めれば通る**
+  if (/段取り|集め|振り分け|統計を探した|絞り込ん/.test(pane)) sawFlow = true;
   await ev(`document.querySelector('aside button')?.click()`); await wait(300);
   await wait(400);
 }
@@ -174,6 +175,25 @@ const away = await until((b) => b.includes('対象を1つに絞る の段取り�
 ok('Work を開いていなくても会社が進む（ホームで待つあいだに走った）',
    away.includes('対象を1つに絞る の段取りを決めた'),
    (await ev('location.pathname')) + ' / ' + (away.match(/[^\n]*絞る[^\n]*/)?.[0] ?? away.slice(0, 60)));
+/**
+ * ①'' **書かずに終わっても、社長は何も押さなくていい**（2026-08-26）。
+ *
+ *      本番の最初の会社では、**6回の実行が6回とも**「成果物が書かれませんでした」で
+ *      落ちていた（出力は約100トークン・道具は1つも呼ばれず）。
+ *      速いモデルは、道具を渡されても本文で答えて終わる — たまにではなく、ふつうに。
+ *      決め打ちの社員も「競合を並べて比べる」の1回目で**道具を1つも使わずに終える**。
+ *
+ *      worker が `write_deliverable` だけを渡して**1回だけ**頼み直すので、
+ *      社長は何も押さずに成果物が出る（→ `rewrite`）。
+ */
+await send('Page.navigate', { url: workUrl }); await wait(1800);
+// **成果物として出るまで待つ**（タスクの行に名前が出ただけでは、書けた証拠にならない）
+const late = await until((b) => /競合を並べて比べる[\s\S]{0,40}要確認/.test(b), 40, 900);
+ok('書かずに終わった往復は、頼み直して成果物になる（社長は押していない）',
+   /競合を並べて比べる[\s\S]{0,40}要確認/.test(late) && !/競合を並べて比べる[\s\S]{0,40}停止/.test(late),
+   late.match(/競合を並べて比べる[\s\S]{0,40}/)?.[0]?.replace(/\n/g, ' ') ?? '(出ていない)');
+await send('Page.navigate', { url: `${BASE}/home` }); await wait(1500);
+
 /**
  * ②' **止まったタスクから戻れる**（2026-08-26）。
  *

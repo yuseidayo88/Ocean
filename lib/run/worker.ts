@@ -8,7 +8,7 @@ import { reviewDeliverable } from '@/lib/exec/qa';
 import { webOn } from '@/lib/ai/web';
 import { recallBlock, termsOf } from '@/lib/exec/recall';
 import { founderBlock, tendMemory } from '@/lib/exec/memory';
-import { RUN_TOOLS, drawWorkflow } from './tools';
+import { RUN_TOOLS, drawWorkflow, writeDeliverable } from './tools';
 import type { ToolDef } from '@/lib/ai/provider';
 import { checkWorkflow, fatalOf, packDoc, toWorkflow } from '@/lib/diagram/parse';
 import { readyTools, runTool, toolsLine } from '@/lib/mcp/company';
@@ -138,6 +138,8 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
   let bodyText = '';
   let decision: { question: string; why: string; options: unknown[] } | undefined;
   let finished = false;
+  /** 最後の往復の終わり方（`end_turn` / `max_tokens` / `content_filter` …） */
+  let stop: string | null = null;
   const learned: string[] = [];
   /** 社員が書いた手順書（Hermes の輪）。**往復の外で1回だけ書く** */
   let newSkill: { filename: string; name: string; desc: string; body: string } | null = null;
@@ -345,6 +347,9 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
       } else if (c.type === 'done') {
         usage.in += c.usage.inputTokens;
         usage.out += c.usage.outputTokens;
+        // **どう終わったかを覚えておく。** 書けなかったときに、
+        // 「書かなかった」のか「途中で切れた／断られた」のかを言い分けるため
+        stop = c.stopReason ?? stop;
       }
     }
 
@@ -379,7 +384,14 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
     });
     }
 
-    const costCents = Math.round(billedCostUsd('standard', usage.in, usage.out, pref.model) * 100);
+    /**
+     * **セントは整数ではない**（2026-08-26 → `0034`）。
+     * 2,000トークンの往復は 0.06 セントほどなので、`Math.round` すると **0 になる** —
+     * 本番の最初の会社は、6回とも 0 で記帳されていた。
+     * `run_ledger`（0014）は `cost_cents > 0` のときだけ台帳に落とすので、
+     * **台帳に1行も入らず、残高も1日の上限も永久に効かない**。端数を捨てない。
+     */
+    const costCents = billedCostUsd('standard', usage.in, usage.out, pref.model) * 100;
 
     // 読んだスキルと書いた学びを残す（失敗しても実行は倒さない）
     if (skills.length) await s.bumpSkillUse(skills.map((x) => x.id)).catch(() => {});
@@ -454,7 +466,7 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
         const why = `図が通りませんでした — ${fatal[0].rule}`;
         await s.finishRun(runId, {
           status: 'failed', tokensIn: usage.in, tokensOut: usage.out,
-          costCents: Math.round(billedCostUsd('standard', usage.in, usage.out, pref.model) * 100),
+          costCents: billedCostUsd('standard', usage.in, usage.out, pref.model) * 100,
           model: usedModel, error: why,
         });
         await s.addNotification({
@@ -473,17 +485,64 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
       });
     }
 
+    /**
+     * **書かなかったら、その場でもう一度だけ頼む**（2026-08-26）。
+     *
+     * 本番の最初の会社で、**6回の実行が6回とも**ここで落ちていた
+     * （`成果物が書かれませんでした`・出力は約100トークン・道具は1つも呼ばれず）。
+     * つまりこれは「弱いモデルがたまに文章で答える」ではなく、**ふつうの振る舞い**だった —
+     * 速いモデル（standard）は、道具を渡されても本文で答えることのほうが多い。
+     *
+     * 会社としては、**社長が毎回「もう一度やる」を押す**のは成立しない。
+     * 直し方はこの repo にもう答えがある — 図の `redraw` と、会話の push と同じで、
+     * **道具を1つに絞って `toolChoice: 'required'` で頼み直す**
+     * （→ CLAUDE.md「『必ず使え』と書くだけでは守られない。道具が1つなら
+     * 出力は必ずその形になる」）。**1回だけ**。それでも書かなければ正直に失敗する。
+     */
+    /**
+     * **`finish` だけ呼んで終わった往復も、ここに入れる。**
+     * 出すものが無いのにタスクだけ done になると、フェーズは閉じるのに
+     * 社長の手もとには何も残らない — 「何も起きなかった」がいちばん分かりにくい。
+     */
+    if (!wrote) {
+      const late = await rewrite(pick(), system, messages, task.title, pref, usage);
+      if (late) {
+        wrote = late.title;
+        bodyText = late.body;
+        delId = await s.addDeliverable({
+          workId: work.id, taskId, employeeId: task.ownerId,
+          title: wrote, kind: late.kind, body: late.body,
+        });
+        await s.addStep(runId, {
+          seq: ++seq, kind: 'tool_use', tool: 'write_deliverable', summary: `${wrote} を書いた`,
+        });
+      }
+    }
+
     if (!wrote && !finished) {
-      // 道具を1つも使わなかった＝弱いモデルが文章で答えた等。正直に失敗
+      /**
+       * 頼み直しても書かなかった。**正直に失敗する**（「もう一度やる」で社長が戻せる）。
+       *
+       * **どう終わったかで言い分ける** — 途中で切れたのと、断られたのと、
+       * ただ書かなかったのは、社長にとって次の手が違う
+       * （長さなら分割、断られたなら頼み方、それ以外はもう一度）。
+       */
+      const why = stop === 'max_tokens' || stop === 'length'
+        ? '長すぎて途中で切れました'
+        : stop === 'refusal' || stop === 'content_filter'
+          ? 'この依頼には応えられないと返ってきました'
+          : '頼み直しても成果物が書かれませんでした';
       await s.finishRun(runId, {
-        status: 'failed', tokensIn: usage.in, tokensOut: usage.out, costCents, model: usedModel,
-        error: '成果物が書かれませんでした',
+        status: 'failed', tokensIn: usage.in, tokensOut: usage.out,
+        costCents: billedCostUsd('standard', usage.in, usage.out, pref.model) * 100,
+        model: usedModel,
+        error: why,
       });
       await s.addNotification({
-        kind: 'エラー', body: `${task.title} — 成果物が書かれないまま終わりました`,
+        kind: 'エラー', body: `${task.title} — ${why}`,
         subjectType: 'task', subjectId: taskId,
       });
-      return { ok: false, error: '成果物が書かれませんでした' };
+      return { ok: false, error: why };
     }
 
     await s.finishRun(runId, { status: 'done', tokensIn: usage.in, tokensOut: usage.out, costCents, model: usedModel });
@@ -534,7 +593,7 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
     // 途中で落ちても、そこまでに使ったぶんは正直に記帳する（0 にしない）
     await s.finishRun(runId, {
       status: 'failed', tokensIn: usage.in, tokensOut: usage.out,
-      costCents: Math.round(billedCostUsd('standard', usage.in, usage.out, pref.model) * 100),
+      costCents: billedCostUsd('standard', usage.in, usage.out, pref.model) * 100,
       model: usedModel, error: say(e),
     }).catch(() => {});
     await s.addNotification({
@@ -591,6 +650,47 @@ const clamp = (v: unknown) => {
   const n = Number(v);
   return Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : undefined;
 };
+
+/**
+ * **書かなかったときに、1回だけ書かせる。**
+ *
+ * 道具は `write_deliverable` **1つだけ**渡して `toolChoice: 'required'`。
+ * `redraw`（図）と同じ形で、理由も同じ — 「必ず使え」と書くだけでは守られない。
+ *
+ * 本番では**6回中6回**ここが要った（速いモデルは本文で答えてしまう）。
+ * 倒れたら `null` を返して、呼び元が正直に失敗にする。
+ */
+async function rewrite(
+  p: ModelProvider, system: string, messages: Msg[], fallbackTitle: string,
+  pref: { model?: string; effort?: string },
+  usage: { in: number; out: number },
+): Promise<{ title: string; kind: string; body: string } | null> {
+  const ask: Msg[] = [...messages, {
+    role: 'user',
+    content: [
+      'まだ成果物が書かれていません。**このタスクは成果物を出して終わりです。**',
+      'いま分かっていることだけで構いません（足りないところは「要確認」と書いてください）。',
+      'write_deliverable を1回だけ呼んで、社長がそのまま読める本文を書いてください。',
+    ].join('\n'),
+  }];
+  let got: Record<string, unknown> | null = null;
+  try {
+    for await (const c of p.stream({
+      tier: 'standard', model: pref.model, effort: pref.effort as never,
+      system, messages: ask, tools: [writeDeliverable], toolChoice: 'required', maxTokens: 8000,
+    })) {
+      if (c.type === 'tool_use' && c.name === 'write_deliverable') got = (c.input ?? {}) as Record<string, unknown>;
+      if (c.type === 'done') { usage.in += c.usage.inputTokens; usage.out += c.usage.outputTokens; }
+    }
+  } catch { return null; }
+  const body = String(got?.body ?? '').trim();
+  if (!body) return null;                 // 呼んだが中身が空。**空の成果物を作らない**
+  return {
+    title: String(got?.title ?? fallbackTitle) || fallbackTitle,
+    kind: String(got?.kind ?? 'report'),
+    body,
+  };
+}
 
 /**
  * 図を1回だけ描き直してもらう。**道具は `draw_workflow` 1つだけ渡す** —
