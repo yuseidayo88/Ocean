@@ -403,6 +403,32 @@ ok('会社が社長のことを覚えている',
    allPane.match(/社長のこと[\s\S]{0,80}/)?.[0]?.replace(/\n/g, ' ') ?? allPane.slice(-90));
 
 /**
+ * **差し戻しは、手順書にも返る**（2026-08-26。Hermes の「使いながら良くなる」）。
+ * 前は指摘が担当の**学び**にしか残らず、土台になった手順書は直らないままだった。
+ * **終わったタスクの歩みは `/tasks?done=1` で読む** —
+ * Work 画面の「いま動いているもの」からは、済んだ時点で消える。
+ */
+await send('Page.navigate', { url: `${BASE}/tasks?done=1` }); await wait(2600);
+const fixPane = await (async () => {
+  for (let i = 0; i < 6; i++) {
+    // **タスクの行は `<button>` ではない**（中に Link が入るので `pressable()` の div）
+    const got = await ev(`(() => {
+      const b = [...document.querySelectorAll('.row')].find((x) => x.innerText.includes('を直す'));
+      if (!b) return false; b.click(); return true; })()`);
+    if (got) {
+      await wait(900);
+      const pane = (await ev(`document.querySelector('aside')?.innerText ?? ''`)) ?? '';
+      if (pane.includes('手順書')) return pane;
+    }
+    await wait(800);
+  }
+  return '';
+})();
+ok('差し戻されると、手順書のほうも直しにいく',
+   fixPane.includes('手順書を直したい'),
+   fixPane.match(/[^\n]*手順書[^\n]*/)?.[0] ?? '(歩みに出ていない)');
+
+/**
  * **思い出す**（Hermes の cross-session recall。2026-08-26）。
  * 別の会話で聞いても、会社が作ったものの**中身**から答える。
  * 前は Work の一覧と決めたことしか渡していなかったので、

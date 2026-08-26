@@ -57,8 +57,16 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
 
   /**
    * スキル＝**必要なときだけ読む手順書。** 1タスク=1往復なので「途中で取りに行く」は
-   * できない — 有効な会社スキルから、このタスクに関わりそうなものを最大2枚だけ載せる
-   * （関わりの判定は名前と説明の語の重なり。載せたら used_count を進める＝読んだ印）。
+   * できない — このタスクに関わりそうなものだけ載せる（載せたら used_count を進める＝読んだ印）。
+   *
+   * **選び方を作り直した**（2026-08-26）。前は**名前の字の重なり**で数えていたので、
+   * 「の」「を」「方」が当たるだけで上位に来た。しかも
+   * **`desc`（いつ読むか）を一度も見ていなかった** — 道具の説明には
+   * 「ここが合っていないと誰も読めない」と書いてあるのに、書かせたきり誰も読んでいなかった。
+   *
+   * **社員が手順書を書けるようになった以上、ここは効く**（棚が増えるほど、
+   * 当てずっぽうで2枚選ぶのは悪くなる）。思い出すのと同じ言葉の拾い方に揃えた。
+   * **1枚も当たらなければ、載せない** — 関係ない手順書は、読ませるだけ無駄で、高い。
    */
   const allSkills = (await s.listSkills().catch(() => []))
     /**
@@ -68,11 +76,14 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
      */
     .filter((x) => x.on && x.status === 'active' && x.source !== 'learned' && x.body
       && (x.scope === 'company' || (!!task.ownerId && x.employeeId === task.ownerId)));
-  const hint = `${task.title} ${task.intent}`;
-  const scored = allSkills
-    .map((x) => ({ x, hit: [...`${x.name}`].filter((ch) => hint.includes(ch)).length }))
-    .sort((a, b) => b.hit - a.hit);
-  const skills = (allSkills.length <= 2 ? allSkills : scored.slice(0, 2).map((v) => v.x));
+  // **フェーズも手がかりに入れる。** 「調査のまとめ方」は、タスク名ではなくフェーズが言っている
+  const hint = `${task.title} ${task.intent} ${phase?.name ?? ''} ${phase?.goal ?? ''}`;
+  const skills = allSkills
+    .map((x) => ({ x, hit: termsOf(`${x.name} ${x.desc ?? ''}`, 12).filter((t) => hint.includes(t)).length }))
+    .filter((v) => v.hit > 0)
+    .sort((a, b) => b.hit - a.hit)
+    .slice(0, 3)
+    .map((v) => v.x);
 
   /** 学び＝この社員が仕事から書き溜めたメモ。最新10行だけ載せる */
   const lessons = task.ownerId
@@ -195,7 +206,20 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
         ...recallBlock(memos),
         ...founderBlock(founder),
         ...(/ を直す$/.test(task.title)
-          ? ['', `成果物のタイトルは「${task.title.replace(/ を直す$/, '')}」のまま出す（直した新しい版になる）`]
+          ? ['', `成果物のタイトルは「${task.title.replace(/ を直す$/, '')}」のまま出す（直した新しい版になる）`,
+             /**
+              * **差し戻しを、手順書に返す**（2026-08-26。Hermes の「使いながら良くなる」）。
+              * 前は指摘が担当の**学び**にしか残らず、
+              * **その仕事の土台になった手順書は直らないまま**だった。
+              * 直しのタスクには同じ手順書が載る（題が同じなので同じものが当たる）ので、
+              * ここで一言添えるだけで輪が閉じる — **覚えておく場所を増やさずに済む**。
+              */
+             ...(skills.length
+               ? ['**この手順書に沿って作ったものが差し戻されました。**'
+                  + '手順書のほうに足りないところがあったなら、improve_skill で直してください'
+                  + '（社長の指摘が、あなた1人の記憶で終わらないように）。'
+                  + '手順書は悪くなかったのなら、直さなくて構いません']
+               : [])]
           : []),
         ...(ready ? toolsLine(ready) : []),
         '',
