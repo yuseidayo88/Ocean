@@ -141,7 +141,8 @@ export function Desk({ lanes, idle }: {
           )}
         </div>
 
-        <div style={{ flex: 1, minHeight: 0, display: 'flex', overflowX: 'auto' }}>
+        {/* **横にだけ送る**（`.sx`）。`overflowX` だけだと縦も動く器になる */}
+        <div className="sx" style={{ flex: 1, minHeight: 0, display: 'flex' }}>
           {shown.map((l, n) => {
             const wait = l.state === '要確認';
             const last = only ? true : n === shown.length - 1 && idle.length === 0;

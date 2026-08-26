@@ -15,7 +15,20 @@ export type Option = { label: string; description: string; recommended?: boolean
 export type Question = { body: string; why: string; options: Option[] };
 export type Hire = { definitionId: string; displayName: string; why: string; forPhase: string };
 
-export type PlanPhase = { name: string; goal: string; weeks: number };
+export type PlanPhase = {
+  name: string; goal: string; weeks: number;
+  /**
+   * **そのフェーズを回す人**（名簿の「◯◯担当」。2026-08-26）。
+   *
+   * 前は最初のフェーズしか担当が決まっておらず、画面には**あとのフェーズだけ
+   * 「担当は未定」**と出ていた。しかもそれは表示の問題ではなく、
+   * **承認のときに最初のフェーズの人しか採用されない**という中身の問題だった。
+   *
+   * もう1つ効く — 担当を名簿から選ばせると、**AI社員に終わらせられないフェーズが置けなくなる**。
+   * 「受注」を回せる人は名簿にいない（他人が動くのを待つことだから）。
+   */
+  owner: string;
+};
 export type Gate = { afterPhase: string; question: string };
 export type PlanTask = { title: string; intent: string; ownerHint: string };
 

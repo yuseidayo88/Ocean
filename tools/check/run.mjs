@@ -82,35 +82,39 @@ ok('週数の合わない計画は引き直されている（プロダクト 6�
    !/プロダクト[\s\S]{0,40}6週/.test(plan), plan.match(/プロダクト[\s\S]{0,40}/)?.[0] ?? '');
 
 await ev(`[...document.querySelectorAll('button')].find(b => b.textContent.includes('承認して始める'))?.click()`);
-await wait(3500);
+// **固定で待たない。** 承認した直後の数秒が、実行が見られる唯一の窓
+//（決め打ちの1タスクは約3秒。並んで走るようになったので、待つと全部済んでしまう）
+for (let i = 0; i < 30 && !/\/work\/[^/]+$/.test((await ev('location.pathname')) ?? ''); i++) await wait(250);
 ok('承認して Work に着いた', /\/work\/[^/]+$/.test(await ev('location.pathname')), await ev('location.pathname'));
 const workUrl = await ev('location.href');
 
-// ①' **Work を見ていなくても会社は進む**（2026-08-25。ポンプは器にある）。
-//     ホームに移ってから、そこで実行が始まるのを待つ — 前はここで会社が止まっていた
-await send('Page.navigate', { url: `${BASE}/home` }); await wait(1500);
-const away = await until((b) => b.includes('実行中'), 20, 900);
-ok('Work を開いていなくても会社が進む（ホームで実行中）', away.includes('実行中'),
-   (await ev('location.pathname')) + ' / ' + away.slice(0, 60));
-await send('Page.navigate', { url: workUrl }); await wait(1500);
-
-// ② タスク1〜2が走る（歩みが読める）→ タスク3は判断で止まる
-let sawProgress = false, sawFlow = false;
-for (let i = 0; i < 40; i++) {
-  await wait(1200);
+// ② タスクが**並んで**走る（歩みが読める）→ 判断のタスクだけがそこで止まる
+//    **決める行が出たら切り上げる、はもうできない**（2026-08-26）。全員同時に動き出すので、
+//    判断で止まる1本は最初の数秒で現れる。見るのは「実行中の行を開いて歩みが読めるか」
+let sawProgress = false, sawFlow = false, sawPair = false;
+for (let i = 0; i < 40 && !(sawFlow && sawPair); i++) {
   const b = await text();
   if (/[1-9]\d?%/.test(b)) sawProgress = true;
-  if (sawProgress && !sawFlow) {
-    await ev(`[...document.querySelectorAll('button')].find(x => x.className.includes('row') && /フェーズ1/.test(x.innerText))?.click()`);
-    await wait(600);
-    const pane = await ev(`document.querySelector('aside')?.innerText ?? ''`);
-    if (/段取り|集めて|振り分け/.test(pane)) sawFlow = true;
-    await ev(`document.querySelector('aside button')?.click()`); await wait(300);
-  }
-  if (b.includes('決める')) break;
+  // **同時に2人動いているか**（社長の「他のAIが全員動き出す」）。
+  // 同じ人に2本は持たせないので、担当が分かれた2本が並んで走る
+  if (await ev(`[...document.querySelectorAll('button')].filter(
+    (x) => x.className.includes('row') && /フェーズ1/.test(x.innerText) && /\\d+%/.test(x.innerText)).length >= 2`))
+    sawPair = true;
+  // **実行中の行だけ開く**（判断待ちの行を開くと、歩みではなく聞かれごとが出る）
+  const opened = sawFlow ? false : await ev(`(() => {
+    const b = [...document.querySelectorAll('button')].find(
+      (x) => x.className.includes('row') && /フェーズ1/.test(x.innerText) && /\\d+%/.test(x.innerText));
+    if (!b) return false; b.click(); return true; })()`);
+  if (!opened) { await wait(400); continue; }
+  await wait(600);
+  const pane = await ev(`document.querySelector('aside')?.innerText ?? ''`);
+  if (/段取り|集めて|振り分け/.test(pane)) sawFlow = true;
+  await ev(`document.querySelector('aside button')?.click()`); await wait(300);
+  await wait(400);
 }
 ok('進捗が 0% から動いた', sawProgress);
 ok('実行の最中に歩みが読めた', sawFlow);
+ok('社員が並んで動き出す（同時に2人）', sawPair);
 const stopped = await until((b) => b.includes('決める'));
 ok('判断で止まった（◆ 決める）', stopped.includes('決める'), stopped.slice(0, 60));
 
@@ -126,6 +130,21 @@ for (let i = 0; i < 8 && !dpane.includes('推奨'); i++) {
 ok('聞かれていることが右ペインに出る', dpane.includes('対象の絞り込み') && dpane.includes('推奨'), dpane.slice(0, 60));
 await ev(`[...document.querySelectorAll('aside button')].find(b => b.innerText.includes('K-POPファン層'))?.click()`);
 await wait(1000);
+
+/**
+ * ①' **Work を見ていなくても会社は進む**（2026-08-25。ポンプは器にある）。
+ *
+ *     答えたあと**ホームへ移ってから**、そこで「対象を1つに絞る」が走りきるのを待つ。
+ *     見るのは**残るもの**（オフィスのログに歩みが積まれたか）で、
+ *     「いま実行中」ではない — 1タスクが3秒で終わるので、
+ *     **その瞬間を捕まえられるかどうか**を検査にすると、速さで結果が変わる。
+ */
+await send('Page.navigate', { url: `${BASE}/home` }); await wait(1500);
+const away = await until((b) => b.includes('対象を1つに絞る の段取りを決めた'), 30, 900);
+ok('Work を開いていなくても会社が進む（ホームで待つあいだに走った）',
+   away.includes('対象を1つに絞る の段取りを決めた'),
+   (await ev('location.pathname')) + ' / ' + (away.match(/[^\n]*絞る[^\n]*/)?.[0] ?? away.slice(0, 60)));
+await send('Page.navigate', { url: workUrl }); await wait(1500);
 /**
  * ③' **成果物ができたら、社長が見るまで進まない**（2026-08-25。社長の指示
  *    「完全自動で動くというよりかは、成果物ができたら確認してもらって、
@@ -206,6 +225,32 @@ const bar = await ev(`[...document.querySelectorAll('button')].some(b => b.inner
 ok('進んだあとは承認の帯が出ていない', !bar, String(bar));
 const p2 = await until((b) => /フェーズ\n2 \/ /.test(b), 40);
 ok('フェーズが 2 に進んだ', /フェーズ\n2 \/ /.test(p2), p2.match(/フェーズ\n[^\n]*/)?.[0]);
+
+/**
+ * ④' **前のフェーズを読んで、統括AIが社長に聞く**（2026-08-26。社長の
+ *     「わからない部分は統括AIがユーザーに質問投げて他のAIが全員動き出す」）。
+ *     決め打ちの計画は 戦略 の「収益モデルを比べる」に ◆ を置く。
+ *     **待つのはその1本だけ** — ほかの2人は答えを待たずに動き出す。
+ */
+const ask2 = await until((b) => /収益モデルを比べる[\s\S]{0,60}決める/.test(b), 60);
+ok('統括AIが、社長にしか決められないことを聞いてくる',
+   /収益モデルを比べる[\s\S]{0,60}決める/.test(ask2),
+   ask2.match(/収益モデルを比べる[\s\S]{0,60}/)?.[0]?.replace(/\n/g, ' '));
+// **聞いているあいだも、ほかは止まらない** — 答える前に 戦略 の 2/3 が終わる
+const par2 = await until((b) => /戦略[\s\S]{0,20}2\/3/.test(b), 90);
+ok('聞いているあいだも、ほかのAIは動いている（2 / 3）',
+   /戦略[\s\S]{0,20}2\/3/.test(par2), par2.match(/戦略[\s\S]{0,20}\d\/\d/)?.[0]?.replace(/\n/g, ' '));
+// 答える（推奨は 月額）
+let dp2 = '';
+for (let i = 0; i < 8 && !dp2.includes('収益の取り方'); i++) {
+  await ev(`[...document.querySelectorAll('button')].find(x => x.className.includes('row') && x.innerText.includes('決める'))?.click()`);
+  await wait(700);
+  dp2 = await ev(`document.querySelector('aside')?.innerText ?? ''`) ?? '';
+}
+ok('聞かれているのは収益の取り方', dp2.includes('収益の取り方') && dp2.includes('推奨'), dp2.slice(0, 60));
+await ev(`[...document.querySelectorAll('aside button')].find(b => b.innerText.includes('月額'))?.click()`);
+await wait(1200);
+await ev(`document.querySelector('aside button')?.click()`); await wait(300);
 
 // ⑤ **◆ があるフェーズでは、成果物を見終わっても止まる。** 押すまで先へは行かない
 const done2 = await until((b) => b.includes('フェーズ「戦略」が終わりました'), 90);
@@ -466,8 +511,10 @@ ok('居ない担当名を計画に残さない', !smallPlan.includes('商品設�
 await ev(`[...document.querySelectorAll('button')].find(b => b.textContent.includes('承認して始める'))?.click()`);
 await wait(3500);
 const small = await until((b) => /[1-9]\d?%|要確認/.test(b), 30);
+// **寄せ先は「そのフェーズを回す人」**（2026-08-26）。先頭の社員ではない —
+// フェーズ「案出し」の担当は企画担当なので、担当のいないタスクはそこへ落ちる
 ok('社員を提案しない計画でも、担当が付いて動く',
-   small.includes('調査担当') && /[1-9]\d?%|要確認/.test(small), small.slice(0, 140));
+   small.includes('企画担当') && /[1-9]\d?%|要確認/.test(small), small.slice(0, 140));
 
 // ⑤'' **社長が止められる。** 見ていないあいだも動く会社に、止める手が要る
 const smallUrl = await ev('location.href');
@@ -501,7 +548,9 @@ for (const u of SWEEP) {
   if (n) {
     cut += n;
     const first = x ? (x.ell[0]?.full ?? x.off[0]?.txt ?? x.scrollx[0]?.tag ?? '') : '取得できず';
-    console.log(`  レイアウト ${u}: ${n}件  ${String(first).slice(0, 60)}`);
+    // **内訳まで出す。** 「17件」だけでは、どれを直せばいいのか分からない
+    const kind = x ? `…切れ ${x.ell.length} / 横送り ${x.scrollx.length} / 画面外 ${x.off.length}` : '';
+    console.log(`  レイアウト ${u}: ${n}件  ${kind}  ${String(first).slice(0, 60)}`);
   }
 }
 ok('埋まった状態のレイアウト（9画面）', cut === 0, `${cut}件`);

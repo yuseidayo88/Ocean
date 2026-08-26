@@ -66,10 +66,15 @@ export function fromDraft(d: DraftWork): PlanView {
   const rows: PlanRow[] = d.plan.phases.map((p, i) => {
     const w0 = at; at += p.weeks;
     const gate = d.plan.gates.find((g) => g.afterPhase === p.name);
-    // 担当が分かるのは、いま詳細を引いた最初のフェーズと、採用で名前が出たところだけ
-    const owner = i === 0
-      ? d.plan.firstPhaseTasks[0]?.ownerHint
-      : d.hires.find((h) => h.forPhase === p.name)?.displayName;
+    /**
+     * **フェーズの担当は計画が持っている**（2026-08-26）。
+     * 前は最初のフェーズだけで、あとは「担当は未定」と出ていた —
+     * それは表示ではなく中身の問題で、実際にあとのフェーズの人は採用されていなかった。
+     * 担当を持たない古い控えのときだけ、これまでどおり拾う。
+     */
+    const owner = p.owner
+      || (i === 0 ? d.plan.firstPhaseTasks[0]?.ownerHint
+        : d.hires.find((h) => h.forPhase === p.name)?.displayName);
     return {
       name: p.name, goal: p.goal, w0, w1: at,
       who: owner ?? '担当は未定', weeks: `${p.weeks}週`,

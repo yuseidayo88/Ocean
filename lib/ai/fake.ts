@@ -25,6 +25,16 @@ export class FakeProvider implements ModelProvider {
   private async *raw(input: RunInput): AsyncIterable<Chunk> {
     const goal = lastUser(input);
     const want = new Set((input.tools ?? []).map((t) => t.name));
+    /**
+     * **計画の道では、ゴールの行だけを見る**（2026-08-26）。
+     *
+     * 依頼文まるごとを見ていたので、引き直しの頼み文に入っていた
+     * 「フェーズの**名前**と同じ字で書いてください」の「名前」が
+     * `SHORT_ONE`（ロゴ・バナー・名前…）に当たり、**長い計画の引き直しが
+     * 短い計画になって返っていた**。決め打ちの側の事故だが、
+     * これがあると検査は「引き直しが動いている」を測れない。
+     */
+    const planGoal = lastText(input).match(/社長のゴール:\s*\n?(.+)/)?.[1]?.trim() || goal;
 
     // ══ 道具なし＝会話（チャットの返事）══ 偽物であることを必ず言う
     if (!input.tools?.length) {
@@ -83,7 +93,7 @@ export class FakeProvider implements ModelProvider {
        * 1回目はわざと辻褄を壊してあるので、ここで**指されたところだけ**直す。
        */
       if (only === 'draft_plan') {
-        yield tool('draft_plan', plan(goal, fixing(input)));
+        yield tool('draft_plan', plan(planGoal, fixing(input)));
         yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
         return;
       }
@@ -108,16 +118,16 @@ export class FakeProvider implements ModelProvider {
     }
 
     if (want.has('decide_container')) {
-      yield tool('decide_container', container(goal));
+      yield tool('decide_container', container(planGoal));
     }
     if (want.has('ask')) {
-      yield tool('ask', { questions: questions(goal) });
+      yield tool('ask', { questions: questions(planGoal) });
     }
     if (want.has('propose_hires')) {
-      yield tool('propose_hires', { hires: hires(goal) });
+      yield tool('propose_hires', { hires: hires(planGoal) });
     }
     if (want.has('draft_plan')) {
-      yield tool('draft_plan', plan(goal, fixing(input)));
+      yield tool('draft_plan', plan(planGoal, fixing(input)));
     }
     yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
   }
@@ -363,8 +373,8 @@ function plan(goal: string, fixed = false) {
     return {
       weeks: 1,
       phases: [
-        { name: '案出し', goal: '方向の違う案が3つ並んでいる', weeks: 0.5 },
-        { name: '仕上げ', goal: '選んだ案が使える形になっている', weeks: 0.5 },
+        { name: '案出し', goal: '方向の違う案が3つ並んでいる', weeks: 0.5, owner: '企画担当' },
+        { name: '仕上げ', goal: '選んだ案が使える形になっている', weeks: 0.5, owner: '開発担当' },
       ],
       /**
        * **1回目はわざと辻褄を壊す**（2026-08-26）。関門の行き先が実在しないフェーズを指す。
@@ -401,17 +411,20 @@ function plan(goal: string, fixed = false) {
   return {
     weeks: 10,
     /**
-     * **1回目はわざと週数を合わせない**（2026-08-26）。
-     * プロダクトを6週にすると足して12週で、全体の10週と食い違う。
-     * 本物のモデルもここをよく外す（フェーズごとに書いたあと、合計を数え直さない）。
-     * `checkPlan` がそれを見つけて、**指したところだけ**直させる。
-     * 行儀よく書くと、引き直しが動いているか永久に分からない。
+     * **1回目はわざと2つ壊す**（2026-08-26）。
+     * ① 週数を足すと12週で、全体の10週と食い違う（本物のモデルがよく外す）
+     * ② **ローンチが「受注が3件入っている」** — 他人が動かないと終わらないフェーズで、
+     *    AI社員には終わらせられない。置くと会社がそこで止まる
+     *    （社長の「受注が来てから制作っていうようにしたくない」）
+     * 行儀よく書くと、`checkPlan` → 引き直しが動いているか永久に分からない。
      */
     phases: [
-      { name: '調査', goal: '市場・競合・対象が確かめられている', weeks: 2 },
-      { name: '戦略', goal: '収益モデルと価格が決まっている', weeks: 2 },
-      { name: 'プロダクト', goal: 'いちばん小さい形が動いている', weeks: fixed ? 4 : 6 },
-      { name: 'ローンチ', goal: '最初の利用者が来ている', weeks: 2 },
+      { name: '調査', goal: '市場・競合・対象が確かめられている', weeks: 2, owner: '調査担当' },
+      { name: '戦略', goal: '収益モデルと価格が決まっている', weeks: 2, owner: '戦略担当' },
+      { name: 'プロダクト', goal: 'いちばん小さい形が動いている', weeks: fixed ? 4 : 6, owner: '開発担当' },
+      { name: 'ローンチ',
+        goal: fixed ? '公開して、申し込みの導線ができている' : '受注が3件入っている',
+        weeks: 2, owner: fixed ? '執筆担当' : '営業担当' },
     ],
     gates: [
       { after_phase: '戦略', question: '価格の方向性' },
@@ -419,7 +432,9 @@ function plan(goal: string, fixed = false) {
     ],
     first_phase_tasks: [
       { title: '競合を並べて比べる', intent: '競合を5〜8社。価格 / 対象 / 強み / 弱みの4軸で表にする。出典URLを各セルに残す', owner_hint: '調査担当' },
-      { title: '市場の大きさを出す', intent: '上から（統計）と下から（単価×人数）の2通り。3倍以上ずれたら前提の違いを書く', owner_hint: '調査担当' },
+      // **わざと別の人にする**（2026-08-26）。同じ人には2本同時にやらせないので、
+      // 担当が分かれて初めて「全員動き出す」が目に見える
+      { title: '市場の大きさを出す', intent: '上から（統計）と下から（単価×人数）の2通り。3倍以上ずれたら前提の違いを書く', owner_hint: '分析担当' },
       { title: '対象を1つに絞る', intent: '調査をもとに、誰のどの困りごとに絞るかを1文で', owner_hint: '調査担当' },
     ],
     deliverables: [
@@ -841,7 +856,21 @@ async function* fakeDiagnose(input: RunInput): AsyncIterable<Chunk> {
 function nextTasks(phase: string) {
   if (/戦略/.test(phase)) {
     return [
-      { title: '収益モデルを比べる', intent: '売切り / 月額 / 回数券の3案。継続率の前提つきで損益を並べる', owner_hint: '戦略担当' },
+      { title: '収益モデルを比べる', intent: '売切り / 月額 / 回数券の3案。継続率の前提つきで損益を並べる', owner_hint: '戦略担当',
+        /**
+         * **調査を読んで、社長にしか決められないと分かったこと**（2026-08-26。社長の
+         * 「わからない部分は統括AIがユーザーに質問投げて他のAIが全員動き出す」）。
+         * このタスクだけが待ち、**ほかのタスクは動き出す**。
+         */
+        ask: {
+          question: '収益の取り方',
+          why: '調査では、月額と売切りのどちらが合うかまでは決まりませんでした。ここは社長の判断です。',
+          options: [
+            { label: '月額', description: '毎月入るが、続けてもらう手間がかかる', recommended: true },
+            { label: '売切り', description: '一度で入るが、次を探し続けることになる' },
+            { label: '両方', description: '選べるようにする。作るものが増える' },
+          ],
+        } },
       { title: '価格の帯を決める', intent: '競合表の価格帯に、決めた対象の支払い意欲を重ねて2案に絞る', owner_hint: '戦略担当' },
       // **図の道も通す**（draw_workflow → 9つの検査 → 描き直し）。
       // 決め打ちでも本物と同じ道具・同じ順を踏まないと、この穴は見つからない

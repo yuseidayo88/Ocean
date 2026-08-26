@@ -182,7 +182,9 @@ export const memoryStore: Store = {
 
   async nextQueued(workId) {
     const live = [...bag.values()].find((d) => d.live?.id === workId)?.live;
-    if (!live || live.tasks.some((t) => t.state === 'running')) return null;
+    if (!live) return [];
+    // **いま走っている人は飛ばす**（supabase 版と同じ規則）。同じ社員に2本やらせない
+    const busy = new Set(live.tasks.filter((t) => t.state === 'running').map((t) => t.ownerId));
     // **止めた社員のタスクは起こさない**（supabase 版と同じ規則）
     const off = new Set([...prefs.values()].filter((p) => p.paused).map((p) => p.employeeId));
     /**
@@ -190,8 +192,16 @@ export const memoryStore: Store = {
      * モデルは成果物を書かずに終わり、タスクが blocked になるだけ — お金だけ減る。
      * 承認とフェーズ送りが必ず担当を埋めるので、ここは最後の砦。
      */
-    const next = live.tasks.find((t) => t.state === 'queued' && t.ownerId && !off.has(t.ownerId));
-    return next ? { taskId: next.id } : null;
+    // **束の中でも1人1本**（supabase 版と同じ規則）
+    const taken = new Set(busy);
+    const out: { taskId: string }[] = [];
+    for (const t of live.tasks) {
+      if (t.state !== 'queued' || !t.ownerId) continue;
+      if (off.has(t.ownerId) || taken.has(t.ownerId)) continue;
+      taken.add(t.ownerId);
+      out.push({ taskId: t.id });
+    }
+    return out;
   },
 
   async reclaimStalled(workId) {
@@ -532,13 +542,19 @@ export const memoryStore: Store = {
     const crew0 = live.crew[0];
     for (const t of nextTasks) {
       const hire = live.crew.find((c) => c.name === t.ownerHint) ?? crew0;
+      const id = `${workId}-t${live.tasks.length + 1}`;
       live.tasks.push({
-        id: `${workId}-t${live.tasks.length + 1}`, phaseId: next.id,
+        id, phaseId: next.id,
         title: t.title, intent: t.intent, state: 'queued', progress: 0,
         owner: hire?.name ?? t.ownerHint, ownerId: hire?.id,
         // **定義も渡す**（supabase 版と同じ）。無いと社員の頭が載らず、素の返事になる
         ownerSlug: staff.find((x) => x.id === hire?.id)?.definitionId,
       });
+      /**
+       * **統括AIが「社長にしか決められない」と言ったタスクは、そこで待つ**
+       * （supabase 版と同じ規則）。ほかのタスクは queued のまま動き出す。
+       */
+      if (t.ask) await memoryStore.markDecision(id, t.ask).catch(() => {});
     }
     return next.name;
   },

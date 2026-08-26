@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { approveDel, sendBackDel } from '@/app/actions/run';
+import { wakePump } from '@/lib/pump';
 import { BLUE, EDGE, GREEN_T, RED_T, T1, T3, T5, RAIL } from '@/lib/design/tokens';
 import { Icon } from '@/components/ui/Icon';
 
@@ -38,11 +39,13 @@ export function DelActions({ delId, workId, taskId, title, state, onDone }: {
   const approve = async () => {
     setBusy(true);
     await approveDel(delId);
+    wakePump(); // 最後の1件なら、これでフェーズの関門が開く
     setBusy(false); onDone();
   };
   const back = async () => {
     setBusy(true); setErr('');
     const r = await sendBackDel(delId, workId, { taskId, title }, note);
+    wakePump(); // 直しタスクが積まれた
     setBusy(false);
     if (!r.ok) { setErr(r.message ?? ''); return; }
     onDone();

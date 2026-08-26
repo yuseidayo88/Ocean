@@ -2,10 +2,11 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { morning, pumpCompany } from '@/app/actions/run';
+import { morning } from '@/app/actions/run';
 import { chatSay } from '@/app/actions/chat';
 import { streamReply } from '@/lib/chat/stream';
 import { SHELL_MIN, T2 } from '@/lib/design/tokens';
+import { pumpNow, WAKE } from '@/lib/pump';
 /**
  * 器の開け閉め。左レールはレールの中の印で閉じ、閉じたら**端に何も残さない**。
  * 戻り道はトップバーの左端（右ペインと同じ作法）。
@@ -68,6 +69,7 @@ export function Shell({ children, company = 'あなたの会社' }:
   useEffect(() => { chatRef.current = chat; });
   const [find, setFind] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const here = usePathname();
 
   // ⌘K / Ctrl+K はどの画面でも効く
   useEffect(() => {
@@ -113,7 +115,7 @@ export function Shell({ children, company = 'あなたの会社' }:
    * その日は静かになる（ポンプ自身が黙るので、ここでは何も判断しない）。
    */
   useEffect(() => {
-    let on = true, timer = 0;
+    let on = true, timer = 0, busy = false;
     /**
      * **動いているときは3秒、静かなときは15秒。**
      * 何も起きていない会社を3秒ごとに叩き続けると、開いている画面ぶんだけ
@@ -123,15 +125,33 @@ export function Shell({ children, company = 'あなたの会社' }:
     const tick = async () => {
       let wait = 15000;
       if (!document.hidden) {
-        try { wait = (await pumpCompany()).ran ? 3000 : 15000; } catch { /* 次の回でまた来る */ }
+        busy = true;
+        /**
+         * **サーバーアクションでは呼ばない**（2026-08-26 → `app/api/pump/route.ts`）。
+         * アクションは同じ画面のぶんが順番待ちになるので、
+         * 走っているあいだ `getWork` も `homeData` も後ろで待たされて、
+         * **動いているのに画面が固まる**。道筋なら並んで通る。
+         */
+        wait = (await pumpNow()) ? 3000 : 15000;
+        busy = false;
       } else {
         wait = 3000; // 裏タブは何もしていないので、表に戻ったらすぐ動けるように短く待つ
       }
       if (on) timer = window.setTimeout(tick, wait);
     };
+    /**
+     * **社長が押した直後は、静かなときの15秒を待たない**（2026-08-26）。
+     * 承認してから最初のタスクが動き出すまで、実測で**14秒**なにも起きなかった —
+     * 押した本人には壊れているのと見分けがつかない。
+     * 起こすのは**この1本のポンプ**で、2つ目は立てない（→ `lib/pump.ts`）。
+     */
+    const wake = () => { if (!on || busy) return; window.clearTimeout(timer); void tick(); };
+    window.addEventListener(WAKE, wake);
     void tick();
-    return () => { on = false; window.clearTimeout(timer); };
-  }, []);
+    return () => { on = false; window.clearTimeout(timer); window.removeEventListener(WAKE, wake); };
+    // **画面が変わったら起こし直す。** 承認や採用のあとはたいてい画面が移るので、
+    // ここだけで「押したのに何も起きない15秒」の大半が消える
+  }, [here]);
 
   /**
    * **器の口は識別を変えない。** ここは全画面が読む context なので、

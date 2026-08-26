@@ -14,6 +14,7 @@ import { AMBER_T, BLUE, COMPOSER_H, DIM, FAINT, GREEN, GREEN_T, HAIR, MUTE, RAIL
 import { fromLive, type WorkView } from '@/lib/exec/work-view';
 import { getWork } from '@/app/actions/work';
 import { approvePhase, decide, holdWork, taskDecision, taskSteps } from '@/app/actions/run';
+import { wakePump } from '@/lib/pump';
 import type { LiveDecision } from '@/lib/store';
 import { DelActions } from '@/components/live/DelActions';
 import { DelBody } from '@/components/live/DelBody';
@@ -83,6 +84,7 @@ function PhaseGate({ name, unseen, workId, onDone }:
   const go = async () => {
     setBusy(true); setErr('');
     const r = await approvePhase(workId);
+    wakePump(); // 次のフェーズのタスクが積まれた — 15秒待たせない
     setBusy(false);
     if (!r.ok) { setErr(r.message ?? ''); return; }
     onDone();
@@ -120,6 +122,7 @@ function DecisionPane({ taskId, onDone }: { taskId: string; onDone: () => void }
   const pick = async (label: string) => {
     setBusy(true);
     await decide(dec.id, label);
+    wakePump(); // 待っていたタスクが queued に戻った
     setBusy(false); onDone();
   };
   return (
@@ -482,6 +485,7 @@ export default function WorkPage() {
                   onPick={async (next: boolean) => {
                     setW({ ...w, paused: !next });   // 先に画面を変えて、裏で書く
                     const r = await holdWork(w0id, !next);
+                    wakePump(); // 動かし直したなら、その場で動き出す
                     if (!r.ok) say5(r.message ?? '変えられませんでした');
                     getWork(id).then((x) => x && setW(fromLive(x)));
                   }} />

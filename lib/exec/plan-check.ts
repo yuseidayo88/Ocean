@@ -1,3 +1,4 @@
+import { ROSTER } from '@/lib/roster';
 import type { Plan } from './types';
 
 /**
@@ -18,6 +19,26 @@ export type PlanDiag = { rule: string; say: string; fatal: boolean };
 
 /** 社長が渡している条件のうち、計画が守るべきもの */
 export type PlanLimits = { hoursPerWeek?: number | null; deadline?: string | null };
+
+/**
+ * **他人が動くのを待つフェーズ**の言葉（2026-08-26。社長の
+ * 「受注が来てから制作っていうようにしたくない」）。
+ *
+ * これは好みの話ではありません。**フェーズは全タスクが done になって初めて閉じる**ので、
+ * AI社員に終わらせられないフェーズを置くと、そこで会社が止まります
+ * （あるいはAIが中身の無い成果物を書いて誤魔化す）。
+ * 受注・問い合わせ・応募は**他人が動くこと**で、名簿の7人の誰にも回せません。
+ *
+ * 正しい形は「**自分で作れるものを先に作って、公開して、そこから来る**」。
+ * 待つことは、フェーズとフェーズのあいだに起きることであって、フェーズではない。
+ */
+const WAITING = [
+  // **AI社員には作れない出来事そのもの**（誰かがこちらに向かって動いて初めて起きる）
+  /受注|成約|商談|反響/,
+  // **「◯◯が」＝それが来るのを待っている形**。「申し込みの導線を作る」は待っていないので当たらない
+  /(問い合わせ|問合せ|応募|申し込み|申込|契約|返信|予約|来訪)が/,
+];
+const waiting = (s: string) => WAITING.some((re) => re.test(s));
 
 export function checkPlan(plan: Plan, limits: PlanLimits = {}): PlanDiag[] {
   const d: PlanDiag[] = [];
@@ -57,6 +78,37 @@ export function checkPlan(plan: Plan, limits: PlanLimits = {}): PlanDiag[] {
   if (!plan.why.length) {
     d.push({ rule: 'why', fatal: true,
       say: 'なぜこの順番なのかが書かれていません。社長はそれを読んで承認するかを決めます' });
+  }
+
+  /**
+   * **全フェーズに、名簿の担当が付いていること**（2026-08-26）。
+   * これが通ると、副作用で「AI社員に終わらせられないフェーズ」も置けなくなる —
+   * 受注を回せる人は名簿にいないから。
+   */
+  const roster = new Set(ROSTER.map((r) => r.name));
+  for (const p of plan.phases) {
+    if (!p.owner) {
+      d.push({ rule: 'phase-owner', fatal: true,
+        say: `フェーズ「${p.name}」に担当がいません。名簿の「◯◯担当」から選んでください（誰にも回せないなら、それはフェーズにできません）` });
+    } else if (!roster.has(p.owner)) {
+      d.push({ rule: 'phase-owner', fatal: true,
+        say: `フェーズ「${p.name}」の担当が「${p.owner}」ですが、この会社にその人はいません。名簿の名前で書いてください` });
+    }
+  }
+
+  /**
+   * **他人が動くのを待つフェーズを置かない。**
+   * 言葉で見つけるので取りこぼしはあるが、いちばん多い形はここで止まる。
+   */
+  for (const p of plan.phases) {
+    if (waiting(p.name) || waiting(p.goal)) {
+      d.push({ rule: 'waiting', fatal: true,
+        say: `フェーズ「${p.name}」は、他人が動かないと終わりません（${p.goal}）。`
+          + 'AI社員には終わらせられないので、そこで会社が止まります。'
+          + '**自分で作れるものに置き換えてください** — '
+          + 'たとえば「受注」ではなく「見せられるものを作って公開する」「営業の材料と導線を用意する」。'
+          + '受注や問い合わせは、フェーズが終わったあとに**そこから来るもの**です' });
+    }
   }
 
   /* ── 守れていない（直させるが、通らなくても出す） ── */

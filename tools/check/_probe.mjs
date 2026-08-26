@@ -21,11 +21,15 @@ const probe = `(() => {
     if (cs.textOverflow === 'ellipsis' && el.scrollWidth > el.clientWidth + 1 && el.clientWidth
         && !el.classList.contains('clip'))
       out.ell.push({ tag: name(el), full: (el.textContent||'').trim().slice(0,60), lost: el.scrollWidth - el.clientWidth });
-    // 横スクロールしないと見えない
-    if ((cs.overflowX === 'auto' || cs.overflowX === 'scroll') && el.scrollWidth > el.clientWidth + 2)
+    // 横スクロールしないと見えない。
+    // .sx は「横に送る」と自分で名乗っている器（オフィスの社員の列・デスクのレーン）。
+    // 送れば読めるものを欠陥として数えると、社員がひとり増えるたびに検査が赤くなる。
+    // .clip（切れていて正しい）と同じ、設計側の宣言として扱う
+    if ((cs.overflowX === 'auto' || cs.overflowX === 'scroll') && el.scrollWidth > el.clientWidth + 2
+        && !el.classList.contains('sx'))
       out.scrollx.push({ tag: name(el), by: el.scrollWidth - el.clientWidth });
-    // 画面の外
-    if (!el.children.length) {
+    // 画面の外。.sx の中は数えない（上と同じ理由。送れば見える）
+    if (!el.children.length && !el.closest('.sx')) {
       const t = (el.textContent||'').trim();
       if (t) {
         out.text.push(t.slice(0, 50));

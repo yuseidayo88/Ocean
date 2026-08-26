@@ -102,14 +102,31 @@ export async function pumpWork(workId: string): Promise<PumpResult> {
      * 社長が最後の成果物を承認した瞬間が「進んでいい」の合図なので、
      * ここで見ないと、承認したのに次のフェーズが始まらない。
      */
-    if (!next) { await gate(s, workId); return { ran: false, why: 'idle' }; }
+    if (!next.length) { await gate(s, workId); return { ran: false, why: 'idle' }; }
 
     const stop = await allowed(s, workId);
     if (stop) return { ran: false, why: stop };
 
-    const outcome = await runTask(work, next.taskId);
+    /**
+     * **起こせる人は全員起こす**（2026-08-26。社長の「他のAIが全員動き出す」）。
+     *
+     * 前は1件ずつだったので、4人採用しても動くのは常に1人だった。
+     * 取り合いは `startRun` の atomic な置き換えが捌く — 2つのポンプが
+     * 同じタスクを拾っても、走るのは片方だけ（もう片方は conflict）。
+     *
+     * **`allSettled` にする。** 1本の失敗でほかの結果まで捨てない。
+     * 1日の上限はこの束の前に1度だけ測るので、**1ティックぶんは超えうる** —
+     * 上限は「その日はここまで」の線であって、1トークン単位の栓ではない。
+     */
+    const done = await Promise.allSettled(next.map((t) => runTask(work, t.taskId)));
     await gate(s, workId);
-    return { ran: true, taskId: next.taskId, outcome };
+    const first = done.find((r) => r.status === 'fulfilled');
+    return {
+      ran: true, taskId: next[0].taskId,
+      outcome: first?.status === 'fulfilled'
+        ? first.value
+        : { ok: false, error: '実行が止まりました' },
+    };
   } catch (e) {
     // 取り合いに負けただけなら何も起きていない（もう一方のポンプが走らせている）
     if (e instanceof AppError && e.kind === 'conflict') return { ran: false, why: 'idle' };
@@ -120,9 +137,9 @@ export async function pumpWork(workId: string): Promise<PumpResult> {
 /**
  * **会社ぜんぶを1つ進める。** 器（Shell）がどの画面からでも呼ぶ。
  *
- * 動いている Work を古い順に見て、**起こせるものを1つだけ**起こす。
- * まとめて走らせない — 1往復ぶんずつ進めば、上限に当たる場所が必ず1か所になるし、
- * 途中でサーバーが入れ替わっても取りこぼしが1件で済む。
+ * 動いている Work を古い順に見て、**起こせる人を全員**起こす（2026-08-26）。
+ * Work は古い順に1つずつ見る — 1つの Work の中は並列だが、
+ * **Work をまたいで一度に走らせはしない**（上限に当たる場所を散らさない）。
  */
 export async function pumpCompany(): Promise<PumpResult> {
   try {

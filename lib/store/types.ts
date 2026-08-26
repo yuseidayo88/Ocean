@@ -199,8 +199,20 @@ export interface Store {
   addNotification(n: { kind: string; body: string; subjectType?: string; subjectId?: string }): Promise<void>;
   /** タスクの歩み（右ペインが読む） */
   getSteps(taskId: string): Promise<RunStep[]>;
-  /** 次に走らせる queued のタスク。無ければ null。running が居るあいだも null */
-  nextQueued(workId: string): Promise<{ taskId: string } | null>;
+  /**
+   * **いま起こせる queued のタスクを、ぜんぶ**（2026-08-26。社長の
+   * 「他のAIが全員動き出すみたいなかんじ」）。
+   *
+   * 前は1件だけ返し、しかも**走っているタスクが1つでもあれば null** だった —
+   * 4人採用しても、動くのは常に1人。オフィスの絵に4人いるのに1人しか働いていなかった。
+   *
+   * いまは**走っている人のぶんだけ飛ばして、残りを全部返す**。
+   * 取り合いは `startRun` の atomic な置き換えが捌くので、
+   * 2つのポンプが同じタスクを拾っても、走るのは片方だけ。
+   *
+   * 飛ばすのは2つ — **止めた社員**（`agent_prefs.paused`）と、**担当のいないタスク**。
+   */
+  nextQueued(workId: string): Promise<{ taskId: string }[]>;
   /**
    * 社長の判断で止まる（失敗ではない）。task→needs_decision、
    * decisions に open の1行、判断待ちの通知（Phase 9 で答える側を作る）
@@ -261,7 +273,17 @@ export interface Store {
    * review のフェーズを閉じて次へ。次のフェーズを active にし、渡されたタスクを積む。
    * 次が無ければ Work を done にする。返り値は次のフェーズ名（無ければ null）
    */
-  advancePhase(workId: string, nextTasks: { title: string; intent: string; ownerHint?: string }[]): Promise<string | null>;
+  advancePhase(workId: string, nextTasks: {
+    title: string; intent: string; ownerHint?: string;
+    /**
+     * **そのタスクを始める前に、社長に決めてもらうこと**（2026-08-26。社長の
+     * 「わからない部分は統括AIがユーザーに質問投げて他のAIが全員動き出す」）。
+     *
+     * あれば、そのタスクだけ `needs_decision` で待つ（判断待ちの通知が立つ）。
+     * **ほかのタスクは動き出す** — 決まらないと進めないものだけが待つ。
+     */
+    ask?: { question: string; why: string; options: unknown[] };
+  }[]): Promise<string | null>;
 
   /* ══════════════ 社員（Phase 10）══════════════ */
 

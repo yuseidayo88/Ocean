@@ -175,13 +175,34 @@ export async function draftWork(goal: string, ctx = ''): Promise<RunResult> {
    * 画面がその場で嘘をつく。だから控えに入る前に直す。
    */
   const hires = toHires(got.get('propose_hires')?.hires as Record<string, string>[] | undefined);
-  const crew = crewFor(hires, plan.firstPhaseTasks.map((t) => t.ownerHint));
+  /**
+   * **最初に全員そろえる**（2026-08-26。社長の「まず必要な社員全員採用して」）。
+   *
+   * 前は最初のフェーズのタスクの担当しか見ていなかったので、
+   * あとのフェーズの人は `advancePhase` になってから採られていた —
+   * 画面には「担当は未定」と出て、会社が後から組み上がるように見えた。
+   * **フェーズの担当も一緒に渡す**ので、承認したその場で全員そろう。
+   */
+  const crew = crewFor(hires, [
+    ...plan.firstPhaseTasks.map((t) => t.ownerHint),
+    ...plan.phases.map((ph) => ph.owner),
+  ]);
   const byName = new Map(crew.map((c) => [c.displayName, c]));
+  /**
+   * **名簿に無い名前は、そのフェーズを回す人に寄せる。**
+   * 最初のフェーズのタスクは最初のフェーズのものなので、行き先はその担当。
+   * 先頭の社員に落とすと、フェーズの担当がいるのに別の人が引き受けることになる。
+   */
+  const lead = (() => {
+    const o = plan.phases[0]?.owner;
+    return (o && byName.has(o) ? o : crew[0]?.displayName) ?? '';
+  })();
+  const toCrew = (name: string) => (byName.has(name) ? name : lead) || name;
   plan = {
     ...plan,
-    firstPhaseTasks: plan.firstPhaseTasks.map((t) => ({
-      ...t, ownerHint: (byName.has(t.ownerHint) ? t.ownerHint : crew[0]?.displayName) ?? t.ownerHint,
-    })),
+    // **名簿に無い名前は、控えに入る前に寄せる**（画面がその場で嘘をつかない）
+    phases: plan.phases.map((ph) => ({ ...ph, owner: ph.owner ? toCrew(ph.owner) : '' })),
+    firstPhaseTasks: plan.firstPhaseTasks.map((t) => ({ ...t, ownerHint: toCrew(t.ownerHint) })),
   };
 
   return { real, draft: {
@@ -260,7 +281,11 @@ const toPlan = (r?: Record<string, unknown>): Plan => ({
   weeks: Number(r?.weeks ?? 0),
   // **名前の無いフェーズを通さない。** 通すと「まず「」から —。」になる
   phases: ((r?.phases as Record<string, unknown>[]) ?? [])
-    .map((x) => ({ name: String(x?.name ?? ''), goal: String(x?.goal ?? ''), weeks: Number(x?.weeks ?? 0) }))
+    .map((x) => ({
+      name: String(x?.name ?? ''), goal: String(x?.goal ?? ''), weeks: Number(x?.weeks ?? 0),
+      // 古い控えには担当が無い。**空のまま持つ** — 画面が「担当は未定」と正直に出す
+      owner: String(x?.owner ?? ''),
+    }))
     .filter((x) => x.name),
   gates: ((r?.gates as Record<string, string>[]) ?? []).map((g) => ({
     afterPhase: g.after_phase, question: g.question,

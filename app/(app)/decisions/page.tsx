@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { Centre, Composer, TopBar } from '@/components/shell/Chrome';
 import { Dot, Icon } from '@/components/ui/Icon';
 import { decide, listDecisions } from '@/app/actions/run';
+import { wakePump } from '@/lib/pump';
 import type { LiveDecision } from '@/lib/store';
 import { AMBER, AMBER_T, COMPOSER_H, GREEN, GREEN_T, HAIR, SEAM, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
 /**
@@ -60,7 +61,7 @@ export default function DecisionsPage() {
   const [live, setLive] = useState<LiveDecision[] | null>(null);
   const reload = () => { listDecisions().then(setLive); };
   useEffect(reload, []);
-  const onDecide = async (id: string, label: string) => { await decide(id, label); reload(); };
+  const onDecide = async (id: string, label: string) => { await decide(id, label); wakePump(); reload(); };
 
   const all = live ?? [];
   const gates = all.filter((d) => d.status === 'open').length;

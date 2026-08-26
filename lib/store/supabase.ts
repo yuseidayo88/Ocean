@@ -431,7 +431,10 @@ export const supabaseStore: Store = {
     const { data: tk } = await c.from('tasks')
       .select('id, status, seq, assignee_employee_id')
       .eq('work_id', workId).in('status', ['queued', 'running']).order('seq');
-    if (!tk?.length || tk.some((t) => t.status === 'running')) return null;
+    if (!tk?.length) return [];
+    // **いま走っている人は飛ばす。** 同じ社員に2本同時にやらせない
+    const busy = new Set(tk.filter((t) => t.status === 'running')
+      .map((t) => t.assignee_employee_id as string).filter(Boolean));
     /**
      * **止めた社員のタスクは起こさない。** ふだんは0行しか返らない
      * （設定は1人1行しかない小さな表）。
@@ -445,8 +448,21 @@ export const supabaseStore: Store = {
      * （本番の最初の Work が実際にそうなった）。承認とフェーズ送りが必ず担当を埋めるので、
      * ここは最後の砦。
      */
-    const next = tk.find((t) => t.assignee_employee_id && !stopped.has(t.assignee_employee_id as string));
-    return next ? { taskId: next.id as string } : null;
+    /**
+     * **束の中でも1人1本。** 走っている人を飛ばすだけでは足りない —
+     * 何も走っていないところへ、同じ担当のタスクが2本 queued で並んでいると、
+     * 両方まとめて起こしてしまう（`startRun` はタスクごとに atomic なので止まらない）。
+     */
+    const taken = new Set(busy);
+    const out: { taskId: string }[] = [];
+    for (const t of tk) {
+      const who = t.assignee_employee_id as string | null;
+      if (t.status !== 'queued' || !who) continue;
+      if (stopped.has(who) || taken.has(who)) continue;
+      taken.add(who);
+      out.push({ taskId: t.id as string });
+    }
+    return out;
   },
 
   async reclaimStalled(workId) {
@@ -720,7 +736,7 @@ export const supabaseStore: Store = {
        * フェーズ2以降に「誰も実行できないタスク」ができる道が残っていた。
        */
       const fallback = (em ?? [])[0]?.id as string | undefined;
-      const { error } = await c.from('tasks').insert(nextTasks.map((t) => {
+      const { data: made, error } = await c.from('tasks').insert(nextTasks.map((t) => {
         const who = (t.ownerHint ? byName.get(t.ownerHint) : undefined) ?? fallback;
         return {
           work_id: workId, phase_id: next.id, seq: ++seq, title: t.title, intent: t.intent,
@@ -728,8 +744,19 @@ export const supabaseStore: Store = {
           assignee_type: who ? 'employee' : 'user', assignee_employee_id: who ?? null,
           owner_hint: t.ownerHint ?? null,
         };
-      }));
+      })).select('id, title');
       if (error) throw new AppError('unknown', error.message);
+      /**
+       * **統括AIが「これは社長にしか決められない」と言ったタスクは、そこで待つ**（2026-08-26）。
+       * `markDecision` はもうある仕掛け（AI社員が実行中に詰まったときと同じ道）。
+       * **ほかのタスクは queued のまま**なので、待つのはこの1本だけ。
+       */
+      for (const [i, t] of nextTasks.entries()) {
+        if (!t.ask) continue;
+        const id = made?.find((m) => m.title === t.title)?.id as string | undefined
+          ?? made?.[i]?.id as string | undefined;
+        if (id) await supabaseStore.markDecision(id, t.ask).catch(() => {});
+      }
     }
     return next.name as string;
   },
