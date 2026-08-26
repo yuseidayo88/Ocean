@@ -60,6 +60,27 @@ ok('確認を押すまで Work は作られない',
 await send('Page.navigate', { url: chatUrl }); await wait(2200);
 await ev(`[...document.querySelectorAll('button')].find(b => b.innerText === 'この Work を作る')?.click()`);
 await until((b) => b.includes('承認して始める'), 20, 800);
+
+/**
+ * **計画には理由が付いている**（2026-08-26）。
+ * それまで右ペインの「なぜこの順番か」は**どの Work でも同じ決まり文句**で、
+ * 社長は根拠ゼロのロードマップを承認していた。
+ */
+await ev(`document.querySelector('button[title="右を開く"]')?.click()`);
+const plan = await until((b) => b.includes('なぜこの順番か'), 12, 500);
+ok('計画に、この Work に固有の理由が付いている',
+   plan.includes('調査を先に置きます'), plan.match(/なぜこの順番か[\s\S]{0,60}/)?.[0] ?? plan.slice(0, 90));
+ok('前提にしていることが出る（確かめていないことを正直に）',
+   plan.includes('前提にしていること') && plan.includes('売り方'), plan.slice(0, 90));
+ok('見送った案が出る', plan.includes('見送った案'), plan.slice(0, 90));
+/**
+ * **辻褄の合わない計画は、社長に見せる前に引き直される。**
+ * 決め打ちの1回目はフェーズを足すと12週で、全体の10週と食い違う（わざと）。
+ * `checkPlan` がそれを見つけて1回だけ直させるので、画面に出るのは 4週 のほう。
+ */
+ok('週数の合わない計画は引き直されている（プロダクト 6週 → 4週）',
+   !/プロダクト[\s\S]{0,40}6週/.test(plan), plan.match(/プロダクト[\s\S]{0,40}/)?.[0] ?? '');
+
 await ev(`[...document.querySelectorAll('button')].find(b => b.textContent.includes('承認して始める'))?.click()`);
 await wait(3500);
 ok('承認して Work に着いた', /\/work\/[^/]+$/.test(await ev('location.pathname')), await ev('location.pathname'));

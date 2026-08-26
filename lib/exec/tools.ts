@@ -147,7 +147,9 @@ export const draftPlan: ToolDef = {
     'ロードマップを引く。フェーズは最後まで並べるが、**タスクは最初のフェーズぶんだけ**書く。'
     + '判断の関門（gates）は、それが決まらないと先へ進めない場所に置く。'
     + '**数は決めない** — 要るなら要るだけ、無いなら0。'
-    + '**置かなかったところは会社が自分で進む**ので、「一応」で増やさない。',
+    + '**置かなかったところは会社が自分で進む**ので、「一応」で増やさない。'
+    + '**why と assumes を必ず書く** — 社長は根拠を読んで承認するかどうかを決める。'
+    + '理由の無い計画は、良し悪しを判断できない。',
   input_schema: {
     type: 'object',
     properties: {
@@ -201,8 +203,49 @@ export const draftPlan: ToolDef = {
           required: ['name', 'phase'],
         },
       },
+
+      /* ══ ここから下は「なぜこの計画なのか」。**社長が承認を判断する材料** ══
+       * 2026-08-26 に足した。それまで計画には理由が1行も付いておらず、
+       * 画面には**どの Work でも同じ決まり文句**が出ていた（→ `lib/exec/view.ts`）。
+       * ロードマップは、根拠が読めて初めて良し悪しが分かる。 */
+      why: {
+        type: 'array',
+        description:
+          '**なぜこの順番なのか。** 2〜4行。1行ずつ、この計画に固有のことを書く。'
+          + '「直近のフェーズだけタスクを引きます」のような**仕組みの説明は書かない**'
+          + '（それは画面がもう言っている）。'
+          + '書くのは「なぜ調査が先か」「なぜ価格を決める前に競合を見るか」のような、'
+          + '**この目的だからこうした**という中身。',
+        items: { type: 'string' },
+      },
+      assumes: {
+        type: 'array',
+        description:
+          '**前提にしていること。** これが違うなら計画ごと変わる、というものだけ。0〜4件。'
+          + '社長が「それは違う」と言えるように、**確かめていないことを正直に**書く。',
+        items: {
+          type: 'object',
+          properties: {
+            label: { type: 'string', description: '何についての前提か。6〜14文字' },
+            value: { type: 'string', description: '何を前提にしたか。1行' },
+          },
+          required: ['label', 'value'],
+        },
+      },
+      dropped: {
+        type: 'string',
+        description:
+          '**見送った案。** ほかにあり得た進め方と、なぜ採らなかったかを1〜2行。'
+          + '無いなら空文字。**無理に書かない**',
+      },
+      time_note: {
+        type: 'string',
+        description:
+          '**時間の使い方への一言。** 「確かめることに半分を使います」のように、'
+          + '週の配分でいちばん言いたいことを1行。無いなら空文字',
+      },
     },
-    required: ['weeks', 'phases', 'gates', 'first_phase_tasks', 'deliverables'],
+    required: ['weeks', 'phases', 'gates', 'first_phase_tasks', 'deliverables', 'why'],
   },
 };
 

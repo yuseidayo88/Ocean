@@ -47,8 +47,8 @@ export interface TierSpec {
  * （いちばん長い統括AIの計画でも 16,000）ので、平の単価だけを持つ。
  */
 /**
- * **画面に出す名前。** メンバーの行に「いま何で動いているか」を出すために使う。
- * 表のすぐ隣に置く — モデルを変えたら、ここも一緒に変える（画面が嘘をつかない）。
+ * 表のモデルが一覧（`lib/ai/catalog.ts`）に無いときだけ使う名前。
+ * **ふつうは使われない** — 一覧にあれば、そちらの `label` がそのまま出る。
  * ※ 外に出す `/api/health` には出さない（構成を言わない、は変えない）。
  */
 export const MODEL_LABEL = 'GPT-5.6 Luna'
@@ -64,9 +64,18 @@ export const TIER_TABLE: Record<Tier, TierSpec> = {
     vendor: 'openrouter', model: 'openai/gpt-5.6-luna', direct: 'gpt-5.6-luna',
     inPerMTok: 0.2, outPerMTok: 1.2,
   },
-  // むずかしい判断。統括AI（計画・判断・会話）は常にここ
+  /**
+   * むずかしい判断。**統括AIの計画とフェーズ送りはここ**（会話は fast）。
+   *
+   * **2026-08-26 に Luna → Luna Pro に上げた。** ロードマップは
+   * この製品でいちばん大事な出力なのに、5.6 一家でいちばん知能指数の低い
+   * モデル（Luna 52.3）が引いていた。Luna Pro は**同じ素体を
+   * `reasoning.mode = pro` で出したもので、単価はまったく同じ**
+   * （$0.2 / $1.2。2026-08-26 に OpenRouter の一覧で確認）。
+   * **タダで上がるので、断る理由が無かった。**
+   */
   deep: {
-    vendor: 'openrouter', model: 'openai/gpt-5.6-luna', direct: 'gpt-5.6-luna',
+    vendor: 'openrouter', model: 'openai/gpt-5.6-luna-pro', direct: 'gpt-5.6-luna-pro',
     inPerMTok: 0.2, outPerMTok: 1.2,
   },
 }
@@ -132,7 +141,9 @@ export function resolve(tier: Tier, chosen?: string): {
   }
   const table = modelOf(t.model)
   return {
-    name: t.vendor === 'openrouter' ? t.model : t.direct, label: MODEL_LABEL,
+    // **表のモデルの名前をそのまま出す。** ここを1つの定数に固定していたので、
+    // 階層ごとに違うモデルを当てた瞬間に画面が嘘をついた（deep だけ Luna Pro になった日）
+    name: t.vendor === 'openrouter' ? t.model : t.direct, label: table?.label ?? MODEL_LABEL,
     inPerMTok: t.inPerMTok, outPerMTok: t.outPerMTok, known: true, spec: table,
   }
 }

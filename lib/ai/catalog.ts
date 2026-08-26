@@ -83,7 +83,7 @@ export const CATALOG: readonly ModelSpec[] = [
   {
     id: 'anthropic/claude-sonnet-5', direct: 'claude-sonnet-5',
     vendor: 'anthropic', maker: 'Claude', label: 'Claude Sonnet 5',
-    grade: 'standard', efforts: CLAUDE_EFFORTS, inPerMTok: 3, outPerMTok: 15,
+    grade: 'standard', efforts: CLAUDE_EFFORTS, inPerMTok: 2, outPerMTok: 10,
   },
   {
     id: 'anthropic/claude-haiku-4.5', direct: 'claude-haiku-4-5',
@@ -96,17 +96,32 @@ export const CATALOG: readonly ModelSpec[] = [
   {
     id: 'openai/gpt-5.6-sol', direct: 'gpt-5.6-sol',
     vendor: 'openai', maker: 'OpenAI', label: 'GPT-5.6 Sol',
-    grade: 'deep', efforts: GPT_EFFORTS, inPerMTok: 5, outPerMTok: 30,
+    grade: 'deep', efforts: GPT_EFFORTS, inPerMTok: 2, outPerMTok: 10,
   },
   {
     id: 'openai/gpt-5.6-terra', direct: 'gpt-5.6-terra',
     vendor: 'openai', maker: 'OpenAI', label: 'GPT-5.6 Terra',
-    grade: 'standard', efforts: GPT_EFFORTS, inPerMTok: 2.5, outPerMTok: 15,
+    grade: 'standard', efforts: GPT_EFFORTS, inPerMTok: 2, outPerMTok: 12,
   },
   {
     id: 'openai/gpt-5.6-luna', direct: 'gpt-5.6-luna',
     vendor: 'openai', maker: 'OpenAI', label: 'GPT-5.6 Luna',
     grade: 'fast', efforts: GPT_EFFORTS, inPerMTok: 0.2, outPerMTok: 1.2,
+  },
+  /**
+   * **Luna Pro。「Thinking 版を一覧に並べない」の、ただ1つの例外**（2026-08-26）。
+   *
+   * これは深さの設定ではありません。**Luna とまったく同じ素体を、
+   * 別の出し方（`reasoning.mode = pro`）で出したもの**で、深さのつまみからは届きません。
+   * **単価も Luna と同じ**（$0.2 / $1.2。2026-08-26 に一覧で確認）。
+   *
+   * 並べないと社長は一生選べないので、ここだけ例外にしました。
+   * ロードマップを引くのはこれです（`TIER_TABLE.deep`）。
+   */
+  {
+    id: 'openai/gpt-5.6-luna-pro', direct: 'gpt-5.6-luna-pro',
+    vendor: 'openai', maker: 'OpenAI', label: 'GPT-5.6 Luna Pro',
+    grade: 'deep', efforts: GPT_EFFORTS, inPerMTok: 0.2, outPerMTok: 1.2,
   },
 ]
 

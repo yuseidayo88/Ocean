@@ -101,11 +101,21 @@ export function fromDraft(d: DraftWork): PlanView {
         label: o.label, note: o.description ?? '', recommended: o.recommended,
       })),
     })),
-    why: [
-      d.container.reason,
-      `直近の「${rows[0]?.name ?? ''}」だけタスクまで引いています。先のフェーズは名前とねらいだけです。`,
-      '前のフェーズの結果とあなたの判断で、あとから引き直せる形にしてあります。',
-    ],
+    /**
+     * **なぜこの順番か。** 統括AIが書いたものをそのまま出す（2026-08-26）。
+     *
+     * 前はここが**どの Work でも同じ3行**の決まり文句だった
+     * （「直近のフェーズだけタスクを引いています」— それは仕組みの説明で、
+     * 画面がもう言っている）。社長は**根拠がゼロのロードマップを承認していた**。
+     *
+     * 入れ物の判定の理由（`container.reason`）は先頭に残す —
+     * 「なぜ Work にしたか」も、この計画の理由の一部だから。
+     */
+    why: [d.container.reason, ...(d.plan.why ?? [])].filter(Boolean),
+    // 下の3つは**統括AIが言っていないなら節ごと出さない**（画面が空節を描かない）
+    timeNote: d.plan.timeNote,
+    facts: (d.plan.assumes ?? []).map((a) => [a.label, a.value] as [string, string]),
+    dropped: d.plan.dropped,
   };
 }
 

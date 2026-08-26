@@ -3,6 +3,7 @@ import { FakeProvider } from '@/lib/ai/fake';
 import { CONSTITUTION } from './constitution';
 import { PHASE5_TOOLS } from './tools';
 import { checkStop, toOptions, toQuestions } from './parse';
+import { checkPlan, sayPlanDiags } from './plan-check';
 import type { Container, Draft, Hire, Plan } from './types';
 import { AppError } from '@/lib/errors';
 import { crewFor, rosterBlock, slugOf } from '@/lib/roster';
@@ -34,9 +35,37 @@ export function pickProvider(): { p: ModelProvider; real: boolean } {
  * 担当には「商品設計担当」のような**この会社に存在しない名前**が書かれた
  * （→ `lib/roster` の `rosterBlock`）。
  */
-const shape = (goal: string, ctx: string, roster: string): Msg[] => [
-  { role: 'user', content: `${roster}\n\n${ctx}\n\n社長のゴール:\n${goal}\n\n道具を順に呼んでください。文章では答えないでください。` },
+const shape = (goal: string, ctx: string, roster: string, memory: string): Msg[] => [
+  { role: 'user', content: [roster, memory, ctx, `社長のゴール:\n${goal}`,
+    '道具を順に呼んでください。文章では答えないでください。'].filter(Boolean).join('\n\n') },
 ];
+
+/**
+ * **会社がもう知っていること。** 承認済みの成果物（題だけ）と、決めたこと。
+ * 実行の依頼文に載せているものと同じ出どころ（→ `lib/run/worker.ts`）。
+ * 何も無ければ空文字 — **空の見出しを渡さない**。
+ */
+async function memoryBlock(): Promise<string> {
+  const s = store();
+  const [dels, decs] = await Promise.all([
+    s.listDels().catch(() => []),
+    s.listDecisions().catch(() => []),
+  ]);
+  const done = dels.filter((d) => d.state === '承認済').slice(0, 6);
+  const decided = decs.filter((d) => d.status === 'decided' && d.chosen).slice(0, 6);
+  if (!done.length && !decided.length) return '';
+  return [
+    '## この会社がもう知っていること',
+    ...(done.length
+      ? ['承認された成果物（**二度調べ直さない。前提として使う**）:',
+         ...done.map((d) => `- ${d.title}（${d.workTitle}）`)]
+      : []),
+    ...(decided.length
+      ? ['決めたこと（**社長の決定。これに沿う**）:',
+         ...decided.map((d) => `- ${d.question} → ${d.chosen}`)]
+      : []),
+  ].join('\n');
+}
 
 export type RunResult = { draft: Draft; real: boolean };
 
@@ -47,6 +76,14 @@ export async function draftWork(goal: string, ctx = ''): Promise<RunResult> {
   // いま誰がいるか。**もう居る人をもう一度採らせない**ために渡す
   const roster = rosterBlock((await store().listEmployees().catch(() => []))
     .map((e) => ({ slug: slugOf(e.definitionId), name: e.name })));
+  /**
+   * **会社がもう知っていること**（2026-08-26）。
+   *
+   * AI社員の実行には渡していたのに、**計画には渡していなかった** —
+   * だから3本目の Work でも、1本目で何が分かったかを知らずに引いていた。
+   * 承認済みの成果物と決めたことは、そのまま新しい計画の前提になる。
+   */
+  const memory = await memoryBlock();
   const got = new Map<string, Record<string, unknown>>();
   let stop: string | null = null;
 
@@ -54,7 +91,7 @@ export async function draftWork(goal: string, ctx = ''): Promise<RunResult> {
     tier: 'deep',
     model: pref.model,
     system: CONSTITUTION,
-    messages: shape(goal, ctx, roster),
+    messages: shape(goal, ctx, roster, memory),
     tools: PHASE5_TOOLS,
     /**
      * 道具を5つ、1往復で全部書かせる。**4,000 では足りない。**
@@ -111,6 +148,25 @@ export async function draftWork(goal: string, ctx = ''): Promise<RunResult> {
   }
 
   /**
+   * **引いた計画を、機械で読み返す**（2026-08-26。→ `lib/exec/plan-check.ts`）。
+   *
+   * 憲法には「着かない計画は、引き直します」と書いてあるのに、
+   * 引き直させる仕掛けがなかった。図（`draw_workflow`）には
+   * validate → 描き直しがあるので、**同じ作法を計画にも当てる**。
+   *
+   * 辻褄が合わないところ（関門の行き先が無い・週数が合わない・理由が空…）を
+   * **指したところだけ**渡して、**1回だけ**引き直させる。
+   * それでも合わなければ、**直ったところだけ受け取って**社長に出す —
+   * 引き直しは deep の1往復なので、何度も払わない。
+   */
+  const diags = checkPlan(plan);
+  if (diags.length) {
+    const again = await drawPlan(p, goal, ctx, container, pref, sayPlanDiags(diags), plan);
+    // **元より悪くしない。** 引き直しが空で返ったら、元の計画を使う
+    if (again.phases.length && again.firstPhaseTasks.length) plan = again;
+  }
+
+  /**
    * **担当の名前を、ここで名簿に寄せる。**
    *
    * 名簿をプロンプトに載せても、たまに「商品設計担当」のような
@@ -143,9 +199,13 @@ export async function draftWork(goal: string, ctx = ''): Promise<RunResult> {
   } };
 }
 
-/** 計画だけをもう一度。**道具は1つ、必ず使わせる** */
+/**
+ * 計画だけをもう一度。**道具は1つ、必ず使わせる**。
+ * `fix` があれば「ここを直して」の頼み直し（前の計画も一緒に渡す）。
+ */
 async function drawPlan(
   p: ModelProvider, goal: string, ctx: string, c: Container, pref: Pref,
+  fix?: string, prev?: Plan,
 ): Promise<Plan> {
   const got = new Map<string, Record<string, unknown>>();
   for await (const ch of p.stream({
@@ -157,10 +217,14 @@ async function drawPlan(
       content: [
         ctx, '', `社長のゴール:\n${goal}`, '',
         `決まっている入れ物: ${c.title}（${c.goal}／およそ${c.weeks}週）`, '',
-        '**この Work の計画を draft_plan で書いてください。**',
-        'フェーズは3〜5個、それぞれ名前・ねらい・週数。',
-        '**直近のフェーズのタスクは必ず2件以上**（first_phase_tasks）。',
-        '社長に聞く関門（gates）は、**社長でないと決められないところにだけ**。数は決めない（0でもよい）。',
+        ...(prev ? ['さっき引いてもらった計画:', JSON.stringify(prev), ''] : []),
+        fix ?? [
+          '**この Work の計画を draft_plan で書いてください。**',
+          'フェーズは3〜5個、それぞれ名前・ねらい・週数。',
+          '**直近のフェーズのタスクは必ず2件以上**（first_phase_tasks）。',
+          '社長に聞く関門（gates）は、**社長でないと決められないところにだけ**。数は決めない（0でもよい）。',
+          '**なぜこの順番か（why）と、前提にしていること（assumes）を必ず書いてください。**',
+        ].join('\n'),
         '文章では答えないでください。',
       ].filter(Boolean).join('\n'),
     }],
@@ -213,4 +277,14 @@ const toPlan = (r?: Record<string, unknown>): Plan => ({
       ? { name: m }
       : { name: String(m?.name ?? ''), phase: m?.phase ? String(m.phase) : undefined }))
     .filter((m) => m.name),
+  /**
+   * **なぜこの計画なのか**（2026-08-26）。古い控えには無いので、無ければ空。
+   * 空のまま画面に出す — **統括AIが言っていないことを、こちらで書き足さない**。
+   */
+  why: ((r?.why as string[]) ?? []).map((x) => String(x ?? '').trim()).filter(Boolean).slice(0, 5),
+  assumes: ((r?.assumes as Record<string, unknown>[]) ?? [])
+    .map((a) => ({ label: String(a?.label ?? '').trim(), value: String(a?.value ?? '').trim() }))
+    .filter((a) => a.label && a.value).slice(0, 5),
+  dropped: String(r?.dropped ?? '').trim() || undefined,
+  timeNote: String(r?.time_note ?? '').trim() || undefined,
 });

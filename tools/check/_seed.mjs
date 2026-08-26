@@ -28,6 +28,8 @@ for (const goal of GOALS) {
   await until((b) => b.includes('この Work を作る') || b.includes('計画を見る'), 30);
   await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('この Work を作る'))?.click()`);
   await until((b) => b.includes('承認して始める'), 40);
+  // `SEED_STOP=plan` なら承認せずに計画のところで止める（目で見るため）
+  if (process.env.SEED_STOP === 'plan') { console.log('plan:', await ev('location.href')); continue; }
   await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('承認して始める'))?.click()`);
   await until((b) => b.includes('フェーズ'), 30);
   console.log('seeded:', goal);

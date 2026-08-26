@@ -103,7 +103,8 @@ export default function PlanPage() {
   const PW = v.weeks || 1;
   const ROWS = v.rows;
   // 根拠のペインが読む値は先に取る（JSX の中では narrowing が効かない）
-  const FACTS = v.facts;
+  // **1件も無ければ節ごと出さない**（空の見出しを置かない）
+  const FACTS = v.facts?.length ? v.facts : undefined;
   /**
    * いま出す質問。既定は**答え終わっていない最初のもの**
    * （‹ › で行き来できるので、答えたものにも戻れる）。全部答えたら出さない。

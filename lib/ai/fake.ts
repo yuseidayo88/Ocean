@@ -78,6 +78,15 @@ export class FakeProvider implements ModelProvider {
         yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
         return;
       }
+      /**
+       * **計画の引き直し**（`lib/exec/run.ts` の `drawPlan`）。
+       * 1回目はわざと辻褄を壊してあるので、ここで**指されたところだけ**直す。
+       */
+      if (only === 'draft_plan') {
+        yield tool('draft_plan', plan(goal, fixing(input)));
+        yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
+        return;
+      }
     }
 
     // ══ チャット（道具を全部持っている）══ 先に見る
@@ -108,7 +117,7 @@ export class FakeProvider implements ModelProvider {
       yield tool('propose_hires', { hires: hires(goal) });
     }
     if (want.has('draft_plan')) {
-      yield tool('draft_plan', plan(goal));
+      yield tool('draft_plan', plan(goal, fixing(input)));
     }
     yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
   }
@@ -342,7 +351,14 @@ function hires(goal: string) {
   ];
 }
 
-function plan(goal: string) {
+/**
+ * **辻褄を直してほしい、と頼まれている往復か**（`lib/exec/plan-check.ts`）。
+ * 図の描き直しと同じ見分け方 — 依頼文にその1行が入っている。
+ */
+const fixing = (i: RunInput) =>
+  i.messages.some((m) => m.content.includes('辻褄の合わないところがありました'));
+
+function plan(goal: string, fixed = false) {
   if (SHORT_ONE.test(goal)) {
     return {
       weeks: 1,
@@ -350,7 +366,21 @@ function plan(goal: string) {
         { name: '案出し', goal: '方向の違う案が3つ並んでいる', weeks: 0.5 },
         { name: '仕上げ', goal: '選んだ案が使える形になっている', weeks: 0.5 },
       ],
-      gates: [{ after_phase: '案出し', question: 'どの案で進めるか' }],
+      /**
+       * **1回目はわざと辻褄を壊す**（2026-08-26）。関門の行き先が実在しないフェーズを指す。
+       * 本物のモデルも、フェーズ名を書き写すときにこれをやる。
+       * 行儀よく書くと、`checkPlan` → 引き直しが動いているか**永久に分からない**。
+       */
+      gates: [{ after_phase: fixed ? '案出し' : '下ごしらえ', question: 'どの案で進めるか' }],
+      why: fixed
+        ? ['見た目より先に方向を決めます。方向が変わると、仕上げたものは作り直しになるからです。',
+           '案は3つに絞ります。2つでは比べられず、5つでは選べません。']
+        : [],
+      assumes: fixed
+        ? [{ label: '使う場面', value: '画面と紙の両方で使う前提にしています' }]
+        : [],
+      dropped: fixed ? '先に1案だけ作り込む道は見送りました。合わなかったときに戻れません。' : '',
+      time_note: fixed ? '半分を案出しに使います。仕上げは選んでからのほうが速いからです。' : '',
       /**
        * **本番で起きたことを、そのまま再現する**（2026-08-25）。
        * 実キーのモデルは `hires: []` を返し、担当には
@@ -370,10 +400,17 @@ function plan(goal: string) {
   }
   return {
     weeks: 10,
+    /**
+     * **1回目はわざと週数を合わせない**（2026-08-26）。
+     * プロダクトを6週にすると足して12週で、全体の10週と食い違う。
+     * 本物のモデルもここをよく外す（フェーズごとに書いたあと、合計を数え直さない）。
+     * `checkPlan` がそれを見つけて、**指したところだけ**直させる。
+     * 行儀よく書くと、引き直しが動いているか永久に分からない。
+     */
     phases: [
       { name: '調査', goal: '市場・競合・対象が確かめられている', weeks: 2 },
       { name: '戦略', goal: '収益モデルと価格が決まっている', weeks: 2 },
-      { name: 'プロダクト', goal: 'いちばん小さい形が動いている', weeks: 4 },
+      { name: 'プロダクト', goal: 'いちばん小さい形が動いている', weeks: fixed ? 4 : 6 },
       { name: 'ローンチ', goal: '最初の利用者が来ている', weeks: 2 },
     ],
     gates: [
@@ -393,6 +430,18 @@ function plan(goal: string) {
       { name: '価格表', phase: '戦略' },
       { name: 'MVPの要件', phase: 'プロダクト' },
     ],
+    /** **理由も本物と同じ形で返す**（2026-08-26）。空で返すと画面が空節を描くかが分からない */
+    why: [
+      '調査を先に置きます。誰に売るかが決まる前に価格を決めると、あとで全部引き直しになります。',
+      '価格はプロダクトより前です。いくらで売るかで、いちばん小さい形の中身が変わります。',
+      'ローンチは2週だけにしました。最初の利用者が来てから直すほうが、来る前に直すより速いからです。',
+    ],
+    assumes: [
+      { label: '売り方', value: '自分で売る前提です。代理店を通すなら週数が変わります' },
+      { label: '競合の数', value: '比べる相手が5〜8社いる市場だと見ています' },
+    ],
+    dropped: 'いきなり作り始める道は見送りました。誰に売るかが決まっていないと、作ったものの直し幅が大きくなります。',
+    time_note: '10週のうち4週を確かめることに使います。作るのは、決まってからのほうが速いからです。',
   };
 }
 
