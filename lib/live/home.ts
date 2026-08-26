@@ -190,6 +190,31 @@ export function buildHome(
       t: n.at ?? '',
     })),
     ...steps.map((s): Event & { t: string } => ({ at: hm(s.at), who: s.who, what: s.what, t: s.at ?? '' })),
+    /**
+     * **引き継ぎもログに出す**（2026-08-26）。
+     *
+     * 設計にも `lib/view/model.ts` にも「引き継ぎもここに出る
+     * （◯◯ から △△ を受け取りました）」と書いてあるのに、
+     * **そんな行を作っているところがどこにも無かった**。
+     *
+     * **でっち上げない。** 歩みの担当が入れ替わっただけでは引き継ぎではない
+     * （2人が並んで動いているだけのことがある）。本物の引き継ぎは
+     * **フェーズが変わって、回す人が変わったとき**なので、そこだけを拾う。
+     * 担当はそのフェーズのタスクから引く（フェーズは担当を持たない）。
+     */
+    ...active.concat(finished).flatMap((w): (Event & { t: string })[] => {
+      const owner = (phaseId: string) => {
+        const names = w.tasks.filter((t) => t.phaseId === phaseId && t.owner).map((t) => t.owner!);
+        return names[0] ?? '';
+      };
+      return w.phases.flatMap((p, i): (Event & { t: string })[] => {
+        const prev = i > 0 ? owner(w.phases[i - 1].id) : '';
+        const now = owner(p.id);
+        if (!p.startedAt || !prev || !now || prev === now) return [];
+        return [{ at: hm(p.startedAt), who: now, what: `${prev} から「${p.name}」を受け取りました`,
+                 t: p.startedAt }];
+      });
+    }),
   ].sort((a, b) => b.t.localeCompare(a.t)).slice(0, 30);
 
   /* ── 社員のカードとデスクのレーン ── */

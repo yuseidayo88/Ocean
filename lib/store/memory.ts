@@ -452,6 +452,14 @@ export const memoryStore: Store = {
     if (i >= 0) skills.splice(i, 1);
   },
 
+  async editSkill(id, body) {
+    // 直せる範囲は消せる範囲と同じ（supabase 版と同じ規則）
+    const sk = skills.find((x) => x.id === id && (x.source === 'user' || x.source === 'agent'));
+    if (!sk) return false;
+    sk.body = body;
+    return true;
+  },
+
   async bumpSkillUse(ids) {
     for (const sk of skills) if (ids.includes(sk.id)) sk.used += 1;
   },

@@ -6,9 +6,9 @@ import { Centre, Composer, Pane, TopBar } from '@/components/shell/Chrome';
 import { Icon } from '@/components/ui/Icon';
 import { Toggle } from '@/components/shell/Controls';
 import { pressable } from '@/lib/a11y';
-import { skillAdd, skillRemove, skillsList, skillToggle } from '@/app/actions/live';
+import { skillAdd, skillEdit, skillRemove, skillsList, skillToggle } from '@/app/actions/live';
 import type { SkillRow } from '@/lib/store';
-import { BLUE, BLUE_T, COMPOSER_H, DIM, HAIR, RAIL, RULE, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
+import { BLUE, BLUE_T, COMPOSER_H, DIM, HAIR, RAIL, RED_T, RULE, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
 /**
  * スキル ＝ SKILL.md のファイル管理（参考: Base44 の Knowledge files）。
  * **行の先頭にアイコンは置かない**（ここにはスキルしか並ばない）。
@@ -75,6 +75,7 @@ export default function SkillsPage() {
   // **落ちたものも開ける。** 中身を読まずに戻すかどうかは決められない
   const tabs = useTabs(live.map((s) => s.filename));
   const open = tabs.ids[tabs.at];
+  const cur = live.find((s) => s.filename === open);
   const body = (f: string) => live.find((s) => s.filename === f)?.body ?? '';
 
   const add = async (file: string, text: string) => {
@@ -228,14 +229,72 @@ export default function SkillsPage() {
         </button>
       }
             tabs={tabs.ids.map((f) => ({ label: f }))} tab={tabs.at} onTab={tabs.select}>
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 18 }}>
-          <pre style={{
-            margin: 0, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-            fontSize: 12, lineHeight: '20px', color: T2, whiteSpace: 'pre-wrap',
-          }}>{body(open)}</pre>
-        </div>
+        {/**
+          * **✏編集**（2026-08-26）。画面には前から「新しく書く」があって、押すと
+          * **ひな形のファイルができる**のに、ここは読むだけだった —
+          * **書き込む場所がどこにも無かった**（設計の「有効トグル・⬇・✏編集・🗑」の
+          * ✏だけが、ずっと無いままだった）。
+          *
+          * **直せるのは消せるものと同じ範囲**（自分で読み込んだもの / 社員が書いたもの）。
+          * 標準スキルは切れるが消せない＝書き換えもできない（会社の土台）。
+          * **保存ボタンは置かない** — 離れたら保存する（設定のトグルと同じ作法）。
+          */}
+        {cur && (cur.source === 'user' || cur.source === 'agent')
+          ? <SkillEdit key={cur.id} id={cur.id} body={cur.body ?? ''} onSaved={reload} />
+          : (
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 18 }}>
+            <pre style={{
+              margin: 0, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+              fontSize: 12, lineHeight: '20px', color: T2, whiteSpace: 'pre-wrap',
+            }}>{body(open)}</pre>
+          </div>
+        )}
       </Pane>
       )}
     </>
+  );
+}
+
+/**
+ * SKILL.md をその場で書く。**保存ボタンは置かない** — 離れたら保存する。
+ * 直せなかったときだけ、赤で1行言う（黙って捨てない）。
+ */
+function SkillEdit({ id, body, onSaved }: { id: string; body: string; onSaved: () => void }) {
+  const [text, setText] = useState(body);
+  const [err, setErr] = useState('');
+  /** 最後に保存した中身と、いまの中身。**閉じられても取りこぼさない**ために ref で持つ */
+  const kept = useRef(body);
+  const now = useRef(body);
+  const save = async () => {
+    if (now.current === kept.current) return;        // 変えていないなら書かない
+    const r = await skillEdit(id, now.current);
+    if (!r.ok) { setErr(r.message ?? ''); return; }
+    kept.current = now.current;
+    setErr(''); onSaved();
+  };
+  /**
+   * **ペインが閉じられても、書いたものは残す。**
+   * React は外れるときに `onBlur` を出さないので、書いたまま ✕ を押されると
+   * 消えてしまう。閉じ際にもう一度だけ書く（変わっていなければ何もしない）。
+   */
+  useEffect(() => () => { if (now.current !== kept.current) void skillEdit(id, now.current); }, [id]);
+  return (
+    <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      <textarea
+        value={text}
+        // **ref は描いている最中に書かない**（`react-hooks/refs`）。書くのはここ＝出来事の中
+        onChange={(e) => { now.current = e.target.value; setText(e.target.value); setErr(''); }}
+        onBlur={save}
+        spellCheck={false}
+        style={{
+          flex: 1, minHeight: 0, width: '100%', boxSizing: 'border-box', padding: 18,
+          background: 'transparent', border: 'none', outline: 'none', resize: 'none',
+          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+          fontSize: 12, lineHeight: '20px', color: T2,
+        }} />
+      {err && (
+        <span style={{ flexShrink: 0, padding: '0 18px 14px', color: RED_T, fontSize: 12 }}>{err}</span>
+      )}
+    </div>
   );
 }

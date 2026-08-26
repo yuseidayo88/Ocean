@@ -1041,6 +1041,14 @@ export const supabaseStore: Store = {
     await c.from('agent_skills').delete().eq('id', id).in('source', ['user', 'agent']);
   },
 
+  async editSkill(id, body) {
+    const c = await db();
+    // **直せる範囲は、消せる範囲と同じ**（標準スキルは会社の土台なので書き換えない）
+    const { data } = await c.from('agent_skills')
+      .update({ body }).eq('id', id).in('source', ['user', 'agent']).select('id');
+    return !!data?.length;
+  },
+
   async bumpSkillUse(ids) {
     const c = await db();
     for (const id of ids) {

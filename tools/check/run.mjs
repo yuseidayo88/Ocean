@@ -256,6 +256,18 @@ ok('進んだあとは承認の帯が出ていない', !bar, String(bar));
 const p2 = await until((b) => /フェーズ\n2 \/ /.test(b), 40);
 ok('フェーズが 2 に進んだ', /フェーズ\n2 \/ /.test(p2), p2.match(/フェーズ\n[^\n]*/)?.[0]);
 /**
+ * **引き継ぎがオフィスのログに出る**（2026-08-26）。
+ * 設計にも型のコメントにも「引き継ぎもここに出る」と書いてあったのに、
+ * **そんな行を作っているところがどこにも無かった**。
+ * 歩みの担当が入れ替わっただけでは引き継ぎではない（並んで動いているだけのことがある）ので、
+ * **フェーズが変わって回す人が変わったとき**だけを拾う。
+ */
+await send('Page.navigate', { url: `${BASE}/home` }); await wait(2200);
+const relay = await until((b) => /から「戦略」を受け取りました/.test(b), 20, 900);
+ok('引き継ぎがオフィスのログに出る', /から「戦略」を受け取りました/.test(relay),
+   relay.match(/[^\n]*受け取りました[^\n]*/)?.[0] ?? '(出ていない)');
+await send('Page.navigate', { url: workUrl }); await wait(1500);
+/**
  * **「残り」を本当に埋める**（2026-08-26）。型にあるだけで誰も埋めておらず、
  * Work 画面のいちばん上の帯に「残り —」がどの Work でも永久に出ていた。
  * 出どころは承認したときの見込み（週数 ＋ 開始日）— それ以外に基準は無い。
@@ -505,6 +517,42 @@ ok('統括AIが落としたものは、理由つきで下に残る',
    sk.includes('まだ会社のものになっていない') && sk.includes('今回の市場規模')
    && sk.includes('やり方が書かれていません'),
    sk.match(/まだ会社のもの[\s\S]{0,80}/)?.[0]?.replace(/\n/g, ' '));
+/**
+ * **SKILL.md を、社長がその場で書き換えられる**（2026-08-26）。
+ * 画面には前から「新しく書く」があって、押すとひな形のファイルができるのに、
+ * **書き込む場所がどこにも無かった** — ✏編集だけが、ずっと無いままだった。
+ * 直せるのは消せるものと同じ範囲（自分で読み込んだもの / 社員が書いたもの）。
+ */
+let edit = '';
+for (let i = 0; i < 10 && !edit; i++) {
+  await ev(`[...document.querySelectorAll('.row')].find(r => r.innerText.includes('競合の並べ方'))?.click()`);
+  await wait(700);
+  edit = (await ev(`document.querySelector('aside textarea') ? '1' : ''`)) || '';
+}
+ok('社員が書いた手順書は、その場で直せる（✏編集）', !!edit, edit ? 'textarea あり' : '(読むだけのまま)');
+await ev(`(() => { const t = document.querySelector('aside textarea');
+  t.focus();
+  Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(t, '# 競合の並べ方\\n\\n社長が書き足した1行。');
+  t.dispatchEvent(new Event('input', { bubbles: true })); t.blur(); })()`);
+await wait(1200);
+await send('Page.navigate', { url: `${BASE}/skills` }); await wait(2200);
+let saved = '';
+for (let i = 0; i < 10 && !saved.includes('社長が書き足した'); i++) {
+  await ev(`[...document.querySelectorAll('.row')].find(r => r.innerText.includes('競合の並べ方'))?.click()`);
+  await wait(700);
+  // **`innerText` には textarea の中身は入らない。** 値のほうを読む
+  saved = (await ev(`document.querySelector('aside textarea')?.value ?? ''`)) || '';
+}
+ok('直したものは本当に保存される', saved.includes('社長が書き足した'), saved.replace(/\n/g, ' ').slice(0, 80));
+/**
+ * **標準スキルは切れるが消せない＝書き換えもできない**（会社の土台）。
+ * 押せる顔をしていて何も起きない、を作らない — 読むだけの `<pre>` のまま。
+ */
+await ev(`[...document.querySelectorAll('.row')].find(r => r.innerText.includes('調査のまとめ方'))?.click()`);
+await wait(900);
+ok('標準スキルは読むだけ（書き換えの口を出さない）',
+   !(await ev(`!!document.querySelector('aside textarea')`)),
+   (await ev(`document.querySelector('aside')?.innerText ?? ''`))?.slice(0, 40));
 /**
  * **食い違いは、社長に上げる**（2026-08-26）。憲法には「矛盾に気づいたら
  * 黙って上書きしない」と書いてあったのに、**書き残す先がどこにも無かった**。

@@ -46,6 +46,19 @@ export async function skillRemove(id: string): Promise<void> {
   try { await store().removeSkill(id); } catch { /* 消えなかったら残るだけ */ }
 }
 
+/**
+ * **社長が SKILL.md を書き換える**（2026-08-26）。
+ * 「新しく書く」でひな形ができるのに、**書き込む場所がどこにも無かった**。
+ * 直せるのは消せるものと同じ範囲（`user` / `agent`）— 標準スキルは会社の土台。
+ */
+export async function skillEdit(id: string, body: string): Promise<{ ok: boolean; message?: string }> {
+  if (!body.trim()) return { ok: false, message: '中身が空です' };
+  try {
+    const ok = await store().editSkill(id, body);
+    return ok ? { ok: true } : { ok: false, message: '標準スキルは書き換えられません' };
+  } catch (e) { return { ok: false, message: sayError(e, '保存できませんでした') }; }
+}
+
 /** その社員の学び（設定ペインが読む・社長が消す） */
 export async function learningsGet(employeeId: string): Promise<string[]> {
   try { return await store().learnings(employeeId); } catch { return []; }

@@ -466,6 +466,22 @@ export interface Store {
   addSkill(s: { name: string; filename: string; body: string }): Promise<void>;
   /** 消せるのは user と agent のものだけ（標準は切れるが消せない。学びは setLearnings で） */
   removeSkill(id: string): Promise<void>;
+  /**
+   * **社長が中身を書き換える**（2026-08-26）。
+   *
+   * 画面には「新しく書く」があって、押すと**ひな形のファイルができる**のに、
+   * ペインは読むだけだった — **書き込む場所がどこにも無かった**。
+   * 設計（CLAUDE.md「行ごとに 有効トグル・⬇ダウンロード・✏編集・🗑削除」）の
+   * ✏編集だけが、ずっと無いままだった。
+   *
+   * **直せるのは消せるものと同じ範囲**（`user` / `agent`）。
+   * 標準スキルは切れるが消せない＝書き換えもできない（会社の土台）。
+   * 社員が書いたものは**通ったあとでも社長が直せる** — 最後の決定権は社長にある。
+   *
+   * これは**社員の `proposeSkillEdit` とは別の道**。あちらは統括AIの審査を通るが、
+   * 社長の直しは審査に掛けない（自分のファイルを自分で直すのに、許可は要らない）。
+   */
+  editSkill(id: string, body: string): Promise<boolean>;
   /** 読んだ印。実行の依頼文に載せたスキルの used_count を1つ進める */
   bumpSkillUse(ids: string[]): Promise<void>;
 
