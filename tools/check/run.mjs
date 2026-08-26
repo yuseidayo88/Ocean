@@ -542,14 +542,12 @@ const planB = await until((b) => b.includes('承認して始める'), 20, 800);
 ok('候補から Work の計画に入った', planB.includes('承認して始める') && /\/plan$/.test(await ev('location.pathname')),
    await ev('location.pathname'));
 /**
- * **まだ誰も買っていない事業は、最初のフェーズで外に出して確かめる**（2026-08-26）。
- * 決め打ちの1回目は「市場・競合・対象が確かめられている」＝**机の上で終わる**ので、
- * `checkPlan` の `prove` が見つけて直させる。
- * 机の上の調査で終わると、**誰も欲しがっていないものを10週かけて作る**ことになる。
+ * **作って終わりの計画にしない**（2026-08-26）。まだ誰も買っていない事業なら、
+ * どこかに「公開する」フェーズが要る — 出して初めて、欲しがる人がいるか分かる。
+ * ただし**公開は制作のあと**（社長の「マーケティングを最後の方に」）。
  */
-ok('最初のフェーズが、机の上ではなく外に出して確かめる形になっている',
-   planB.includes('直接聞いて') && !planB.includes('市場・競合・対象が確かめられている'),
-   planB.match(/調査[\s\S]{0,60}/)?.[0]?.replace(/\n/g, ' ') ?? planB.slice(0, 120));
+ok('公開するフェーズが計画に入っている（作って終わりにしない）',
+   planB.includes('公開'), planB.match(/[^\n]*公開[^\n]*/)?.[0] ?? planB.slice(0, 120));
 
 /**
  * **吹き出しは社長の言葉だけ。** 前は候補のねらいと集めた条件を全部つないで
@@ -614,6 +612,14 @@ await until((b) => b.includes('承認して始める'), 20, 800);
 const smallPlan = await text();
 ok('居ない担当名を計画に残さない', !smallPlan.includes('商品設計担当') && !smallPlan.includes('デザイン制作担当'),
    smallPlan.slice(0, 120));
+/**
+ * **マーケティングは最後のほう。最初は制作と準備**（2026-08-26。社長の指示）。
+ * 決め打ちの1回目は「宣伝の下ごしらえ」を先頭に置く（本物のモデルもよくやる）ので、
+ * `checkPlan` の `market-first` が見つけて、制作を先に置き直させる。
+ */
+ok('人を集める仕事を、最初のフェーズにしない',
+   !smallPlan.includes('宣伝の下ごしらえ') && smallPlan.includes('案出し'),
+   smallPlan.match(/[^\n]*(宣伝|案出し)[^\n]*/)?.[0] ?? smallPlan.slice(0, 120));
 await ev(`[...document.querySelectorAll('button')].find(b => b.textContent.includes('承認して始める'))?.click()`);
 await wait(3500);
 const small = await until((b) => /[1-9]\d?%|要確認/.test(b), 30);
