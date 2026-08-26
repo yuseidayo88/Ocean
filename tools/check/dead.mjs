@@ -83,6 +83,8 @@ for (const path of PAGES) {
   await go();
   const items = await ev(LIST);
   const dead = [];
+  /** 押すと板（メニュー・一覧）が出るもの。**その中も押す**（→ ②） */
+  const opens = [];
   for (let i = 0; i < items.length; i++) {
     const it = items[i];
     if (it.href && !it.href.startsWith('#')) { liveAll++; continue; }   // <a href> は行き先がある
@@ -110,7 +112,12 @@ for (const path of PAGES) {
     await new Promise((r) => setTimeout(r, 320));
     const after = await ev(STATE);
     if (before === after) { dead.push(it.label); deadAll++; }
-    else { liveAll++; await go(); continue; }
+    else {
+      liveAll++;
+      // **押して初めて板が出たなら、その中も見る**（→ 下の ②）
+      if ((await ev(`document.querySelectorAll('[role=dialog],[role=listbox],.pop').length`)) > 0) opens.push(it);
+      await go(); continue;
+    }
     /**
      * 死んでいても、開きっぱなしの板が次の当たりを塞ぐことがある。
      * ただし **Esc をむやみに押さない** — Esc で閉じるもの（質問の板）まで消えて、
@@ -119,7 +126,47 @@ for (const path of PAGES) {
      */
     if ((await ev(`document.querySelectorAll('[role=dialog],[role=listbox],.pop').length`)) > 0) await go();
   }
-  console.log(`${path}  押せる ${items.length} / 死 ${dead.length}`);
+  /**
+   * ② **押して初めて出るものの中も押す**（2026-08-26）。
+   *
+   * 一覧（`LIST`）は**画面を開いた時点で**集めるので、
+   * **開いてから出るメニューの中は一度も押されていなかった** —
+   * 実際、左下の「わたし」の中でログアウトと設定が死んだまま残っていた
+   * （ログアウトは、会社から出る唯一の道）。
+   *
+   * 板を出すものだけを対象にする（全部を2度押すと倍かかる）。
+   * 中を1つ押すたびに読み直して開き直す — 押した拍子に板ごと消えることがある。
+   */
+  let n = 0;
+  for (const op of opens) {
+    for (let k = 0; k < 8; k++) {
+      await go();
+      for (const type of ['mousePressed', 'mouseReleased'])
+        await send('Input.dispatchMouseEvent', { type, x: op.x, y: op.y, button: 'left', clickCount: 1 });
+      await new Promise((r) => setTimeout(r, 360));
+      const inner = await ev(`(() => {
+        const box = document.querySelector('[role=dialog], [role=listbox], .pop');
+        if (!box) return [];
+        const out = [];
+        for (const el of box.querySelectorAll('a[href], button, [role=button], [role=option], [role=switch], .row, .btn, .solid, .icob, .lnk, .hit')) {
+          const r = el.getBoundingClientRect();
+          if (r.width < 4 || r.height < 4) continue;
+          out.push({ label: (el.textContent || el.getAttribute('aria-label') || '').trim().replace(/\s+/g, ' ').slice(0, 30),
+                     x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2) });
+        }
+        return out; })()`);
+      if (!inner || k >= inner.length) break;
+      const row = inner[k];
+      const before = await ev(STATE);
+      for (const type of ['mousePressed', 'mouseReleased'])
+        await send('Input.dispatchMouseEvent', { type, x: row.x, y: row.y, button: 'left', clickCount: 1 });
+      await new Promise((r) => setTimeout(r, 360));
+      const after = await ev(STATE);
+      n++;
+      if (before === after) { dead.push(`${op.label} › ${row.label}`); deadAll++; } else liveAll++;
+    }
+  }
+  console.log(`${path}  押せる ${items.length + n} / 死 ${dead.length}`);
   for (const d of dead) console.log(`    ✗ ${d}`);
   ws.close();
 }
