@@ -35,6 +35,8 @@ export type PlanView = {
   why: string[];
   /** 時間の使い方への一言。**統括AIが言っていないなら出さない** */
   timeNote?: string;
+  /** 引き直しても残った、辻褄の合わないところ。**承認の前に見せる**（無ければ空） */
+  unfixed?: string[];
   /** 前提にしていること。同上 — 無いなら節ごと出さない */
   facts?: [string, string][];
   /** 見送った案。同上 */
@@ -121,6 +123,8 @@ export function fromDraft(d: DraftWork): PlanView {
      */
     why: (d.plan.why ?? []).filter(Boolean),
     // 下の3つは**統括AIが言っていないなら節ごと出さない**（画面が空節を描かない）
+    /** **引き直しても残った、壊れる側の診断**（→ `lib/exec/run.ts`）。無ければ空 */
+    unfixed: d.plan.unfixed,
     timeNote: d.plan.timeNote,
     facts: (d.plan.assumes ?? []).map((a) => [a.label, a.value] as [string, string]),
     dropped: d.plan.dropped,

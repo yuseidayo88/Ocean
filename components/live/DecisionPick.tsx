@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { decide, taskDecision } from '@/app/actions/run';
+import { PaneError, PaneLoading } from '@/components/shell/Chrome';
 import { wakePump } from '@/lib/pump';
 import type { LiveDecision } from '@/lib/store';
 import { GREEN_T, HAIR, SEAM, T1, T4, T5 } from '@/lib/design/tokens';
@@ -21,8 +22,21 @@ export function DecisionPick({ taskId, onDone }: { taskId: string; onDone: () =>
   const [busy, setBusy] = useState(false);
   useEffect(() => { taskDecision(taskId).then(setDec); }, [taskId]);
 
-  if (dec === 'loading') return <span style={{ color: T5, fontSize: 12.5 }}>読み込んでいます…</span>;
-  if (!dec) return <span style={{ color: T5, fontSize: 12.5 }}>聞かれていることが見つかりませんでした。</span>;
+  /**
+   * **まだ分からないあいだ、「無い」と言わない**（2026-08-26）。
+   * 取りに行っている最中は形だけ出す（`PaneLoading`）。見つからなかったときは
+   * **何が起きて、次に何をすればいいか**を書いて、もう一度の口を出す（`PaneError`）。
+   * 前は「見つかりませんでした。」の1行で行き止まりだった。
+   */
+  if (dec === 'loading') return <PaneLoading lines={4} />;
+  if (!dec) {
+    return (
+      <PaneError
+        what="聞かれていることが読めませんでした"
+        next="決まった直後だと、もう答えたあとかもしれません。読み直すと、いまの状態が出ます。"
+        onRetry={() => { setDec('loading'); taskDecision(taskId).then(setDec); }} />
+    );
+  }
 
   const pick = async (label: string) => {
     setBusy(true);

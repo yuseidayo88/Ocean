@@ -2,7 +2,7 @@ import type { Msg, ModelProvider } from '@/lib/ai';
 import { CONSTITUTION } from './constitution';
 import { PHASE5_TOOLS } from './tools';
 import { checkStop, toOptions, toQuestions } from './parse';
-import { checkPlan, sayPlanDiags, type PlanLimits } from './plan-check';
+import { checkPlan, fatalPlan, sayPlanDiags, type PlanLimits } from './plan-check';
 import type { Container, Draft, Hire, Plan } from './types';
 import { AppError } from '@/lib/errors';
 import { crewFor, rosterBlock, slugOf } from '@/lib/roster';
@@ -169,12 +169,26 @@ export async function draftWork(goal: string, ctx = '', limits: PlanLimits = {})
    * それでも合わなければ、**直ったところだけ受け取って**社長に出す —
    * 引き直しは deep の1往復なので、何度も払わない。
    */
-  const diags = checkPlan(plan, limits);
+  let diags = checkPlan(plan, limits);
   if (diags.length) {
     const again = await drawPlan(p, goal, ctx, container, pref, sayPlanDiags(diags), plan);
-    // **元より悪くしない。** 引き直しが空で返ったら、元の計画を使う
-    if (again.phases.length && again.firstPhaseTasks.length) plan = again;
+    /**
+     * **元より悪くしない。** 引き直しが空で返ったら、元の計画を使う。
+     * **直ったかどうかを、ちゃんと見直す**（2026-08-26）— 前はここで引き直したきり
+     * 誰も見直しておらず、辻褄が合わないままの計画が黙って承認画面に出ていた。
+     * 壊れる側（fatal）が増えているなら、引き直しのほうが悪い。元に戻す。
+     */
+    if (again.phases.length && again.firstPhaseTasks.length) {
+      const after = checkPlan(again, limits);
+      if (fatalPlan(after).length <= fatalPlan(diags).length) { plan = again; diags = after; }
+    }
   }
+  /**
+   * **それでも残った「壊れる側」は、正直に言う**（図の作法と同じ。→ `docs/design/11-diagram.md`）。
+   * 読みにくいだけの診断（成果物の名前が…など）は持たない — 承認の判断は変わらない。
+   */
+  const unfixed = fatalPlan(diags).map((d) => d.say);
+  if (unfixed.length) plan = { ...plan, unfixed };
 
   /**
    * **担当の名前を、ここで名簿に寄せる。**

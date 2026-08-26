@@ -220,7 +220,13 @@ function GateBand({ t, on }: { t: Row; on: boolean }) {
 
 /** 1行を開いた先。フィールドと、実行の歩み（run_steps）。無いものは出さない */
 function TaskPane({ t, onClose, onChanged }: { t: Row; onClose: () => void; onChanged: () => void }) {
-  const [steps, setSteps] = useState<RunStep[]>([]);
+  /**
+   * **まだ分からないあいだ、「まだ動いていません」と言わない**（2026-08-26）。
+   * `[]` から始めていたので、取りに行っている数百 ms のあいだ**動いているタスクにも**
+   * 「まだ動いていません。」が出て、そのあと歩みが現れていた。
+   * 無いのと、まだ知らないのは別のこと（`null` ＝ まだ知らない）。
+   */
+  const [steps, setSteps] = useState<RunStep[] | null>(null);
   useEffect(() => {
     let on = true;
     taskSteps(t.id).then((s) => { if (on) setSteps(s); });
@@ -268,10 +274,10 @@ function TaskPane({ t, onClose, onChanged }: { t: Row; onClose: () => void; onCh
           <StuckActions key={t.id} taskId={t.id} onDone={onChanged} />
         </>}
 
-        {steps.length > 0 && <>
+        {steps !== null && steps.length > 0 && <>
           <PaneHead>歩み</PaneHead>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {steps.map((s, i) => (
+            {(steps ?? []).map((s, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, height: 32, borderTop: i ? `1px solid ${HAIR}` : undefined }}>
                 <span style={{ width: 5, height: 5, borderRadius: 999, background: T5, flexShrink: 0 }} />
                 <span style={{ flex: 1, minWidth: 0, color: T3, fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -282,7 +288,7 @@ function TaskPane({ t, onClose, onChanged }: { t: Row; onClose: () => void; onCh
             ))}
           </div>
         </>}
-        {steps.length === 0 && !gate && !stuck && (
+        {steps !== null && steps.length === 0 && !gate && !stuck && (
           <span style={{ display: 'block', paddingTop: 16, color: T5, fontSize: 12.5 }}>まだ動いていません。</span>
         )}
       </div>

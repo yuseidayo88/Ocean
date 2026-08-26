@@ -269,6 +269,34 @@ export default function PlanPage() {
             </div>
           </div>
 
+          {/**
+            * **直しきれなかったところ**（2026-08-26）。
+            *
+            * `checkPlan` は前から動いていたが、**引き直したあと誰も見直していなかった** —
+            * 辻褄が合わないまま（関門の行き先が実在しない・週数が合わない）の計画が、
+            * 黙って承認画面に出ていた。図のほうは「それでも壊れていれば**通らなかったと
+            * 正直に言う**」と決めてあるのに、計画だけがその作法から外れていた。
+            *
+            * **無ければ節ごと出さない。** 赤＝止まっている、ではないので橙で言う
+            * （承認はできる。ただし、承認する前に知っておくこと）。
+            */}
+          {v.unfixed && v.unfixed.length > 0 && (
+            <div>
+              <span style={{ color: AMBER_T, display: 'block', paddingBottom: 8 }}>直しきれなかったところ</span>
+              {v.unfixed.map((t, i) => (
+                <div key={i} style={{
+                  padding: '10px 0',
+                  borderBottom: i === v.unfixed!.length - 1 ? undefined : `1px solid ${HAIR}`,
+                }}>
+                  <span style={{ color: T2, fontSize: 13, lineHeight: '21px' }}>{t}</span>
+                </div>
+              ))}
+              <span style={{ display: 'block', color: T5, fontSize: 12, paddingTop: 8 }}>
+                統括AIに1度引き直してもらいましたが、ここは残りました。承認はできます
+              </span>
+            </div>
+          )}
+
         </div>
 
         {/**

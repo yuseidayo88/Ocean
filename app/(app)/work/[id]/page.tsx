@@ -5,7 +5,7 @@ import { openHref } from '@/lib/use-open';
 import { useOpen, useParam } from '@/lib/use-open';
 import { Go as Link } from '@/components/ui/Go';
 import { notFound, useParams } from 'next/navigation';
-import { Centre, Composer, Pane, PaneHead, TopBar } from '@/components/shell/Chrome';
+import { Centre, Composer, Pane, PaneHead, PaneLoading, TopBar } from '@/components/shell/Chrome';
 import { Toggle } from '@/components/shell/Controls';
 import { useShell } from '@/components/shell/Shell';
 import { Diamond, Dot, Icon } from '@/components/ui/Icon';
@@ -115,7 +115,12 @@ function PhaseGate({ name, unseen, workId, onDone }:
  * 実行中は最後の行が動き続けるので、流れて見える。
  */
 function StepsPane({ taskId, running }: { taskId: string; running: boolean }) {
-  const [steps, setSteps] = useState<RunStep[]>([]);
+  /**
+   * **まだ分からないあいだ、「まだ動いていません」と言わない**（2026-08-26）。
+   * `[]` から始めていたので、取りに行っているあいだ**動いているタスクにも**
+   * 「まだ動いていません。」が出て、そのあと歩みが現れていた。
+   */
+  const [steps, setSteps] = useState<RunStep[] | null>(null);
   useEffect(() => {
     let on = true;
     const load = () => taskSteps(taskId).then((r) => { if (on) setSteps(r); });
@@ -125,6 +130,7 @@ function StepsPane({ taskId, running }: { taskId: string; running: boolean }) {
     return () => { on = false; window.clearInterval(h); };
   }, [taskId, running]);
 
+  if (steps === null) return <PaneLoading lines={3} />;
   if (!steps.length) {
     return (
       <span style={{ color: T5, fontSize: 12.5, lineHeight: '20px' }}>

@@ -738,25 +738,18 @@ export function ExecStatus({ state }: { state: 'idle' | 'thinking' | 'blocked' }
   );
 }
 
-/** 右ペインの3状態。**空を空のまま置かない**（次にやることを書く） */
-export function PaneEmpty({ title, lead, action }: { title: string; lead: string; action?: string }) {
-  return (
-    <div style={{
-      flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      gap: 10, padding: 28, textAlign: 'center',
-    }}>
-      <span style={{ color: T2, fontSize: 14 }}>{title}</span>
-      <span style={{ color: T5, fontSize: 12.5, lineHeight: '20px', maxWidth: 260 }}>{lead}</span>
-      {action && (
-        <span className="btn" style={{
-          marginTop: 6, display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 14px',
-          borderRadius: 8, background: SUNK, border: `1px solid ${EDGE}`, color: T2, fontSize: 12.5,
-        }}>{action}</span>
-      )}
-    </div>
-  );
-}
-
+/**
+ * **まだ分からないあいだ、「無い」と言わない**（2026-08-26）。
+ *
+ * `PaneLoading` / `PaneError` は器（B群の宿題）として置いてあったのに、
+ * **どこからも使われていなかった** — そのあいだ、取りに行っている最中のペインは
+ * 「まだありません」「見つかりませんでした」と**言い切って**いた。
+ * 無いのと、まだ知らないのは別のこと。
+ *
+ * **`PaneEmpty` は消した。** 全画面ぶんのペインを見たが、空状態はどれも
+ * **節の中**（フィールドや見出しの下）にあって、ペインいっぱいに置く形が
+ * 合う場所が1つも無かった。器だけ残しておくと、次に読む人が「使う場所がある」と読む。
+ */
 export function PaneLoading({ lines = 4 }: { lines?: number }) {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 14, padding: 18 }}>
@@ -774,15 +767,19 @@ export function PaneLoading({ lines = 4 }: { lines?: number }) {
 /**
  * 失敗は隠さない。**何が起きて、何を変えれば進むか**を書く。謝らない。
  */
-export function PaneError({ what, next, retry = 'もう一度' }: { what: string; next: string; retry?: string }) {
+export function PaneError({ what, next, retry = 'もう一度', onRetry }:
+  { what: string; next: string; retry?: string; onRetry?: () => void }) {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, padding: 18 }}>
       <span style={{ color: RED_T, fontSize: 13 }}>{what}</span>
       <span style={{ color: T3, fontSize: 12.5, lineHeight: '20px' }}>{next}</span>
-      <span style={{
-        alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 14px',
-        borderRadius: 8, background: SUNK, border: `1px solid ${EDGE}`, color: T2, fontSize: 12.5,
-      }}>{retry}</span>
+      {/* **押せる顔をして何も起きない、を作らない。** 口が無いなら出さない */}
+      {onRetry && (
+        <button onClick={onRetry} className="btn" style={{
+          alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 14px',
+          borderRadius: 8, background: SUNK, border: `1px solid ${EDGE}`, color: T2, fontSize: 12.5,
+        }}>{retry}</button>
+      )}
     </div>
   );
 }
