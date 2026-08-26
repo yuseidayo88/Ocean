@@ -13,6 +13,7 @@ import { DelActions } from '@/components/live/DelActions';
 import { DelBody } from '@/components/live/DelBody';
 import type { Note } from '@/lib/store';
 import { pressable } from '@/lib/a11y';
+import { ago } from '@/lib/when';
 import { useEffect, useState } from 'react';
 import { AMBER, AMBER_T, BLUE, COMPOSER_H, DIM, EDGE, FAINT, HAIR, RED, RED_T, SEAM, T1, T2, T3, T5 } from '@/lib/design/tokens';
 /**
@@ -34,16 +35,6 @@ const TONE: Record<string, { line: string; text: string; face: string }> = {
   'エラー':      { line: RED,   text: RED_T,   face: 'rgba(217,48,37,0.16)' },
 };
 const toneOf = (kind: string) => TONE[kind] ?? TONE['要確認'];
-
-/** 相対時刻。無ければ出さない */
-function ago(at?: string): string {
-  if (!at) return '';
-  const min = Math.max(0, Math.round((Date.now() - new Date(at).getTime()) / 60000));
-  if (min < 1) return 'たった今';
-  if (min < 60) return `${min}分前`;
-  if (min < 24 * 60) return `${Math.round(min / 60)}時間前`;
-  return `${Math.round(min / (24 * 60))}日前`;
-}
 
 /** 通知の題と補足。本文の1行を「—」で分ける（統括AIの書き方に合わせる） */
 function split(body: string): { title: string; sub: string } {

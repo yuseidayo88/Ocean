@@ -42,6 +42,13 @@ export type LiveWork = {
     ownerId?: string;
   }[];
   crew: { id: string; name: string; color: string }[];
+  /**
+   * **この Work で社長が決めたこと**（新しい順・最大6件。2026-08-26）。
+   * Work 画面の右ペインの「決めたこと」は、ここが空だったので
+   * **どの Work でも永久に「まだありません」**と出ていた（型にあるだけの節）。
+   * 読みを1本増やさずに済むよう、`getWork` が同じ往復で取ってくる。
+   */
+  decs?: { question: string; chosen: string; when?: string }[];
   /** その Work の成果物（新しい順） */
   dels?: LiveDeliverable[];
   startedAt?: string;
@@ -629,4 +636,10 @@ export type LiveDecision = {
   options: { label: string; description?: string; recommended?: boolean }[];
   chosen?: string; status: 'open' | 'decided' | 'superseded';
   when?: string;
+  /**
+   * どの Work の判断か（`listDecisions` だけが埋める。2026-08-26）。
+   * 台帳は会社ぜんぶを1本に並べるので、**Work の名前が無いとどの話か分からない** —
+   * 「価格の方向性」だけでは、3本走っている会社では意味を成さない。
+   */
+  workTitle?: string;
 };

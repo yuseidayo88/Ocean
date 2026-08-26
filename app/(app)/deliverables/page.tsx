@@ -3,7 +3,7 @@
 import { Go as Link } from '@/components/ui/Go';
 
 import { useEffect, useState } from 'react';
-import { useTabs } from '@/lib/use-open';
+import { useParam, useTabs } from '@/lib/use-open';
 import { Centre, Composer, Pane, TopBar } from '@/components/shell/Chrome';
 import { Dot, Icon } from '@/components/ui/Icon';
 import { listDels } from '@/app/actions/run';
@@ -13,6 +13,7 @@ import { DelTake } from '@/components/live/DelTake';
 import { formatOf } from '@/lib/deliver/format';
 import type { LiveDeliverable } from '@/lib/store';
 import { pressable } from '@/lib/a11y';
+import { ago } from '@/lib/when';
 import { AMBER, AMBER_T, COMPOSER_H, GREEN, HAIR, MUTE, RAIL, T2, T3, T5 } from '@/lib/design/tokens';
 
 type LiveDel = LiveDeliverable & { workId: string; workTitle: string };
@@ -24,19 +25,27 @@ type LiveDel = LiveDeliverable & { workId: string; workTitle: string };
  * 中身は store だけ — AI社員が書いたものが、書いたぶんだけ並ぶ。
  */
 
-/** サムネイル＝**実際の書き出し**（灰色の棒を置かない） */
+/**
+ * サムネイル＝**実際の書き出し**（灰色の棒を置かない）。
+ *
+ * **Work 名はここに置かない**（2026-08-26）。カードの下ですでに言っていて、
+ * 同じ名前が1枚の中に2回出ていた（→ CLAUDE.md「同じことを1画面で二度言わない」）。
+ * そのぶん書き出しが1行増える — ここは**見分けるための面**なので、中身に使う。
+ */
 function Thumb({ d }: { d: LiveDel }) {
   // 形によって書き出しの割れ方が違う（表は行、文章は文）。**行が先** — 表を1行に潰さない
+  // **箇条書きは割らない**（`・` の行を「。」で切ると、2行めから印が消える）
   const lines = (d.preview ?? '').split('\n')
-    .flatMap((l) => l.split(/(?<=。)/)).filter((l) => l.trim()).slice(0, 3);
+    .flatMap((l) => (l.trimStart().startsWith('・') ? [l] : l.split(/(?<=。)/)))
+    .filter((l) => l.trim()).slice(0, 4);
   return (
     <div style={{
       height: 108, boxSizing: 'border-box', borderRadius: 8, background: RAIL,
       padding: '12px 13px', display: 'flex', flexDirection: 'column', gap: 5, overflow: 'hidden',
     }}>
-      <div style={{ color: T3, fontSize: 10, lineHeight: '14px' }}>{d.workTitle}</div>
+      {lines.length === 0 && <span style={{ color: MUTE, fontSize: 10 }}>書き出しはありません</span>}
       {lines.map((l, i) => (
-        <span key={i} style={{ color: '#4E4E4E', fontSize: 9.5, lineHeight: '14px' }}>{l}</span>
+        <span key={i} style={{ color: '#5A5A5A', fontSize: 10, lineHeight: '15px' }}>{l}</span>
       ))}
     </div>
   );
@@ -52,6 +61,18 @@ export default function DeliverablesPage() {
 
   const all = dels ?? [];
   const need = all.filter((d) => d.state === '要確認').length;
+  /**
+   * **要確認だけを見る**（2026-08-26）。
+   *
+   * 前は「要確認 N」と数を出しているのに、**そこへ行く道がどこにも無かった**。
+   * この会社は放っておくと成果物を出し続けるので、いちばんよくある用は
+   * 「まだ見ていないものを見る」— 30枚のグリッドを目で探させる画面ではない。
+   *
+   * **新しい器を足さない。** すでにある数字そのものを押せるようにして、
+   * 押している間だけ絞る。**開いている1件と同じく URL に持つ**ので、戻っても同じ側を見ている。
+   */
+  const [only, setOnly] = useParam('only', '');
+  const shown = only === 'review' ? all.filter((d) => d.state === '要確認') : all;
 
   /**
    * **タブは本物。** 開いている並びと、いま見ているものを URL に持つ（`?open=a,b&at=1`）。
@@ -72,13 +93,21 @@ export default function DeliverablesPage() {
             padding: '0 18px', borderBottom: `1px solid ${HAIR}`,
           }}>
             <Icon name="deliv" color={T3} size={15} />
-            <span>すべての成果物</span>
-            <span style={{ color: T5 }} className="tnum">· {all.length}</span>
+            <span>{only === 'review' ? '要確認だけ' : 'すべての成果物'}</span>
+            <span style={{ color: T5 }} className="tnum">· {shown.length}</span>
             <div style={{ flex: 1 }} />
             {need > 0 && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, color: AMBER_T }}>
+              <button onClick={() => setOnly(only === 'review' ? '' : 'review')} className="btn" style={{
+                display: 'inline-flex', alignItems: 'center', gap: 7, height: 26, padding: '0 10px',
+                borderRadius: 7, color: AMBER_T,
+                background: only === 'review' ? 'rgba(227,116,0,0.14)' : 'transparent',
+                border: `1px solid ${only === 'review' ? 'rgba(227,116,0,0.42)' : 'transparent'}`,
+              }}>
                 <Dot color={AMBER} size={7} />要確認 {need}
-              </span>
+              </button>
+            )}
+            {only === 'review' && (
+              <button onClick={() => setOnly('')} className="lnk" style={{ color: T5, fontSize: 12 }}>すべて見る</button>
             )}
           </div>
         )}
@@ -92,8 +121,10 @@ export default function DeliverablesPage() {
               </span>
             </div>
           )}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
-            {all.map((d) => (
+          {/* **列は器が決める。** 画面ごとのブレークポイントは作らない（1本の規則）—
+              右ペインを開くと中央が狭くなるので、入るぶんだけ並ぶ */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(268px, 1fr))', gap: 12 }}>
+            {shown.map((d) => (
               <div key={d.id} className="card" {...pressable(() => tabs.open(d.id))} style={{
                 boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 11,
                 padding: 12, borderRadius: 12, background: '#121212',
@@ -108,6 +139,8 @@ export default function DeliverablesPage() {
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ color: T5 }}>{d.by ?? 'AI社員'}</span>
+                    {/* **いつできたか。** ストアは時刻を、画面が言葉にする（→ `lib/when.ts`） */}
+                    {ago(d.when) && <span style={{ color: MUTE, fontSize: 11.5 }}>{ago(d.when)}</span>}
                     {/* **どの形で持ち出せるか**を、開く前に言う（表データなら .csv、ページなら .html）。
                         ピルにはしない — 例外ではなく、ただの事実 */}
                     <span style={{ color: MUTE, fontSize: 11.5 }}>{formatOf(d.kind, d.preview).label}</span>
@@ -141,7 +174,7 @@ export default function DeliverablesPage() {
             <DelTake title={top.title} body={top.body ?? top.preview ?? ''} kind={top.kind} />
           </div>
           <span style={{ color: T5, fontSize: 12, display: 'block', paddingTop: 5 }}>
-            {top.by ?? 'AI社員'} · {top.workTitle}{(top.version ?? 1) > 1 ? ` · v${top.version}` : ''}
+            {top.by ?? 'AI社員'} · {top.workTitle}{ago(top.when) ? ` · ${ago(top.when)}` : ''}{(top.version ?? 1) > 1 ? ` · v${top.version}` : ''}
           </span>
           <div style={{ paddingTop: 16 }}><DelBody body={top.body ?? top.preview ?? ''} kind={top.kind} /></div>
         </div>

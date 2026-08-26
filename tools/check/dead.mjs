@@ -96,11 +96,14 @@ for (const path of PAGES) {
      *
      * 名前を持つものだけ見る（`button@中央` のような合成名は突き合わせられない）。
      */
-    if (!it.label.includes('@')) {
-      const now = await ev(`(() => { const e = document.elementFromPoint(${it.x}, ${it.y});
-        return e ? (e.textContent || '').trim().replace(/\\s+/g, ' ') : ''; })()`);
-      if (!now || !now.includes(it.label.slice(0, 6))) continue;   // もう別のものが居る
-    }
+    const still = await ev(`(() => {
+      const e = document.elementFromPoint(${it.x}, ${it.y});
+      const t = e && e.closest('a[href], button, [role=button], [role=option], [role=switch], .row, .btn, .solid, .icob, .card, .lnk, .hit');
+      return t ? (t.textContent || '').trim().replace(/\\s+/g, ' ') : null; })()`);
+    // **押せるものがもうそこに居ない。** 押しても何も起きなくて当たり前
+    if (still === null) continue;
+    // 名前を持つものは、同じものかどうかも見る（別のものに入れ替わっていたら判定しない）
+    if (!it.label.includes('@') && !still.includes(it.label.slice(0, 6))) continue;
     const before = await ev(STATE);
     for (const type of ['mousePressed', 'mouseReleased'])
       await send('Input.dispatchMouseEvent', { type, x: it.x, y: it.y, button: 'left', clickCount: 1 });

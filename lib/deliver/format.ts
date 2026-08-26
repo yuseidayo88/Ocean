@@ -110,8 +110,16 @@ export function previewFor(kind: string | undefined, body: string): string {
       .replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/gi, ' ').replace(/\s+/g, ' ').trim();
     return [title, text.slice(0, 90)].filter(Boolean).join('\n');
   }
-  // markdown / code — 見出しの記号を落として書き出しだけ
-  const first = blocks(body).find((b) => b.t === 'para' || b.t === 'head' || b.t === 'list');
+  /**
+   * markdown / code — **書き出しは中身から取る**（2026-08-26）。
+   *
+   * 前は最初の塊をそのまま取っていたが、markdown の1つめはたいてい題（`# 競合表`）で、
+   * それは**カードのタイトルと同じもの**だった。サムネイルは「実際の書き出しを出して
+   * 見分けられるようにする」ためにあるのに、**どの成果物も題を2回書くだけ**になっていた。
+   * 見出しを飛ばして本文か箇条書きを先に探し、**それが無いときだけ**見出しに戻る。
+   */
+  const bs = blocks(body);
+  const first = bs.find((b) => b.t === 'para' || b.t === 'list') ?? bs.find((b) => b.t === 'head');
   if (first?.t === 'para' || first?.t === 'head') return plain(first.kids).slice(0, 90);
   if (first?.t === 'list') return first.items.slice(0, 3).map((x) => `・${plain(x)}`).join('\n');
   return body.replace(/^#.*\n/, '').slice(0, 90);

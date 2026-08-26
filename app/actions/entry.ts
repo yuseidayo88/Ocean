@@ -92,7 +92,9 @@ export async function adoptCandidate(
       await s.addDecided(r.id, {
         question: 'どの道で進めるか',
         chosen: c.name,
-        why: c.summary,
+        // **`why` は置かない**（2026-08-26）。ここに入れていた `c.summary` は
+        // 選んだ案の説明とまったく同じ文で、台帳に同じ1文が2回並んでいた。
+        // なぜその道かは**選ばなかった2つの理由と並べて**言えている
         options: d.candidates.map((x) => ({
           label: x.name,
           description: x.id === candidateId ? x.summary : (x.notChosenWhy || x.summary),

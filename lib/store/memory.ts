@@ -119,7 +119,17 @@ export const memoryStore: Store = {
     bag.set(id, { ...next, id, createdAt: d.createdAt });
   },
 
-  async getWork(id) { return bag.get(id)?.live ?? null; },
+  async getWork(id) {
+    const live = bag.get(id)?.live ?? null;
+    if (!live) return null;
+    // **決めたことも一緒に返す**（supabase 版と同じ約束）。右ペインの節が空のままだった
+    return {
+      ...live,
+      decs: decisions.filter((d) => d.workId === id && d.status === 'decided' && d.chosen)
+        .slice().reverse().slice(0, 6)
+        .map((d) => ({ question: d.question, chosen: d.chosen!, when: d.when })),
+    };
+  },
 
   /* ══════════════ 実行（Phase 7）══════════════
    * Supabase 版と同じ順序で同じことをする。進捗も「歩みから写す」を守る
@@ -173,7 +183,7 @@ export const memoryStore: Store = {
       state: '要確認',
       // 書き出しは形ごとに違うところから（supabase 版と同じ規則）
       preview: previewFor(d.kind, d.body), body: d.body,
-      by: live.tasks.find((t) => t.id === d.taskId)?.owner, when: 'たった今', taskId: d.taskId,
+      by: live.tasks.find((t) => t.id === d.taskId)?.owner, when: new Date().toISOString(), taskId: d.taskId,
       version,
     });
     return id;
@@ -290,7 +300,7 @@ export const memoryStore: Store = {
   async answerDecision(decisionId, chosen) {
     const d = decisions.find((x) => x.id === decisionId);
     if (!d || d.status !== 'open') return;
-    d.status = 'decided'; d.chosen = chosen; d.when = 'たった今';
+    d.status = 'decided'; d.chosen = chosen; d.when = new Date().toISOString();
     if (d.taskId) {
       const { task } = findTask(d.taskId);
       if (task.state === 'needs_decision') task.state = 'queued';
@@ -298,7 +308,11 @@ export const memoryStore: Store = {
   },
 
   async listDecisions(workId) {
-    return decisions.filter((d) => !workId || d.workId === workId).slice().reverse();
+    // Work の名前を添える（supabase 版と同じ約束）。台帳は会社ぜんぶを1本に並べる
+    // **承認前の Work にも題はある**（live はまだ無いので draft の側から取る）
+    const title = new Map([...bag.entries()].map(([k, d]) => [k, d.live?.title ?? d.title ?? '']));
+    return decisions.filter((d) => !workId || d.workId === workId).slice().reverse()
+      .map((d) => ({ ...d, workTitle: title.get(d.workId) || undefined }));
   },
 
   async addDecisionRefs() { /* メモリ版は台帳を持たない（本物は decision_refs） */ },

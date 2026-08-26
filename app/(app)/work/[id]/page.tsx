@@ -2,7 +2,7 @@
 
 import { openHref } from '@/lib/use-open';
 
-import { useOpen } from '@/lib/use-open';
+import { useOpen, useParam } from '@/lib/use-open';
 import { Go as Link } from '@/components/ui/Go';
 import { notFound, useParams } from 'next/navigation';
 import { Centre, Composer, Pane, PaneHead, TopBar } from '@/components/shell/Chrome';
@@ -22,6 +22,8 @@ import { DelBody } from '@/components/live/DelBody';
 import { DelTake } from '@/components/live/DelTake';
 import type { RunStep } from '@/lib/store';
 import { useEffect, useState } from 'react';
+import { pressable } from '@/lib/a11y';
+import { ago } from '@/lib/when';
 
 /**
  * Work＝会話を持たない。一目で状況が分かる1枚（参考: Upwork / Squarespace / Linear）。
@@ -172,6 +174,8 @@ export default function WorkPage() {
   const { id } = useParams<{ id: string }>();
   // 右は閉じた状態から始まる。トップバーの板アイコンで出し入れする
   const [openId, setOpen] = useOpen();
+  /** 選んでいるフェーズ（`?ph=<番号>`）。空＝ぜんぶ */
+  const [ph, setPh] = useParam('ph', '');
   const pane = openId === 'about';
   const setPane = (v: boolean) => setOpen(v ? 'about' : null);
   const [w, setW] = useState<WorkView | null>(null);
@@ -202,12 +206,33 @@ export default function WorkPage() {
     return () => window.clearInterval(h);
   }, [id]);
 
+  /**
+   * **Esc でフェーズの選びを外す**（右ペインと同じ作法。→ CLAUDE.md「Esc で閉じる」）。
+   * ペインが開いているあいだは、そちらが先に閉じる — Esc を1回で2つ閉じない。
+   */
+  useEffect(() => {
+    if (!ph) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !openId) setPh(''); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [ph, openId, setPh]);
+
   if (gone) notFound();
   // 取りに行っているあいだ。**形だけ出して、数字は出さない**
   if (!w) return <Centre><TopBar crumb="Work" title="読み込み中" /><div style={{ flex: 1 }} /></Centre>;
 
-  const live = w.tasks;
-  const dels = w.dels;
+  /**
+   * **フェーズを選ぶと、下がそのフェーズだけになる**（2026-08-26）。
+   *
+   * 前はフェーズの4行が**どれも同じ `/tasks`（絞り込みなし）へ飛んでいた** —
+   * 押した先で「このフェーズの話」がどこにも無いので、答えていない。
+   * ワークフローの地図と同じ作法にする（→ CLAUDE.md「押しても盤面から出ない。
+   * その鎖だけが残ってほかが沈む」）。**選んでいる1件は URL に持つ**（`?ph=2`）。
+   */
+  const at = Number(ph) || 0;
+  const live = at ? w.tasks.filter((t) => t.phase === at) : w.tasks;
+  const phaseOfTask = new Map(w.tasks.map((t) => [t.id, t.phase]));
+  const dels = at ? w.dels.filter((d) => !!d.taskId && phaseOfTask.get(d.taskId) === at) : w.dels;
   const decs = w.decs;
   const late = w.late !== undefined;
   // 右は1枚だけ。openId が指す1件（タスクか成果物か、この Work の説明か）
@@ -279,9 +304,16 @@ export default function WorkPage() {
           <div>
             <span style={{ color: T3, display: 'block', paddingBottom: 8 }}>フェーズ</span>
             {w.phases.map((p, i) => (
-              <Link key={p.name} href="/tasks" className="row" style={{
+              /**
+               * **押しても Work 画面から出ない。** 選ぶとそのフェーズだけが残り、ほかは沈む。
+               * 下の「いま動いているもの」と「成果物」も一緒に絞られる。
+               * 外し方は2つ — 同じ行をもう一度押す / Esc（→ `onKeyDown`）。
+               */
+              <div key={p.name} className="row" {...pressable(() => setPh(at === i + 1 ? '' : String(i + 1)))} style={{
                 display: 'flex', alignItems: 'center', gap: 14, height: 46, borderRadius: 7,
                 borderBottom: i === w.phases.length - 1 ? undefined : `1px solid ${HAIR}`,
+                opacity: at && at !== i + 1 ? 0.4 : 1,
+                background: at === i + 1 ? '#0E0E0E' : undefined,
               }}>
                 <span style={{ width: 16, flexShrink: 0, display: 'inline-flex', justifyContent: 'center' }}>
                   <PhaseMark state={p.state} />
@@ -303,14 +335,23 @@ export default function WorkPage() {
                 <span style={{ width: 92, flexShrink: 0, textAlign: 'right', color: MUTE, fontSize: 11 }} className="tnum">
                   {p.from && p.to ? `${p.from} – ${p.to}` : ''}
                 </span>
-              </Link>
+              </div>
             ))}
           </div>
 
-          {/* いま動いているもの — フェーズをまたいで並べる */}
+          {/* いま動いているもの — 既定はフェーズをまたいで並べる。1つ選ぶとそのフェーズだけ */}
           <div>
-            <span style={{ color: T3, display: 'block', paddingBottom: 8 }}>いま動いているもの</span>
-            {live.length === 0 && <Empty>まだありません。</Empty>}
+            <div style={{ display: 'flex', alignItems: 'baseline', paddingBottom: 8 }}>
+              <span style={{ color: T3 }}>いま動いているもの</span>
+              <div style={{ flex: 1 }} />
+              {/* **絞っていることと、その外し方を1つで言う**（説明のコピーは置かない） */}
+              {at > 0 && (
+                <button onClick={() => setPh('')} className="lnk" style={{ color: T5, fontSize: 12 }}>
+                  フェーズ{at} だけ · すべて見る
+                </button>
+              )}
+            </div>
+            {live.length === 0 && <Empty>{at > 0 ? 'このフェーズには、動いているものがありません。' : 'まだありません。'}</Empty>}
             {live.map((t, i) => (
               <Row key={t.id} live={!!w.live} onOpen={() => setOpen(t.id)} href={openHref('/tasks', t.id)} style={{
                 display: 'flex', alignItems: 'center', gap: 12, height: 44, borderRadius: 7,
@@ -324,7 +365,7 @@ export default function WorkPage() {
                 </span>
                 <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
                 <span style={{ width: 84, color: T5, fontSize: 12 }}>{t.phase ? `フェーズ${t.phase}` : ''}</span>
-                <span style={{ width: 78, color: t.mine ? AMBER_T : T4, fontSize: 12 }}>{t.owner}</span>
+                <span style={{ width: 78, color: T4, fontSize: 12 }}>{t.owner}</span>
                 <span style={{ width: 52, textAlign: 'right', color: t.state === '判断待ち' ? AMBER_T : T5, fontSize: 12 }} className="tnum">
                   {t.state === '判断待ち' ? '決める' : t.state === '待機' ? '待機' : `${t.progress}%`}
                 </span>
@@ -341,7 +382,7 @@ export default function WorkPage() {
                 <Link href="/deliverables" className="lnk" style={{ color: T5, fontSize: 12 }}>すべて表示 ›</Link>
               )}
             </div>
-            {dels.length === 0 && <Empty>まだありません。AI社員が出したら、ここに並びます。</Empty>}
+            {dels.length === 0 && <Empty>{at > 0 ? 'このフェーズの成果物はまだありません。' : 'まだありません。AI社員が出したら、ここに並びます。'}</Empty>}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 28 }}>
               {dels.map((d, i) => (
                 <Row key={d.id} live={!!w.live} onOpen={() => setOpen(d.id)} href={openHref('/deliverables', d.id)} style={{
@@ -359,7 +400,7 @@ export default function WorkPage() {
                   </span>
                   <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</span>
-                    <span style={{ color: T5, fontSize: 11 }}>{d.byName}{d.when && ` · ${d.when}`}</span>
+                    <span style={{ color: T5, fontSize: 11 }}>{d.byName}{ago(d.when) && ` · ${ago(d.when)}`}</span>
                   </div>
                   <div style={{ flex: 1 }} />
                   {d.state === '要確認' && (
@@ -386,7 +427,7 @@ export default function WorkPage() {
             <span style={{ color: late ? RED_T : GREEN_T }}>
               {late ? `遅れ ${w.late}日` : '順調'}
             </span>
-            <span style={{ color: T5, fontSize: 11 }}>統括AI{w.leadWhen ? ` · ${w.leadWhen}` : ''}</span>
+            <span style={{ color: T5, fontSize: 11 }}>統括AI</span>
           </div>
           <span style={{ color: T2, fontSize: 13, lineHeight: '21px' }}>{w.lead}</span>
 
@@ -400,7 +441,7 @@ export default function WorkPage() {
               padding: '0 8px', margin: '0 -8px',
               borderBottom: i === decs.length - 1 ? undefined : `1px solid ${HAIR}`,
             }}>
-              <span style={{ width: 52, flexShrink: 0, color: T5, fontSize: 11 }}>{when}</span>
+              <span style={{ width: 52, flexShrink: 0, color: T5, fontSize: 11 }}>{ago(when)}</span>
               <Icon name="check" color={GREEN_T} size={12} width={2.2} />
               <span style={{ color: T2, fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{what}</span>
             </Link>
@@ -489,7 +530,7 @@ export default function WorkPage() {
       <Pane onClose={() => setOpen(null)} width={440} icon="deliv" title={openDel.title}>
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 18 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, paddingBottom: 12 }}>
-            <span style={{ color: T5, fontSize: 11 }}>{openDel.byName}{openDel.when ? ` · ${openDel.when}` : ''}</span>
+            <span style={{ color: T5, fontSize: 11 }}>{openDel.byName}{ago(openDel.when) ? ` · ${ago(openDel.when)}` : ''}</span>
             {openDel.state === '要確認' && (
               <span style={{
                 display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 8px', borderRadius: 6,

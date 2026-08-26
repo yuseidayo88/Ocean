@@ -253,11 +253,14 @@ export const supabaseStore: Store = {
       .from('works').select('id, title, goal, status, started_at, plan_draft').eq('id', id).maybeSingle();
     if (!w) return null;
 
-    const [{ data: ph }, { data: tk }, { data: dl }] = await Promise.all([
+    const [{ data: ph }, { data: tk }, { data: dl }, { data: dc }] = await Promise.all([
       c.from('phases').select('id, seq, name, goal, status, started_at').eq('work_id', id).order('seq'),
       c.from('tasks').select('id, phase_id, seq, title, intent, status, progress, assignee_employee_id, owner_hint').eq('work_id', id).order('seq'),
       c.from('deliverables').select('id, task_id, title, kind, status, version, preview, body, produced_by_employee_id, created_at')
         .eq('work_id', id).neq('status', 'superseded').order('created_at', { ascending: false }),
+      // **決めたことも同じ往復で取る**（右ペインの節が空のままだった。2026-08-26）
+      c.from('decisions').select('question, chosen_option_key, decided_at').eq('work_id', id)
+        .eq('status', 'decided').order('decided_at', { ascending: false }).limit(6),
     ]);
 
     /**
@@ -307,11 +310,16 @@ export const supabaseStore: Store = {
         body: (d.body ?? undefined) as string | undefined,
         by: d.produced_by_employee_id ? em.get(d.produced_by_employee_id as string)?.display_name : undefined,
         taskId: (d.task_id ?? undefined) as string | undefined,
+        when: d.created_at as string,
         version: (d.version ?? 1) as number,
       })),
       crew: [...em.values()].map((e) => ({
         id: e.id, name: e.display_name,
         color: AGENT_COLOR[e.color_token as EmployeeColor] ?? '#5C6BC0',
+      })),
+      decs: (dc ?? []).filter((d) => d.chosen_option_key).map((d) => ({
+        question: d.question as string, chosen: d.chosen_option_key as string,
+        when: (d.decided_at ?? undefined) as string | undefined,
       })),
       startedAt: (w.started_at ?? undefined) as string | undefined,
     };
@@ -585,6 +593,7 @@ export const supabaseStore: Store = {
       body: (d.body ?? undefined) as string | undefined,
       by: d.produced_by_employee_id ? name.get(d.produced_by_employee_id as string) : undefined,
       taskId: (d.task_id ?? undefined) as string | undefined,
+      when: d.created_at as string,
       workId: d.work_id as string,
       workTitle: ((d.works as { title?: string } | null)?.title ?? '') as string,
       version: (d.version ?? 1) as number,
@@ -674,12 +683,16 @@ export const supabaseStore: Store = {
 
   async listDecisions(workId) {
     const c = await db();
+    // **select は1本の文字列のまま**（行をまたいで足すと、型の推論が崩れて行が別物になる）
     let q = c.from('decisions')
-      .select('id, work_id, task_id, question, rationale, options, chosen_option_key, status, decided_at')
+      .select('id, work_id, task_id, question, rationale, options, chosen_option_key, status, decided_at, created_at, works(title)')
       .order('created_at', { ascending: false }).limit(50);
     if (workId) q = q.eq('work_id', workId);
     const { data } = await q;
-    return (data ?? []).map(toDecision);
+    return (data ?? []).map((d) => ({
+      ...toDecision(d),
+      workTitle: ((d.works as { title?: string } | null)?.title ?? undefined) as string | undefined,
+    }));
   },
 
   async addDecisionRefs(runId, decisionIds) {
@@ -1740,5 +1753,7 @@ function toDecision(d: Record<string, unknown>): LiveDecision {
     options: (d.options ?? []) as LiveDecision['options'],
     chosen: (d.chosen_option_key ?? undefined) as string | undefined,
     status: d.status as LiveDecision['status'],
+    // **時刻をそのまま渡す。** 「たった今」のような言葉はサーバーで作ると古びる
+    when: ((d.decided_at ?? d.created_at) ?? undefined) as string | undefined,
   };
 }

@@ -255,6 +255,30 @@ const bar = await ev(`[...document.querySelectorAll('button')].some(b => b.inner
 ok('進んだあとは承認の帯が出ていない', !bar, String(bar));
 const p2 = await until((b) => /フェーズ\n2 \/ /.test(b), 40);
 ok('フェーズが 2 に進んだ', /フェーズ\n2 \/ /.test(p2), p2.match(/フェーズ\n[^\n]*/)?.[0]);
+/**
+ * **「残り」を本当に埋める**（2026-08-26）。型にあるだけで誰も埋めておらず、
+ * Work 画面のいちばん上の帯に「残り —」がどの Work でも永久に出ていた。
+ * 出どころは承認したときの見込み（週数 ＋ 開始日）— それ以外に基準は無い。
+ */
+ok('「残り」が数字になる（承認したときの見込みから）',
+   /残り\n(\d+日|遅れ \d+日)/.test(p2) && /\d+\/\d+ まで/.test(p2),
+   p2.match(/残り\n[^\n]*\n[^\n]*/)?.[0]?.replace(/\n/g, ' ') ?? '(出ていない)');
+/**
+ * **フェーズを押しても Work 画面から出ない**（2026-08-26）。
+ * 前は4行がどれも同じ `/tasks`（絞り込みなし）へ飛んでいた＝答えていない。
+ * いまは選ぶとその1つだけが残り、下の「いま動いているもの」と「成果物」も絞られる。
+ */
+await ev(`[...document.querySelectorAll('[role=button]')].find(
+  (x) => x.className.includes('row') && /調査/.test(x.innerText) && /\\d+\\/\\d+/.test(x.innerText))?.click()`);
+await wait(800);
+const picked = await text();
+ok('フェーズを押すと、その1つだけに絞られる（画面から出ない）',
+   /ph=1/.test(await ev('location.search')) && picked.includes('フェーズ1 だけ')
+   && !picked.includes('収益モデルを比べる'),
+   (await ev('location.pathname')) + (await ev('location.search')));
+await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('すべて見る'))?.click()`);
+await wait(700);
+ok('もう一度押すか「すべて見る」で戻る', !/ph=1/.test(await ev('location.search')), await ev('location.search'));
 
 /**
  * ④' **前のフェーズを読んで、統括AIが社長に聞く**（2026-08-26。社長の
@@ -320,6 +344,23 @@ ok('図が絵として描かれる（判断は「あなたが決める」）',
    shown.includes('受けるか決める') && shown.includes('あなたが決める') && shown.includes('不足あり'),
    shown.slice(-160));
 ok('壊れた線は残っていない', !shown.includes('resend'), shown.slice(-100));
+/**
+ * **要確認だけを見る**（2026-08-26）。前は数を出しているのに、そこへ行く道が無かった。
+ * この会社は放っておくと成果物を出し続けるので、いちばんよくある用は
+ * 「まだ見ていないものを見る」— 30枚のグリッドを目で探させる画面ではない。
+ */
+await send('Page.navigate', { url: `${BASE}/deliverables` }); await wait(2200);
+const hadCards = (await text()).includes('承認済') || (await ev(`[...document.querySelectorAll('.card')].length`)) > 0;
+await ev(`[...document.querySelectorAll('button')].find(b => /要確認 \\d/.test(b.innerText))?.click()`);
+await wait(900);
+const onlyR = await text();
+ok('要確認だけに絞れる',
+   hadCards && onlyR.includes('要確認だけ') && /要確認だけ\n· \d/.test(onlyR),
+   onlyR.match(/要確認だけ[\s\S]{0,20}/)?.[0]?.replace(/\n/g, ' ') ?? onlyR.slice(0, 120));
+ok('絞ったことは URL に残る', /only=review/.test(await ev('location.search')), await ev('location.search'));
+await ev(`[...document.querySelectorAll('button')].find(b => b.innerText === 'すべて見る')?.click()`);
+await wait(700);
+ok('すべてに戻せる', (await text()).includes('すべての成果物'), (await text()).slice(0, 60));
 
 // ⑤' 学びの輪（note_learning → 社員のメモ → 設定ペイン）と標準スキル
 await send('Page.navigate', { url: `${BASE}/team` }); await wait(2200);
@@ -660,6 +701,17 @@ ok('計画の吹き出しは社長の言葉だけ（背景や条件を混ぜな�
 await send('Page.navigate', { url: `${BASE}/decisions` }); await wait(2200);
 const led = await text();
 ok('選んだ道が決定事項に残る', led.includes('どの道で進めるか') && led.includes('オンライン講座'), led.slice(0, 140));
+/**
+ * **決めたあとも、理由と選ばなかった道が残る**（2026-08-26）。
+ * 台帳はあとから読むものなので、決めた瞬間に「なぜ聞かれたのか」と
+ * 「何と比べて決めたのか」が消えるのは、台帳の存在意義そのものを捨てている。
+ * どの Work の判断かも出す（会社ぜんぶを1本に並べるので、名前が無いと話が分からない）。
+ */
+ok('決めたあとも、選ばなかった道が理由つきで残る',
+   led.includes('K-POPファン層') && led.includes('就職・ビジネス層') && led.includes('両方')
+   && led.includes('次のフェーズの調べ方'),
+   led.match(/対象の絞り込み[\s\S]{0,150}/)?.[0]?.replace(/\n/g, ' ') ?? led.slice(0, 140));
+ok('どの Work の判断かが出る', led.includes('韓国人向けの日本語学習サービス'), led.slice(0, 120));
 
 // ⑤''' 入口 Case D — **チャットの中で**取り込み → 診断
 await send('Page.navigate', { url: `${BASE}/start` }); await wait(2200);

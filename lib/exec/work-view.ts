@@ -20,7 +20,7 @@ export type WorkTask = {
   id: string; title: string;
   /** 1始まりのフェーズ番号。0 は「どのフェーズか分からない」 */
   phase: number;
-  owner: string; mine?: boolean;
+  owner: string;
   state: string; progress: number;
 };
 
@@ -78,8 +78,6 @@ export type WorkView = {
   crew: WorkCrew[];
   /** 右ペインの「最新の状況」。**まだ何も起きていないなら、そう書く** */
   lead: string;
-  /** 統括AIがいつ言ったか。まだ言っていないなら undefined */
-  leadWhen?: string;
 };
 
 /** 状態の語は6つだけ（→ CLAUDE.md）。DB の値をそこに写す */
@@ -123,7 +121,29 @@ export function fromLive(w: LiveWork): WorkView {
     at = to;
   }
 
+  /**
+   * **「残り」を本当に埋める**（2026-08-26）。
+   *
+   * `rest` / `endDate` / `late` は型にあるだけで**誰も埋めていなかった** —
+   * Work 画面のいちばん上の帯に「残り —」が、どの Work でも永久に出ていた。
+   * 出どころはフェーズの行がすでに使っている**承認したときの見込み**（週数 ＋ 開始日）で、
+   * それ以外に基準は無い（→ `paceSay` と同じ考え方）。
+   * **週数の無い計画には言わない**（無いものは無いと出す）。
+   */
+  const endMs = dated ? at : 0;
+  const over = endMs ? Math.ceil((Date.now() - endMs) / DAY) : 0;
+  const ended = w.status === 'done';
+  // 終わった Work に「あと N日」は言わない（進捗 100% がもう言っている）
+  // **`endMs &&` で書かない** — 週数の無い計画では 0（数）が残り、画面の
+  // `w.late !== undefined` が真になって「遅れ」の赤が点く
+  const late = !ended && endMs > 0 && over > 0 ? over : undefined;
+  const rest = ended || !endMs ? undefined
+    : late ? `遅れ ${late}日`                                  // 語彙は 順調 / 遅れ N日 の2つだけ
+    : `${Math.max(0, Math.ceil((endMs - Date.now()) / DAY))}日`;
+
   return {
+    late, rest,
+    endDate: !ended && endMs ? `${md(endMs)} まで` : undefined,
     title: w.title, goal: w.goal,
     progress: w.tasks.length ? Math.round((w.tasks.filter((t) => t.state === 'done').length / w.tasks.length) * 100) : 0,
     phaseIndex: w.phases[nowIdx]?.seq ?? 1,
@@ -144,7 +164,12 @@ export function fromLive(w: LiveWork): WorkView {
       // **持ち出すとき、拡張子が変わる**（図は .json）ので kind も渡す
       kind: d.kind, preview: d.preview, body: d.body, taskId: d.taskId,
     })),
-    decs: [],
+    /**
+     * **決めたことは、この Work のもの**（2026-08-26）。
+     * 前はここが `[]` に決め打ちされていて、右ペインの節が
+     * **どの Work でも永久に「まだありません」**と出ていた。
+     */
+    decs: (w.decs ?? []).map((d): [string, string] => [d.when ?? '', `${d.question} → ${d.chosen}`]),
     live: true,
     active: w.status === 'active' && w.tasks.some((t) => t.state === 'queued' || t.state === 'running'),
     phaseGate: review?.name,
@@ -156,10 +181,15 @@ export function fromLive(w: LiveWork): WorkView {
     /** 終わったときに出す事実（**「すべて揃っています」と言い切らない**） */
     unseen: (w.dels ?? []).filter((d) => d.state === '要確認').length,
     paused: w.status === 'paused',
-    crew: w.crew.map((c) => ({
-      id: c.id, name: c.name, color: c.color,
-      tasks: w.tasks.filter((t) => t.owner === c.name && t.state !== 'done').length,
-    })),
+    crew: w.crew.map((c) => {
+      const tasks = w.tasks.filter((t) => t.owner === c.name && t.state !== 'done').length;
+      /**
+       * **手が空いている人は「待機」**（2026-08-26）。`dim` は型にあるだけで
+       * **誰も立てていなかった**ので、右ペインには「0タスク」が7人ぶん並んでいた。
+       * 状態の語は6つだけ — 0 を数字で言わず、待機と言う。
+       */
+      return { id: c.id, name: c.name, color: c.color, tasks, dim: tasks === 0 };
+    }),
     lead: lead(w, nowIdx),
   };
 }
