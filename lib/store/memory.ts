@@ -66,6 +66,22 @@ function live(d: DraftWork, ids: Map<string, string>): LiveWork {
   };
 }
 
+/**
+ * **承認前の Work の、形だけ**（2026-08-26）。
+ *
+ * supabase 版は控えを書いた時点でフェーズとタスクまで作るので、承認前の Work も
+ * `listWorks` / `getWork` にふつうに出てくる。メモリ版は `live` を承認まで作らないので、
+ * **双子が違うものを返していた** — レールの「Work」が `/start` に落ち、
+ * Work の画面は 404 になっていた。
+ *
+ * 中身はまだ無いので、**無いまま返す**（題・ゴール・状態だけ）。
+ * 画面はこれで「まだ始まっていません。計画を見る」の帯を出せる。
+ */
+const shell = (d: DraftWork): LiveWork => ({
+  id: d.id, title: d.title, goal: d.goal, status: 'plan_review',
+  phases: [], tasks: [], crew: [], dels: [],
+});
+
 export const memoryStore: Store = {
   kind: 'memory',
 
@@ -75,7 +91,6 @@ export const memoryStore: Store = {
     return id;
   },
   async getDraft(id) { return bag.get(id) ?? null; },
-  async listDrafts() { return [...bag.values()].reverse(); },
   async answer(id, index, answer) {
     const d = bag.get(id);
     if (!d?.questions[index]) return;
@@ -120,7 +135,11 @@ export const memoryStore: Store = {
   },
 
   async getWork(id) {
-    const live = bag.get(id)?.live ?? null;
+    const row = bag.get(id);
+    // **承認前でも 404 にしない**（supabase 版はフェーズを先に作るので画面が出る）。
+    // 出るのは題とゴールと状態だけ — Work の画面が「計画を見る」の帯を出せればいい
+    if (row && !row.live) return shell(row);
+    const live = row?.live ?? null;
     if (!live) return null;
     // **決めたことも一緒に返す**（supabase 版と同じ約束）。右ペインの節が空のままだった
     return {
@@ -361,7 +380,17 @@ export const memoryStore: Store = {
   /* ══════════════ ゼロ状態（画面はぜんぶここを読む）══════════════ */
 
   async listWorks() {
-    return [...bag.values()].filter((d) => d.live).map((d) => d.live!);
+    /**
+     * **承認前の Work も返す**（2026-08-26。supabase 版と同じ）。
+     *
+     * あちらは `works` を status で絞らずに返すので、`plan_review` の Work も並ぶ。
+     * こちらは `live` があるものだけ返していたので、**双子が違うものを返していた** —
+     * レールの「Work」を押すと、計画を立てた直後なのに `/start` に落ちていた。
+     *
+     * 承認前はフェーズもタスクもまだ無いので、**計画の控えから形だけ作る**
+     * （画面が読むのは題とゴールと状態だけ。無いものは無いまま）。
+     */
+    return [...bag.values()].map((d) => d.live ?? shell(d));
   },
 
   async listNotes() {

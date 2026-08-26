@@ -23,6 +23,7 @@ import { DelTake } from '@/components/live/DelTake';
 import type { RunStep } from '@/lib/store';
 import { useEffect, useState } from 'react';
 import { pressable } from '@/lib/a11y';
+import type { Route } from 'next';
 import { ago } from '@/lib/when';
 
 /**
@@ -266,6 +267,28 @@ export default function WorkPage() {
             <span style={{ color: T4, fontSize: 13, display: 'block', paddingTop: 6 }}>{w.goal}</span>
           </div>
 
+          {/**
+            * **まだ承認していない Work は、承認へ連れていく**（2026-08-26）。
+            * 承認前の Work も `listWorks` に出るので、レールの「Work」や ⌘K から
+            * ここへ来られる。それなのに画面には「まだ始まっていません。」としか出ておらず、
+            * **計画へ戻る道が無かった** — 承認しないと何も始まらないのに。
+            */}
+          {w.unapproved && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderRadius: 12,
+              background: 'rgba(26,115,232,0.06)', border: `1px solid rgba(26,115,232,0.34)`,
+            }}>
+              <span style={{ color: T2, fontSize: 13.5 }}>
+                この Work はまだ始まっていません。計画を承認すると動きだします
+              </span>
+              <div style={{ flex: 1 }} />
+              <Link href={`/work/${w0id}/plan` as Route} className="solid" style={{
+                display: 'inline-flex', alignItems: 'center', height: 32, padding: '0 16px',
+                borderRadius: 8, background: BLUE, color: '#fff', fontSize: 12.5, flexShrink: 0,
+              }}>計画を見る</Link>
+            </div>
+          )}
+
           {/* フェーズの承認 — review のあいだだけ出る行動の帯（Phase 9） */}
           {w.phaseGate && <PhaseGate name={w.phaseGate} unseen={w.gateUnseen} workId={w0id}
             onDone={() => getWork(id).then((r) => r && setW(fromLive(r)))} />}
@@ -406,7 +429,10 @@ export default function WorkPage() {
                   </span>
                   <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</span>
-                    <span style={{ color: T5, fontSize: 11 }}>{d.byName}{ago(d.when) && ` · ${ago(d.when)}`}</span>
+                    {/* **直した版だと分かるようにする**（v2〜だけ。差し戻すのはこの画面） */}
+                    <span style={{ color: T5, fontSize: 11 }}>
+                      {d.byName}{ago(d.when) && ` · ${ago(d.when)}`}{(d.version ?? 1) > 1 ? ` · v${d.version}` : ''}
+                    </span>
                   </div>
                   <div style={{ flex: 1 }} />
                   {d.state === '要確認' && (
@@ -536,7 +562,9 @@ export default function WorkPage() {
       <Pane onClose={() => setOpen(null)} width={440} icon="deliv" title={openDel.title}>
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 18 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, paddingBottom: 12 }}>
-            <span style={{ color: T5, fontSize: 11 }}>{openDel.byName}{ago(openDel.when) ? ` · ${ago(openDel.when)}` : ''}</span>
+            <span style={{ color: T5, fontSize: 11 }}>
+              {openDel.byName}{ago(openDel.when) ? ` · ${ago(openDel.when)}` : ''}{(openDel.version ?? 1) > 1 ? ` · v${openDel.version}` : ''}
+            </span>
             {openDel.state === '要確認' && (
               <span style={{
                 display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 8px', borderRadius: 6,

@@ -213,7 +213,6 @@ export interface Store {
   readonly kind: 'supabase' | 'memory';
   createDraft(d: Omit<DraftWork, 'id' | 'createdAt'>): Promise<string>;
   getDraft(id: string): Promise<DraftWork | null>;
-  listDrafts(): Promise<DraftWork[]>;
   answer(id: string, index: number, answer: string): Promise<void>;
 
   /**
@@ -380,7 +379,12 @@ export interface Store {
   /** 残高（セント）。**null = 上限なし**（メモリ版のデモ。数字を偽装しない） */
   balanceCents(): Promise<number | null>;
   /** 台帳（新しい順）。請求・プラン画面だけが読む */
-  ledger(): Promise<{ deltaCents: number; reason: string; when?: string }[]>;
+  /**
+   * トークンの出入り。**数字を出していい唯一の画面**（`/billing`）が読む。
+   * `workTitle` はどの Work のぶんか — 「AI社員の実行」だけが30行並ぶと、
+   * どこにお金が行ったのか社長には読めない（台帳はあとから読むもの）。
+   */
+  ledger(): Promise<{ deltaCents: number; reason: string; when?: string; workTitle?: string }[]>;
   /** 枠に当たって止める。works → paused ＋ エラー通知 */
   pauseWork(workId: string, why: string): Promise<void>;
   /**

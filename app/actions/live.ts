@@ -64,8 +64,18 @@ export async function learningsGet(employeeId: string): Promise<string[]> {
   try { return await store().learnings(employeeId); } catch { return []; }
 }
 
-export async function learningsSet(employeeId: string, lines: string[]): Promise<void> {
-  try { await store().setLearnings(employeeId, lines); } catch { /* 消えなかったら残るだけ */ }
+/**
+ * **消せたかどうかを返す**（2026-08-26）。前は void で、失敗しても黙っていた —
+ * 画面は先に消しているので、社長には**消えたように見えて、開き直すと戻っている**。
+ * 「押しても何も起きない」より悪い（**起きたふりをする**）。
+ */
+export async function learningsSet(
+  employeeId: string, lines: string[],
+): Promise<{ ok: boolean; message?: string }> {
+  try {
+    await store().setLearnings(employeeId, lines);
+    return { ok: true };
+  } catch (e) { return { ok: false, message: sayError(e, '保存できませんでした') }; }
 }
 
 /**
@@ -76,8 +86,11 @@ export async function founderGet(): Promise<string[]> {
   try { return await store().founderNotes(); } catch { return []; }
 }
 
-export async function founderSet(lines: string[]): Promise<void> {
-  try { await store().setFounderNotes(lines); } catch { /* 消えなかったら残るだけ */ }
+export async function founderSet(lines: string[]): Promise<{ ok: boolean; message?: string }> {
+  try {
+    await store().setFounderNotes(lines);
+    return { ok: true };
+  } catch (e) { return { ok: false, message: sayError(e, '保存できませんでした') }; }
 }
 
 /** レールが読む3つ（チャット履歴・未読の数・在籍の数）。画面を移るたびに呼ばれるので安く */

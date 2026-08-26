@@ -12,6 +12,7 @@ import { pressable } from '@/lib/a11y';
 import { useEffect, useState } from 'react';
 import { AMBER, AMBER_T, COMPOSER_H, DIM, GREEN, HAIR, RED, RED_T, RULE, SUNK, T1, T2, T3, T4, T5 } from '@/lib/design/tokens';
 import { StuckActions } from '@/components/live/StuckActions';
+import { TASK_WORD } from '@/lib/view/model';
 /**
  * タスク＝**状態で束ねる**。
  *
@@ -27,12 +28,6 @@ import { StuckActions } from '@/components/live/StuckActions';
 type Row = {
   id: string; title: string; state: string; progress: number;
   owner?: string; workId: string; workTitle: string; phase: string; phaseSeq: number;
-};
-
-/** 状態の語は6つだけ（→ CLAUDE.md）。DB の値をそこに写す */
-const WORD: Record<string, string> = {
-  queued: '待機', running: '実行中', needs_decision: '判断待ち',
-  blocked: '停止', done: '完了', cancelled: '取消',
 };
 
 function flatten(works: LiveWork[]): Row[] {
@@ -250,7 +245,7 @@ function TaskPane({ t, onClose, onChanged }: { t: Row; onClose: () => void; onCh
               background: gate ? 'rgba(227,116,0,0.18)' : 'rgba(217,48,37,0.18)',
               color: gate ? AMBER_T : RED_T, fontSize: 12,
             }}>{gate ? '判断待ち' : '停止'}</span>
-          ) : <span style={{ color: T1, fontSize: 12.5 }}>{WORD[t.state] ?? t.state}</span>}
+          ) : <span style={{ color: T1, fontSize: 12.5 }}>{TASK_WORD[t.state] ?? t.state}</span>}
         </PaneRow>
         <PaneRow icon="bars" label="進捗">
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>

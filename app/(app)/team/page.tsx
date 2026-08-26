@@ -209,6 +209,7 @@ export default function TeamPage() {
       {/* **右ペインは1枚。** 社員も統括AIも全員も、同じ器で開く */}
       {(sel || execOn || allOn) && (
         <SettingsPane
+          key={allOn ? ALL : execOn ? 'exec' : sel?.id ?? ''}
           who={allOn ? 'all' : execOn ? 'exec' : sel?.cand ? 'candidate' : 'employee'}
           l={sel ?? exec}
           onPick={(patch) => pick(execOn ? null : sel?.id ?? null, patch)}
@@ -384,7 +385,8 @@ function SettingsPane({ who, l, skills, web, onToggle, onHire, onPick, onPause, 
   onWeb?: (next: boolean) => void;
 }) {
   const cand = who === 'candidate';
-  /** 社長が学びから上げたルール（定義の Critical Rules とは別。**こちらは消せる**） */
+  const { say5 } = useShell();
+  /** 社長が足したルール（定義の Critical Rules とは別。**こちらは消せる**） */
   const [mine, setMine] = useState<string[]>([]);
   /** 学びからルールへ上げたときの合図（ルール欄を読み直す） */
   const [ruleRev, setRuleRev] = useState(0);
@@ -401,9 +403,35 @@ function SettingsPane({ who, l, skills, web, onToggle, onHire, onPick, onPause, 
     return () => { on = false; };
   }, [who, l.id, ruleRev]);
   const dropRule = async (line: string) => {
-    const next = mine.filter((r) => r !== line);
+    const back = mine;
+    const next = back.filter((r) => r !== line);
     setMine(next);
-    await rulesSet(l.id, next);
+    const r = await rulesSet(l.id, next);
+    if (!r.ok) { say5(r.message ?? '消せませんでした'); setMine(back); }
+  };
+  /**
+   * **ルールは社長が自分で足せる**（2026-08-26）。
+   *
+   * 設計には最初から「日本語で1行ずつ**追記**・削除」「追加はセクション見出しの右上」と
+   * 書いてあったのに、**足す口はどこにも無かった** — 画面には
+   * 「足すのは学びから『ルールにする』で」とだけ出ていて、社長が
+   * 「見出しは必ず日本語で」と決めたくても、社員が同じことに気づくまで待つしかなかった。
+   * ルールは頭（system）に載って**毎回効く**（`lib/run/worker.ts`）ので、
+   * これは飾りではなく、社員の振る舞いを社長が直す唯一の手。
+   *
+   * **保存ボタンは置かない**（設定のトグルと同じ作法）。Enter か、離れたら保存する。
+   */
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState('');
+  const addRule = async () => {
+    const line = draft.trim();
+    setAdding(false); setDraft('');
+    // 同じ行を二度足さない（学びから上げたものと重なることがある）
+    if (!line || mine.includes(line) || l.rules.includes(line)) return;
+    const back = mine;
+    setMine([...back, line]);
+    const r = await rulesSet(l.id, [...back, line]);
+    if (!r.ok) { say5(r.message ?? '足せませんでした'); setMine(back); }
   };
   // 全員に効くことを見ているときは、会社ぜんぶのスキルだけ。
   // **会社のものになっているものだけ**（社員が書いたばかりのものと、落ちたものは `/skills` で見る）
@@ -510,8 +538,14 @@ function SettingsPane({ who, l, skills, web, onToggle, onHire, onPick, onPause, 
         {who === 'employee' && <Learnings employeeId={l.id} onRule={() => setRuleRev((n) => n + 1)} />}
 
         {/* ルール＝毎回効く制約。定義の Critical Rules は消せない */}
-        {(who === 'employee' || cand) && l.rules.length > 0 && (
-          <Section label={cand ? '守ること' : 'ルール'}>
+        {(who === 'employee' || (cand && l.rules.length > 0)) && (
+          <Section label={cand ? '守ること' : 'ルール'} right={!cand ? (
+            <button className="btn" onClick={() => setAdding(true)} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5, color: T4, fontSize: 12,
+            }}>
+              <Icon name="plus" color={T4} size={12} />追加
+            </button>
+          ) : undefined}>
             {l.rules.map((r, i) => (
               <div key={r} style={{
                 display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0 10px 11px',
@@ -540,9 +574,27 @@ function SettingsPane({ who, l, skills, web, onToggle, onHire, onPick, onPause, 
                 </button>
               </div>
             ))}
+            {/**
+              * 書くところ。**下に点線の行を置かない**（押すまで出さない）。
+              * Enter で足りる — 保存ボタンは置かない。Esc で捨てる。
+              */}
+            {adding && (
+              <input autoFocus value={draft} placeholder="日本語で1行（例: 数字には出どころを付ける）"
+                onChange={(e) => setDraft(e.target.value)}
+                onBlur={() => { void addRule(); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { e.preventDefault(); void addRule(); }
+                  if (e.key === 'Escape') { setDraft(''); setAdding(false); }
+                }}
+                style={{
+                  marginTop: 10, height: 34, padding: '0 11px', borderRadius: 8,
+                  background: SEAM, border: `1px solid ${RULE}`, color: T2, fontSize: 12.5, width: '100%',
+                  boxSizing: 'border-box',
+                }} />
+            )}
             {!cand && (
               <span style={{ display: 'block', paddingTop: 8, color: T5, fontSize: 11.5 }}>
-                定義のルールは消せません。足すのは学びから「ルールにする」で
+                定義のルールは消せません。足したものは毎回この社員に効きます
               </span>
             )}
           </Section>
@@ -614,6 +666,7 @@ function SettingsPane({ who, l, skills, web, onToggle, onHire, onPick, onPause, 
  * 学びと同じ作法で**見える・消せる** — 見えないところで会社が社長像を作らない。
  */
 function FounderNotes() {
+  const { say5 } = useShell();
   const [lines, setLines] = useState<string[] | null>(null);
   useEffect(() => {
     let on = true;
@@ -621,10 +674,13 @@ function FounderNotes() {
     return () => { on = false; };
   }, []);
 
+  /** **消せなかったら、消えたふりをしない**（画面は先に消しているので、言って戻す） */
   const drop = async (i: number) => {
-    const next = (lines ?? []).filter((_, k) => k !== i);
+    const back = lines ?? [];
+    const next = back.filter((_, k) => k !== i);
     setLines(next);
-    await founderSet(next);
+    const r = await founderSet(next);
+    if (!r.ok) { say5(r.message ?? '消せませんでした'); setLines(back); }
   };
 
   if (!lines || lines.length === 0) return null; // まだ無いなら節ごと出さない
@@ -656,6 +712,7 @@ function FounderNotes() {
  * ルールへの昇格は自動でしない（ルールは毎回効く制約。増やすのは社長の判断）。
  */
 function Learnings({ employeeId, onRule }: { employeeId: string; onRule: () => void }) {
+  const { say5 } = useShell();
   const [lines, setLines] = useState<string[] | null>(null);
   useEffect(() => {
     let on = true;
@@ -663,10 +720,13 @@ function Learnings({ employeeId, onRule }: { employeeId: string; onRule: () => v
     return () => { on = false; };
   }, [employeeId]);
 
+  /** **消せなかったら、消えたふりをしない**（→ FounderNotes と同じ作法） */
   const drop = async (i: number) => {
-    const next = (lines ?? []).filter((_, k) => k !== i);
+    const back = lines ?? [];
+    const next = back.filter((_, k) => k !== i);
     setLines(next);
-    await learningsSet(employeeId, next);
+    const r = await learningsSet(employeeId, next);
+    if (!r.ok) { say5(r.message ?? '消せませんでした'); setLines(back); }
   };
   /**
    * **ルールに上げる**（2026-08-26）。画面には前から
@@ -675,8 +735,10 @@ function Learnings({ employeeId, onRule }: { employeeId: string; onRule: () => v
    * **移す**（学びからは消える）— 同じことを2か所に置かない。
    */
   const promote = async (line: string) => {
-    setLines((xs) => (xs ?? []).filter((l) => l !== line));
-    await learningToRule(employeeId, line);
+    const back = lines ?? [];
+    setLines(back.filter((l) => l !== line));
+    const r = await learningToRule(employeeId, line);
+    if (!r.ok) { say5(r.message ?? 'ルールにできませんでした'); setLines(back); return; }
     onRule();
   };
 

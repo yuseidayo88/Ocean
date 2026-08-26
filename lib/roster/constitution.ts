@@ -17,8 +17,6 @@
  * **いちばん上に置く。** ここは社員が変わっても変わらないので、
  * プロンプトキャッシュの境目になる（→ `docs/design/02-executive-model.md`）。
  */
-export const STAFF_CONSTITUTION_VERSION = 1;
-
 export const STAFF_CONSTITUTION = `## あなたの立ち位置
 この会社の社長はひとりです。統括AIが編成し、あなたが実務をします。
 あなたが出したものを社長が読んで、進めていいかを決めます。

@@ -86,6 +86,26 @@ ok('週数の合わない計画は引き直されている（プロダクト 6�
  * 辻褄が合わないままの計画が、黙って承認画面に出ていた。
  * 決め打ちのモデルは、言われたところは直すが**フェーズ名を言い換えて**残す。
  */
+/**
+ * **まだ承認していない Work は、承認へ連れていく**（2026-08-26）。
+ * 承認前の Work も `listWorks` に出るので、レールの「Work」からここへ来られる。
+ * それなのに Work の画面には「まだ始まっていません。」としか出ておらず、
+ * **計画へ戻る道が無かった** — 承認しないと何も始まらないのに。
+ */
+{
+  const url = await ev('location.href');
+  await send('Page.navigate', { url: `${BASE}/work` }); await wait(2200);
+  // **行き先は path から組む。** `location.href` には右ペインの `?open=why` が付いているので、
+  // そのまま `/plan` を落とそうとしても当たらず、計画の画面をもう一度開くだけになる
+  const at = await ev('location.pathname');
+  ok('まだ承認していない Work は、計画の画面へ連れていく', /\/plan$/.test(at), at);
+  await send('Page.navigate', { url: `${BASE}${at.replace(/\/plan$/, '')}` });
+  const band = await until((b) => b.includes('まだ始まっていません'), 12, 500);
+  ok('Work の画面からも、計画へ戻れる',
+     band.includes('計画を承認すると動きだします') && band.includes('計画を見る'),
+     band.match(/まだ始まっていません[\s\S]{0,50}/)?.[0]?.replace(/\n/g, ' ') ?? band.slice(0, 90));
+  await send('Page.navigate', { url: url ?? '' }); await wait(2200);
+}
 const left = await text();
 ok('引き直しても残ったところが、承認の前に出る',
    left.includes('直しきれなかったところ') && /MVPの要件/.test(left),
@@ -446,6 +466,39 @@ for (let i = 0; i < 10 && !paneB.includes('学び'); i++) {
   paneB = (await ev(`document.querySelector('aside')?.innerText ?? ''`)) || '';
 }
 ok('社員の学びが設定ペインに残った', paneB.includes('数字は事実・推計・要確認の3束に分けてから出す'), paneB.slice(0, 120));
+
+/**
+ * **ルールは社長が自分で足せる**（2026-08-26）。
+ * 設計には最初から「1行ずつ追記・削除」「追加はセクション見出しの右上」と
+ * 書いてあったのに、**足す口がどこにも無かった**（画面は「学びから上げて」とだけ言っていた）。
+ * ルールは頭に載って毎回効くので、これが社員の振る舞いを社長が直す唯一の手。
+ */
+{
+  // 「ルール」の節の ＋追加 を押して、書いて、Enter
+  await ev(`[...document.querySelectorAll('aside div')]
+      .filter(d => d.firstElementChild?.textContent === 'ルール')
+      .map(d => d.querySelector('button'))[0]?.click()`);
+  await wait(400);
+  await ev(`(() => { const t = document.querySelector('aside input');
+      if (!t) return false;
+      const set = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+      t.focus(); set.call(t, '見出しは必ず日本語で書く');
+      t.dispatchEvent(new Event('input', { bubbles: true }));
+      t.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      return true; })()`);
+  await wait(1400);
+  const added = (await ev(`document.querySelector('aside')?.innerText ?? ''`)) || '';
+  ok('社長が足したルールが残る', added.includes('見出しは必ず日本語で書く'), added.slice(0, 140));
+  // **読み直しても残る**（画面の中だけで持っていない）
+  await send('Page.navigate', { url: `${BASE}/team` }); await wait(2200);
+  let again = '';
+  for (let i = 0; i < 10 && !again.includes('ルール'); i++) {
+    await ev(`[...document.querySelectorAll('.row')].find(r => r.innerText.includes('調査担当'))?.click()`);
+    await wait(800);
+    again = (await ev(`document.querySelector('aside')?.innerText ?? ''`)) || '';
+  }
+  ok('足したルールは開き直しても残る', again.includes('見出しは必ず日本語で書く'), again.slice(0, 140));
+}
 
 /**
  * ⑤'' モデルと深さ。**選んだものが本当に残るか**を1本通す

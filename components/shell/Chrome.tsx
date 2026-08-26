@@ -8,6 +8,7 @@ import { Icon, type IconName } from '@/components/ui/Icon';
 import { CompanyPicker, useShell } from '@/components/shell/Shell';
 import { AMBER, AMBER_T, BLUE, COMPOSER_H as TOKEN_COMPOSER_H, DIM, EASE, EASE_FAST, EDGE, FAINT, GREEN_T, HAIR, LINE, RAIL, RED_T, RULE, SEAM, SUNK, T1, T2, T3, T4, T5, WELL } from '@/lib/design/tokens';
 import { chatTargets, openWorkChat } from '@/app/actions/chat';
+import type { ExecState } from '@/lib/view/model';
 
 /** 入力欄の高さ。**下に貼り付く中身はこのぶん逃がす**（→ lib/design/tokens.ts） */
 export const COMPOSER_H = TOKEN_COMPOSER_H;
@@ -720,7 +721,7 @@ export function Pills({ items, active, onPick }: {
   );
 }
 
-export function ExecStatus({ state }: { state: 'idle' | 'thinking' | 'blocked' }) {
+export function ExecStatus({ state }: { state: ExecState }) {
   const map = {
     idle:     { c: T5,        t: '待機',   pulse: false },
     thinking: { c: T2, t: '考えています', pulse: true },

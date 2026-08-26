@@ -120,18 +120,6 @@ export const supabaseStore: Store = {
     };
   },
 
-  async listDrafts() {
-    const c = await db();
-    const { data } = await c
-      .from('works').select('id').eq('status', 'plan_review').order('created_at', { ascending: false });
-    const out: DraftWork[] = [];
-    for (const r of data ?? []) {
-      const d = await supabaseStore.getDraft(r.id as string);
-      if (d) out.push(d);
-    }
-    return out;
-  },
-
   /** `index` は 0 始まり。**`seq` で引く**（created_at は同着なので順番が決まらない） */
   async answer(id, index, answer) {
     const c = await db();
@@ -854,10 +842,14 @@ export const supabaseStore: Store = {
 
   async ledger() {
     const c = await db();
+    // **どの Work のぶんかも一緒に取る**（2026-08-26）。台帳の列（0002）は
+    // 最初から `work_id` を持っていたのに、画面には「AI社員の実行」だけが並んでいた
     const { data } = await c.from('token_ledger')
-      .select('delta_cents, reason, created_at').order('created_at', { ascending: false }).limit(60);
+      .select('delta_cents, reason, created_at, works(title)')
+      .order('created_at', { ascending: false }).limit(60);
     return (data ?? []).map((r) => ({
       deltaCents: r.delta_cents as number, reason: r.reason as string, when: r.created_at as string,
+      workTitle: (r.works as { title?: string } | null)?.title ?? undefined,
     }));
   },
 

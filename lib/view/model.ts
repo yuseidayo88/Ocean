@@ -20,6 +20,19 @@ export type State = '判断待ち' | '要確認' | '実行中' | '待機' | '完
 /** 遅れているかどうかは2語だけ */
 export type Health = '順調' | { late: number };
 
+/**
+ * タスクの状態（DB の値）→ 画面の語。**言い換えを2か所に置かない**
+ * （前は Work 画面と タスク画面が同じ表をそれぞれ持っていて、片方だけ直せば食い違った）。
+ *
+ * 6語のうち **要確認 / 承認済** は成果物の状態なので、ここには出てこない。
+ * かわりに **停止**（失敗して止まっている）と **取消**（社長が飛ばした）がある —
+ * どちらもタスクにしか起きないことで、成果物や Work には無い。
+ */
+export const TASK_WORD: Record<string, string> = {
+  queued: '待機', running: '実行中', needs_decision: '判断待ち',
+  blocked: '停止', done: '完了', cancelled: '取消',
+};
+
 export const ME = { initial: 'Y', name: 'あなた' };
 
 /** 出したものの見せ方。形が担当ごとに違うので、レールを見るだけで職種が分かる */
@@ -96,49 +109,6 @@ export type Work = {
  */
 export type Event = { at: string; who: string; what: string; tone?: 'gate' | 'ok' | 'bad' };
 
-export type Task = {
-  /** 別の画面から `?open=` で名指しできるように、行にも id を持たせる */
-  id: string;
-  title: string; state: State; progress: number;
-  owner: string | 'me'; due: string; workId: string; phase: string;
-};
-
-/** サムネイルは中身を出す。灰色の棒は置かない */
-export type Preview =
-  | { kind: 'text'; cap: string; lines: string[] }
-  | { kind: 'table'; cap: string; rows: [string, string, string][]; hi: number }
-  | { kind: 'bars'; cap: string; values: number[] };
-
-export type Deliverable = {
-  id: string; title: string; by: string; when: string; version: string;
-  state: State | '生成中'; workId: string; preview: Preview;
-};
-
-/**
- * 右ペインに開いている成果物の中身。**タブは本物**なので、開いた1件ごとに中身が要る。
- * （タブは「持ち出して読み比べる文書」だけ。→ docs/design/08-panes.md）
- */
-export type DeliverableBody = {
-  lead: string;
-  table: { head: string[]; rows: string[][]; hi: number; bars: number[] };
-  conclusion: string;
-};
-
-export type DecOption = { label: string; value: string; note: string; pct: number; recommended?: boolean };
-
-export type Decision = {
-  id: string; question: string; when: string; workId: string;
-  state: '判断待ち' | '承認済';
-  options?: DecOption[];
-  chosen?: string; basis?: string;
-};
-
-export type Notice = {
-  id: string; kind: '判断待ち' | '要確認' | '実行中' | '承認済' | '完了';
-  title: string; sub: string; when: string; unread: boolean;
-  children?: [string, string][];
-};
-
 /**
  * 通知＝**読むものではなく片づけるもの**（参考: Linear Inbox / Plane Inbox / Lemni）。
  * 左に未処理を積み、右で中身を見て決める。片づけたら次の未処理へ。
@@ -148,47 +118,7 @@ export type Notice = {
  */
 export type InboxKind = '判断待ち' | '要確認' | 'エラー';
 
-export type InboxRow = { k: string; v: string; pct: number; note: string; hi?: boolean };
-
-export type InboxItem = {
-  id: string; kind: InboxKind; when: string; title: string; sub: string;
-  /** 右の1行 — 誰が・いつ・どの Work のどこで */
-  meta: string;
-  /** 本文。1段落1文で書く */
-  lead: string[];
-  /** 案を比べるとき（判断待ち） */
-  table?: { cols: [string, string, string, string]; rows: InboxRow[] };
-  /** 見るものを並べるとき（要確認）。[名前, 担当] */
-  look?: [string, string][];
-  /** 片づけたあとに起きること。[こと, 誰] */
-  after?: [string, string][];
-  primary: string; secondary: string;
-};
-
-export type Thread = { id: string; title: string; unread?: boolean; workId?: string };
-
-/**
- * 会話の中身。スレッドごとに違うものを持つ（3本が同じ会話だと履歴の意味がない）。
- * 質問（ask）は会話に流さず、入力欄の上の板として出す。無いスレッドもある。
- */
-export type ChatBar = { k: string; v: string; note: string; pct: number; hi?: boolean };
-
-export type Turn =
-  | { who: 'you'; text: string }
-  | { who: 'exec'; thought?: string; lead: string; bars?: ChatBar[]; steps?: [string, string][]; tail?: string };
-
-export type ChatAsk = {
-  q: string; idx: number; total: number; free: string;
-  options: { label: string; note: string; recommended?: boolean }[];
-};
-
-export type Skill = {
-  id: string; name: string; file: string; on: boolean;
-  scope: 'employee' | 'company';
-  /** 何回読まれたか。まだ一度も読まれていなければ空 */
-  used: string;
-};
-
+/** 統括AIの3状態（`ExecStatus` が読む）。**この外に言い方を作らない** */
 export type ExecState = 'idle' | 'thinking' | 'blocked';
 
 /** 中身の器は担当ではなく produces で決める（業種を埋め込まない） */

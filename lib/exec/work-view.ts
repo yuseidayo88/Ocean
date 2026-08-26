@@ -1,4 +1,5 @@
 import type { LiveWork } from '@/lib/store/types';
+import { TASK_WORD } from '@/lib/view/model';
 
 /**
  * Work 画面が読む形。**1つだけ。**
@@ -31,6 +32,12 @@ export type WorkDel = {
   /** 成果物の種類（`doc` / `diagram` …）。持ち出すときの拡張子が変わる */
   kind?: string;
   id: string; title: string; byName: string; when?: string; state: string;
+  /**
+   * 版（v2〜だけ出す）。**差し戻しをするのはこの画面**なので、
+   * 「いま見ているのは直した版だ」がここに出ないのはおかしい
+   * （成果物の一覧には前から出ていた）。
+   */
+  version?: number;
   /** 実際の書き出し（本物）。ダミーは図形のサムネイルで代用 */
   preview?: string;
   /** 本文（markdown）。右ペインで開く */
@@ -71,6 +78,8 @@ export type WorkView = {
   gateUnseen: number;
   /** まだ社長が見ていない成果物の数 */
   unseen: number;
+  /** まだ承認していない（計画の画面へ戻す帯を出す） */
+  unapproved?: boolean;
   /** 社長が止めているか（止めているあいだ、会社はこの Work を拾わない） */
   paused: boolean;
   /** Work が終わったか */
@@ -78,12 +87,6 @@ export type WorkView = {
   crew: WorkCrew[];
   /** 右ペインの「最新の状況」。**まだ何も起きていないなら、そう書く** */
   lead: string;
-};
-
-/** 状態の語は6つだけ（→ CLAUDE.md）。DB の値をそこに写す */
-const WORD: Record<string, string> = {
-  queued: '待機', running: '実行中', needs_decision: '判断待ち',
-  blocked: '停止', done: '完了', cancelled: '取消',
 };
 
 /**
@@ -156,11 +159,12 @@ export function fromLive(w: LiveWork): WorkView {
     })),
     tasks: w.tasks.filter((t) => t.state !== 'done' && t.state !== 'cancelled').map((t) => ({
       id: t.id, title: t.title, phase: seq.get(t.phaseId) ?? 0,
-      owner: t.owner ?? '担当は未定', state: WORD[t.state] ?? t.state,
+      owner: t.owner ?? '担当は未定', state: TASK_WORD[t.state] ?? t.state,
       progress: t.progress ?? 0,
     })),
     dels: (w.dels ?? []).map((d) => ({
       id: d.id, title: d.title, byName: d.by ?? 'AI社員', when: d.when, state: d.state,
+      version: d.version,
       // **持ち出すとき、拡張子が変わる**（図は .json）ので kind も渡す
       kind: d.kind, preview: d.preview, body: d.body, taskId: d.taskId,
     })),
@@ -178,6 +182,13 @@ export function fromLive(w: LiveWork): WorkView {
           && !!d.taskId && w.tasks.find((t) => t.id === d.taskId)?.phaseId === review.id).length
       : 0,
     finished: w.status === 'done',
+    /**
+     * **まだ承認していない**（2026-08-26）。承認前の Work も `listWorks` に出るので、
+     * レールの「Work」や ⌘K からここへ来られる。それなのに画面には
+     * 「まだ始まっていません。」としか出ておらず、**計画へ戻る道が無かった** —
+     * 承認しないと何も始まらないのに、その承認がどこにあるか言っていない。
+     */
+    unapproved: w.status === 'plan_review',
     /** 終わったときに出す事実（**「すべて揃っています」と言い切らない**） */
     unseen: (w.dels ?? []).filter((d) => d.state === '要確認').length,
     paused: w.status === 'paused',

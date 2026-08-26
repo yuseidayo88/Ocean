@@ -4,11 +4,13 @@
  * **プロンプトの一番上に、そのまま入る。** ここは実行ごとに変わらないので、
  * プロンプトキャッシュの境目になる（→ docs/design/02-executive-model.md）。
  *
- * 本番では `system_prompts` 表（`key='executive_constitution'`, `version`）から読み、
- * 版を足して切り替える。ここに置いてあるのは**その初版**で、
- * 表が空のとき（＝いまのところ常に）に使う既定値。
+ * **憲法はコードで持つ。** 前はここに「本番では `system_prompts` 表から読み、
+ * 版を足して切り替える」と書いてあったが、**その表はどこにも無い**（作られたことがない）。
+ * 版の番号（`CONSTITUTION_VERSION`）も誰も読んでいなかった。
+ *
+ * 表に置かないのが正しい — 憲法は会社の土台で、社長にも社員にも書き換えさせない
+ * （ロスターの Critical Rules・AI社員の憲法と同じ扱い）。版は git が持っている。
  */
-export const CONSTITUTION_VERSION = 1;
 
 export const CONSTITUTION = `あなたは OneFound の統括AIです。
 

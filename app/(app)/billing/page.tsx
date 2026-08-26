@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Centre, Composer, TopBar } from '@/components/shell/Chrome';
 import { billing } from '@/app/actions/run';
 import { COMPOSER_H, DIM, GREEN_T, HAIR, T1, T3, T4, T5 } from '@/lib/design/tokens';
+import { ago } from '@/lib/when';
 
 /**
  * 請求・プラン。**トークンの数字を出していいのはこの画面だけ**（→ CLAUDE.md）。
@@ -123,14 +124,28 @@ export default function BillingPage() {
           {data && data.rows.length === 0 && (
             <span style={{ color: T5, fontSize: 12.5 }}>まだありません。AI社員が動くと、実行ごとにここへ並びます。</span>
           )}
+          {/**
+            * **いつ・どの Work のぶんか**（2026-08-26）。台帳の列（0002）は最初から
+            * `work_id` を持ち、`ledger()` は `when` を返していたのに、
+            * 画面は**どちらも捨てて**「AI社員の実行」だけを30行並べていた。
+            * 台帳はあとから読むもので、金額だけでは何に使ったのか誰にも分からない。
+            */}
           {data?.rows.map((r, i) => (
             <div key={i} style={{
-              display: 'flex', alignItems: 'center', gap: 12, height: 42,
+              display: 'flex', alignItems: 'center', gap: 12, minHeight: 46, padding: '7px 0',
               borderBottom: i === data.rows.length - 1 ? undefined : `1px solid ${HAIR}`,
             }}>
-              <span style={{ color: T1 }}>{REASON[r.reason] ?? r.reason}</span>
+              <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ color: T1 }}>{REASON[r.reason] ?? r.reason}</span>
+                {r.workTitle && (
+                  <span style={{ color: T5, fontSize: 11.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {r.workTitle}
+                  </span>
+                )}
+              </div>
               <div style={{ flex: 1 }} />
-              <span style={{ color: r.deltaTokens > 0 ? GREEN_T : T4, fontSize: 13 }} className="tnum">
+              {r.when && <span style={{ color: T5, fontSize: 11.5, flexShrink: 0 }}>{ago(r.when)}</span>}
+              <span style={{ color: r.deltaTokens > 0 ? GREEN_T : T4, fontSize: 13, minWidth: 92, textAlign: 'right' }} className="tnum">
                 {r.deltaTokens > 0 ? '+' : ''}{fmt(r.deltaTokens)}
               </span>
             </div>

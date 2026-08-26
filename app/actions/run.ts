@@ -400,7 +400,7 @@ export async function billing(): Promise<{
    * **鍵の中身は返さない**（`/api/health` と同じ作法）。
    */
   awake: boolean;
-  rows: { deltaTokens: number; reason: string; when?: string }[];
+  rows: { deltaTokens: number; reason: string; when?: string; workTitle?: string }[];
 }> {
   const awake = Boolean(process.env.CRON_SECRET && process.env.RUNNER_EMAIL && process.env.RUNNER_PASSWORD);
   try {
@@ -415,7 +415,9 @@ export async function billing(): Promise<{
       todayTokens: today === null ? null : today * 1000,
       capTokens: cap > 0 ? cap * 1000 : null,
       awake,
-      rows: rows.map((r) => ({ deltaTokens: r.deltaCents * 1000, reason: r.reason, when: r.when })),
+      rows: rows.map((r) => ({
+        deltaTokens: r.deltaCents * 1000, reason: r.reason, when: r.when, workTitle: r.workTitle,
+      })),
     };
   } catch {
     return { balanceTokens: null, todayTokens: null, capTokens: null, awake, rows: [] };
