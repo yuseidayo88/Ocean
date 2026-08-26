@@ -152,6 +152,8 @@ export const memoryStore: Store = {
       decs: decisions.filter((d) => d.workId === id && d.status === 'decided' && d.chosen)
         .slice().reverse().slice(0, 6)
         .map((d) => ({ question: d.question, chosen: d.chosen!, when: d.when })),
+      // **いま聞いている ◆**（フェーズの関門。タスクに紐づかないもの）
+      openDec: decisions.find((d) => d.workId === id && d.status === 'open' && !d.taskId),
     };
   },
 
@@ -306,6 +308,21 @@ export const memoryStore: Store = {
       options: (d.options as LiveDecision['options']) ?? [], status: 'open',
     });
     notes.push({ kind: '判断待ち', body: d.question });
+  },
+
+  /**
+   * **計画の ◆ を、本物の判断にする**（supabase 版と同じ規則）。
+   * タスクには紐づかない（フェーズの関門なので Work のもの）。
+   */
+  async addGateDecision(workId, d) {
+    if (decisions.some((x) => x.workId === workId && x.status === 'open')) return false;
+    decisions.push({
+      id: `dec-${decisions.length + 1}`, workId,
+      question: d.question, why: d.why,
+      options: d.options, status: 'open',
+    });
+    notes.push({ kind: '判断待ち', body: d.question });
+    return true;
   },
 
   async addDecided(workId, d) {
@@ -835,7 +852,9 @@ export const memoryStore: Store = {
 
   async planGates(workId) {
     const d = [...bag.values()].find((x) => x.live?.id === workId || x.id === workId);
-    return (d?.plan?.gates ?? []).map((x) => x.afterPhase).filter(Boolean);
+    return (d?.plan?.gates ?? [])
+      .filter((g) => g.afterPhase)
+      .map((g) => ({ afterPhase: g.afterPhase, question: g.question || g.afterPhase }));
   },
 
   /* ══════════════ 入口（Case B / D）══════════════ */

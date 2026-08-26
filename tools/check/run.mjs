@@ -382,13 +382,31 @@ ok('表は表として読める（記号のまま出さない）',
    ) : false);
 await ev(`document.querySelector('aside button')?.click()`); await wait(300);
 await seeAll();
-await wait(4000);
-ok('◆ があるフェーズは、見終わっても社長を待つ',
-   (await ev(`[...document.querySelectorAll('button')].some(b => b.innerText.includes('次のフェーズへ進める'))`))
-   && !/フェーズ\n3 \/ /.test(await text()));
-await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('次のフェーズへ進める'))?.click()`);
-const p3 = await until((b) => /フェーズ\n3 \/ /.test(b), 40);
-ok('承認するとフェーズ 3 へ進む', /フェーズ\n3 \/ /.test(p3), p3.match(/フェーズ\n[^\n]*/)?.[0]);
+/**
+ * **計画で約束した ◆ は、本当に聞かれる**（2026-08-26。ロゴの例で見つけた）。
+ *
+ * 計画の画面は「あなたが決めるのは ◆ の N か所」と言い、軸の上に質問を書く
+ * （決め打ちの計画は 戦略 に `価格の方向性`）。それなのに `planGates` は
+ * **`afterPhase` だけを返して質問を捨てていた**ので、◆ は「そこで止まる」印にしか
+ * なっておらず、社長は最後まで一度も聞かれず、**決定事項は空のまま Work が完了していた**。
+ *
+ * いまは統括AIが、**そのフェーズの成果物から選択肢を作って**聞く。
+ * 決めるまで先へは行かず、決まればポンプが自分で次を引く（押す手は要らない）。
+ */
+const askGate2 = await until((b) => b.includes('決めて、次に進めてください'), 60);
+ok('◆ があるフェーズは、見終わっても社長に聞く（計画の約束）',
+   askGate2.includes('決めて、次に進めてください') && askGate2.includes('価格の方向性')
+   && !/フェーズ\n3 \/ /.test(askGate2),
+   askGate2.match(/決めて、次に進めてください[\s\S]{0,60}/)?.[0]?.replace(/\n/g, ' ') ?? '(出ていない)');
+await ev(`[...document.querySelectorAll('button')].find(x => /推奨/.test(x.innerText))?.click()`);
+const p3 = await until((b) => /フェーズ\n3 \/ /.test(b), 60);
+ok('決めるとフェーズ 3 へ進む（押す手は要らない）', /フェーズ\n3 \/ /.test(p3), p3.match(/フェーズ\n[^\n]*/)?.[0]);
+// **決めたことは台帳に残る**（あとから読める）
+await send('Page.navigate', { url: `${BASE}/decisions` }); await wait(2200);
+const gateLed = await text();
+ok('◆ の答えが決定事項に残る', gateLed.includes('価格の方向性'),
+   gateLed.match(/価格の方向性[\s\S]{0,60}/)?.[0]?.replace(/\n/g, ' ') ?? '(残っていない)');
+await send('Page.navigate', { url: workUrl }); await wait(1800);
 
 /**
  * **図の成果物**（archify の形）。AI社員が `draw_workflow` で描き、

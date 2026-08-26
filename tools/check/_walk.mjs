@@ -2,6 +2,8 @@
 import { WebSocket } from 'ws';
 const PORT = process.argv[2] ?? '9335';
 const BASE = process.env.BASE ?? 'http://localhost:3400';
+/** 社長の一言。**引数で渡せる**（簡単な例で 0 → 完了 まで歩けるか見るため） */
+const GOAL = process.argv.slice(3).join(' ') || '韓国人向けの日本語学習サービスを立ち上げたい';
 const t = await (await fetch(`http://127.0.0.1:${PORT}/json/new?about:blank`, { method: 'PUT' })).json();
 const ws = new WebSocket(t.webSocketDebuggerUrl);
 let id = 0; const pend = new Map(); const errs = [];
@@ -34,7 +36,7 @@ await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, dev
 
 // ① チャットから Work を作る
 await send('Page.navigate', { url: `${BASE}/start` }); await wait(2200);
-await say('韓国人向けの日本語学習サービスを立ち上げたい', 3000);
+await say(GOAL, 3000);
 const chatUrl = await ev('location.href');
 await until((b) => b.includes('この Work を作る'), 20, 800);
 await ev(`[...document.querySelectorAll('button')].find(b => b.innerText === 'この Work を作る')?.click()`);
@@ -69,6 +71,14 @@ for (let i = 0; i < 260; i++) {
       await ev(`document.querySelector('aside button')?.click()`);
       continue;
     }
+  }
+  // フェーズの ◆（計画で約束した問い）。帯の中で決める
+  if (b.includes('決めて、次に進めてください')) {
+    console.log(`--- ◆ 判断 ${++step} ---\n` + (b.match(/決めて、次に進めてください[\s\S]{0,260}/)?.[0] ?? ''));
+    await shot(`gate-${step}`);
+    await ev(`[...document.querySelectorAll('button')].find(x => /推奨/.test(x.innerText))?.click()`);
+    await wait(2500);
+    continue;
   }
   // フェーズの承認
   if (b.includes('次のフェーズへ進める')) {

@@ -96,6 +96,8 @@ export default function InboxPage() {
   const openTo: Route | null = cur
     ? cur.kind === 'deliverable' ? openHref('/deliverables', cur.delId)
       : cur.kind === 'decision' ? openHref(`/work/${cur.workId}`, cur.taskId)
+      // フェーズの ◆ は Work の帯に出ている（タスクに紐づかない）
+      : cur.kind === 'gate' ? (`/work/${cur.workId}` as Route)
       : openHref('/tasks', cur.taskId)
     : (item ? hrefOf(item) : null);
 
@@ -254,6 +256,8 @@ function Settle({ act, onDone }: { act: InboxAct; onDone: () => void }) {
     <div style={{ paddingTop: 26 }}>
       <div style={{ paddingBottom: 10 }}><span style={{ color: T3 }}>{head}</span></div>
       {act.kind === 'decision' && <DecisionPick taskId={act.taskId} onDone={onDone} />}
+      {/* フェーズの ◆。**同じ器**で出す（判断の形を2つ作らない） */}
+      {act.kind === 'gate' && <DecisionPick given={act.dec} onDone={onDone} />}
       {act.kind === 'stuck' && <StuckActions taskId={act.taskId} onDone={onDone} />}
       {act.kind === 'deliverable' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

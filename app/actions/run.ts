@@ -5,6 +5,7 @@ import { store, type LiveDecision, type LiveDeliverable, type LiveEmployee, type
 import { slugOf } from '@/lib/roster';
 import { AppError } from '@/lib/errors';
 import { draftNextTasks } from '@/lib/exec/next';
+import { askGate } from '@/lib/exec/gate';
 import { sayError } from '@/lib/errors';
 import { capCents, dayKey, dayStart } from '@/lib/run/budget';
 
@@ -62,9 +63,42 @@ async function allowed(s: ReturnType<typeof store>, workId: string): Promise<nul
  * ◆ も未確認の成果物も無いフェーズは、これまでどおり会社が自分で進む。
  */
 async function gate(s: ReturnType<typeof store>, workId: string): Promise<void> {
-  const gates = await s.planGates(workId).catch(() => []);
-  const shut = await s.closePhaseIfDone(workId, gates)
+  /**
+   * **◆ は、まだ決めていないものだけが関門**（2026-08-26）。
+   *
+   * 前は `planGates` が返すフェーズ名を、決めたあとも関門として渡し続けていた —
+   * というより、**そもそも社長は一度も聞かれなかった**（質問が捨てられていた）。
+   * いまは「答えていない ◆」だけを渡すので、**答えた瞬間に関門が外れて**、
+   * 次のポンプが次のフェーズを引く。
+   */
+  const all = await s.planGates(workId).catch(() => []);
+  const decs = await s.listDecisions(workId).catch(() => []);
+  const answered = new Set(decs.filter((d) => d.status === 'decided').map((d) => d.question));
+  const opened = new Set(decs.filter((d) => d.status === 'open').map((d) => d.question));
+  const left = all.filter((g) => !answered.has(g.question));
+
+  const shut = await s.closePhaseIfDone(workId, left.map((g) => g.afterPhase))
     .catch(() => ({ closed: [], hold: false, ready: false, at: null }));
+
+  /**
+   * **止まっているのが ◆ なら、その問いを社長に出す。**
+   * 計画に書いた質問をそのまま使い、選択肢だけをそのフェーズの成果物から作る。
+   * （`hold` のときだけ。成果物がまだ 要確認 なら、先にそちらを見てもらう）
+   */
+  if (shut.hold && shut.at) {
+    const g = left.find((x) => x.afterPhase === shut.at);
+    if (g && !opened.has(g.question)) {
+      /**
+       * **閉じたらすぐ出す。**「成果物を見てから」にはしない —
+       * ◆ は Work の画面の帯に出て、**成果物はそのすぐ下に並んでいる**ので、
+       * 見てから決めることはできる。待たせると、社長が「次のフェーズへ進める」を
+       * 押した瞬間に ◆ が素通りして、**計画で約束した問いが一度も出ない**
+       * （実際そうなっていた）。
+       */
+      const work = await s.getWork(workId).catch(() => null);
+      if (work) await askGate(work, g.afterPhase, g.question).catch(() => false);
+    }
+  }
   if (!shut.ready) return;
 
   /**
@@ -225,12 +259,26 @@ export async function taskWhy(taskId: string): Promise<string> {
  */
 export type InboxAct =
   | { kind: 'decision'; taskId: string; workId: string }
+  /** フェーズの ◆（タスクに紐づかない。Work のもの） */
+  | { kind: 'gate'; workId: string; dec: LiveDecision }
   | { kind: 'deliverable'; delId: string; workId: string; taskId: string;
       title: string; state: string; body: string; delKind: string }
   | { kind: 'stuck'; taskId: string }
   | null;
 
 export async function inboxAct(subjectType?: string, subjectId?: string): Promise<InboxAct> {
+  /**
+   * **フェーズの ◆ も、この画面で決められる**（2026-08-26）。
+   * 通知の画面は「開いて、済ませて、次へ」と自分で書いているので、
+   * 判断だけ別の画面へ飛ばさない（→ `DecisionPick` を Work 画面と共有する）。
+   */
+  if (subjectType === 'work' && subjectId) {
+    try {
+      const dec = (await store().listDecisions(subjectId))
+        .find((d) => d.status === 'open' && !d.taskId);
+      return dec ? { kind: 'gate', workId: subjectId, dec } : null;
+    } catch { return null; }
+  }
   if (subjectType !== 'task' || !subjectId) return null;
   try {
     for (const w of await store().listWorks()) {

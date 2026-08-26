@@ -1,4 +1,4 @@
-import type { LiveWork } from '@/lib/store/types';
+import type { LiveDecision, LiveWork } from '@/lib/store/types';
 import { TASK_WORD } from '@/lib/view/model';
 
 /**
@@ -70,6 +70,13 @@ export type WorkView = {
   active?: boolean;
   /** 承認待ちのフェーズ名（review）。あれば画面の上に行動の帯を出す */
   phaseGate?: string;
+  /**
+   * **いま社長に聞いている ◆**（フェーズの関門。2026-08-26）。
+   * 計画に「あなたが決めるのは ◆ の N か所」と書いた、その質問。
+   * これがあるあいだは「次のフェーズへ進める」を出さない —
+   * **決めるのが先**で、決まればポンプが自分で次を引く。
+   */
+  gateAsk?: LiveDecision;
   /**
    * そのフェーズで、社長がまだ見ていない成果物の数。
    * **0 でないうちは会社が勝手に進まない**（→ `app/actions/run.ts` の `gate`）ので、
@@ -177,6 +184,7 @@ export function fromLive(w: LiveWork): WorkView {
     live: true,
     active: w.status === 'active' && w.tasks.some((t) => t.state === 'queued' || t.state === 'running'),
     phaseGate: review?.name,
+    gateAsk: w.openDec,
     gateUnseen: review
       ? (w.dels ?? []).filter((d) => d.state === '要確認'
           && !!d.taskId && w.tasks.find((t) => t.id === d.taskId)?.phaseId === review.id).length

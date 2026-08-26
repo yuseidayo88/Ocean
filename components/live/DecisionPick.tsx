@@ -17,10 +17,18 @@ import { GREEN_T, HAIR, SEAM, T1, T4, T5 } from '@/lib/design/tokens';
  * **1つの決まりを2か所で使う**（`useStick` と同じ。→ CLAUDE.md）。
  * 器を2つ作ると、片方だけ直した日に、同じ質問が2つの形で出る。
  */
-export function DecisionPick({ taskId, onDone }: { taskId: string; onDone: () => void }) {
-  const [dec, setDec] = useState<LiveDecision | null | 'loading'>('loading');
+/**
+ * `taskId` を渡すと取りに行き、`given` を渡すとそれをそのまま出す。
+ * **フェーズの ◆ はタスクに紐づかない**（Work のもの）ので、後者で渡す。
+ */
+export function DecisionPick({ taskId, given, onDone }:
+  { taskId?: string; given?: LiveDecision; onDone: () => void }) {
+  const [dec, setDec] = useState<LiveDecision | null | 'loading'>(given ?? 'loading');
   const [busy, setBusy] = useState(false);
-  useEffect(() => { taskDecision(taskId).then(setDec); }, [taskId]);
+  useEffect(() => {
+    if (given || !taskId) return;
+    taskDecision(taskId).then(setDec);
+  }, [taskId, given]);
 
   /**
    * **まだ分からないあいだ、「無い」と言わない**（2026-08-26）。
@@ -34,7 +42,10 @@ export function DecisionPick({ taskId, onDone }: { taskId: string; onDone: () =>
       <PaneError
         what="聞かれていることが読めませんでした"
         next="決まった直後だと、もう答えたあとかもしれません。読み直すと、いまの状態が出ます。"
-        onRetry={() => { setDec('loading'); taskDecision(taskId).then(setDec); }} />
+        onRetry={() => {
+          if (!taskId) return;
+          setDec('loading'); taskDecision(taskId).then(setDec);
+        }} />
     );
   }
 

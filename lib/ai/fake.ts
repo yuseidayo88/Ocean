@@ -79,6 +79,22 @@ export class FakeProvider implements ModelProvider {
         return;
       }
       /**
+       * **計画の ◆ を、本物の問いにする**（`lib/exec/gate.ts` の `askGate`）。
+       * 問いは計画が持っているので、決め打ちが作るのは**選択肢だけ**。
+       */
+      if (only === 'gate_options') {
+        yield tool('gate_options', {
+          why: '（仮）ここで選んだ道で、次のフェーズの作るものが変わります。',
+          options: [
+            { label: '案A で進める', description: 'いちばん多くの人に届く。尖りは弱い', recommended: true },
+            { label: '案B で進める', description: '好きな人には強く刺さる。届く数は減る' },
+            { label: 'もう一度出し直す', description: 'どれも違うので、条件から見直す' },
+          ],
+        });
+        yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
+        return;
+      }
+      /**
        * **書かなかったときの頼み直し**（`lib/run/worker.ts` の `rewrite`）。
        * AI社員の実行は `log_step` で見分けているが、この往復は
        * **`write_deliverable` 1つしか渡らない**ので、そこでは拾えない。

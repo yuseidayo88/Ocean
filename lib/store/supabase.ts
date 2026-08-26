@@ -247,7 +247,7 @@ export const supabaseStore: Store = {
       .from('works').select('id, title, goal, status, started_at, plan_draft').eq('id', id).maybeSingle();
     if (!w) return null;
 
-    const [{ data: ph }, { data: tk }, { data: dl }, { data: dc }] = await Promise.all([
+    const [{ data: ph }, { data: tk }, { data: dl }, { data: dc }, { data: gate }] = await Promise.all([
       c.from('phases').select('id, seq, name, goal, status, started_at').eq('work_id', id).order('seq'),
       c.from('tasks').select('id, phase_id, seq, title, intent, status, progress, assignee_employee_id, owner_hint').eq('work_id', id).order('seq'),
       c.from('deliverables').select('id, task_id, title, kind, status, version, preview, body, produced_by_employee_id, created_at')
@@ -255,6 +255,13 @@ export const supabaseStore: Store = {
       // **決めたことも同じ往復で取る**（右ペインの節が空のままだった。2026-08-26）
       c.from('decisions').select('question, chosen_option_key, decided_at').eq('work_id', id)
         .eq('status', 'decided').order('decided_at', { ascending: false }).limit(6),
+      /**
+       * **いま聞いている ◆**（フェーズの関門。タスクに紐づかないもの）。
+       * 計画に「あなたが決めるのは ◆ の N か所」と書いた、その質問がここに立つ。
+       */
+      c.from('decisions')
+        .select('id, work_id, task_id, question, rationale, options, chosen_option_key, status, decided_at, created_at')
+        .eq('work_id', id).eq('status', 'open').is('task_id', null).limit(1).maybeSingle(),
     ]);
 
     /**
@@ -315,6 +322,7 @@ export const supabaseStore: Store = {
         question: d.question as string, chosen: d.chosen_option_key as string,
         when: (d.decided_at ?? undefined) as string | undefined,
       })),
+      openDec: gate ? toDecision(gate) : undefined,
       startedAt: (w.started_at ?? undefined) as string | undefined,
     };
   },
@@ -566,6 +574,27 @@ export const supabaseStore: Store = {
     await c.from('notifications').insert({
       kind: '判断待ち', subject_type: 'task', subject_id: taskId, body: d.question,
     });
+  },
+
+  /**
+   * **計画の ◆ を、本物の判断にする**（2026-08-26）。
+   * タスクには紐づかない（フェーズの関門なので Work のもの）。
+   * 開いているものが同じ Work にあれば立てない — 同じ質問を二度出さない。
+   */
+  async addGateDecision(workId, d) {
+    const c = await db();
+    const { data: had } = await c.from('decisions')
+      .select('id').eq('work_id', workId).eq('status', 'open').limit(1).maybeSingle();
+    if (had) return false;
+    const { error } = await c.from('decisions').insert({
+      work_id: workId, question: d.question,
+      options: d.options as never, status: 'open', rationale: d.why || null,
+    });
+    if (error) throw new AppError('unknown', error.message);
+    await c.from('notifications').insert({
+      kind: '判断待ち', subject_type: 'work', subject_id: workId, body: d.question,
+    });
+    return true;
   },
 
   async listDels() {
@@ -1512,7 +1541,9 @@ export const supabaseStore: Store = {
     const c = await db();
     const { data: w } = await c.from('works').select('plan_draft').eq('id', workId).maybeSingle();
     const d = w?.plan_draft as unknown as DraftBody | null;
-    return (d?.plan?.gates ?? []).map((g) => g.afterPhase).filter(Boolean);
+    return (d?.plan?.gates ?? [])
+      .filter((g) => g.afterPhase)
+      .map((g) => ({ afterPhase: g.afterPhase, question: g.question || g.afterPhase }));
   },
 
   /* ══════════════ 入口（Case B / D）══════════════ */

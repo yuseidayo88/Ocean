@@ -49,6 +49,12 @@ export type LiveWork = {
    * 読みを1本増やさずに済むよう、`getWork` が同じ往復で取ってくる。
    */
   decs?: { question: string; chosen: string; when?: string }[];
+  /**
+   * **いま社長に聞いている、この Work の判断**（フェーズの ◆）。
+   * タスクから上がる判断（`needs_decision`）はタスクの行に出るが、
+   * これはフェーズの関門なので Work の帯に出す。無ければ undefined。
+   */
+  openDec?: LiveDecision;
   /** その Work の成果物（新しい順） */
   dels?: LiveDeliverable[];
   startedAt?: string;
@@ -322,8 +328,14 @@ export interface Store {
    * 社長が最後の1件を承認した瞬間に `ready` が立ち、ポンプが次を引く。
    */
   closePhaseIfDone(workId: string, gates?: string[]): Promise<PhaseGate>;
-  /** 計画の ◆ が置かれたフェーズ名（`plan_draft` の gates）。無ければ空 */
-  planGates(workId: string): Promise<string[]>;
+  /**
+   * 計画の ◆（`plan_draft` の gates）。**質問ごと返す。**
+   *
+   * 前は `afterPhase` だけを返していたので、**◆ に書いた質問はどこにも届かず**、
+   * 計画に「あなたが決めるのは ◆ の1か所」と出しておきながら、
+   * 社長は最後まで一度も聞かれなかった（決定事項も空のまま終わる）。
+   */
+  planGates(workId: string): Promise<{ afterPhase: string; question: string }[]>;
 
   /* ══════════════ 判断と受け渡し（Phase 9）══════════════ */
 
@@ -345,6 +357,16 @@ export interface Store {
     question: string; chosen: string; why?: string;
     options: { label: string; description?: string }[];
   }): Promise<void>;
+  /**
+   * **計画の ◆ を、本物の判断にする**（2026-08-26）。
+   *
+   * `markDecision` はタスクに紐づくが、これは**フェーズの関門**なので Work に紐づく。
+   * 開いているものが同じ Work にあれば **false**（同じ質問を二度立てない）。
+   */
+  addGateDecision(workId: string, d: {
+    question: string; why: string;
+    options: { label: string; description?: string; recommended?: boolean }[];
+  }): Promise<boolean>;
   listDecisions(workId?: string): Promise<LiveDecision[]>;
   /** 実行が決定を読んだ記録（decision_refs）。**読んだのに記録が無い、を作らない** */
   addDecisionRefs(runId: string, decisionIds: string[]): Promise<void>;

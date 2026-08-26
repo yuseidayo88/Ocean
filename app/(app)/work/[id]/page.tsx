@@ -289,9 +289,36 @@ export default function WorkPage() {
             </div>
           )}
 
-          {/* フェーズの承認 — review のあいだだけ出る行動の帯（Phase 9） */}
-          {w.phaseGate && <PhaseGate name={w.phaseGate} unseen={w.gateUnseen} workId={w0id}
-            onDone={() => getWork(id).then((r) => r && setW(fromLive(r)))} />}
+          {/**
+            * **◆ は、本物の問いとして出す**（2026-08-26）。
+            *
+            * 計画の画面は「あなたが決めるのは ◆ の N か所」と言い、軸の上に
+            * `どの案で進めるか` と書く。それなのに前は **◆ が「そこで止まる」印にしか
+            * なっておらず**、社長は最後まで一度も聞かれなかった（決定事項も空のまま）。
+            * いまは統括AIが、そのフェーズの成果物から選択肢を作って聞く。
+            *
+            * **決めるのが先。** ここが出ているあいだ「次のフェーズへ進める」は出さない —
+            * 決まればポンプが自分で次を引く（`gate()` が関門を測り直す）。
+            */}
+          {w.gateAsk ? (
+            <div style={{
+              display: 'flex', flexDirection: 'column', gap: 10, padding: '15px 17px',
+              borderRadius: 12, background: 'rgba(227,116,0,0.06)',
+              border: '1px solid rgba(227,116,0,0.34)',
+            }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
+                <Diamond size={10} />
+                <span style={{ color: AMBER_T, fontSize: 12.5 }}>
+                  フェーズ「{w.phaseGate ?? ''}」が終わりました。決めて、次に進めてください
+                </span>
+              </span>
+              <DecisionPick given={w.gateAsk}
+                onDone={() => { wakePump(); getWork(id).then((r) => r && setW(fromLive(r))); }} />
+            </div>
+          ) : w.phaseGate ? (
+            <PhaseGate name={w.phaseGate} unseen={w.gateUnseen} workId={w0id}
+              onDone={() => getWork(id).then((r) => r && setW(fromLive(r)))} />
+          ) : null}
           {/* **確かめていないことを言わない**（2026-08-25）。
               前は「成果物がすべて揃っています」と書いていたが、
               できただけで社長は1つも見ていない、ということが実際に起きる */}

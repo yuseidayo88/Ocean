@@ -538,8 +538,14 @@ function WorkCard({ card, live, threadId, workId }:
       <div style={{ padding: '8px 16px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
         <span style={{ color: T1, fontSize: 15 }}>{card.title}</span>
         <span style={{ color: T2, fontSize: 12.5, lineHeight: '20px' }}>{card.goal}</span>
+        {/**
+          * **見込みは、計画ができるまでの仮の数**（2026-08-26）。
+          * Work を作ると統括AIが計画を引いて週数を決め直すので、
+          * ここに残していると**同じ Work が会話では「およそ10週」、計画では「およそ1週」**
+          * になる（ロゴの例で実際そうなった）。**作ったあとは出さない** — 計画が本物。
+          */}
         <span style={{ color: T5, fontSize: 11.5 }}>
-          {card.weeks ? `およそ${card.weeks}週 · ` : ''}{card.why}
+          {!made && card.weeks ? `およそ${card.weeks}週 · ` : ''}{card.why}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 8 }}>
           {made ? (
