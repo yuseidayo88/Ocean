@@ -85,8 +85,6 @@ export type Work = {
   /** 遅れているか。**待っているものの帯**が数えるのに使う */
   health: Health;
   phases: Phase[];
-  /** ring = オフィスの輪の上の位置（0-100） */
-  crew: { id: string; ring: number; dim?: boolean; name: string; color: string }[];
   /** あなたが決めるところ。名前は帯が1件のときだけ出す */
   gate?: { label: string };
   ring: Ring;

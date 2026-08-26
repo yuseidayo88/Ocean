@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Route } from 'next';
 import { Icon } from '@/components/ui/Icon';
+import { Go as Link } from '@/components/ui/Go';
 import { conditionChips } from '@/lib/live/conditions';
 import { Orb } from '@/components/ui/Orb';
 import { adoptCandidate, discoveryGet, findingToWork, profileGet } from '@/app/actions/entry';
@@ -477,6 +478,18 @@ function DiagnosisCard({ id, live, threadId }: { id: string; live: boolean; thre
             ) : null}
           </div>
         ))}
+        {/**
+          * **残りが行き止まりにならないようにする**（2026-08-26）。
+          * 1つを Work にすると、ほかの行からは黙ってボタンが消えていた
+          * （1チャット = 1 Work なので、消えるのは正しい）。
+          * **なぜ消えたのかと、次にどこへ行けばいいか**を1行だけ言う。
+          */}
+        {taken && dg.findings.some((f) => !f.workId) && (
+          <span style={{ display: 'block', color: T5, fontSize: 11.5, paddingTop: 10 }}>
+            1つの会話で作る Work は1つまで。ほかも進めるなら{' '}
+            <Link href="/chat/new" className="lnk" style={{ color: T3 }}>新しいチャット ›</Link>
+          </span>
+        )}
         {busy >= 0 && dg.findings[busy] && <Building name={dg.findings[busy].work.title} />}
         {end && (
           <EndAsk body={end.body} options={end.options} busy={busy >= 0}

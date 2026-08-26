@@ -130,8 +130,17 @@ export function buildHome(
       return { name: p.name, state: st as 'done' | 'now' | 'next' };
     });
 
-    /* 輪。弧はフェーズごとに1本、担当の色。tip＝全体の進み。0 なら弧を引かない */
-    const segs: Ring['segs'] = [];
+    /**
+     * 輪。弧はフェーズごとに1本、担当の色。tip＝全体の進み。0 なら弧を引かない。
+     *
+     * **同じ人が続けて回した区間は1本にする**（2026-08-26）。
+     * 描く側は「色が変わるところ＝引き継ぎ」として**境目に矢羽根を立てる**が、
+     * その判定は `k > 0`（＝フェーズが変わっただけ）だった。
+     * 同じ人が2フェーズ続けて回すと、**引き継いでいないところに矢羽根が立つ**。
+     * 畳んでおけば、境目はいつも本物の引き継ぎになる。
+     */
+    type Span = { from: number; to: number; color: string; owner?: { id: string; name: string; color: string } };
+    const spansOfRing: Span[] = [];
     let arcAcc = 0;
     w.phases.forEach((p, i) => {
       const share = (ws[i] / total) * 100;
@@ -139,11 +148,15 @@ export function buildHome(
       if (fill <= 0) { arcAcc += 0; return; }
       const to = Math.min(pct, arcAcc + share * fill);
       if (to > arcAcc + 0.5) {
-        const owner = phaseTasks(w, p.id).find((t) => t.owner)?.owner;
-        segs.push({ to, color: colorOf(w, owner) });
+        const name = phaseTasks(w, p.id).find((t) => t.owner)?.owner;
+        const color = colorOf(w, name);
+        const last = spansOfRing[spansOfRing.length - 1];
+        if (last && last.color === color) last.to = to;                 // 同じ人が続けた
+        else spansOfRing.push({ from: arcAcc, to, color, owner: w.crew.find((c) => c.name === name) });
         arcAcc = to;
       }
     });
+    const segs: Ring['segs'] = spansOfRing.map((sp) => ({ to: sp.to, color: sp.color }));
     const tip = segs.length ? segs[segs.length - 1].to : 0;
 
     // 予定に対して今日がどこか。実測が予定より後ろなら、赤い点線で差を見せる
@@ -151,15 +164,37 @@ export function buildHome(
     const behind = w.status === 'active' && plannedPct > tip + 4 && tip > 0
       ? Math.min(plannedPct, 100) : undefined;
 
-    // 球＝いまのフェーズの担当。自分の弧のまん中に立つ
+    /**
+     * **社員は、自分がやった区間のまん中に立つ**（2026-08-26 に本当にした）。
+     *
+     * 描く側は前から何人でも置ける形（`lead` を測って、先頭の球にだけフェーズ名を出す）
+     * だったのに、**組み立て側がいつも1人しか渡していなかった** — 輪は色が変わるのに、
+     * 球は1つ。**誰がどの区間をやったのか**が、絵から読めなかった。
+     *
+     * 最後に、いまのフェーズの担当を先端に立てる（**まだ何も終えていない人**は
+     * 区間を持たないので、こうしないと絵に出ない）。
+     */
     const nowPhase = w.phases.find((p) => p.state === 'active' || p.state === 'review');
     const nowOwnerName = nowPhase ? phaseTasks(w, nowPhase.id).find((t) => t.owner)?.owner : undefined;
     const nowOwner = w.crew.find((c) => c.name === nowOwnerName);
     const running = w.tasks.some((t) => t.state === 'running');
-    const crew: Ring['crew'] = nowOwner && tip > 0
-      ? [{ id: nowOwner.id, at: Math.max(tip * 0.6, 1), gate: !!gateTask,
-           name: nowOwner.name, color: nowOwner.color, run: running }]
-      : [];
+    const crew: Ring['crew'] = [];
+    if (tip > 0) {
+      for (const sp of spansOfRing) {
+        if (!sp.owner) continue;
+        crew.push({ id: sp.owner.id, at: Math.max((sp.from + sp.to) / 2, 1),
+                    name: sp.owner.name, color: sp.owner.color });
+      }
+      const lastOwner = [...spansOfRing].reverse().find((sp) => sp.owner)?.owner;
+      // 先端に立つのは**いまの担当**。最後の区間と同じ人なら、その球をそのまま先端へ寄せる
+      const head = nowOwner && lastOwner && nowOwner.id === lastOwner.id
+        ? crew[crew.length - 1] : undefined;
+      if (head) { head.at = Math.max(tip * 0.94, 1); head.gate = !!gateTask; head.run = running; }
+      else if (nowOwner) {
+        crew.push({ id: nowOwner.id, at: Math.max(tip * 0.94, 1), gate: !!gateTask,
+                    name: nowOwner.name, color: nowOwner.color, run: running });
+      }
+    }
 
     const phaseIndex = nowPhase?.seq ?? w.phases.length;
 
@@ -168,10 +203,6 @@ export function buildHome(
       phaseIndex, progress: pct,
       health: lateDays > 0 ? { late: lateDays } : '順調',
       phases,
-      crew: nowOwner ? [{
-        id: nowOwner.id, ring: tip,
-        name: nowOwner.name, color: nowOwner.color, dim: !running,
-      }] : [],
       gate: gateTask ? { label: gateTask.title } : undefined,
       ring: {
         segs, tip, behind,
