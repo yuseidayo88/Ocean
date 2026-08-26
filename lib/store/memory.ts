@@ -6,7 +6,7 @@ import { previewFor } from '@/lib/deliver/format';
 import { BUILTIN_SKILLS } from '@/lib/roster/skills';
 import { AppError } from '@/lib/errors';
 import type { Hire } from '@/lib/exec/types';
-import { STALL_MS, type AgentPref, type ChatMsg, type ChatThread, type Discovery, type DraftWork, type LiveDecision, type LiveEmployee, type LiveWork, type Note, type Profile, type RunStep, type SkillRow, type Store } from './types';
+import { STALL_MS, type AgentPref, type ChatMsg, type ChatThread, type Discovery, type DraftWork, type LiveDecision, type LiveEmployee, type LiveWork, type Memo, type Note, type PendingSkill, type Profile, type RunStep, type SkillRow, type Store } from './types';
 
 /**
  * メモリの保存先。**Supabase に出られない環境（デモ・この開発環境）用。**
@@ -381,7 +381,8 @@ export const memoryStore: Store = {
     if (skills.length === 0) {
       for (const b of BUILTIN_SKILLS) {
         skills.push({ id: `sk-${skills.length + 1}`, name: b.name, filename: b.filename,
-                      on: true, scope: 'company', used: 0, source: 'builtin', body: b.body });
+                      on: true, scope: 'company', used: 0, source: 'builtin',
+                      status: 'active', desc: b.description, body: b.body });
       }
     }
     return [...skills];
@@ -389,21 +390,118 @@ export const memoryStore: Store = {
 
   async setSkill(id, on) {
     const sk = skills.find((x) => x.id === id);
-    if (sk) sk.on = on;
+    if (!sk) return;
+    sk.on = on;
+    // 社長が有効にしたら、落ちていたものも会社のものになる（supabase 版と同じ規則）
+    if (on && sk.status === 'rejected') { sk.status = 'active'; sk.note = undefined; }
   },
 
   async addSkill(x) {
     skills.push({ id: `sk-${skills.length + 1}`, name: x.name, filename: x.filename,
-                  on: true, scope: 'company', used: 0, source: 'user', body: x.body });
+                  on: true, scope: 'company', used: 0, source: 'user', status: 'active', body: x.body });
   },
 
   async removeSkill(id) {
-    const i = skills.findIndex((x) => x.id === id && x.source === 'user');
+    // supabase 版と同じ規則 — 標準スキルは切れるが消せない。社員が書いたものは消せる
+    const i = skills.findIndex((x) => x.id === id && (x.source === 'user' || x.source === 'agent'));
     if (i >= 0) skills.splice(i, 1);
   },
 
   async bumpSkillUse(ids) {
     for (const sk of skills) if (ids.includes(sk.id)) sk.used += 1;
+  },
+
+  /* ══════════════ 社長のこと（supabase 版と同じ規則）══════════════ */
+
+  async founderNotes() {
+    return [...(learned.get(FOUNDER) ?? [])];
+  },
+
+  async addFounderNotes(lines) {
+    const cur = learned.get(FOUNDER) ?? [];
+    const add = lines.map((l) => l.trim()).filter((l) => l && !cur.includes(l));
+    if (!add.length) return;
+    learned.set(FOUNDER, [...cur, ...add].slice(-20));
+  },
+
+  async setFounderNotes(lines) {
+    const next = lines.map((l) => l.trim()).filter(Boolean);
+    if (next.length) learned.set(FOUNDER, next);
+    else learned.delete(FOUNDER);
+  },
+
+  /* ══════════════ 思い出す（supabase 版と同じ規則。探す先も同じ3つ）══════════════ */
+
+  async recall(terms, limit = 3) {
+    if (!terms.length) return [];
+    const hit = (s2: string) => terms.some((t) => s2.includes(t));
+    const out: Memo[] = [];
+    const dels = [...bag.values()]
+      .flatMap((d) => d.live?.dels ?? [])
+      .filter((d) => d.state !== '差し戻し' && hit(`${d.title} ${d.body ?? ''}`))
+      .slice(0, limit);
+    for (const d of dels) out.push({ kind: '成果物', title: d.title, snippet: (d.body ?? '').slice(0, 1200) });
+    for (const d of decisions.filter((x) => x.status === 'decided' && hit(x.question)).slice(0, limit)) {
+      out.push({ kind: '決めたこと', title: d.question, snippet: d.chosen ?? '' });
+    }
+    for (const [, list] of msgs) {
+      for (const m of list) {
+        if (m.role !== 'user' || !hit(m.body)) continue;
+        out.push({ kind: '会話', title: '社長の言葉', snippet: m.body.slice(0, 400) });
+      }
+    }
+    return out.slice(0, limit * 2);
+  },
+
+  /* ══════════════ 社員が自分でスキルを書く（Hermes の輪。supabase 版と同じ規則）══════════════ */
+
+  async writeSkill(x) {
+    // 同じ filename がもうあるなら書かない（0017 の一意 index と同じ）
+    if (skills.some((k) => k.filename === x.filename && (k.employeeId ?? null) === x.employeeId)) return null;
+    const id = `sk-${skills.length + 1}`;
+    skills.push({
+      id, name: x.name, filename: x.filename, desc: x.desc, body: x.body,
+      on: true, scope: x.employeeId ? 'employee' : 'company', employeeId: x.employeeId,
+      used: 0, source: 'agent', status: 'draft', author: x.authorId ?? null, revision: 0,
+    });
+    return id;
+  },
+
+  async proposeSkillEdit(id, body, why, authorId) {
+    const sk = skills.find((x) => x.id === id);
+    if (!sk) return;
+    edits.set(id, { body, why });
+    sk.pending = true;
+    if (authorId) sk.author = authorId;
+  },
+
+  async pendingSkills() {
+    const out: PendingSkill[] = [];
+    for (const sk of skills) {
+      const who = staff.find((e) => e.id === sk.author)?.name;
+      if (sk.status === 'draft') {
+        out.push({ id: sk.id, name: sk.name, desc: sk.desc, kind: 'new', body: sk.body ?? '', authorName: who });
+        continue;
+      }
+      const e = edits.get(sk.id);
+      if (e) out.push({ id: sk.id, name: sk.name, desc: sk.desc, kind: 'edit', body: e.body, live: sk.body, why: e.why, authorName: who });
+    }
+    return out;
+  },
+
+  async reviewSkill(id, ok, note) {
+    const sk = skills.find((x) => x.id === id);
+    if (!sk) return;
+    if (sk.status === 'draft') {
+      sk.status = ok ? 'active' : 'rejected';
+      sk.note = ok ? undefined : (note || undefined);
+      return;
+    }
+    // 直しは、落としても行に印を残さない（supabase 版と同じ規則）
+    const e = edits.get(id);
+    edits.delete(id);
+    sk.pending = false;
+    if (ok && e) { sk.body = e.body; sk.revision = (sk.revision ?? 0) + 1; }
   },
 
   /* ══════════════ 学び ══════════════ */
@@ -782,6 +880,8 @@ const g2 = globalThis as unknown as {
   __threads?: ChatThread[];
   __msgs?: Map<string, ChatMsg[]>;
   __skills?: SkillRow[];
+  /** 直しの提案（supabase の `draft_body` / `draft_note` にあたる） */
+  __skillEdits?: Map<string, { body: string; why: string }>;
   __learned?: Map<string, string[]>;
   __prefs?: Map<string, AgentPref>;
   __morning?: Set<string>;
@@ -794,9 +894,12 @@ const onceKeys = (g2.__onceKeys ??= new Set<string>());
 const threads = (g2.__threads ??= []);
 const msgs = (g2.__msgs ??= new Map<string, ChatMsg[]>());
 const skills = (g2.__skills ??= []);
+const edits = (g2.__skillEdits ??= new Map<string, { body: string; why: string }>());
 const learned = (g2.__learned ??= new Map<string, string[]>());
 /** 統括AI（employee_id が null）の置き場。Map の鍵に null は使えないので名前を1つ決める */
 const EXEC_PREF = '__exec__';
+/** 社長のことの置き場（DB 側は `agent_skills` の `employee_id` が null の1枚） */
+const FOUNDER = '__founder__';
 const prefs = (g2.__prefs ??= new Map<string, AgentPref>());
 const morningDays = (g2.__morning ??= new Set<string>());
 const g3 = globalThis as unknown as { __decs?: LiveDecision[]; __staff?: LiveEmployee[] };

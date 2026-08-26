@@ -13,8 +13,10 @@ import { AGENT_COLOR, EXEC, prefWords } from '@/lib/view/model';
 import { EFFORTS, modelOf, type Effort } from '@/lib/ai/catalog';
 import { pressable } from '@/lib/a11y';
 import { hire, listEmployees } from '@/app/actions/run';
-import { learningsGet, learningsSet, prefSet, skillToggle, teamData } from '@/app/actions/live';
+import { founderGet, founderSet, learningsGet, learningsSet, prefSet, skillToggle, teamData } from '@/app/actions/live';
 import { ROSTER, definitionOf, slugOf, type Definition } from '@/lib/roster';
+import { STAFF_CONSTITUTION } from '@/lib/roster/constitution';
+import { Rich } from '@/components/live/Rich';
 import type { AgentPref, LiveEmployee, McpServer, SkillRow } from '@/lib/store';
 import { listMcp, setMcp } from '@/app/actions/tools';
 import { useShell } from '@/components/shell/Shell';
@@ -375,8 +377,10 @@ function SettingsPane({ who, l, skills, onToggle, onHire, onPick, onPause, onClo
   onPause?: (next: boolean) => void;
 }) {
   const cand = who === 'candidate';
-  // 全員に効くことを見ているときは、会社ぜんぶのスキルだけ
-  const list = who === 'all' ? skills.filter((s) => s.scope === 'company') : skills;
+  // 全員に効くことを見ているときは、会社ぜんぶのスキルだけ。
+  // **会社のものになっているものだけ**（社員が書いたばかりのものと、落ちたものは `/skills` で見る）
+  const live = skills.filter((s) => s.status === 'active');
+  const list = who === 'all' ? live.filter((s) => s.scope === 'company') : live;
   const title = who === 'all' ? '全員に効くこと' : who === 'exec' ? '統括AIの設定'
     : cand ? 'まだいない人' : 'AI社員の設定';
   /** そのモデルが受ける深さの段。空なら深さは選べない */
@@ -401,6 +405,17 @@ function SettingsPane({ who, l, skills, onToggle, onHire, onPick, onPause, onClo
           <span style={{ color: T3, fontSize: 13, lineHeight: '21px' }}>
             ここに入れたものは、統括AIと全部のAI社員に効きます。
           </span>
+        )}
+        {/**
+          * **憲法は読めるが、切れない**（2026-08-26）。
+          * 標準スキルと同じ考え方 — **何を読んで働いたかが見えないと、
+          * 社長は成果物の質を判断できない**。ただしこれは会社の土台なので、
+          * ロスターの Critical Rules と同じく消せない（トグルを置かない）。
+          */}
+        {who === 'all' && (
+          <Section label="AI社員が必ず守ること">
+            <div style={{ paddingTop: 4 }}><Rich body={STAFF_CONSTITUTION} /></div>
+          </Section>
         )}
         {cand && <span style={{ color: T2, fontSize: 13.5, lineHeight: '22px' }}>{l.lead}</span>}
 
@@ -435,6 +450,9 @@ function SettingsPane({ who, l, skills, onToggle, onHire, onPick, onPause, onClo
         {/* つないだ道具（MCP）＝会社ぜんぶに効くので、**全員に効くこと**の中に置く。
             ここは読むだけ — つなぐ・切る・書けるようにするは `/tools` で */}
         {who === 'all' && <McpList />}
+
+        {/* **社長のこと** — 会社が社長から覚えたこと。人ではないので「全員に効くこと」に置く */}
+        {who === 'all' && <FounderNotes />}
 
         {/* 学び＝この社員が仕事から書き溜めたメモ。**次の実行の依頼文に載る**。
             ルールにするかは社長が決める（自動では昇格しない） */}
@@ -515,6 +533,50 @@ function SettingsPane({ who, l, skills, onToggle, onHire, onPick, onPause, onClo
         </div>
       )}
     </Pane>
+  );
+}
+
+/**
+ * **社長のこと**（2026-08-26。Hermes Agent の user modeling に当たる）。
+ *
+ * 学びが「社員が仕事から覚えたこと」なら、こちらは**会社が社長から覚えたこと** —
+ * 何を選び、何を差し戻し、どれだけ時間が使えるか。**モデルは呼ばない**（起きた事実だけ）。
+ * 学びと同じ作法で**見える・消せる** — 見えないところで会社が社長像を作らない。
+ */
+function FounderNotes() {
+  const [lines, setLines] = useState<string[] | null>(null);
+  useEffect(() => {
+    let on = true;
+    founderGet().then((ls) => { if (on) setLines(ls); });
+    return () => { on = false; };
+  }, []);
+
+  const drop = async (i: number) => {
+    const next = (lines ?? []).filter((_, k) => k !== i);
+    setLines(next);
+    await founderSet(next);
+  };
+
+  if (!lines || lines.length === 0) return null; // まだ無いなら節ごと出さない
+  return (
+    <Section label="社長のこと">
+      {lines.map((r, i) => (
+        <div key={`${i}-${r}`} style={{
+          display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0',
+          borderBottom: i === lines.length - 1 ? undefined : `1px solid ${HAIR}`,
+        }}>
+          <span style={{ color: T2, fontSize: 12.5, lineHeight: '19px' }}>{r}</span>
+          <div style={{ flex: 1 }} />
+          <button className="icob" title="これを忘れさせる" style={{ display: 'inline-flex', padding: 3, flexShrink: 0 }}
+            onClick={() => drop(i)}>
+            <Icon name="close" color={DIM} size={12} />
+          </button>
+        </div>
+      ))}
+      <span style={{ display: 'block', paddingTop: 8, color: T5, fontSize: 11.5 }}>
+        決めたこと・差し戻したことから、会社が覚えます。計画と実行の依頼文に載る — 違うものは消してください
+      </span>
+    </Section>
   );
 }
 

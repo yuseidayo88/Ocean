@@ -3,6 +3,9 @@ import { FakeProvider } from '@/lib/ai/fake';
 import { execPref, staffPref } from '@/lib/exec/pref';
 import { personaOf } from '@/lib/roster';
 import { store, type LiveWork } from '@/lib/store';
+import { reviewSkills } from '@/lib/exec/skills';
+import { recallBlock, termsOf } from '@/lib/exec/recall';
+import { founderBlock, tendMemory } from '@/lib/exec/memory';
 import { RUN_TOOLS, drawWorkflow } from './tools';
 import type { ToolDef } from '@/lib/ai/provider';
 import { checkWorkflow, fatalOf, packDoc, toWorkflow } from '@/lib/diagram/parse';
@@ -58,7 +61,13 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
    * （関わりの判定は名前と説明の語の重なり。載せたら used_count を進める＝読んだ印）。
    */
   const allSkills = (await s.listSkills().catch(() => []))
-    .filter((x) => x.on && x.scope === 'company' && x.source !== 'learned' && x.body);
+    /**
+     * **通ったものだけ**（2026-08-26）。社員が書いたばかりのものは draft なので読まれない。
+     * **その社員に付いているスキルも読む** — 前は会社ぜんぶのものだけ見ていたので、
+     * 設定ペインで社員に付けたスキルが**実行から一度も読まれていなかった**。
+     */
+    .filter((x) => x.on && x.status === 'active' && x.source !== 'learned' && x.body
+      && (x.scope === 'company' || (!!task.ownerId && x.employeeId === task.ownerId)));
   const hint = `${task.title} ${task.intent}`;
   const scored = allSkills
     .map((x) => ({ x, hit: [...`${x.name}`].filter((ch) => hint.includes(ch)).length }))
@@ -79,6 +88,20 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
     .filter((x) => x.state === '承認済').slice(0, 5);
 
   /**
+   * **思い出す**（Hermes の cross-session recall。2026-08-26 → `lib/exec/recall.ts`）。
+   *
+   * 索引はタイトルしか渡さないので、**別の Work で調べた中身はどこからも届いていなかった**。
+   * タスクの題とねらいを問いにして、成果物・決めたこと・会話から関わりのあるものを引く。
+   * **往復は増やさない** — 読む道具として渡すのではなく、こちらが先に引いて載せる。
+   */
+  const memos = (await s.recall(termsOf(`${task.title} ${task.intent}`), 2).catch(() => []))
+    // この Work のぶんは `prior` で丸ごと渡しているので、二度載せない
+    .filter((m) => !(work.dels ?? []).some((d) => d.title === m.title));
+
+  /** **社長のこと**（会社が覚えていること。同じことを二度聞かない） */
+  const founder = await s.founderNotes().catch(() => []);
+
+  /**
    * **この社員の設定で走る**（メンバー画面で社長が選んだモデルと深さ）。
    * 選んでいなければ既定。担当のいないタスクは統括AIの設定を借りない。
    */
@@ -95,6 +118,10 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
   let decision: { question: string; why: string; options: unknown[] } | undefined;
   let finished = false;
   const learned: string[] = [];
+  /** 社員が書いた手順書（Hermes の輪）。**往復の外で1回だけ書く** */
+  let newSkill: { filename: string; name: string; desc: string; body: string } | null = null;
+  /** 渡した手順書への直しの提案（**渡していないものは指せない**） */
+  const edits: { id: string; body: string; why: string }[] = [];
 
   try {
     /**
@@ -133,7 +160,10 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
       + '**見せる相手がいるつもりで書く**（社内メモにしない）',
       '3. 事業の判断（価格・対象など）に当たったら ask_decision で止まる',
       '4. 次も効く学びがあれば note_learning で1行だけ書き残す（任意）',
-      '5. 最後に finish。**文章では答えない** — すべて道具で',
+      '5. **同じ形の仕事がまた来ると分かったら** write_skill で手順書を残す（任意）。'
+      + '渡された手順書に足りないところがあったら improve_skill で直す（任意）。'
+      + '**どちらも統括AIが読んでから、会社のものになります**',
+      '6. 最後に finish。**文章では答えない** — すべて道具で',
     ].join('\n');
 
     const messages: Msg[] = [{
@@ -150,8 +180,9 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
              ...prior.map((d) => `--- ${d.title} ---\n${(d.body ?? d.preview ?? '').slice(0, 3000)}`)]
           : []),
         ...(skills.length
-          ? ['', 'スキル（この会社の手順書。これに沿って進める）:',
-             ...skills.map((x) => `--- ${x.name} ---\n${(x.body ?? '').slice(0, 2000)}`)]
+          ? ['', 'スキル（この会社の手順書。これに沿って進める。'
+              + '**足りないところがあれば improve_skill で直せます**）:',
+             ...skills.map((x) => `--- ${x.name}（id: ${x.id}）---\n${(x.body ?? '').slice(0, 2000)}`)]
           : []),
         ...(lessons.length
           ? ['', 'これまでの学び（自分のメモ。同じ判断を繰り返さない）:',
@@ -161,6 +192,8 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
           ? ['', '会社でこれまでに承認された成果物（重複して作らない。要るなら前提として使う）:',
              ...memory.map((x) => `- ${x.title}（${x.workTitle}）`)]
           : []),
+        ...recallBlock(memos),
+        ...founderBlock(founder),
         ...(/ を直す$/.test(task.title)
           ? ['', `成果物のタイトルは「${task.title.replace(/ を直す$/, '')}」のまま出す（直した新しい版になる）`]
           : []),
@@ -230,6 +263,23 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
         } else if (c.name === 'note_learning') {
           const lesson = String(a.lesson ?? '').trim();
           if (lesson) learned.push(lesson.slice(0, 60));
+        } else if (c.name === 'write_skill') {
+          const nm = String(a.name ?? '').trim().slice(0, 24);
+          const bd = String(a.body ?? '').trim();
+          // **1タスクで1枚まで。** 書き散らかされると、通す側も読む側も溺れる
+          if (nm && bd && !newSkill) {
+            newSkill = {
+              filename: String(a.filename ?? nm), name: nm,
+              desc: String(a.when ?? '').trim().slice(0, 80), body: bd.slice(0, 8000),
+            };
+          }
+        } else if (c.name === 'improve_skill') {
+          const id = String(a.skill ?? '');
+          const bd = String(a.body ?? '').trim();
+          // **渡した手順書だけ直せる。** id を当てずっぽうで書かれても他の行に届かない
+          if (bd && skills.some((x) => x.id === id) && !edits.some((e) => e.id === id)) {
+            edits.push({ id, body: bd.slice(0, 8000), why: String(a.why ?? '').trim().slice(0, 120) });
+          }
         } else if (c.name === 'finish') {
           finished = true;
           await s.addStep(runId, {
@@ -278,6 +328,34 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
     // 読んだスキルと書いた学びを残す（失敗しても実行は倒さない）
     if (skills.length) await s.bumpSkillUse(skills.map((x) => x.id)).catch(() => {});
     if (learned.length && task.ownerId) await s.addLearnings(task.ownerId, learned).catch(() => {});
+
+    /**
+     * **社員が書いた手順書は、統括AIが通すまで誰にも読まれない**（2026-08-26）。
+     * ここで書き込んで、そのまま1往復で見てもらう — **社長を待たせない**。
+     * 倒れても実行は倒さない（手順書は成果物ではない）。
+     */
+    let touched = false;
+    if (newSkill) {
+      const made = await writeSkillRow(s, newSkill, task.ownerId);
+      if (made) {
+        touched = true;
+        await s.addStep(runId, {
+          seq: ++seq, kind: 'tool_use', tool: 'write_skill',
+          summary: `手順書「${newSkill.name}」を書いた（統括AIが見ます）`,
+        }).catch(() => {});
+      }
+    }
+    for (const e of edits) {
+      await s.proposeSkillEdit(e.id, e.body, e.why, task.ownerId).catch(() => {});
+      touched = true;
+      await s.addStep(runId, {
+        seq: ++seq, kind: 'tool_use', tool: 'improve_skill',
+        summary: `手順書を直したい — ${e.why || '足りないところがあった'}`,
+      }).catch(() => {});
+    }
+    if (touched) await reviewSkills().catch(() => {});
+    // **溜まっていたら畳む**（`tendMemory` は満杯に近いときだけモデルを呼ぶ）
+    await tendMemory(task.ownerId).catch(() => {});
 
     if (decision) {
       // 判断で止まる。失敗ではないので run は done、タスクは needs_decision
@@ -383,6 +461,29 @@ ${body.slice(0, 4000)}` }],
     if (c.type === 'text') out += c.text;
   }
   return out.trim().slice(0, 60);
+}
+
+/**
+ * 手順書のファイル名。**英数字が残らなければ番号にする** —
+ * MCP の道具名で踏んだのと同じ事故（「テストの在庫」→ `______`）をここでも起こさない。
+ * 同じ名前がもうあるなら `-2` `-3` と足して、3回で諦める（諦めても実行は倒れない）。
+ */
+async function writeSkillRow(
+  s: ReturnType<typeof store>,
+  x: { filename: string; name: string; desc: string; body: string },
+  authorId?: string,
+): Promise<string | null> {
+  const base = x.filename.toLowerCase().replace(/\.md$/, '')
+    .replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+  for (let i = 0; i < 3; i++) {
+    const filename = `${base || 'skill'}${i ? `-${i + 1}` : ''}.md`;
+    const id = await s.writeSkill({
+      // **会社ぜんぶのものにする。** 会社が学ぶのであって、席が学ぶのではない
+      employeeId: null, authorId, filename, name: x.name, desc: x.desc, body: x.body,
+    }).catch(() => null);
+    if (id) return id;
+  }
+  return null;
 }
 
 const clamp = (v: unknown) => {

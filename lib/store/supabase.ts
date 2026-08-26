@@ -7,7 +7,7 @@ import { BUILTIN_SKILLS } from '@/lib/roster/skills';
 import { AppError } from '@/lib/errors';
 import { finishNote, finishSay, gateNote, type Finished } from '@/lib/exec/finish';
 import type { McpServer } from '@/lib/mcp/types';
-import { STALL_MS, type AgentPref, type ChatMsg, type ChatThread, type Discovery, type DraftWork, type LiveDecision, type LiveWork, type Note, type Profile, type RunStep, type SkillRow, type Store } from './types';
+import { STALL_MS, type AgentPref, type ChatMsg, type ChatThread, type Discovery, type DraftWork, type LiveDecision, type LiveWork, type Memo, type Note, type PendingSkill, type Profile, type RunStep, type SkillRow, type Store } from './types';
 
 /**
  * 本番の保存先。行は全部 RLS（`account_id = private.current_account_id()`）で絞られる。
@@ -935,7 +935,8 @@ export const supabaseStore: Store = {
 
   async listSkills() {
     const c = await db();
-    const sel = 'id, name, filename, enabled, employee_id, used_count, source, body';
+    // **1つの文字列のまま置く。** 継ぎ足すと supabase-js が型を読めず、行が GenericStringError になる
+    const sel = 'id, name, filename, description, enabled, employee_id, used_count, source, body, status, author_employee_id, revision, review_note, draft_body';
     let { data } = await c.from('agent_skills').select(sel).order('created_at');
     // 1枚も無ければ標準スキルを播く（元々の機能）。同時に開いた2つのタブは
     // 0017 の一意 index が2度目を止める → 弾かれたら読み直すだけ
@@ -953,12 +954,28 @@ export const supabaseStore: Store = {
       used: (x.used_count ?? 0) as number,
       source: (x.source ?? 'user') as SkillRow['source'],
       body: (x.body ?? undefined) as string | undefined,
+      desc: (x.description ?? undefined) as string | undefined,
+      employeeId: (x.employee_id ?? null) as string | null,
+      status: (x.status ?? 'active') as SkillRow['status'],
+      author: (x.author_employee_id ?? null) as string | null,
+      revision: (x.revision ?? 0) as number,
+      note: (x.review_note ?? undefined) as string | undefined,
+      pending: !!x.draft_body,
     }));
   },
 
   async setSkill(id, on) {
     const c = await db();
-    await c.from('agent_skills').update({ enabled: on }).eq('id', id);
+    /**
+     * **社長が有効にしたら、それは会社のもの**（2026-08-26）。
+     * 統括AIが落とした手順書を戻す道が、これ以外に無い。
+     * 操作は1つ（トグル）のまま — 「戻す」ボタンを別に置かない。
+     */
+    const { data } = await c.from('agent_skills').select('status').eq('id', id).maybeSingle();
+    const revive = on && data?.status === 'rejected';
+    await c.from('agent_skills').update({
+      enabled: on, ...(revive ? { status: 'active', review_note: null } : {}),
+    }).eq('id', id);
   },
 
   async addSkill(x) {
@@ -970,7 +987,9 @@ export const supabaseStore: Store = {
 
   async removeSkill(id) {
     const c = await db();
-    await c.from('agent_skills').delete().eq('id', id).eq('source', 'user');
+    // **標準スキルは切れるが消せない**（ロスターの Critical Rules と同じ思想）。
+    // 社員が書いたもの（agent）は消せる — 社長のものだから
+    await c.from('agent_skills').delete().eq('id', id).in('source', ['user', 'agent']);
   },
 
   async bumpSkillUse(ids) {
@@ -979,6 +998,113 @@ export const supabaseStore: Store = {
       const { data } = await c.from('agent_skills').select('used_count').eq('id', id).maybeSingle();
       if (data) await c.from('agent_skills').update({ used_count: (data.used_count ?? 0) + 1 }).eq('id', id);
     }
+  },
+
+  /* ══════════════ 思い出す（Hermes の cross-session recall）══════════════ */
+
+  async recall(terms, limit = 3) {
+    if (!terms.length) return [];
+    const c = await db();
+    /**
+     * **素の絞り込みだけで書く。** `public` に関数を置くと、それだけで
+     * セキュリティ警告が1件増える（0028 のときに実証済み）。
+     * `ilike` は pg_trgm の GIN が効く（0030）ので、素のままで速い。
+     */
+    const q = (cols: string[]) =>
+      terms.flatMap((t) => cols.map((col) => `${col}.ilike.*${t}*`)).join(',');
+    const [dels, decs, msgs] = await Promise.all([
+      c.from('deliverables').select('title, body, status, created_at')
+        .in('status', ['review', 'approved']).or(q(['title', 'body']))
+        .order('created_at', { ascending: false }).limit(limit),
+      c.from('decisions').select('question, chosen_option_key, created_at')
+        .eq('status', 'decided').or(q(['question']))
+        .order('created_at', { ascending: false }).limit(limit),
+      // **社長の言葉も記憶のうち。** 統括AIの返事は会話の要約なので拾わない
+      c.from('chat_messages').select('body, role, created_at').eq('role', 'user')
+        .or(q(['body'])).order('created_at', { ascending: false }).limit(limit),
+    ]);
+    const out: Memo[] = [];
+    for (const d of dels.data ?? []) {
+      out.push({ kind: '成果物', title: d.title as string, snippet: String(d.body ?? '').slice(0, 1200) });
+    }
+    for (const d of decs.data ?? []) {
+      out.push({ kind: '決めたこと', title: d.question as string, snippet: String(d.chosen_option_key ?? '') });
+    }
+    for (const m of msgs.data ?? []) {
+      out.push({ kind: '会話', title: '社長の言葉', snippet: String(m.body ?? '').slice(0, 400) });
+    }
+    return out.slice(0, limit * 2);
+  },
+
+  /* ══════════════ 社員が自分でスキルを書く（Hermes の輪）══════════════ */
+
+  async writeSkill(x) {
+    const c = await db();
+    const { data, error } = await c.from('agent_skills').insert({
+      employee_id: x.employeeId, author_employee_id: x.authorId ?? null,
+      name: x.name, filename: x.filename, description: x.desc ?? null, body: x.body,
+      // **通るまで読まれない。** enabled は true にしておく —
+      // 通った瞬間から効くほうが、社長がもう一度トグルを入れるより素直
+      source: 'agent', status: 'draft', enabled: true,
+    }).select('id').maybeSingle();
+    // 同じ filename がもうある（0017 の一意 index）＝ 書くのではなく直す場面
+    if (error) return null;
+    return (data?.id ?? null) as string | null;
+  },
+
+  async proposeSkillEdit(id, body, why, authorId) {
+    const c = await db();
+    await c.from('agent_skills')
+      .update({ draft_body: body, draft_note: why, author_employee_id: authorId ?? null })
+      .eq('id', id);
+  },
+
+  async pendingSkills() {
+    const c = await db();
+    const { data } = await c.from('agent_skills')
+      .select('id, name, description, body, status, draft_body, draft_note, author_employee_id')
+      .or('status.eq.draft,draft_body.not.is.null');
+    if (!data?.length) return [];
+    const who = new Map<string, string>();
+    const ids = [...new Set(data.map((x) => x.author_employee_id).filter(Boolean))] as string[];
+    if (ids.length) {
+      const { data: em } = await c.from('employees').select('id, display_name').in('id', ids);
+      for (const e of em ?? []) who.set(e.id as string, e.display_name as string);
+    }
+    return data.map((x): PendingSkill => ({
+      id: x.id as string, name: x.name as string,
+      desc: (x.description ?? undefined) as string | undefined,
+      kind: x.status === 'draft' ? 'new' : 'edit',
+      body: (x.status === 'draft' ? x.body : x.draft_body) as string,
+      live: x.status === 'draft' ? undefined : (x.body as string),
+      why: (x.draft_note ?? undefined) as string | undefined,
+      authorName: who.get(x.author_employee_id as string),
+    }));
+  },
+
+  async reviewSkill(id, ok, note) {
+    const c = await db();
+    const { data } = await c.from('agent_skills')
+      .select('status, draft_body').eq('id', id).maybeSingle();
+    if (!data) return;
+    const at = new Date().toISOString();
+    if (data.status === 'draft') {
+      await c.from('agent_skills').update({
+        status: ok ? 'active' : 'rejected', review_note: note || null, reviewed_at: at,
+      }).eq('id', id);
+      return;
+    }
+    /**
+     * 直しの提案。**通ったときだけ本文に当てる**（落とすと提案ごと捨てる）。
+     * **落としても、行に印を残さない** — 戻せるものが無いのに
+     * 「統括AIが落としました」と出ると、手順書そのものが落ちたように読める。
+     * 直したがったことは、そのタスクの歩みに残っている。
+     */
+    const { data: cur } = await c.from('agent_skills').select('revision').eq('id', id).maybeSingle();
+    await c.from('agent_skills').update({
+      ...(ok && data.draft_body ? { body: data.draft_body, revision: ((cur?.revision ?? 0) as number) + 1 } : {}),
+      draft_body: null, draft_note: null, reviewed_at: at,
+    }).eq('id', id);
   },
 
   /* ══════════════ モデルと深さ ══════════════ */
@@ -1072,6 +1198,50 @@ export const supabaseStore: Store = {
     const next = lines.map((l) => l.trim()).filter(Boolean);
     const { data: row } = await c.from('agent_skills')
       .select('id').eq('employee_id', employeeId).eq('source', 'learned').maybeSingle();
+    if (!row) return;
+    if (next.length) await c.from('agent_skills').update({ body: next.join('\n') }).eq('id', row.id);
+    else await c.from('agent_skills').delete().eq('id', row.id).eq('source', 'learned');
+  },
+
+  /* ══════════════ 社長のこと（学びと同じ表・同じ書き方）══════════════ */
+
+  async founderNotes() {
+    const c = await db();
+    const { data } = await c.from('agent_skills')
+      .select('body').is('employee_id', null).eq('source', 'learned').maybeSingle();
+    return ((data?.body as string | undefined) ?? '').split('\n').map((l) => l.trim()).filter(Boolean);
+  },
+
+  async addFounderNotes(lines) {
+    const raw = lines.map((l) => l.trim()).filter(Boolean);
+    if (!raw.length) return;
+    const c = await db();
+    const cur = await supabaseStore.founderNotes();
+    // **同じことは二度書かない**（学びと同じ規則）
+    const add = raw.filter((l) => !cur.includes(l));
+    if (!add.length) return;
+    const next = [...cur, ...add].slice(-20);
+    const { data: row } = await c.from('agent_skills')
+      .select('id').is('employee_id', null).eq('source', 'learned').maybeSingle();
+    if (row) {
+      await c.from('agent_skills').update({ body: next.join('\n') }).eq('id', row.id);
+      return;
+    }
+    // 同時に2つの実行が閉じても、0017 の一意 index が2枚目を止める
+    const { error } = await c.from('agent_skills').insert({
+      employee_id: null, name: '社長のこと', filename: 'founder.md',
+      description: '会社が社長から覚えたこと。会話と実行の依頼文に載る',
+      body: next.join('\n'), source: 'learned', enabled: true,
+    });
+    if (error && error.code !== '23505') throw new AppError('unknown', error.message);
+    if (error?.code === '23505') await supabaseStore.addFounderNotes(add);
+  },
+
+  async setFounderNotes(lines) {
+    const c = await db();
+    const next = lines.map((l) => l.trim()).filter(Boolean);
+    const { data: row } = await c.from('agent_skills')
+      .select('id').is('employee_id', null).eq('source', 'learned').maybeSingle();
     if (!row) return;
     if (next.length) await c.from('agent_skills').update({ body: next.join('\n') }).eq('id', row.id);
     else await c.from('agent_skills').delete().eq('id', row.id).eq('source', 'learned');

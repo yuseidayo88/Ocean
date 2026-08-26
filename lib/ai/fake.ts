@@ -97,6 +97,31 @@ export class FakeProvider implements ModelProvider {
         yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
         return;
       }
+      /**
+       * **手順書の審査**（`lib/exec/skills.ts`）。社員が書いたものを統括AIが読む。
+       * **1枚は落とす** — 全部通す決め打ちだと「落ちる道」が検査に出てこない。
+       * 落とすのは「直しの提案」のほう（新しい手順書は通す）。
+       */
+      if (only === 'review_skills') {
+        /**
+         * **落とす道も通す。** 全部通す決め打ちだと、審査が効いているのか
+         * ただ素通ししているのかが検査に出てこない。
+         * 落とすのは**本物の基準のひとつ**「この1回の結果ではなく、やり方が書いてあるか」で、
+         * 決め打ちの社員は「今回の…」という名前の手順書をわざと1枚書く。
+         */
+        const verdicts = lastText(input).split('--- id: ').slice(1).map((blk) => {
+          const id = blk.slice(0, blk.indexOf(' ---'));
+          const name = blk.match(/名前: (.+)/)?.[1]?.trim() ?? '';
+          const isNew = /種類: 新しい手順書/.test(blk);
+          if (!isNew) return { id, keep: false, note: '' };
+          return /^今回/.test(name)
+            ? { id, keep: false, note: 'この1回の結果で、やり方が書かれていません' }
+            : { id, keep: true, note: '' };
+        });
+        yield tool('review_skills', { verdicts });
+        yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
+        return;
+      }
     }
 
     // ══ チャット（道具を全部持っている）══ 先に見る
@@ -287,6 +312,46 @@ async function* fakeRun(input: RunInput): AsyncIterable<Chunk> {
   await wait(400);
   // 学びの道も通す（本物と同じ道具・同じ順。E2E が「学びが残ること」を確かめられる）
   yield tool('note_learning', { lesson: '数字は事実・推計・要確認の3束に分けてから出す' });
+  /**
+   * **手順書の道も通す**（Hermes の輪。2026-08-26）。
+   * 書くのは**1回だけ** — 2本目のタスクでも書くと、同じ filename で弾かれるだけになり、
+   * 「書けたか」を測っているのか「弾かれたか」を測っているのか分からなくなる。
+   * 目印は**タスク名**（`競合を並べて比べる` は決め打ちの1本目）。
+   */
+  // **直しのタスクでは書かない。** 同じ手順書が2枚できるだけで、
+  // 検査は「書けたか」ではなく「二度書いたか」を測ることになる（実際そうなった）
+  const first = !/ を直す$/.test(task);
+  if (first && /競合/.test(task)) {
+    yield tool('write_skill', {
+      filename: 'compare-rivals.md', name: '競合の並べ方',
+      when: '競合を比べる仕事のとき',
+      body: ['# 競合の並べ方', '', '1. 5〜8社に絞る（多いと読めない）',
+             '2. 価格 / 対象 / 強み / 弱み の4軸で表にする',
+             '3. セルごとに出どころを残す。無いセルは「要確認」と書く'].join('\n'),
+    });
+  }
+  /**
+   * **落とされる側も1枚書く。** 本物のモデルは「この1回の結果」を手順書にしがちなので、
+   * 決め打ちでも同じ間違いをする — そうしないと、審査が効いているか検査に出てこない。
+   */
+  if (first && /市場/.test(task)) {
+    yield tool('write_skill', {
+      filename: 'this-time-market.md', name: '今回の市場規模',
+      when: '市場の大きさを聞かれたとき',
+      body: '# 今回の市場規模\n\n上からの推計は 12万人、下からは 4万人だった。',
+    });
+  }
+  /**
+   * **直しの道も通す。** 手順書を渡されている往復では、1回だけ直しを出す
+   * （決め打ちの審査はこれを**落とす**ので、「落ちる道」も検査に出る）。
+   */
+  const given = text.match(/--- .+?（id: ([^）]+)）---/);
+  if (given && /段取り|絞る/.test(task)) {
+    yield tool('improve_skill', {
+      skill: given[1], why: '出どころの残し方が書かれていなかった',
+      body: '（決め打ちの直し）出どころは表のセルごとに残す。無ければ「要確認」と書く。',
+    });
+  }
   yield tool('finish', { summary: `${task} を終えた。成果物1件、要確認1件` });
   yield { type: 'done', usage: { ...EMPTY_USAGE }, stopReason: 'tool_use' };
 }
@@ -470,6 +535,19 @@ async function* fakeChat(input: RunInput): AsyncIterable<Chunk> {
   const sys = input.system ?? '';
   const hasWork = sys.includes('もう Work を作りました');
 
+  /**
+   * **思い出したものを、そのまま言い返す**（Hermes の cross-session recall。2026-08-26）。
+   * 決め打ちのプロバイダは考えないので、**渡されたものを echo するのが唯一の証拠**になる
+   * （MCP の「読んだものが成果物に入っている」と同じ確かめ方）。
+   * 道具は使わない — 尋ねられたことに答える往復なので、カードで終わらなくていい。
+   */
+  const memo = sys.match(/会社がすでに知っていること（(.+?)）: (.+)/);
+  if (memo && /どうなって|どうだった|思い出|何だっけ|なんだっけ/.test(said)) {
+    yield { type: 'text', text: `（仮の返事）思い出しました — ${memo[1]}「${memo[2]}」があります。` };
+    yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'end_turn' };
+    return;
+  }
+
   // ① すでに事業がある道 — 材料が来たら覚え、そろったら診断
   const url = said.match(/([\w-]+(?:\.[\w-]+)+(?:\/\S*)?)/)?.[1];
   const numbers = /[0-9０-９][\d,，]{2,}/.test(said);
@@ -586,6 +664,13 @@ async function* fakeChat(input: RunInput): AsyncIterable<Chunk> {
  * 前置きに書かれた**いま画面に出るカード**を読んで、それに添う一言を返す。
  */
 function chatWords(input: RunInput, goal: string): string {
+  /**
+   * **思い出したものを、そのまま言い返す**（Hermes の cross-session recall。2026-08-26）。
+   * 決め打ちのプロバイダは考えないので、**渡されたものを echo するのが唯一の証拠**になる
+   * （MCP の「読んだものが成果物に入っている」と同じ確かめ方）。
+   */
+  const memo = (input.system ?? '').match(/会社がすでに知っていること（(.+?)）: (.+)/);
+  if (memo) return `思い出しました — ${memo[1]}「${memo[2]}」があります。`;
   const cards = (input.system ?? '').match(/社長の画面には次が出ます:\n([\s\S]*?)\n\n/)?.[1] ?? '';
   if (cards.includes('聞きたいこと')) return '先に条件だけ教えてください。全部でなくて構いません。2つそろったら、候補を3つ出します。';
   if (cards.includes('条件に合う道')) return '条件に合う道を3つ出しました。いちばん上をおすすめします。';

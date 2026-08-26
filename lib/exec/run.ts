@@ -1,5 +1,4 @@
-import { hasKey, providerFor, type Msg, type ModelProvider } from '@/lib/ai';
-import { FakeProvider } from '@/lib/ai/fake';
+import type { Msg, ModelProvider } from '@/lib/ai';
 import { CONSTITUTION } from './constitution';
 import { PHASE5_TOOLS } from './tools';
 import { checkStop, toOptions, toQuestions } from './parse';
@@ -9,6 +8,8 @@ import { AppError } from '@/lib/errors';
 import { crewFor, rosterBlock, slugOf } from '@/lib/roster';
 import { store } from '@/lib/store';
 import { execPref, type Pref } from './pref';
+import { founderBlock } from './memory';
+import { pickProvider } from './provider';
 
 /**
  * Work を立てるまでを1回まわす。
@@ -21,12 +22,12 @@ import { execPref, type Pref } from './pref';
  * **返事の文章は使わない。** 画面に出すものは全部 `tool_use` から取る。
  */
 
-/** キーが無ければ決め打ちのプロバイダ。**考えていないので、画面に必ずそう出す** */
-export function pickProvider(): { p: ModelProvider; real: boolean } {
-  // 統括AIは deep で走るので、見る鍵も deep の通り道のもの
-  if (!hasKey('deep')) return { p: new FakeProvider(), real: false };
-  return { p: providerFor('deep'), real: true };
-}
+/**
+ * キーが無ければ決め打ちのプロバイダ。**考えていないので、画面に必ずそう出す**。
+ * **置き場を分けてある**（`./provider`）— ここに置くと、記憶の手入れ（`./memory`）が
+ * これを使うために run.ts を読み、run.ts が memory.ts を読む輪ができる。
+ */
+export { pickProvider } from './provider';
 
 /**
  * 憲法は system に載る（provider が渡す）。ここは user の1通だけ。
@@ -47,13 +48,15 @@ const shape = (goal: string, ctx: string, roster: string, memory: string): Msg[]
  */
 async function memoryBlock(): Promise<string> {
   const s = store();
-  const [dels, decs] = await Promise.all([
+  const [dels, decs, founder] = await Promise.all([
     s.listDels().catch(() => []),
     s.listDecisions().catch(() => []),
+    // **社長のことも渡す**（2026-08-26）。計画を引くときに、いちばん効く
+    s.founderNotes().catch(() => []),
   ]);
   const done = dels.filter((d) => d.state === '承認済').slice(0, 6);
   const decided = decs.filter((d) => d.status === 'decided' && d.chosen).slice(0, 6);
-  if (!done.length && !decided.length) return '';
+  if (!done.length && !decided.length && !founder.length) return '';
   return [
     '## この会社がもう知っていること',
     ...(done.length
@@ -64,6 +67,7 @@ async function memoryBlock(): Promise<string> {
       ? ['決めたこと（**社長の決定。これに沿う**）:',
          ...decided.map((d) => `- ${d.question} → ${d.chosen}`)]
       : []),
+    ...founderBlock(founder),
   ].join('\n');
 }
 

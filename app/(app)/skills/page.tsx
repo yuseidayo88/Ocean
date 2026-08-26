@@ -58,15 +58,24 @@ export default function SkillsPage() {
   useEffect(reload, [reload]);
 
   // 学びは社員のメモなので、ここには並べない（見る場所はメンバーの設定ペイン）
-  const all = (rows ?? []).filter((x) => x.source !== 'learned');
+  const live = (rows ?? []).filter((x) => x.source !== 'learned');
+  /**
+   * **会社のものになっているものだけ、上に並べる**（2026-08-26）。
+   * 社員が書いたばかりのもの（draft）と、統括AIが落としたもの（rejected）は
+   * まだ会社のものではないので、下に暗く並べる — メンバー画面で
+   * 「まだいない人を暗く並べる」のと同じ置き方。
+   */
+  const all = live.filter((x) => x.status === 'active');
+  const notYet = live.filter((x) => x.status !== 'active');
   const pick = useRef<HTMLInputElement>(null);
   /** ファイルを選ぶ窓を開く。**押す口は3つ**（見出しの ⬆ / 点線の枠 / 落とす）ので1か所にまとめる */
   const choose = useCallback(() => pick.current?.click(), []);
 
   // タブは本物。開いている並びといま見ているものを URL に持つ（`?open=a.md,b.md&at=1`）
-  const tabs = useTabs(all.map((s) => s.filename));
+  // **落ちたものも開ける。** 中身を読まずに戻すかどうかは決められない
+  const tabs = useTabs(live.map((s) => s.filename));
   const open = tabs.ids[tabs.at];
-  const body = (f: string) => all.find((s) => s.filename === f)?.body ?? '';
+  const body = (f: string) => live.find((s) => s.filename === f)?.body ?? '';
 
   const add = async (file: string, text: string) => {
     const name = text.match(/^name:\s*(.+)$/m)?.[1]?.trim() ?? file.replace(/\.md$/, '');
@@ -84,6 +93,13 @@ export default function SkillsPage() {
     await skillToggle(s.id, !s.on);
   };
   const remove = async (s: SkillRow) => { await skillRemove(s.id); reload(); };
+  /**
+   * **落ちた手順書を、社長が会社のものにする。**
+   * `toggle` は使えない — 落ちた行の `enabled` はもともと true なので、
+   * **`!s.on` は false になって、逆に切ってしまう**（実際そうなった）。
+   * ここは向きが1つしかない操作なので、true を渡し切る。
+   */
+  const revive = async (s: SkillRow) => { await skillToggle(s.id, true); reload(); };
 
   return (
     <>
@@ -116,6 +132,9 @@ export default function SkillsPage() {
                     </span>
                     {/* 元々の機能としてのスキル。**見えるが、消せない**（切るのはできる） */}
                     {s.source === 'builtin' && <span style={{ color: T5, fontSize: 10.5, flexShrink: 0 }}>標準</span>}
+                    {/* 社員が仕事から書いて、統括AIが通したもの（Hermes の輪） */}
+                    {s.source === 'agent' && <span style={{ color: T5, fontSize: 10.5, flexShrink: 0 }}>社員が書いた</span>}
+                    {s.pending && <span style={{ color: T5, fontSize: 10.5, flexShrink: 0 }}>直しを見ています</span>}
                   </span>
                   <span style={{ color: T5, fontSize: 11, fontFamily: 'ui-monospace, monospace' }}>{s.filename}</span>
                 </div>
@@ -124,8 +143,8 @@ export default function SkillsPage() {
                   {s.used ? `${s.used}回` : '—'}
                 </span>
                 <Toggle on={s.on} label={`${s.name} を使う`} onPick={() => toggle(s)} />
-                {/* ゴミ箱は自分で読み込んだものだけ。標準スキルは消せない */}
-                {s.source === 'user' && (
+                {/* ゴミ箱は自分で読み込んだものと社員が書いたもの。標準スキルは消せない */}
+                {(s.source === 'user' || s.source === 'agent') && (
                   <button className="icob" title="削除" style={{ display: 'inline-flex', padding: 3 }}
                     onClick={(e) => { e.stopPropagation(); remove(s); }}>
                     <Icon name="trash" color={DIM} size={14} />
@@ -154,6 +173,43 @@ export default function SkillsPage() {
               <span style={{ color: DIM, fontSize: 11 }}>.md · 何個でも</span>
             </button>
           </div>
+
+          {/**
+            * **まだ会社のものになっていないもの**（2026-08-26。Hermes の輪）。
+            * 社員が書いたばかりのもの（統括AIが読んでいる最中）と、
+            * 統括AIが落としたもの。**落とした理由を残す** — 社長が読んで、戻せるように。
+            * 戻し方はトグル1つ（「戻す」ボタンを別に置かない）。
+            * **1件も無ければ、節ごと出さない**（「ありません」を1行使って言わない）。
+            */}
+          {notYet.length > 0 && (
+            <div>
+              <Head label="まだ会社のものになっていない" note="社員が書いて、統括AIが読んだもの" />
+              {notYet.map((s, i) => (
+                <div key={s.id} className="row" {...pressable(() => tabs.open(s.filename))} style={{
+                  display: 'flex', alignItems: 'center', gap: 14, padding: '17px 0', opacity: 0.58,
+                  borderBottom: i === notYet.length - 1 ? undefined : `1px solid ${HAIR}`,
+                }}>
+                  <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <span style={{ color: T2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {s.name}
+                    </span>
+                    <span style={{ color: T5, fontSize: 11 }}>
+                      {s.status === 'draft' ? '統括AIが読んでいます' : (s.note || '統括AIが落としました')}
+                    </span>
+                  </div>
+                  <div style={{ flex: 1 }} />
+                  {/* 落ちたものだけ戻せる。読んでいる最中のものは、押しても何も起きない板を出さない */}
+                  {s.status === 'rejected' && (
+                    <Toggle on={false} label={`${s.name} を会社のものにする`} onPick={() => revive(s)} />
+                  )}
+                  <button className="icob" title="削除" style={{ display: 'inline-flex', padding: 3 }}
+                    onClick={(e) => { e.stopPropagation(); remove(s); }}>
+                    <Icon name="trash" color={DIM} size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <Composer placeholder="スキルについて統括AIに聞く" />
       </Centre>

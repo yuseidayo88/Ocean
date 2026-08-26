@@ -365,6 +365,57 @@ const sk = await text();
 ok('標準スキルが見えている', sk.includes('標準') && sk.includes('調査のまとめ方'), sk.slice(0, 80));
 ok('スキルが実行で読まれた（used_count）', /\d+回/.test(sk), sk.match(/[^\n]*回[^\n]*/)?.[0]);
 
+/**
+ * **社員が仕事から手順書を書き、統括AIが通す**（Hermes Agent の学習の輪。2026-08-26）。
+ * 決め打ちの社員は「競合を並べて比べる」のあとに1枚書き、
+ * 渡された手順書には直しを出す — **審査はそれを落とす**ので、通る道と落ちる道が両方通る。
+ */
+ok('社員が書いた手順書が、会社のものになった',
+   sk.includes('競合の並べ方') && sk.includes('社員が書いた'),
+   sk.match(/[^\n]*競合の並べ方[^\n]*/)?.[0] ?? sk.slice(0, 90));
+// **落ちる道も通す。** 決め打ちの社員は「今回の市場規模」＝この1回の結果を1枚書き、
+// 統括AIはそれを落とす（本物の基準「やり方が書いてあるか」のひとつ）
+ok('統括AIが落としたものは、理由つきで下に残る',
+   sk.includes('まだ会社のものになっていない') && sk.includes('今回の市場規模')
+   && sk.includes('やり方が書かれていません'),
+   sk.match(/まだ会社のもの[\s\S]{0,80}/)?.[0]?.replace(/\n/g, ' '));
+// **社長は戻せる。** 操作はトグル1つ（戻すボタンを別に置かない）
+await ev(`(() => {
+  const rows = [...document.querySelectorAll('.row')];
+  const i = rows.findIndex((r) => r.innerText.includes('やり方が書かれていません'));
+  rows[i]?.querySelector('[role=switch]')?.click(); })()`);
+const back3 = await until((b) => !b.includes('やり方が書かれていません'), 12, 600);
+ok('落ちた手順書を、社長がトグルで戻せる',
+   !back3.includes('やり方が書かれていません') && back3.includes('今回の市場規模'),
+   back3.match(/まだ会社のもの[^\n]*/)?.[0] ?? '(戻った)');
+
+/**
+ * **全員に効くこと**の中身（2026-08-26）。
+ *   ・AI社員の憲法 — 7人ぜんぶの頭に載る1枚。**読めるが、切れない**
+ *   ・社長のこと — 決めたこと・差し戻したことから会社が覚える（Hermes の user modeling）
+ */
+await send('Page.navigate', { url: `${BASE}/team?open=all` }); await wait(2600);
+const allPane = (await ev(`document.querySelector('aside')?.innerText ?? ''`)) ?? '';
+ok('AI社員の憲法が読める', allPane.includes('AI社員が必ず守ること') && allPane.includes('分かったふり'),
+   allPane.match(/AI社員が必ず守ること[\s\S]{0,60}/)?.[0]?.replace(/\n/g, ' ') ?? allPane.slice(0, 90));
+ok('会社が社長のことを覚えている',
+   allPane.includes('社長のこと') && allPane.includes('K-POPファン層'),
+   allPane.match(/社長のこと[\s\S]{0,80}/)?.[0]?.replace(/\n/g, ' ') ?? allPane.slice(-90));
+
+/**
+ * **思い出す**（Hermes の cross-session recall。2026-08-26）。
+ * 別の会話で聞いても、会社が作ったものの**中身**から答える。
+ * 前は Work の一覧と決めたことしか渡していなかったので、
+ * 「あの調査どうなってた？」には答えられなかった。
+ * 決め打ちのプロバイダは**渡されたものを言い返す**ので、届いたことがそのまま見える。
+ */
+await send('Page.navigate', { url: `${BASE}/chat/new` }); await wait(2200);
+await say('競合の調査ってどうなってた？', 0);
+const recalled = await until((b) => b.includes('思い出しました'), 25, 800);
+ok('別の会話でも、会社が作ったものを思い出す',
+   recalled.includes('思い出しました') && recalled.includes('競合'),
+   recalled.match(/思い出しました[^\n]*/)?.[0] ?? recalled.slice(-90));
+
 // ⑤'' 入口 Case B — **チャットの中で**条件を集めて候補3つ
 await send('Page.navigate', { url: `${BASE}/start` }); await wait(2200);
 await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('まだ決まっていない'))?.click()`);

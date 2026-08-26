@@ -226,4 +226,58 @@ export const noteLearning: ToolDef = {
   },
 };
 
-export const RUN_TOOLS: ToolDef[] = [logStep, writeDeliverable, drawWorkflow, askDecision, noteLearning, finish];
+/**
+ * **難しい仕事のあと、手順書を書き残す**（Hermes Agent の学習の輪。2026-08-26）。
+ *
+ * 学び（`note_learning`）は1行の申し送りで、**次の実行に必ず載る**。
+ * スキルはそれより重く、**必要なときだけ読まれる**手順書 — だから量を書ける。
+ * 「またやることになる仕事の、やり方」がスキルで、「次の自分への一言」が学び。
+ *
+ * **書いても、すぐには誰も読まない。** 統括AIが通してからです
+ * （社長が選んだ形 → `supabase/migrations/0029_agent_skills.sql`）。
+ */
+const writeSkill: ToolDef = {
+  name: 'write_skill',
+  description:
+    '**同じ形の仕事がまた来ると分かったときだけ**、そのやり方を手順書として書き残す（任意）。'
+    + '毎回のちょっとした気づきは note_learning のほうです。'
+    + '**書いたものは統括AIが読んで、通ったら次から会社の誰かが読みます** — '
+    + 'あなたにしか分からない書き方をしない。'
+    + 'すでに似た手順書を渡されているなら、新しく書かずに improve_skill で直してください。',
+  input_schema: {
+    type: 'object',
+    properties: {
+      filename: { type: 'string', description: '英数字とハイフンだけ。例 competitor-compare.md' },
+      name: { type: 'string', description: '日本語で6〜20文字。何のやり方か' },
+      when: { type: 'string', description: '**いつ読むか**を1行。ここが合っていないと誰も読めない' },
+      body: {
+        type: 'string',
+        description: '手順書の中身（markdown）。手順・気をつけること・出す形。'
+          + '**この1回の結果を書かない** — 次に同じ形の仕事をする人が読んで動ける文にする',
+      },
+    },
+    required: ['filename', 'name', 'when', 'body'],
+  },
+};
+
+/**
+ * **使ってみて足りなかったところを直す**（Hermes の「使いながら良くなる」）。
+ * いま効いている本文は変えない — 直しが通るまで、その手順書は今のまま使われる。
+ */
+const improveSkill: ToolDef = {
+  name: 'improve_skill',
+  description:
+    '渡された手順書を読んで**足りなかった・間違っていたところがあったときだけ**、直した全文を出す（任意）。'
+    + '直すところが無ければ呼ばない。**いま効いている手順書は、統括AIが通すまで今のまま**です。',
+  input_schema: {
+    type: 'object',
+    properties: {
+      skill: { type: 'string', description: '渡された手順書の id（そのまま写す）' },
+      why: { type: 'string', description: 'どこが足りなかったか。1行' },
+      body: { type: 'string', description: '直した**全文**（差分ではない）' },
+    },
+    required: ['skill', 'why', 'body'],
+  },
+};
+
+export const RUN_TOOLS: ToolDef[] = [logStep, writeDeliverable, drawWorkflow, askDecision, noteLearning, writeSkill, improveSkill, finish];

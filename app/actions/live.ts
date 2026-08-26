@@ -55,6 +55,18 @@ export async function learningsSet(employeeId: string, lines: string[]): Promise
   try { await store().setLearnings(employeeId, lines); } catch { /* 消えなかったら残るだけ */ }
 }
 
+/**
+ * **会社が覚えている社長のこと**（2026-08-26）。学びと同じ作法 —
+ * **見える・消せる**。見えないところで会社が社長像を作らないための欄。
+ */
+export async function founderGet(): Promise<string[]> {
+  try { return await store().founderNotes(); } catch { return []; }
+}
+
+export async function founderSet(lines: string[]): Promise<void> {
+  try { await store().setFounderNotes(lines); } catch { /* 消えなかったら残るだけ */ }
+}
+
 /** レールが読む3つ（チャット履歴・未読の数・在籍の数）。画面を移るたびに呼ばれるので安く */
 /**
  * 器がいちばん最初に要るもの。**1回で全部取る。**

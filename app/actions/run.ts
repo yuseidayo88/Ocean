@@ -219,6 +219,11 @@ export async function sendBackDel(
       const line = gist.length > 60 ? `${gist.slice(0, 60)}…` : gist;
       if (ownerId) await s.addLearnings(ownerId, [`社長からの差し戻し（${src.title}）: ${line}`]).catch(() => {});
     }
+    // **社長のことにも残す。** 差し戻しは、この社長が何を良しとしないかの手がかり
+    {
+      const gist = text.replace(/\s+/g, ' ').trim();
+      await s.addFounderNotes([`差し戻したときに言ったこと: ${gist.slice(0, 60)}`]).catch(() => {});
+    }
     return { ok: true };
   } catch (e) {
     return { ok: false, message: sayError(e, '差し戻せませんでした') };
@@ -238,7 +243,15 @@ export async function taskDecision(taskId: string): Promise<LiveDecision | null>
  */
 export async function decide(decisionId: string, chosen: string): Promise<{ ok: boolean; message?: string }> {
   try {
-    await store().answerDecision(decisionId, chosen);
+    const s = store();
+    await s.answerDecision(decisionId, chosen);
+    /**
+     * **会社が社長を覚える**（2026-08-26。Hermes Agent の user modeling に当たる）。
+     * 選んだという**事実**をそのまま1行にする — モデルは呼ばない。
+     * 次の計画と次の実行に載るので、同じことを二度聞かれなくなる。
+     */
+    const d = (await s.listDecisions().catch(() => [])).find((x) => x.id === decisionId);
+    if (d) await s.addFounderNotes([`「${d.question}」では「${chosen}」を選んだ`]).catch(() => {});
     return { ok: true };
   } catch (e) {
     return { ok: false, message: sayError(e, '決められませんでした') };

@@ -5,6 +5,7 @@ import type { Conditions } from './types';
 import { isOpener, OPENER } from './openers';
 import { sayError } from '@/lib/errors';
 import { execPref } from './pref';
+import { termsOf } from './recall';
 
 /**
  * **統括AIに返してもらう1回**（書くのはもう終わっている）。
@@ -16,14 +17,23 @@ import { execPref } from './pref';
  * どちらも同じ順で同じことをする。**分けて書くと、片方だけ直る。**
  */
 
-/** 会社のいまを1枚に畳む（Work をまたいだ相談に答えるため） */
-export async function snapshot(): Promise<string> {
+/**
+ * 会社のいまを1枚に畳む（Work をまたいだ相談に答えるため）。
+ *
+ * `ask` ＝ 社長がいま言ったこと。渡されていれば、そこから**会社の記憶を思い出す**
+ * （Hermes の cross-session recall。2026-08-26 → `lib/exec/recall.ts`）。
+ * 前は Work の一覧と決めたことしか渡していなかったので、
+ * 「あの調査、どうなってたっけ」に**中身では答えられなかった**。
+ */
+export async function snapshot(ask = ''): Promise<string> {
   const s = store();
-  // **3本まとめて取る。** 順に待つと、遠いDBでは返事がそのぶん遅れる
-  const [works, decisions, dels] = await Promise.all([
+  // **4本まとめて取る。** 順に待つと、遠いDBでは返事がそのぶん遅れる
+  const [works, decisions, dels, memos, founder] = await Promise.all([
     s.listWorks().catch(() => [] as LiveWork[]),
     s.listDecisions().catch(() => []),
     s.listDels().catch(() => []),
+    s.recall(termsOf(ask), 2).catch(() => []),
+    s.founderNotes().catch(() => []),
   ]);
   const lines = works.length
     ? works.map((w) => {
@@ -50,6 +60,14 @@ export async function snapshot(): Promise<string> {
   if (decided.length) {
     lines.push('', '決めたこと:');
     for (const d of decided) lines.push(`- ${d.question} → ${d.chosen}`);
+  }
+  if (founder.length) {
+    lines.push('', '社長のこと（会社が覚えていること。**同じことを二度聞かない**）:');
+    for (const n of founder) lines.push(`- ${n}`);
+  }
+  // **思い出したものは、会話には短く。** 中身は画面にあるので、ここは要点だけ
+  for (const m of memos) {
+    lines.push('', `会社がすでに知っていること（${m.kind}）: ${m.title}`, m.snippet.slice(0, 500));
   }
   return lines.join('\n');
 }
@@ -92,7 +110,7 @@ export async function replyTo(
      * 往復ごとに保存先へ読みに行くと、そのぶん返事が遅くなる。
      * 会社のいまと**同時に**取る（遠いDBでは、順に待つと往復が2回ぶん積み上がる）。
      */
-    const [{ model }, company] = await Promise.all([execPref(), snapshot()]);
+    const [{ model }, company] = await Promise.all([execPref(), snapshot(last?.body ?? '')]);
     const state: ChatState = {
       model,
       hasWork: !!t.thread.workId,

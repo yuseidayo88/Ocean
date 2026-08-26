@@ -109,9 +109,52 @@ export type ChatMsg = {
 export type SkillRow = {
   id: string; name: string; filename: string; on: boolean;
   scope: 'company' | 'employee'; used: number;
-  source: 'builtin' | 'user' | 'learned';
+  /** builtin=標準 / user=社長が上げた / learned=学びの1枚 / agent=社員が書いた */
+  source: 'builtin' | 'user' | 'learned' | 'agent';
   /** SKILL.md の中身。一覧では読まないこともある */
   body?: string;
+  /** いつ読むか（1行）。社員が書いたスキルは必ず持つ */
+  desc?: string;
+  /** 誰のスキルか（null なら会社ぜんぶ）。**実行はこれを見て、その社員のぶんも読む** */
+  employeeId?: string | null;
+  /**
+   * **通る前は読まれない**（2026-08-26 → `supabase/migrations/0029_agent_skills.sql`）。
+   * 社員が書いたものは draft で生まれ、統括AIが見て active か rejected になる。
+   * 社長が上げたものと標準スキルは、これまでどおり最初から active。
+   */
+  status: 'draft' | 'active' | 'rejected';
+  /** 書いた社員（`employeeId` とは別 — 会社ぜんぶのスキルにも書き手がいる） */
+  author?: string | null;
+  /** 何回直されたか（Hermes の「使いながら良くなる」） */
+  revision?: number;
+  /** 統括AIが落とした理由。**残す** — 社長が読んで、戻せるように */
+  note?: string;
+  /** 直しの提案が待っている（いま効いている body はそのまま） */
+  pending?: boolean;
+};
+
+/**
+ * **思い出したもの**（Hermes の cross-session recall）。
+ * 出どころは3つだけ — 作ったもの / 決めたこと / 会話。会社の記憶はこの3つに全部ある。
+ */
+export type Memo = {
+  kind: '成果物' | '決めたこと' | '会話';
+  title: string;
+  snippet: string;
+};
+
+/** 統括AIが見るもの。新しいスキルか、いま効いているものへの直しか */
+export type PendingSkill = {
+  id: string; name: string; desc?: string;
+  /** 新しいスキルなら 'new'、直しの提案なら 'edit' */
+  kind: 'new' | 'edit';
+  /** 'new' は本文、'edit' は直したい中身 */
+  body: string;
+  /** 'edit' のときだけ、いま効いている中身 */
+  live?: string;
+  /** 直しの理由（社員が書く） */
+  why?: string;
+  authorName?: string;
 };
 
 /**
@@ -384,10 +427,43 @@ export interface Store {
   mcpSecret(id: string): Promise<string | undefined>;
   setSkill(id: string, on: boolean): Promise<void>;
   addSkill(s: { name: string; filename: string; body: string }): Promise<void>;
-  /** 消せるのは user のものだけ（標準は切れるが消せない。学びは setLearnings で） */
+  /** 消せるのは user と agent のものだけ（標準は切れるが消せない。学びは setLearnings で） */
   removeSkill(id: string): Promise<void>;
   /** 読んだ印。実行の依頼文に載せたスキルの used_count を1つ進める */
   bumpSkillUse(ids: string[]): Promise<void>;
+
+  /* ══════════════ 社員が自分でスキルを書く（Hermes の輪・2026-08-26）══════════════ */
+
+  /**
+   * **難しい仕事のあと、社員が手順書を書き残す。**
+   * status='draft' で生まれる — **統括AIが通すまで、誰にも読まれない**。
+   * 同じ filename がもうあるなら作らない（null を返す。直したいなら `proposeSkillEdit`）。
+   */
+  writeSkill(x: {
+    employeeId: string | null; authorId?: string;
+    name: string; filename: string; desc?: string; body: string;
+  }): Promise<string | null>;
+  /**
+   * **使ってみて足りなかったところを直す。**
+   * いま効いている本文は変えない（`draft_body` に置く）— 使えている手順書を、
+   * 審査のあいだ止めない。
+   */
+  proposeSkillEdit(id: string, body: string, why: string, authorId?: string): Promise<void>;
+  /**
+   * **会社の記憶から探す**（2026-08-26 → `lib/exec/recall.ts`）。
+   *
+   * 探す先は 成果物 / 決めたこと / 会話 の3つ。`terms` のどれかが当たれば拾う。
+   * **往復は増やさない** — 読む道具としてモデルに渡すのではなく、
+   * こちらが先に引いて依頼文に載せる。`terms` が空なら何も返さない。
+   */
+  recall(terms: string[], limit?: number): Promise<Memo[]>;
+  /** 統括AIの審査待ち（新しいスキルと、直しの提案）。無ければ空 */
+  pendingSkills(): Promise<PendingSkill[]>;
+  /**
+   * 通す / 落とす。**直しの提案なら本文に当てる**（落とすと `draft_body` を捨てる）。
+   * 落とした理由は残す — 社長が読んで、戻せるように。
+   */
+  reviewSkill(id: string, ok: boolean, note: string): Promise<void>;
 
   /* ══════════════ 学び（使うたびに賢くなる。ただしルールには自動で書かない）══════════════ */
 
@@ -397,6 +473,25 @@ export interface Store {
   addLearnings(employeeId: string, lines: string[]): Promise<void>;
   /** 社長が消す・直す（丸ごと置き換え。空にしたら行ごと消える） */
   setLearnings(employeeId: string, lines: string[]): Promise<void>;
+
+  /* ══════════════ 社長のこと（会社が覚える。2026-08-26）══════════════ */
+
+  /**
+   * **会社が覚えている社長のこと**（Hermes Agent の user modeling に当たる）。
+   *
+   * 学びが「社員が仕事から覚えたこと」なら、こちらは**会社が社長から覚えたこと** —
+   * 何を選び、何を差し戻し、どれだけ時間が使えて、何を避けたいか。
+   * 置き場は学びと同じ表（`agent_skills` の `source='learned'`）で、
+   * **`employee_id` が null のほうが社長のぶん**（スキルと同じ書き方）。
+   *
+   * **モデルを呼んで作らない。** 決めた・差し戻した・条件を書いた、という
+   * **起きた事実**をそのまま1行にする（朝の報告と同じ考え方）。
+   */
+  founderNotes(): Promise<string[]>;
+  /** 追記。**同じことは二度書かない**。上限20行（学びより少ない — 人は1人しかいない） */
+  addFounderNotes(lines: string[]): Promise<void>;
+  /** 社長が消す・直す（丸ごと置き換え。空にしたら行ごと消える） */
+  setFounderNotes(lines: string[]): Promise<void>;
   /* ══════════════ モデルと深さ（メンバー画面で社長が選ぶ）══════════════ */
 
   /** 全員ぶん（統括AIを含む）。メンバー画面が1回で取る */
