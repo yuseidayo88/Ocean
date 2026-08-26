@@ -1,6 +1,6 @@
 import { AGENT_COLOR, type EmployeeColor } from '@/lib/view/model';
 import { byName as rosterByName, crewFor } from '@/lib/roster';
-import { finishNote, finishSay, gateNote, type Finished } from '@/lib/exec/finish';
+import { finishNote, finishSay, gateNote, paceSay, type Finished } from '@/lib/exec/finish';
 import type { McpServer } from '@/lib/mcp/types';
 import { previewFor } from '@/lib/deliver/format';
 import { BUILTIN_SKILLS } from '@/lib/roster/skills';
@@ -42,6 +42,8 @@ function live(d: DraftWork, ids: Map<string, string>): LiveWork {
       id: `${d.id}-p${i + 1}`, seq: i + 1, name: p.name, goal: p.goal,
       state: i === 0 ? 'active' : 'planned',
       weeks: p.weeks,
+      // 見込みと突き合わせるために、始まった時刻を持つ（supabase の `phases.started_at`）
+      startedAt: i === 0 ? new Date().toISOString() : undefined,
     })),
     // 担当は**統括AIが言った名前で引き当てる**（Supabase 版と同じ規則）。
     // 合わなければ先頭の社員に落とす
@@ -164,14 +166,16 @@ export const memoryStore: Store = {
     const prevAt = live.dels.findIndex((x) => x.title === d.title);
     const version = prevAt >= 0 ? (live.dels[prevAt].version ?? 1) + 1 : 1;
     if (prevAt >= 0) live.dels.splice(prevAt, 1);
+    const id = `del-${Date.now().toString(36)}-${d.taskId}`;
     live.dels.unshift({
-      id: `del-${Date.now().toString(36)}-${d.taskId}`, title: d.title, kind: d.kind,
+      id, title: d.title, kind: d.kind,
       state: '要確認',
       // 書き出しは形ごとに違うところから（supabase 版と同じ規則）
       preview: previewFor(d.kind, d.body), body: d.body,
       by: live.tasks.find((t) => t.id === d.taskId)?.owner, when: 'たった今', taskId: d.taskId,
       version,
     });
+    return id;
   },
 
   async addNotification(n) { notes.push({ ...n, at: new Date().toISOString() }); },
@@ -526,6 +530,7 @@ export const memoryStore: Store = {
       model: patch.model ?? cur.model,
       effort: patch.effort ?? cur.effort,
       paused: patch.paused ?? cur.paused,
+      web: patch.web ?? cur.web,
     });
   },
 
@@ -546,6 +551,16 @@ export const memoryStore: Store = {
     const next = lines.map((l) => l.trim()).filter(Boolean);
     if (next.length) learned.set(employeeId, next);
     else learned.delete(employeeId);
+  },
+
+  /* ── ルール（学びからの昇格先。supabase 版と同じ規則）── */
+
+  async rules(employeeId) { return [...(ruled.get(employeeId) ?? [])]; },
+
+  async setRules(employeeId, lines) {
+    const next = lines.map((l) => l.trim()).filter(Boolean);
+    if (next.length) ruled.set(employeeId, next);
+    else ruled.delete(employeeId);
   },
 
   async companyName() { return 'あなたの会社'; },
@@ -624,6 +639,7 @@ export const memoryStore: Store = {
       return null;
     }
     next.state = 'active';
+    next.startedAt = new Date().toISOString();
     /**
      * **要る人がいなければ、ここで採用する**（supabase 版と同じ規則）。
      * 計画で提案されるのは最初のフェーズの担当だけなので、
@@ -720,7 +736,9 @@ export const memoryStore: Store = {
       if (!mine.length || !mine.every((t) => t.state === 'done' || t.state === 'cancelled')) continue;
       ph.state = 'review';
       closed.push(ph.name);
-      notes.push(gateNote(ph.name, gates.includes(ph.name), waiting.get(ph.id) ?? 0));
+      // 見込みと実際を、閉じたその場で突き合わせる（supabase 版と同じ規則）
+      const pace = paceSay(ph.weeks, ph.startedAt, new Date().toISOString());
+      notes.push(gateNote(ph.name, gates.includes(ph.name), waiting.get(ph.id) ?? 0, pace));
     }
 
     const review = live.phases.filter((p) => p.state === 'review');
@@ -883,6 +901,8 @@ const g2 = globalThis as unknown as {
   /** 直しの提案（supabase の `draft_body` / `draft_note` にあたる） */
   __skillEdits?: Map<string, { body: string; why: string }>;
   __learned?: Map<string, string[]>;
+  /** 昇格したルール（`agent_skills` の `source='rule'` にあたる） */
+  __ruled?: Map<string, string[]>;
   __prefs?: Map<string, AgentPref>;
   __morning?: Set<string>;
 };
@@ -896,6 +916,7 @@ const msgs = (g2.__msgs ??= new Map<string, ChatMsg[]>());
 const skills = (g2.__skills ??= []);
 const edits = (g2.__skillEdits ??= new Map<string, { body: string; why: string }>());
 const learned = (g2.__learned ??= new Map<string, string[]>());
+const ruled = (g2.__ruled ??= new Map<string, string[]>());
 /** 統括AI（employee_id が null）の置き場。Map の鍵に null は使えないので名前を1つ決める */
 const EXEC_PREF = '__exec__';
 /** 社長のことの置き場（DB 側は `agent_skills` の `employee_id` が null の1枚） */

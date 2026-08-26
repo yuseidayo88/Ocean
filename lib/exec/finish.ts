@@ -60,15 +60,46 @@ export function finishSay(f: Finished): string {
  * 成果物のほうが先に来る。◆ は「見たうえで決める」ことなので、
  * 見ていないものが残っているうちは、決めろとは言わない。
  */
-export function gateNote(phase: string, gate: boolean, unseen: number): { kind: string; body: string } {
+/**
+ * **見込みと、実際にかかった日数**（2026-08-26。社長の「あとは何が不足してる？」で見つけた）。
+ *
+ * 週数は統括AIが計画のときに書き、社長が承認する。ところが
+ * **誰も守らないし、ずれても誰も言わなかった** — 画面のどこかに「遅れ N日」が出るだけで、
+ * それが**何と比べた数字なのかも、どこにも書いていなかった**。
+ *
+ * 比べる先は**承認したときの見込み**（それ以外に基準は無い）。
+ * **モデルは呼ばない** — 起きた事実の引き算なので、組み立てで足りる（朝の報告と同じ）。
+ * **1日未満のずれは言わない**（毎回言うと、言葉が軽くなる）。
+ */
+export function paceSay(
+  weeks: number | undefined,
+  startedAt: string | undefined,
+  doneAt: string | undefined,
+): string {
+  if (!weeks || !startedAt || !doneAt) return '';       // 無いものは無いと出す
+  const days = (new Date(doneAt).getTime() - new Date(startedAt).getTime()) / 86400000;
+  if (!Number.isFinite(days) || days < 0) return '';
+  const planned = weeks * 7;
+  const diff = Math.round(days - planned);
+  if (Math.abs(diff) < 1) return `見込みどおり（${weeks}週）`;
+  return diff > 0
+    ? `見込み ${weeks}週 のところ ${diff}日 かかりました`
+    : `見込み ${weeks}週 より ${-diff}日 早く終わりました`;
+}
+
+export function gateNote(
+  phase: string, gate: boolean, unseen: number, pace = '',
+): { kind: string; body: string } {
+  // **遅れは、閉じたその場で言う。** 画面のどこかに出るのを見つけてもらうのではなく
+  const tail = pace ? `（${pace}）` : '';
   if (unseen) {
     return {
       kind: '要確認',
-      body: `フェーズ「${phase}」が終わりました。成果物 ${unseen}件 を見て、次に進めてください`,
+      body: `フェーズ「${phase}」が終わりました${tail}。成果物 ${unseen}件 を見て、次に進めてください`,
     };
   }
   if (gate) {
-    return { kind: '判断待ち', body: `フェーズ「${phase}」が終わりました。決めて、次に進めてください` };
+    return { kind: '判断待ち', body: `フェーズ「${phase}」が終わりました${tail}。決めて、次に進めてください` };
   }
-  return { kind: '要確認', body: `フェーズ「${phase}」が終わりました。次に進みます` };
+  return { kind: '要確認', body: `フェーズ「${phase}」が終わりました${tail}。次に進みます` };
 }

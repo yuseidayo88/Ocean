@@ -4,6 +4,8 @@ import { execPref, staffPref } from '@/lib/exec/pref';
 import { personaOf } from '@/lib/roster';
 import { store, type LiveWork } from '@/lib/store';
 import { reviewSkills } from '@/lib/exec/skills';
+import { reviewDeliverable } from '@/lib/exec/qa';
+import { webOn } from '@/lib/ai/web';
 import { recallBlock, termsOf } from '@/lib/exec/recall';
 import { founderBlock, tendMemory } from '@/lib/exec/memory';
 import { RUN_TOOLS, drawWorkflow } from './tools';
@@ -89,6 +91,12 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
   const lessons = task.ownerId
     ? (await s.learnings(task.ownerId).catch(() => [])).slice(-10)
     : [];
+  /**
+   * **社長が「毎回効かせたい」と決めたこと**（2026-08-26。学びからの昇格）。
+   * 学びは30行の上限で回って薄まるが、ルールは**残って、毎回効く** —
+   * だから頭（system）に、定義の Critical Rules のあとに並べる。
+   */
+  const myRules = task.ownerId ? await s.rules(task.ownerId).catch(() => []) : [];
 
   /**
    * 会社の記憶。**承認された成果物の索引**（全 Work・最新5件）を渡す —
@@ -125,6 +133,8 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
   let seq = 0;
   const usage = { in: 0, out: 0 };
   let wrote: string | undefined;
+  /** 書いた成果物の id（**品質担当がその場で差し戻す**ために要る） */
+  let delId: string | null = null;
   let bodyText = '';
   let decision: { question: string; why: string; options: unknown[] } | undefined;
   let finished = false;
@@ -133,6 +143,12 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
   let newSkill: { filename: string; name: string; desc: string; body: string } | null = null;
   /** 渡した手順書への直しの提案（**渡していないものは指せない**） */
   const edits: { id: string; body: string; why: string }[] = [];
+  /**
+   * **前の成果物・決定と食い違うと気づいたこと**（2026-08-26）。
+   * 前は黙って上書きするしかなかった — 憲法には「矛盾に気づいたら書き残す」と
+   * 書いてあるのに、**書き残す先がどこにも無かった**。
+   */
+  const conflicts: string[] = [];
 
   try {
     /**
@@ -157,8 +173,13 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
      */
     const ready = await readyTools().catch(() => null);
 
+    /** **調べる仕事か**（Web を見てよい社員）。名簿の2人だけ */
+    const looksUp = task.owner === '調査担当' || task.owner === '分析担当';
+
     const system = [
       personaOf(task.ownerSlug ?? '', task.owner ?? 'AI社員'),
+      // **社長が上げたルールは、定義のすぐあと**（毎回効く制約なので頭に置く）
+      ...(myRules.length ? ['', '社長が決めたルール（**毎回守る**）:', ...myRules.map((r) => `- ${r}`)] : []),
       '',
       '道具の使い方:',
       '1. log_step で作業の区切りを3〜6回記録する（progress は正直に）',
@@ -171,10 +192,11 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
       + '**見せる相手がいるつもりで書く**（社内メモにしない）',
       '3. 事業の判断（価格・対象など）に当たったら ask_decision で止まる',
       '4. 次も効く学びがあれば note_learning で1行だけ書き残す（任意）',
-      '5. **同じ形の仕事がまた来ると分かったら** write_skill で手順書を残す（任意）。'
+      '5. 渡されたものと**食い違う**ことに気づいたら flag_conflict で上げる（任意。自分で決めない）',
+      '6. **同じ形の仕事がまた来ると分かったら** write_skill で手順書を残す（任意）。'
       + '渡された手順書に足りないところがあったら improve_skill で直す（任意）。'
       + '**どちらも統括AIが読んでから、会社のものになります**',
-      '6. 最後に finish。**文章では答えない** — すべて道具で',
+      '7. 最後に finish。**文章では答えない** — すべて道具で',
     ].join('\n');
 
     const messages: Msg[] = [{
@@ -255,6 +277,13 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
 
     for await (const c of pick().stream({
       tier: 'standard', model: pref.model, effort: pref.effort,
+      /**
+       * **調べる仕事のときだけ Web を見る**（2026-08-26。社長が押していれば）。
+       * 検索は従量で課金されるので、全部の社員に付けない —
+       * 調査担当と分析担当は「調べないと嘘になる」仕事なので、ここだけ開ける
+       * （憲法の「渡されていないなら『未確認』と印を付ける」が、ここで本当に外れる）。
+       */
+      web: looksUp && (await webOn()),
       system, messages, tools, maxTokens: 8000,
     })) {
       if (c.type === 'tool_use') {
@@ -269,7 +298,7 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
         } else if (c.name === 'write_deliverable') {
           wrote = String(a.title ?? task.title);
           bodyText = String(a.body ?? '');
-          await s.addDeliverable({
+          delId = await s.addDeliverable({
             workId: work.id, taskId, employeeId: task.ownerId,
             title: wrote, kind: String(a.kind ?? 'doc'), body: String(a.body ?? ''),
           });
@@ -287,6 +316,9 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
         } else if (c.name === 'note_learning') {
           const lesson = String(a.lesson ?? '').trim();
           if (lesson) learned.push(lesson.slice(0, 60));
+        } else if (c.name === 'flag_conflict') {
+          const what = String(a.what ?? '').trim();
+          if (what) conflicts.push(what.slice(0, 120));
         } else if (c.name === 'write_skill') {
           const nm = String(a.name ?? '').trim().slice(0, 24);
           const bd = String(a.body ?? '').trim();
@@ -378,6 +410,21 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
       }).catch(() => {});
     }
     if (touched) await reviewSkills().catch(() => {});
+
+    /**
+     * **食い違いは、社長に上げる。** 社員は決められない（憲法の
+     * 「社長の代わりに事業判断をしない」）ので、気づいたことをそのまま渡す。
+     */
+    for (const what of conflicts.slice(0, 2)) {
+      await s.addStep(runId, {
+        seq: ++seq, kind: 'message', tool: 'flag_conflict', summary: `食い違いに気づいた — ${what}`,
+      }).catch(() => {});
+      await s.addNotification({
+        kind: '要確認',
+        body: `${task.owner ?? 'AI社員'}が食い違いに気づきました — ${what}`,
+        subjectType: 'task', subjectId: taskId,
+      }).catch(() => {});
+    }
     // **溜まっていたら畳む**（`tendMemory` は満杯に近いときだけモデルを呼ぶ）
     await tendMemory(task.ownerId).catch(() => {});
 
@@ -442,13 +489,43 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
     await s.finishRun(runId, { status: 'done', tokensIn: usage.in, tokensOut: usage.out, costCents, model: usedModel });
     if (wrote) {
       /**
-       * **統括AIのレビュー**（Phase 8）。成果物を fast の目で1度見て、
-       * 社長への通知に一言添える。鍵が無い環境では黙って飛ばす（偽のレビューを作らない）。
+       * **品質担当が在籍していれば、社長に出す前に1度読む**（2026-08-26 → `lib/exec/qa.ts`）。
+       * **直しの成果物は素通し**（1回だけ）— でないと品質担当と社員が延々と往復して、
+       * 社長の見えないところで料金だけ増える。
        */
-      const note = await execGlance(wrote, bodyText).catch(() => '');
+      const fix = / を直す$/.test(task.title);
+      const qa = fix ? null
+        : await reviewDeliverable(work, task, { title: wrote, body: bodyText }).catch(() => null);
+
+      if (qa && !qa.ok && delId) {
+        /**
+         * **差し戻すのは、社長と同じ道**（`setDelStatus` → `addFixTask`）。
+         * 2つ目の仕掛けを作らない。社長には**要確認ではなく、直していると出す** —
+         * 見なくていいものを見せない。
+         */
+        const flipped = await s.setDelStatus(delId, 'rejected').catch(() => false);
+        if (flipped) {
+          const says = [qa.note, ...qa.fixes].filter(Boolean).join('\n');
+          await s.addFixTask(work.id, { taskId, title: wrote }, says).catch(() => {});
+          await s.addNotification({
+            kind: '要確認',
+            body: `${wrote} は品質担当が差し戻しました — ${qa.note}。直してからお見せします`,
+            subjectType: 'task', subjectId: taskId,
+          });
+          return { ok: true, deliverable: wrote };
+        }
+      }
+
+      /**
+       * **通ったとき。** 品質担当がいれば、その一言は**確かめた結果**。
+       * いなければ**統括AIのレビュー**（Phase 8）— fast の目で1度見て、どこを見ればいいかを添える。
+       * 鍵が無い環境では黙って飛ばす（偽のレビューを作らない）。
+       */
+      const note = qa?.note || await execGlance(wrote, bodyText).catch(() => '');
+      const by = qa ? '品質担当' : '統括AI';
       await s.addNotification({
         kind: '要確認',
-        body: `${wrote} ができました — ${task.owner ?? 'AI社員'}${note ? `。統括AI: ${note}` : ''}`,
+        body: `${wrote} ができました — ${task.owner ?? 'AI社員'}${note ? `。${by}: ${note}` : ''}`,
         subjectType: 'task', subjectId: taskId,
       });
     }

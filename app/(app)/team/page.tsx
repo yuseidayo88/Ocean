@@ -13,7 +13,7 @@ import { AGENT_COLOR, EXEC, prefWords } from '@/lib/view/model';
 import { EFFORTS, modelOf, type Effort } from '@/lib/ai/catalog';
 import { pressable } from '@/lib/a11y';
 import { hire, listEmployees } from '@/app/actions/run';
-import { founderGet, founderSet, learningsGet, learningsSet, prefSet, skillToggle, teamData } from '@/app/actions/live';
+import { founderGet, founderSet, learningToRule, learningsGet, learningsSet, prefSet, rulesGet, rulesSet, skillToggle, teamData } from '@/app/actions/live';
 import { ROSTER, definitionOf, slugOf, type Definition } from '@/lib/roster';
 import { STAFF_CONSTITUTION } from '@/lib/roster/constitution';
 import { Rich } from '@/components/live/Rich';
@@ -117,7 +117,7 @@ export default function TeamPage() {
    * 画面を先に変えて、裏で書く — 書けなかったときだけ言って、本物を読み直す。
    * `employeeId` が null なら統括AI。
    */
-  const pick = async (employeeId: string | null, patch: { model?: string; effort?: Effort; paused?: boolean }) => {
+  const pick = async (employeeId: string | null, patch: { model?: string; effort?: Effort; paused?: boolean; web?: boolean }) => {
     setPrefs((xs) => [
       ...xs.filter((x) => x.employeeId !== employeeId),
       { ...(xs.find((x) => x.employeeId === employeeId) ?? { employeeId }), ...patch },
@@ -213,6 +213,8 @@ export default function TeamPage() {
           skills={skills}
           onHire={sel?.cand ? () => take(sel) : undefined}
           onPause={sel && !sel.cand ? (next) => pick(sel.id, { paused: next }) : undefined}
+          web={!!prefOf(null)?.web}
+          onWeb={(next) => pick(null, { web: next })}
           onToggle={async (id, on) => {
             setSkills((xs) => xs.map((x) => (x.id === id ? { ...x, on } : x)));
             await skillToggle(id, on);
@@ -370,13 +372,37 @@ function McpList() {
   );
 }
 
-function SettingsPane({ who, l, skills, onToggle, onHire, onPick, onPause, onClose }: {
+function SettingsPane({ who, l, skills, web, onToggle, onHire, onPick, onPause, onWeb, onClose }: {
   who: 'employee' | 'exec' | 'all' | 'candidate'; l: Line; skills: SkillRow[];
+  /** 会社が Web を見るか（「全員に効くこと」でだけ意味がある） */
+  web?: boolean;
   onToggle: (id: string, on: boolean) => void; onHire?: () => void; onClose: () => void;
   onPick?: (patch: { model?: string; effort?: Effort }) => void;
   onPause?: (next: boolean) => void;
+  onWeb?: (next: boolean) => void;
 }) {
   const cand = who === 'candidate';
+  /** 社長が学びから上げたルール（定義の Critical Rules とは別。**こちらは消せる**） */
+  const [mine, setMine] = useState<string[]>([]);
+  /** 学びからルールへ上げたときの合図（ルール欄を読み直す） */
+  const [ruleRev, setRuleRev] = useState(0);
+  /**
+   * **`setMine([])` を効果の中で直に呼ばない**（`react-hooks/set-state-in-effect`）。
+   * 誰を見ているかは `at` に持って、社員でなければ描くときに空として扱う。
+   */
+  const [at, setAt] = useState('');
+  useEffect(() => {
+    let on = true;
+    const key = who === 'employee' ? l.id : '';
+    // **効果の中で state を直に触らない。** 取れたときだけ書く（`at` が合わなければ描かない）
+    if (key) rulesGet(key).then((rs) => { if (on) { setMine(rs); setAt(key); } });
+    return () => { on = false; };
+  }, [who, l.id, ruleRev]);
+  const dropRule = async (line: string) => {
+    const next = mine.filter((r) => r !== line);
+    setMine(next);
+    await rulesSet(l.id, next);
+  };
   // 全員に効くことを見ているときは、会社ぜんぶのスキルだけ。
   // **会社のものになっているものだけ**（社員が書いたばかりのものと、落ちたものは `/skills` で見る）
   const live = skills.filter((s) => s.status === 'active');
@@ -447,6 +473,29 @@ function SettingsPane({ who, l, skills, onToggle, onHire, onPick, onPause, onClo
           ))}
         </Section>}
 
+        {/**
+          * **Web を見るかどうか**（2026-08-26）。会社ぜんぶに効くので、ここに置く。
+          * **既定はオフ** — 検索は**トークンとは別に、1回いくらで課金される**。
+          * 押すと効くのは**2か所だけ**（候補を出すとき / 調査担当と分析担当の実行）。
+          * 何が変わるかを1行で言う — 押した結果が分からないものを置かない。
+          */}
+        {who === 'all' && (
+          <Section label="Web を見る">
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '11px 0' }}>
+              <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <span style={{ color: web ? T2 : T4 }}>調べてから答える</span>
+                <span style={{ color: T5, fontSize: 11.5, lineHeight: '17px' }}>
+                  候補を出すときと、調査担当・分析担当の仕事だけ。
+                  {web ? '出どころを書けるようになります。' : '切っているあいだは、記憶から書いて「未確認」と印を付けます。'}
+                  <br />検索は<span style={{ color: T4 }}>トークンとは別に課金されます</span>。
+                </span>
+              </div>
+              <div style={{ flex: 1 }} />
+              <Toggle on={!!web} label="Web を見る" onPick={(next) => onWeb?.(next)} />
+            </div>
+          </Section>
+        )}
+
         {/* つないだ道具（MCP）＝会社ぜんぶに効くので、**全員に効くこと**の中に置く。
             ここは読むだけ — つなぐ・切る・書けるようにするは `/tools` で */}
         {who === 'all' && <McpList />}
@@ -456,7 +505,7 @@ function SettingsPane({ who, l, skills, onToggle, onHire, onPick, onPause, onClo
 
         {/* 学び＝この社員が仕事から書き溜めたメモ。**次の実行の依頼文に載る**。
             ルールにするかは社長が決める（自動では昇格しない） */}
-        {who === 'employee' && <Learnings employeeId={l.id} />}
+        {who === 'employee' && <Learnings employeeId={l.id} onRule={() => setRuleRev((n) => n + 1)} />}
 
         {/* ルール＝毎回効く制約。定義の Critical Rules は消せない */}
         {(who === 'employee' || cand) && l.rules.length > 0 && (
@@ -470,9 +519,28 @@ function SettingsPane({ who, l, skills, onToggle, onHire, onPick, onPause, onClo
                 <span style={{ color: T2, fontSize: 12.5, lineHeight: '19px' }}>{r}</span>
               </div>
             ))}
+            {/**
+              * **社長が学びから上げたルール**（2026-08-26）。定義のものと同じ見た目で並べるが、
+              * **こちらは消せる**（社長が足したものなので）。
+              */}
+            {(at === l.id ? mine : []).map((r, i) => (
+              <div key={`mine-${i}-${r}`} style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0 10px 11px',
+                borderLeft: `2px solid ${RULE}`,
+                borderTop: i === 0 && l.rules.length ? `1px solid ${HAIR}` : undefined,
+                borderBottom: i === mine.length - 1 ? undefined : `1px solid ${HAIR}`,
+              }}>
+                <span style={{ color: T2, fontSize: 12.5, lineHeight: '19px' }}>{r}</span>
+                <div style={{ flex: 1 }} />
+                <button className="icob" title="このルールを消す" style={{ display: 'inline-flex', padding: 3, flexShrink: 0 }}
+                  onClick={() => dropRule(r)}>
+                  <Icon name="close" color={DIM} size={12} />
+                </button>
+              </div>
+            ))}
             {!cand && (
               <span style={{ display: 'block', paddingTop: 8, color: T5, fontSize: 11.5 }}>
-                定義のルールは消せません。足すのは統括AIとの相談から
+                定義のルールは消せません。足すのは学びから「ルールにする」で
               </span>
             )}
           </Section>
@@ -585,7 +653,7 @@ function FounderNotes() {
  * **見える・消せる** — 見えないところで社員が変わっていかないための欄。
  * ルールへの昇格は自動でしない（ルールは毎回効く制約。増やすのは社長の判断）。
  */
-function Learnings({ employeeId }: { employeeId: string }) {
+function Learnings({ employeeId, onRule }: { employeeId: string; onRule: () => void }) {
   const [lines, setLines] = useState<string[] | null>(null);
   useEffect(() => {
     let on = true;
@@ -598,6 +666,17 @@ function Learnings({ employeeId }: { employeeId: string }) {
     setLines(next);
     await learningsSet(employeeId, next);
   };
+  /**
+   * **ルールに上げる**（2026-08-26）。画面には前から
+   * 「ルールにするかは社長が決める」と書いてあったのに、**その操作が無かった**。
+   * 学びは30行で回って薄まる。ルールは**残って、毎回効く**。
+   * **移す**（学びからは消える）— 同じことを2か所に置かない。
+   */
+  const promote = async (line: string) => {
+    setLines((xs) => (xs ?? []).filter((l) => l !== line));
+    await learningToRule(employeeId, line);
+    onRule();
+  };
 
   if (!lines || lines.length === 0) return null; // まだ無いなら節ごと出さない
   return (
@@ -609,6 +688,10 @@ function Learnings({ employeeId }: { employeeId: string }) {
         }}>
           <span style={{ color: T2, fontSize: 12.5, lineHeight: '19px' }}>{r}</span>
           <div style={{ flex: 1 }} />
+          {/* **文字だけ。** 面を持つと、消すボタンと並んで2つのボタンに見える */}
+          <button className="btn" title="これを毎回効かせる" style={{
+            flexShrink: 0, color: T4, fontSize: 11.5, padding: '2px 6px', borderRadius: 6,
+          }} onClick={() => promote(r)}>ルールにする</button>
           <button className="icob" title="この学びを消す" style={{ display: 'inline-flex', padding: 3, flexShrink: 0 }}
             onClick={() => drop(i)}>
             <Icon name="close" color={DIM} size={12} />

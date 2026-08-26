@@ -5,7 +5,7 @@ import { previewFor } from '@/lib/deliver/format';
 import { colorFor, sortCands } from './memory';
 import { BUILTIN_SKILLS } from '@/lib/roster/skills';
 import { AppError } from '@/lib/errors';
-import { finishNote, finishSay, gateNote, type Finished } from '@/lib/exec/finish';
+import { finishNote, finishSay, gateNote, paceSay, type Finished } from '@/lib/exec/finish';
 import type { McpServer } from '@/lib/mcp/types';
 import { STALL_MS, type AgentPref, type ChatMsg, type ChatThread, type Discovery, type DraftWork, type LiveDecision, type LiveWork, type Memo, type Note, type PendingSkill, type Profile, type RunStep, type SkillRow, type Store } from './types';
 
@@ -254,7 +254,7 @@ export const supabaseStore: Store = {
     if (!w) return null;
 
     const [{ data: ph }, { data: tk }, { data: dl }] = await Promise.all([
-      c.from('phases').select('id, seq, name, goal, status').eq('work_id', id).order('seq'),
+      c.from('phases').select('id, seq, name, goal, status, started_at').eq('work_id', id).order('seq'),
       c.from('tasks').select('id, phase_id, seq, title, intent, status, progress, assignee_employee_id, owner_hint').eq('work_id', id).order('seq'),
       c.from('deliverables').select('id, task_id, title, kind, status, version, preview, body, produced_by_employee_id, created_at')
         .eq('work_id', id).neq('status', 'superseded').order('created_at', { ascending: false }),
@@ -286,6 +286,7 @@ export const supabaseStore: Store = {
         id: p.id as string, seq: p.seq as number, name: p.name as string,
         goal: (p.goal ?? '') as string, state: p.status as LiveWork['phases'][number]['state'],
         weeks: (w.plan_draft as unknown as DraftBody | null)?.plan?.phases?.[(p.seq as number) - 1]?.weeks,
+        startedAt: (p.started_at ?? undefined) as string | undefined,
       })),
       tasks: (tk ?? []).map((t) => ({
         id: t.id as string, phaseId: t.phase_id as string, title: t.title as string,
@@ -399,6 +400,7 @@ export const supabaseStore: Store = {
       await c.from('deliverables').update({ status: 'superseded' })
         .eq('lineage_id', prev.lineage_id).neq('id', row.id);
     }
+    return row.id as string;
   },
 
   async addNotification(n) {
@@ -1111,19 +1113,20 @@ export const supabaseStore: Store = {
 
   async listPrefs() {
     const c = await db();
-    const { data } = await c.from('agent_prefs').select('employee_id, model, effort, paused');
+    const { data } = await c.from('agent_prefs').select('employee_id, model, effort, paused, web');
     return (data ?? []).map((x): AgentPref => ({
       employeeId: (x.employee_id ?? null) as string | null,
       model: (x.model ?? undefined) as string | undefined,
       effort: (x.effort ?? undefined) as AgentPref['effort'],
       paused: !!x.paused,
+      web: !!x.web,
     }));
   },
 
   async prefOf(employeeId) {
     const c = await db();
     // **統括AI は employee_id が null。** `.eq(null)` は当たらないので `.is` で引く
-    const q = c.from('agent_prefs').select('employee_id, model, effort, paused');
+    const q = c.from('agent_prefs').select('employee_id, model, effort, paused, web');
     const { data } = await (employeeId ? q.eq('employee_id', employeeId) : q.is('employee_id', null))
       .maybeSingle();
     if (!data) return null;
@@ -1132,6 +1135,7 @@ export const supabaseStore: Store = {
       model: (data.model ?? undefined) as string | undefined,
       effort: (data.effort ?? undefined) as AgentPref['effort'],
       paused: !!data.paused,
+      web: !!data.web,
     };
   },
 
@@ -1145,6 +1149,7 @@ export const supabaseStore: Store = {
       ...(patch.model !== undefined ? { model: patch.model } : {}),
       ...(patch.effort !== undefined ? { effort: patch.effort } : {}),
       ...(patch.paused !== undefined ? { paused: patch.paused } : {}),
+      ...(patch.web !== undefined ? { web: patch.web } : {}),
       updated_at: new Date().toISOString(),
     };
     if (row) {
@@ -1201,6 +1206,33 @@ export const supabaseStore: Store = {
     if (!row) return;
     if (next.length) await c.from('agent_skills').update({ body: next.join('\n') }).eq('id', row.id);
     else await c.from('agent_skills').delete().eq('id', row.id).eq('source', 'learned');
+  },
+
+  /* ══════════════ ルール（学びからの昇格先。同じ表・同じ書き方）══════════════ */
+
+  async rules(employeeId) {
+    const c = await db();
+    const { data } = await c.from('agent_skills')
+      .select('body').eq('employee_id', employeeId).eq('source', 'rule').maybeSingle();
+    return ((data?.body as string | undefined) ?? '').split('\n').map((l) => l.trim()).filter(Boolean);
+  },
+
+  async setRules(employeeId, lines) {
+    const c = await db();
+    const next = lines.map((l) => l.trim()).filter(Boolean);
+    const { data: row } = await c.from('agent_skills')
+      .select('id').eq('employee_id', employeeId).eq('source', 'rule').maybeSingle();
+    if (row) {
+      if (next.length) await c.from('agent_skills').update({ body: next.join('\n') }).eq('id', row.id);
+      else await c.from('agent_skills').delete().eq('id', row.id).eq('source', 'rule');
+      return;
+    }
+    if (!next.length) return;
+    await c.from('agent_skills').insert({
+      employee_id: employeeId, filename: 'rules.md', name: 'ルール',
+      description: '社長が毎回効かせると決めたこと', body: next.join('\n'),
+      source: 'rule', enabled: true,
+    });
   },
 
   /* ══════════════ 社長のこと（学びと同じ表・同じ書き方）══════════════ */
@@ -1360,7 +1392,7 @@ export const supabaseStore: Store = {
   async closePhaseIfDone(workId, gates = []) {
     const c = await db();
     const [{ data: ph }, { data: allTasks }, { data: unseen }] = await Promise.all([
-      c.from('phases').select('id, name, status').eq('work_id', workId).in('status', ['active', 'review']),
+      c.from('phases').select('id, name, status, seq, started_at').eq('work_id', workId).in('status', ['active', 'review']),
       c.from('tasks').select('id, phase_id, status').eq('work_id', workId),
       // **まだ見ていない成果物**。差し戻し済（rejected）は直しタスクが積まれるので待たない
       c.from('deliverables').select('task_id').eq('work_id', workId).eq('status', 'review'),
@@ -1372,6 +1404,13 @@ export const supabaseStore: Store = {
       const pid = d.task_id ? phaseOf.get(d.task_id as string) : undefined;
       if (pid) waiting.set(pid, (waiting.get(pid) ?? 0) + 1);
     }
+
+    /** 承認したときの見込み（フェーズの順番 → 週数）。**引き直さない** — これが基準 */
+    const { data: wrow } = await c.from('works').select('plan_draft').eq('id', workId).maybeSingle();
+    const draft = wrow?.plan_draft as unknown as DraftBody | null;
+    const weeksOf = new Map<number, number | undefined>(
+      (draft?.plan?.phases ?? []).map((x, i) => [i + 1, x.weeks]),
+    );
 
     const closed: string[] = [];
     const review: { id: string; name: string }[] = [];
@@ -1385,8 +1424,17 @@ export const supabaseStore: Store = {
       if (!flipped?.length) continue;
       review.push({ id: p.id as string, name: p.name as string });
       closed.push(p.name as string);
+      /**
+       * **見込みと実際を、閉じたその場で突き合わせる**（2026-08-26）。
+       * 比べる先は**承認したときの見込み**（`plan_draft` の週数）。
+       * 週数の無い計画には言わない（無いものは無いと出す）。
+       */
+      const pace = paceSay(
+        weeksOf.get(p.seq as number), (p.started_at ?? undefined) as string | undefined,
+        new Date().toISOString(),
+      );
       await c.from('notifications').insert({
-        ...gateNote(p.name as string, gates.includes(p.name as string), waiting.get(p.id as string) ?? 0),
+        ...gateNote(p.name as string, gates.includes(p.name as string), waiting.get(p.id as string) ?? 0, pace),
         subject_type: 'phase', subject_id: p.id,
       });
     }

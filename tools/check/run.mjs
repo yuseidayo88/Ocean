@@ -295,8 +295,40 @@ ok('壊れた線は残っていない', !shown.includes('resend'), shown.slice(-
 await send('Page.navigate', { url: `${BASE}/team` }); await wait(2200);
 const team = await text();
 ok('承認で採用した社員がメンバーに並ぶ', team.includes('調査担当'), team.slice(0, 80));
-await ev(`[...document.querySelectorAll('.row')].find(r => r.innerText.includes('調査担当'))?.click()`);
-const paneB = await until((b) => b.includes('学び'), 10, 800);
+/**
+ * **品質担当が本当に働いた**（2026-08-26）。名簿にはいるのに、
+ * **呼び出しがコードのどこにも無かった**社員。在籍していれば、成果物が 要確認 で
+ * 社長に出る前に1度読み、直す点があれば差し戻す（社長と同じ道）。
+ * **1回だけ** — 直しの成果物は素通し（延々と往復して料金だけ増える、を作らない）。
+ */
+ok('品質担当が在籍している', team.includes('品質担当'), team.slice(0, 120));
+/**
+ * **品質担当が、社長に出す前に差し戻した。**
+ * 決め打ちの品質担当は「対象を1つに絞る」の成果物だけ差し戻すので、
+ * 社長はそれを 要確認 では見ない（見なくていいものを見せない）。
+ * **通知は Work 画面には出ない** — 読むのは通知の画面。
+ */
+await send('Page.navigate', { url: `${BASE}/inbox` }); await wait(2600);
+const qaBack = await text();
+ok('品質担当が、社長に出す前に差し戻す',
+   qaBack.includes('品質担当が差し戻しました') && qaBack.includes('根拠が書かれていません'),
+   qaBack.match(/[^\n]*品質担当が差し戻[^\n]*/)?.[0] ?? '(差し戻していない)');
+// **1回だけ。** 直した版は素通しして、社長のところへ出る
+ok('直した版は素通しして、社長のところへ出る',
+   qaBack.includes('対象を1つに絞る ができました'),
+   qaBack.match(/[^\n]*対象を1つに絞る ができました[^\n]*/)?.[0] ?? '(出ていない)');
+await send('Page.navigate', { url: `${BASE}/team` }); await wait(2200);
+/**
+ * **開くまで押し直す**（この検査の他のところと同じ作法）。
+ * `until` は本文を読み直すだけで、押し直さない — 1回目の押しが
+ * 読み込みの途中に当たると、そのあと8秒待っても永久に開かない。
+ */
+let paneB = '';
+for (let i = 0; i < 10 && !paneB.includes('学び'); i++) {
+  await ev(`[...document.querySelectorAll('.row')].find(r => r.innerText.includes('調査担当'))?.click()`);
+  await wait(800);
+  paneB = (await ev(`document.querySelector('aside')?.innerText ?? ''`)) || '';
+}
 ok('社員の学びが設定ペインに残った', paneB.includes('数字は事実・推計・要確認の3束に分けてから出す'), paneB.slice(0, 120));
 
 /**
@@ -379,6 +411,21 @@ ok('統括AIが落としたものは、理由つきで下に残る',
    sk.includes('まだ会社のものになっていない') && sk.includes('今回の市場規模')
    && sk.includes('やり方が書かれていません'),
    sk.match(/まだ会社のもの[\s\S]{0,80}/)?.[0]?.replace(/\n/g, ' '));
+/**
+ * **食い違いは、社長に上げる**（2026-08-26）。憲法には「矛盾に気づいたら
+ * 黙って上書きしない」と書いてあったのに、**書き残す先がどこにも無かった**。
+ * **見込みと実際**も、フェーズが閉じたその場で言う（何と比べた数字かを、画面で探させない）。
+ */
+await send('Page.navigate', { url: `${BASE}/inbox` }); await wait(2600);
+const inbox2 = await text();
+ok('社員が食い違いに気づいたら、社長に上がる',
+   inbox2.includes('食い違いに気づきました') && inbox2.includes('1,980円'),
+   inbox2.match(/[^\n]*食い違い[^\n]*/)?.[0] ?? '(上がっていない)');
+ok('フェーズが閉じたとき、見込みと実際を言う',
+   /見込み(どおり|[^\n]*かかりました|[^\n]*早く終わりました)/.test(inbox2),
+   inbox2.match(/[^\n]*見込み[^\n]*/)?.[0] ?? '(言っていない)');
+await send('Page.navigate', { url: `${BASE}/skills` }); await wait(2200);
+
 // **社長は戻せる。** 操作はトグル1つ（戻すボタンを別に置かない）
 await ev(`(() => {
   const rows = [...document.querySelectorAll('.row')];

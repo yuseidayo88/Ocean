@@ -26,6 +26,11 @@ export type LiveWork = {
     state: 'planned' | 'active' | 'review' | 'done' | 'skipped';
     /** 計画の週数（`plan_draft` から）。無い計画には無い — でっち上げない */
     weeks?: number;
+    /**
+     * **いつ始まったか。** 見込み（`weeks`）と突き合わせて
+     * 「見込みどおり / N日 かかった」を言うために要る（→ `lib/exec/finish.ts` の `paceSay`）
+     */
+    startedAt?: string;
   }[];
   tasks: {
     id: string; phaseId: string; title: string; intent: string; state: string;
@@ -174,6 +179,11 @@ export type AgentPref = {
    * 実行のたびに running → idle と書き換わる（＝止めた印が次の実行で消える）。
    */
   paused?: boolean;
+  /**
+   * **会社が Web を見るか**（統括AIの行＝`employeeId` が null のときだけ意味がある。2026-08-26）。
+   * 検索は従量で課金されるので**既定はオフ**。社長がメンバー画面から押す（→ `lib/ai/web.ts`）
+   */
+  web?: boolean;
 };
 
 /** 実行の1歩。デスクの工程の行と、タスクの右ペインに出る */
@@ -237,7 +247,8 @@ export interface Store {
     /** 実際に使ったモデルの slug（ガバナンスの記録。鍵の無い環境は 'fake'） */
     model?: string }): Promise<void>;
   /** 成果物を書く。preview は本文の書き出し */
-  addDeliverable(d: { workId: string; taskId: string; employeeId?: string; title: string; kind: string; body: string }): Promise<void>;
+  /** 返り値は作った成果物の id（**品質担当がその場で差し戻す**ために要る。2026-08-26） */
+  addDeliverable(d: { workId: string; taskId: string; employeeId?: string; title: string; kind: string; body: string }): Promise<string | null>;
   /** 通知を立てる（判断待ち / 要確認 / エラー） */
   addNotification(n: { kind: string; body: string; subjectType?: string; subjectId?: string }): Promise<void>;
   /** タスクの歩み（右ペインが読む） */
@@ -473,6 +484,16 @@ export interface Store {
   addLearnings(employeeId: string, lines: string[]): Promise<void>;
   /** 社長が消す・直す（丸ごと置き換え。空にしたら行ごと消える） */
   setLearnings(employeeId: string, lines: string[]): Promise<void>;
+  /**
+   * **社長が「毎回効かせたい」と決めた1行**（2026-08-26。学びからの昇格先）。
+   *
+   * 学びは30行の上限で回り、畳まれ、いつか薄まる。ルールは**残る**。
+   * 画面には「ルールにするかは社長が決める」と前から書いてあったが、
+   * **その操作がどこにも無かった** — ここがその置き場（`agent_skills` の `source='rule'`）。
+   */
+  rules(employeeId: string): Promise<string[]>;
+  /** 丸ごと置き換え（空にしたら行ごと消える）。学びと同じ作法 */
+  setRules(employeeId: string, lines: string[]): Promise<void>;
 
   /* ══════════════ 社長のこと（会社が覚える。2026-08-26）══════════════ */
 
@@ -499,7 +520,7 @@ export interface Store {
   /** 1人ぶん。**実行の直前に読む** — 選んだものがその往復に効く */
   prefOf(employeeId: string | null): Promise<AgentPref | null>;
   /** 押したその場で効く（保存ボタンは無い）。渡した項目だけ書き換える */
-  setPref(employeeId: string | null, patch: { model?: string; effort?: Effort; paused?: boolean }): Promise<void>;
+  setPref(employeeId: string | null, patch: { model?: string; effort?: Effort; paused?: boolean; web?: boolean }): Promise<void>;
 
   /** 会社の名前（パンくずの根）。登録時はメールが入っている */
   companyName(): Promise<string>;

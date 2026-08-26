@@ -61,9 +61,14 @@ export class OpenRouterProvider implements ModelProvider {
       /**
        * Web検索（OpenRouter の web プラグイン）。**既定はオフ** —
        * 検索は従量で課金されるので、無料のテストを黙って有料にしない。
-       * `OPENROUTER_WEB=1` で全階層に付く（Phase 8 の調査を本物のWebでやるとき）。
+       *
+       * **往復ごとに決める**（2026-08-26）。前は `OPENROUTER_WEB=1` で
+       * **全部の往復に付いていた** — 図を描く往復にも、手順書を審査する往復にも
+       * 検索が付いて、要らないところで課金される。
+       * いま付くのは、呼ぶ側が `web: true` と言った往復だけ
+       * （候補を出すとき / 調査担当の実行 → `lib/ai/web.ts`）。
        */
-      ...(process.env.OPENROUTER_WEB === '1' ? { plugins: [{ id: 'web' }] } : {}),
+      ...(input.web ? { plugins: [{ id: 'web' }] } : {}),
       ...(input.tools?.length
         ? {
             tools: input.tools.map((t) => ({

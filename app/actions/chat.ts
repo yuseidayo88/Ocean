@@ -91,7 +91,25 @@ export async function chatMakeWork(
      */
     const ctx = [`Work の題: ${w.title}`, w.weeks ? `見込み: およそ${w.weeks}週` : '']
       .filter(Boolean).join('\n');
-    const r = await startWork(w.goal, ctx);
+    /**
+     * **計画の検査を、この道にも通す**（2026-08-26）。
+     *
+     * `market-first`（集客を最初のフェーズにしない）/ `publish`（公開のフェーズを必ず入れる）/
+     * 「使える時間の中で回る形にする」は `PlanLimits` を見て動く。
+     * ところが**ここは limits なしで呼んでいた** — 候補から立てた Work にしか効かず、
+     * **チャットに書いて作る、いちばん使う道では発火していなかった**。
+     *
+     * スレッドがもう知っていることから組む —
+     * 条件（`discoveryId`）から使える時間、**取り込んだ事業があるかどうか**（`profileId`）で
+     * 需要が確かめられているかを見る（**すでに売れている事業には「公開する」は要らない**）。
+     */
+    const cond = t.thread.discoveryId
+      ? (await s.getDiscovery(t.thread.discoveryId).catch(() => null))?.conditions
+      : null;
+    const r = await startWork(w.goal, ctx, {
+      hoursPerWeek: cond?.hoursPerWeek ?? null,
+      unproven: !t.thread.profileId,
+    });
     if (!r.ok) return r;
     // 取れなかった＝別のタブが先に作った。そちらを指す（2本目を立てない）
     const mine = await s.linkThread(threadId, { workId: r.id });

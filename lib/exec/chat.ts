@@ -8,6 +8,7 @@ import { proposeWork, rememberMaterial } from './chat-tools';
 import { describeBusiness, proposeCandidates, reportDiagnosis, reportFacts, setConditions } from './entry-tools';
 import { checkStop, finite, score, toQuestions } from './parse';
 import type { CandidateDraft, Conditions, Fact, Finding, Question } from './types';
+import { webOn } from '@/lib/ai/web';
 
 /**
  * チャットの1往復。**入口も相談も、ぜんぶここで起きる**（2026-08-24 の作り直し）。
@@ -334,6 +335,12 @@ export async function chatStep(state: ChatState, history: Msg[], opts: ChatOpts 
     system: sys,
     messages: history,
     tools,
+    /**
+     * **候補を出す往復だけ Web を見る**（2026-08-26。社長が押していれば）。
+     * 検索は従量で課金されるので、全部の往復には付けない —
+     * ここは「実際に需要があるか」を言う場所なので、**調べないと嘘になる**。
+     */
+    web: canPropose(state.conditions) && (await webOn()),
     maxTokens: 8000,
     effort: 'low',
     ...(state.needCard || state.push ? { toolChoice: 'required' as const } : {}),

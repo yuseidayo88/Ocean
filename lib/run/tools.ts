@@ -280,4 +280,30 @@ const improveSkill: ToolDef = {
   },
 };
 
-export const RUN_TOOLS: ToolDef[] = [logStep, writeDeliverable, drawWorkflow, askDecision, noteLearning, writeSkill, improveSkill, finish];
+/**
+ * **前の成果物・社長の決定と食い違うと気づいたとき**（2026-08-26）。
+ *
+ * 憲法には「矛盾に気づいたら、黙って上書きせずに、どこがどう食い違うかを書き残す」と
+ * 書いてあるのに、**書き残す先がどこにも無かった**。社員は決められない
+ * （事業判断は社長の仕事）ので、気づいたことをそのまま上げる。
+ */
+const flagConflict: ToolDef = {
+  name: 'flag_conflict',
+  description:
+    '渡された成果物や社長の決定と、**いま分かったことが食い違う**と気づいたときだけ呼ぶ（任意）。'
+    + '**自分で決めない**（どちらが正しいかは社長が決める）。'
+    + '食い違っていないなら呼ばない。1タスクで多くても2件。',
+  input_schema: {
+    type: 'object',
+    properties: {
+      what: {
+        type: 'string',
+        description: '**何と何が、どう食い違うか**を1文で。'
+          + '（例「調査の表では月額3,000円だが、社長は月額1,980円で決めている」）',
+      },
+    },
+    required: ['what'],
+  },
+};
+
+export const RUN_TOOLS: ToolDef[] = [logStep, writeDeliverable, drawWorkflow, askDecision, noteLearning, writeSkill, improveSkill, flagConflict, finish];

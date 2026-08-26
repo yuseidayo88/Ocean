@@ -102,6 +102,22 @@ export class FakeProvider implements ModelProvider {
        * **1枚は落とす** — 全部通す決め打ちだと「落ちる道」が検査に出てこない。
        * 落とすのは「直しの提案」のほう（新しい手順書は通す）。
        */
+      /**
+       * **品質担当の判定**（`lib/exec/qa.ts`）。社長に出す前に成果物を1度読む。
+       * **1件だけ差し戻す** — 全部通す決め打ちだと、門が効いているのか
+       * ただ素通ししているのかが検査に出てこない。
+       * 差し戻すのは「対象を1つに絞る」の成果物（社長が触らないもの）。
+       */
+      if (only === 'judge_deliverable') {
+        const said = lastText(input);
+        const bad = /タスク: 対象を1つに絞る/.test(said);
+        yield tool('judge_deliverable', bad
+          ? { ok: false, note: '絞った理由の根拠が書かれていません',
+              fixes: ['「分かったこと」の節に、なぜその対象に絞れるのかを、調査のどの数字から言えるのかまで書く'] }
+          : { ok: true, note: '要確認 の1件だけ先に見てください' });
+        yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
+        return;
+      }
       if (only === 'review_skills') {
         /**
          * **落とす道も通す。** 全部通す決め打ちだと、審査が効いているのか
@@ -255,6 +271,14 @@ async function* fakeRun(input: RunInput): AsyncIterable<Chunk> {
       ].join('\n'),
     });
     await wait(300);
+    /**
+     * **食い違いに気づく道も通す**（2026-08-26）。憲法には
+     * 「矛盾に気づいたら黙って上書きしない」と書いてあるので、
+     * **書き残す先があることを検査が確かめられる**ようにする。
+     */
+    yield tool('flag_conflict', {
+      what: '調査の表では月額3,000円が相場だが、社長は月額1,980円で決めている',
+    });
     yield tool('finish', { summary: `${task} を表にした` });
     yield { type: 'done', usage: { ...EMPTY_USAGE }, stopReason: 'tool_use' };
     return;
@@ -428,6 +452,13 @@ function hires(goal: string) {
       why: '市場と競合を調べる人がいません。', for_phase: '調査' },
     { definition_id: 'business-strategist', display_name: '戦略担当',
       why: 'いくらで売るかを決める人がいません。', for_phase: '戦略' },
+    /**
+     * **品質担当も採る**（2026-08-26）。在籍していないと
+     * `reviewDeliverable` は何もしないので、**決め打ちで採らないと
+     * 「社長に出す前に読む」の道が検査に一度も出てこない**。
+     */
+    { definition_id: 'quality-reviewer', display_name: '品質担当',
+      why: '社長に出す前に、受け入れ条件と突き合わせる人がいません。', for_phase: '調査' },
   ];
 }
 

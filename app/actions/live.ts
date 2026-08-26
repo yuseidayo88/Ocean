@@ -93,7 +93,7 @@ export async function teamData(): Promise<{ staff: LiveEmployee[]; skills: Skill
  * 一覧に無いモデル名をそのまま保存すると、次の実行がまるごと上流で弾かれる。
  */
 export async function prefSet(
-  employeeId: string | null, patch: { model?: string; effort?: string; paused?: boolean },
+  employeeId: string | null, patch: { model?: string; effort?: string; paused?: boolean; web?: boolean },
 ): Promise<{ ok: boolean; message?: string }> {
   const model = patch.model !== undefined ? (modelOf(patch.model) ? patch.model : null) : undefined;
   const effort = patch.effort !== undefined
@@ -105,9 +105,48 @@ export async function prefSet(
       ...(model ? { model } : {}),
       ...(effort ? { effort } : {}),
       ...(patch.paused !== undefined ? { paused: patch.paused } : {}),
+      ...(patch.web !== undefined ? { web: patch.web } : {}),
     });
     return { ok: true };
   } catch (e) { return { ok: false, message: sayError(e, '設定を保存できませんでした') }; }
+}
+
+/**
+ * **学びを「ルール」に上げる**（2026-08-26）。
+ *
+ * 画面には前から「ルールにするかは社長が決める（自動では昇格しない）」と
+ * 書いてあったのに、**その操作がどこにも無かった**。
+ * 学びは30行の上限で回り、畳まれて薄まる。ルールは**残って、毎回効く**。
+ *
+ * **移す**（学びからは消す）— 同じことを2か所に置かない。
+ */
+export async function learningToRule(
+  employeeId: string, line: string,
+): Promise<{ ok: boolean; message?: string }> {
+  const one = line.trim();
+  if (!one) return { ok: false, message: '空の行はルールにできません' };
+  try {
+    const s = store();
+    const [ls, rs] = await Promise.all([s.learnings(employeeId), s.rules(employeeId)]);
+    if (!rs.includes(one)) await s.setRules(employeeId, [...rs, one]);
+    await s.setLearnings(employeeId, ls.filter((l) => l !== one));
+    return { ok: true };
+  } catch (e) { return { ok: false, message: sayError(e, 'ルールにできませんでした') }; }
+}
+
+/** その社員のルール（定義の Critical Rules とは別。社長が上げたもの） */
+export async function rulesGet(employeeId: string): Promise<string[]> {
+  try { return await store().rules(employeeId); } catch { return []; }
+}
+
+/** 社長が上げたルールを消す（定義のルールは消せない） */
+export async function rulesSet(
+  employeeId: string, lines: string[],
+): Promise<{ ok: boolean; message?: string }> {
+  try {
+    await store().setRules(employeeId, lines);
+    return { ok: true };
+  } catch (e) { return { ok: false, message: sayError(e, '保存できませんでした') }; }
 }
 
 export async function railData(): Promise<RailData> {
