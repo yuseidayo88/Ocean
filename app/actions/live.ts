@@ -4,7 +4,7 @@
  * ゼロ状態の読み書き。**画面はここを通して store だけを読む** — ダミーは無い。
  * 読みは失敗しても画面を壊さない（空を返す）。書きは失敗を言う。
  */
-import { EFFORTS, imageSpec, modelOf, type Effort } from '@/lib/ai/catalog';
+import { EFFORTS, imageSpec, modelOf, voiceSpec, type Effort } from '@/lib/ai/catalog';
 import { store, type AgentPref, type ChatMsg, type ChatThread, type LiveEmployee, type LiveWork, type Note, type SkillRow } from '@/lib/store';
 import { sayError } from '@/lib/errors';
 
@@ -129,7 +129,7 @@ export async function teamData(): Promise<{ staff: LiveEmployee[]; skills: Skill
  */
 export async function prefSet(
   employeeId: string | null,
-  patch: { model?: string; effort?: string; paused?: boolean; web?: boolean; images?: boolean; imageModel?: string },
+  patch: { model?: string; effort?: string; paused?: boolean; web?: boolean; images?: boolean; imageModel?: string; voice?: boolean; voiceModel?: string },
 ): Promise<{ ok: boolean; message?: string }> {
   const model = patch.model !== undefined ? (modelOf(patch.model) ? patch.model : null) : undefined;
   // **知らない名前は受け取らない**（モデルと同じ守り。画面と実物を食い違わせない）
@@ -137,6 +137,10 @@ export async function prefSet(
     ? (imageSpec(patch.imageModel)?.id === patch.imageModel ? patch.imageModel : null)
     : undefined;
   if (img === null) return { ok: false, message: '知らない設定です' };
+  const vox = patch.voiceModel !== undefined
+    ? (voiceSpec(patch.voiceModel)?.id === patch.voiceModel ? patch.voiceModel : null)
+    : undefined;
+  if (vox === null) return { ok: false, message: '知らない設定です' };
   const effort = patch.effort !== undefined
     ? ((EFFORTS as readonly string[]).includes(patch.effort) ? (patch.effort as Effort) : null)
     : undefined;
@@ -149,6 +153,8 @@ export async function prefSet(
       ...(patch.web !== undefined ? { web: patch.web } : {}),
       ...(patch.images !== undefined ? { images: patch.images } : {}),
       ...(img ? { imageModel: img } : {}),
+      ...(patch.voice !== undefined ? { voice: patch.voice } : {}),
+      ...(vox ? { voiceModel: vox } : {}),
     });
     return { ok: true };
   } catch (e) { return { ok: false, message: sayError(e, '設定を保存できませんでした') }; }

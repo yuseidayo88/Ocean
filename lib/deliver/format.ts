@@ -12,7 +12,7 @@ import { blocks, plain, type Block } from './md';
  * この表を見るのは4か所 — AI社員の道具（何を書けるか）／画面（どう描くか）／
  * 持ち出し（拡張子と型）／一覧の書き出し。**業種は入れない**（何の会社でも同じ形）。
  */
-export type Shape = 'markdown' | 'csv' | 'html' | 'code' | 'diagram' | 'image';
+export type Shape = 'markdown' | 'csv' | 'html' | 'code' | 'diagram' | 'image' | 'audio';
 
 export type Format = {
   /** 画面と社長に見せる語。**短い名詞**（状態の6語とは別の語彙） */
@@ -45,6 +45,16 @@ export const FORMATS: Record<string, Format> = {
    * 差し戻しのときに「前は何と言ったか」を読むために残す。
    */
   image:   { label: '画像',   shape: 'image',    ext: 'png',  mime: 'image/png',      print: true },
+  /**
+   * **音声**（2026-08-27。社長の「他のやつから順に」の④）。
+   *
+   * 画像と同じで、**中身がここには無い** — バイト列は `deliverables.storage_path`。
+   * `body` に入っているのは**読み上げた台本**で、これは画像と違って**そのまま読める** —
+   * サムネイルも書き出しも、この台本を出す（聞く前に中身が分かる）。
+   *
+   * **刷らない。** 音は紙にならない（図と同じ理由）。
+   */
+  audio:   { label: '音声',   shape: 'audio',    ext: 'mp3',  mime: 'audio/mpeg',     print: false },
 };
 
 const FALLBACK: Format = FORMATS.report;

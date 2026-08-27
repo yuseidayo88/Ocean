@@ -242,6 +242,13 @@ export type AgentPref = {
    */
   images?: boolean;
   imageModel?: string;
+  /**
+   * **会社が声を出すか**（統括AIの行だけ意味がある。2026-08-27）。
+   * 絵（`images`）とまったく同じ作法 — 従量なので**既定はオフ**、社長が押す。
+   * `voiceModel` は `lib/ai/catalog.ts` の `VOICE_MODELS` の `id`（未設定は既定に落ちる）。
+   */
+  voice?: boolean;
+  voiceModel?: string;
 };
 
 /** 実行の1歩。デスクの工程の行と、タスクの右ペインに出る */
@@ -670,7 +677,7 @@ export interface Store {
   /** 1人ぶん。**実行の直前に読む** — 選んだものがその往復に効く */
   prefOf(employeeId: string | null): Promise<AgentPref | null>;
   /** 押したその場で効く（保存ボタンは無い）。渡した項目だけ書き換える */
-  setPref(employeeId: string | null, patch: { model?: string; effort?: Effort; paused?: boolean; web?: boolean; images?: boolean; imageModel?: string }): Promise<void>;
+  setPref(employeeId: string | null, patch: { model?: string; effort?: Effort; paused?: boolean; web?: boolean; images?: boolean; imageModel?: string; voice?: boolean; voiceModel?: string }): Promise<void>;
 
   /** 会社の名前（パンくずの根）。登録時はメールが入っている */
   companyName(): Promise<string>;

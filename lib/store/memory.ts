@@ -644,6 +644,8 @@ export const memoryStore: Store = {
       web: patch.web ?? cur.web,
       images: patch.images ?? cur.images,
       imageModel: patch.imageModel ?? cur.imageModel,
+      voice: patch.voice ?? cur.voice,
+      voiceModel: patch.voiceModel ?? cur.voiceModel,
     });
   },
 

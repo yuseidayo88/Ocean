@@ -119,6 +119,20 @@ export class FakeProvider implements ModelProvider {
         return;
       }
       /**
+       * **読み上げずに台本を書いて終わったときの頼み直し**（2026-08-27）。
+       * 道具が `make_voice` 1つに絞られているので、必ず読み上げる。
+       */
+      if (only === 'make_voice') {
+        yield tool('make_voice', {
+          title: /「([^」]+)」のままに/.exec(said)?.[1] ?? '紹介ナレーション',
+          script: 'こんにちは。今日は、はじめての一歩をご案内します。'
+            + '難しいことはありません。三つの手順だけです。',
+          note: '（仮）落ち着いた語り口を狙いました。冒頭10秒で使えます。',
+        });
+        yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
+        return;
+      }
+      /**
        * **書かなかったときの頼み直し**（`lib/run/worker.ts` の `rewrite`）。
        * AI社員の実行は `log_step` で見分けているが、この往復は
        * **`write_deliverable` 1つしか渡らない**ので、そこでは拾えない。
@@ -231,6 +245,8 @@ const brokeOnce = new Set<string>();
 const skippedOnce = new Set<string>();
 /** 絵を頼まれて**説明だけ書いて終わった**タスク（1回だけ壊れる） */
 const drewOnce = new Set<string>();
+/** 台本を書いて終わったタスク（1回だけ。`drewOnce` と同じ理由） */
+const saidOnce = new Set<string>();
 const tool = (name: string, inputValue: unknown): Chunk =>
   ({ type: 'tool_use', id: `fake-${++n}`, name, input: inputValue });
 
@@ -337,6 +353,31 @@ async function* fakeRun(input: RunInput): AsyncIterable<Chunk> {
              '> これは決め打ちの成果物です。'].join('\n'),
     });
     yield tool('finish', { summary: `${task} の方向を出した` });
+    yield { type: 'done', usage: { ...EMPTY_USAGE }, stopReason: 'tool_use' };
+    return;
+  }
+
+  /**
+   * **読み上げを頼まれたのに、台本を書いて終わる道**（2026-08-27）。
+   * 絵とまったく同じ壊れ方 — 「ナレーションを作って」と言われたモデルは、
+   * 放っておくと**台本**を書いて満足する。行儀よく読み上げると、
+   * **頼み直しの往復が動いているか永久に分からない**。
+   *
+   * 道具に `make_voice` が渡っているとき（＝執筆担当で、会社が声を入れている）だけ通る。
+   */
+  const canSay = (input.tools ?? []).some((t) => t.name === 'make_voice');
+  if (canSay && !saidOnce.has(task)) {
+    saidOnce.add(task);
+    yield tool('log_step', { title: '読み上げる言葉を整えた', progress: 45 });
+    await wait(600);
+    yield tool('write_deliverable', {
+      title: task.slice(0, 18), kind: 'copy',
+      body: ['# ' + task, '', '## 台本', '',
+             'こんにちは。今日は、はじめての一歩をご案内します。',
+             '難しいことはありません。三つの手順だけです。', '',
+             '> これは決め打ちの成果物です。'].join('\n'),
+    });
+    yield tool('finish', { summary: `${task} の台本を書いた` });
     yield { type: 'done', usage: { ...EMPTY_USAGE }, stopReason: 'tool_use' };
     return;
   }
@@ -592,7 +633,7 @@ const lastUser = (i: RunInput) => {
 
 /** 終わりが言えるか。「伸ばしたい」「良くしたい」のような、終点の無い言い方を弾く */
 const OPEN_ENDED = /(伸ばし|成長|改善|良く|うまく|なんとか|軌道に乗)/;
-const SHORT_ONE = /(ロゴ|バナー|名前|コピー|見出し|アイコン|LP|ランディング)/;
+const SHORT_ONE = /(ロゴ|バナー|名前|コピー|見出し|アイコン|LP|ランディング|ナレーション|読み上げ)/;
 /**
  * **LP は「作って出す」まで**（2026-08-27）。小さい仕事のうち、
  * これだけは成果物が `page` になる（`lib/run/worker.ts` は**タスクの題**で見分ける）。
@@ -602,6 +643,12 @@ const SHORT_ONE = /(ロゴ|バナー|名前|コピー|見出し|アイコン|LP|
  * ふつうの依頼まで小さい仕事に化ける
  */
 const LP_ONE = /(LP|ランディング)/;
+/**
+ * **声を頼まれた小さい仕事**（2026-08-27）。回すのは執筆担当（読み上げるのは
+ * 言葉を書く人の仕事の続き）。ここを分けておかないと、声の道
+ * （`tools/check/voice.mjs`）が**一度も `make_voice` に行き当たらない**。
+ */
+const VOICE_ONE = /(ナレーション|読み上げ)/;
 
 function container(goal: string) {
   const ends = !OPEN_ENDED.test(goal) || /したい$/.test(goal) === false;
@@ -671,6 +718,9 @@ function hires(goal: string) {
 const fixing = (i: RunInput) =>
   i.messages.some((m) => m.content.includes('辻褄の合わないところがありました'));
 
+/** 小さい仕事を回す人。**声だけ執筆担当**（それ以外はデザイン担当） */
+const smallOwner = (goal: string) => (VOICE_ONE.test(goal) ? '執筆担当' : 'デザイン担当');
+
 function plan(goal: string, fixed = false) {
   if (SHORT_ONE.test(goal)) {
     return {
@@ -685,9 +735,10 @@ function plan(goal: string, fixed = false) {
       phases: fixed
         ? [
           // **小さい仕事はロゴやバナーのことが多い**ので、回すのはデザイン担当。
-          // 絵の道（make_image → Storage → 成果物 → 画面）を、通しの検査が通る
-          { name: '案出し', goal: '方向の違う案が3つ並んでいる', weeks: 0.5, owner: 'デザイン担当' },
-          { name: '仕上げ', goal: '選んだ案が使える形になっている', weeks: 0.5, owner: 'デザイン担当' },
+          // 絵の道（make_image → Storage → 成果物 → 画面）を、通しの検査が通る。
+          // **声を頼まれたときだけ執筆担当**（読み上げるのは言葉を書く人の続き）
+          { name: '案出し', goal: '方向の違う案が3つ並んでいる', weeks: 0.5, owner: smallOwner(goal) },
+          { name: '仕上げ', goal: '選んだ案が使える形になっている', weeks: 0.5, owner: smallOwner(goal) },
         ]
         : [
           { name: '宣伝の下ごしらえ', goal: '告知の集客プランが決まっている', weeks: 0.5, owner: '執筆担当' },
@@ -721,7 +772,8 @@ function plan(goal: string, fixed = false) {
         {
           // **LP のときは、題にそう書く。** 社員はタスクの題を見て何を出すか決めるので、
           // ここが「案を3つ出す」のままだと、LP を頼んでも1枚も出てこない
-          title: LP_ONE.test(goal) ? 'LP の案を3つ出す' : '案を3つ出す',
+          title: VOICE_ONE.test(goal) ? 'ナレーションを作る'
+            : LP_ONE.test(goal) ? 'LP の案を3つ出す' : '案を3つ出す',
           intent: '方向の違う案を3つ。それぞれ選ぶ理由を1行で', owner_hint: 'デザイン制作担当',
         },
       ],

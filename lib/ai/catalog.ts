@@ -124,6 +124,56 @@ export function imageCostUsd(model: string | undefined, inTok: number, outTok: n
   return (inTok / 1e6) * m.inPerMTok + (outTok / 1e6) * m.outPerMTok
 }
 
+/**
+ * **声のモデル**（2026-08-27。社長の「他のやつから順に」の④）。
+ *
+ * 絵とまったく同じ置き方 — **会社に1つ**（読み上げるのは執筆担当だけなので、
+ * 8人ぶんの設定にしない）。既定はオフで、入れているときだけ一覧を出す。
+ *
+ * **綴りと単価は OpenRouter の一覧を実際に引いて写した**（2026-08-27）。
+ * 絵のときのように名前から組んでいない — MCP から本物の一覧が読めるので、
+ * **読めるものは読んでから書く**。
+ */
+export type VoiceSpec = {
+  id: string
+  maker: 'Google' | 'SpaceXAI'
+  label: string
+  /** 右に出す1語（モデルの一覧と同じ作法）。**値段は出さない** */
+  note: string
+  /** 既定の声。`voice` は相手ごとに違うので、こちらで1つ選んでおく */
+  voice: string
+  inPerMTok: number
+  outPerMTok: number
+}
+
+export const VOICE_MODELS: readonly VoiceSpec[] = [
+  {
+    id: 'google/gemini-3.1-flash-tts-preview', maker: 'Google', label: 'Gemini 3.1 Flash TTS',
+    note: '声を選べる', voice: 'Kore', inPerMTok: 1, outPerMTok: 20,
+  },
+  {
+    id: 'x-ai/grok-voice-tts-1.0', maker: 'SpaceXAI', label: 'Grok Voice TTS 1.0',
+    // 出力は $0/M（入力ぶんだけで数える）
+    note: '多くの言語', voice: 'eve', inPerMTok: 15, outPerMTok: 0,
+  },
+]
+
+/** 既定の声のモデル。**社長が選んでいないときは、これで走る** */
+export const DEFAULT_VOICE_MODEL = VOICE_MODELS[0].id
+
+export const voiceSpec = (id?: string): VoiceSpec | undefined =>
+  VOICE_MODELS.find((m) => m.id === (id ?? DEFAULT_VOICE_MODEL))
+
+/**
+ * 声の原価（USD）。**絵と同じ理由で、文字のモデルの単価では数えない**。
+ * **知らないモデルは 0**（無料のテストや env の差し替えと同じ扱い）。
+ */
+export function voiceCostUsd(model: string | undefined, inTok: number, outTok: number): number {
+  const m = VOICE_MODELS.find((x) => x.id === model)
+  if (!m) return 0
+  return (inTok / 1e6) * m.inPerMTok + (outTok / 1e6) * m.outPerMTok
+}
+
 /** Claude（4.6 以降）が受ける段。`none` は無い */
 const CLAUDE_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const
 /** GPT-5.6 の3枚が受ける段（Luna は実測で6段を確認済み） */

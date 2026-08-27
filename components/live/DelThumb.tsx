@@ -1,3 +1,4 @@
+import { formatOf } from '@/lib/deliver/format';
 import { MUTE, RAIL } from '@/lib/design/tokens';
 
 /**
@@ -8,13 +9,20 @@ import { MUTE, RAIL } from '@/lib/design/tokens';
  * どちらも同じ絵で、開くまで見分けられない。
  * 見分けるための面なので、中身に使う。
  */
-export function DelThumb({ preview, src, height = 108 }: { preview?: string; src?: string; height?: number }) {
+export function DelThumb({ preview, src, kind, height = 108 }: {
+  preview?: string; src?: string; kind?: string; height?: number;
+}) {
   /**
    * **絵は絵で見分ける**（2026-08-27）。画像の成果物には書き出しが無いので、
    * 文字を出すところが無い — 縮めた絵そのものがサムネイルになる。
    * **白い面に置く**（ロゴは白背景で作られることが多く、黒の上だと消える）。
    */
-  if (src) {
+  /**
+   * **`src` があるかどうかで決めない**（2026-08-27）。音声も同じ列に道を持つので、
+   * それだけで見分けると **mp3 を `<img>` に渡して壊れた絵**が出る。
+   * 形で決める — 音声のサムネイルは**台本の書き出し**（聞く前に中身が分かる）。
+   */
+  if (src && formatOf(kind, preview ?? '').shape === 'image') {
     return (
       <div style={{
         height, boxSizing: 'border-box', borderRadius: 8, background: '#fff',

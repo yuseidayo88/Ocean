@@ -571,7 +571,7 @@ export default function WorkPage() {
                   boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 10,
                   padding: 12, borderRadius: 12, background: '#121212',
                 }}>
-                  <DelThumb preview={d.preview} src={d.src} height={84} />
+                  <DelThumb preview={d.preview} src={d.src} kind={d.kind} height={84} />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <span style={{ display: 'flex', alignItems: 'baseline', gap: 7, minWidth: 0 }}>
                       <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</span>

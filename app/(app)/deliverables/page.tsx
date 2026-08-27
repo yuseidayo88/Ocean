@@ -106,7 +106,7 @@ export default function DeliverablesPage() {
                 padding: 12, borderRadius: 12, background: '#121212',
                 border: `1px solid ${top?.id === d.id ? '#333' : 'transparent'}`,
               }}>
-                <DelThumb preview={d.preview} src={d.src} />
+                <DelThumb preview={d.preview} src={d.src} kind={d.kind} />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                   <span style={{ display: 'flex', alignItems: 'baseline', gap: 7, minWidth: 0 }}>
                     <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</span>

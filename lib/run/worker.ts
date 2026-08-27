@@ -8,10 +8,11 @@ import { reviewDeliverable } from '@/lib/exec/qa';
 import { webOn } from '@/lib/ai/web';
 import { recallBlock, termsOf } from '@/lib/exec/recall';
 import { founderBlock, tendMemory } from '@/lib/exec/memory';
-import { RUN_TOOLS, drawWorkflow, makeImage, readUrl, writeDeliverable } from './tools';
+import { RUN_TOOLS, drawWorkflow, makeImage, makeVoice, readUrl, writeDeliverable } from './tools';
 import { host, readPage } from '@/lib/web/fetch';
 import { draw, imageModel, imagesOn } from '@/lib/ai/image';
-import { imageCostUsd } from '@/lib/ai/catalog';
+import { speak, voiceModel, voiceOn } from '@/lib/ai/voice';
+import { imageCostUsd, voiceCostUsd } from '@/lib/ai/catalog';
 import type { ToolDef } from '@/lib/ai/provider';
 import { checkWorkflow, fatalOf, packDoc, toWorkflow } from '@/lib/diagram/parse';
 import { readyTools, runTool, toolsLine } from '@/lib/mcp/company';
@@ -137,6 +138,8 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
   const usage = { in: 0, out: 0 };
   /** 絵のぶんのトークン。**文字と混ぜない** — 単価が25倍ちがう（→ `imageCostUsd`） */
   const picUse = { in: 0, out: 0, model: '' };
+  /** 声のぶんのトークン。**絵と同じ理由で、これも別に数える**（→ `voiceCostUsd`） */
+  const sayUse = { in: 0, out: 0, model: '' };
   /**
    * **記帳は1か所で組む**（2026-08-27。社長の「画像生成した時のトークンも計算してほしい」）。
    *
@@ -145,10 +148,11 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
    * 混ぜると 1/25 に記帳されて残高が嘘になる（前に「0 で記帳」で同じ穴を踏んでいる → 0034）。
    */
   const bill = () => ({
-    tokensIn: usage.in + picUse.in,
-    tokensOut: usage.out + picUse.out,
+    tokensIn: usage.in + picUse.in + sayUse.in,
+    tokensOut: usage.out + picUse.out + sayUse.out,
     costCents: (billedCostUsd('standard', usage.in, usage.out, pref.model)
-      + imageCostUsd(picUse.model, picUse.in, picUse.out)) * 100,
+      + imageCostUsd(picUse.model, picUse.in, picUse.out)
+      + voiceCostUsd(sayUse.model, sayUse.in, sayUse.out)) * 100,
   });
   let wrote: string | undefined;
   /** 書いた成果物の id（**品質担当がその場で差し戻す**ために要る） */
@@ -201,6 +205,12 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
      */
     const canDrawHint = task.ownerSlug === 'visual-designer' && await imagesOn();
     /**
+     * **読み上げられる人か**（2026-08-27）。執筆担当で、会社が声を入れているとき。
+     * **担当は増やさない** — 読み上げるのは言葉を書く人の仕事の続きなので、
+     * 台本を書く人がそのまま声にする。
+     */
+    const canSayHint = task.ownerSlug === 'content-writer' && await voiceOn();
+    /**
      * **URL を読めるか。** 社長が渡した URL を読むのに栓は要らないが、
      * **社員が自分で行き先を決める**これは「調べる」の一部なので Web検索と同じ栓に乗せる。
      * 依頼文と道具の両方がこれを見る — **説明にだけ出て道具が無い**、を作らない。
@@ -218,6 +228,8 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
       + '**手順や承認の流れなら draw_workflow で図にする**（どちらか一方）',
       ...(canDrawHint ? ['   **絵そのものを頼まれているなら make_image で1枚出す**（これも代わりになる）。'
         + '**説明で終わらせない** — ロゴを頼まれたらロゴを出す'] : []),
+      ...(canSayHint ? ['   **読み上げを頼まれているなら make_voice で1本出す**（これも代わりになる）。'
+        + '**台本を書いて終わりにしない** — ナレーションを頼まれたら音声を出す'] : []),
       ...(canReadHint ? ['   **依頼文や渡された資料に URL があるなら read_url で読む**（読んでから書く）。'
         + '**知らない住所を作らない** — 見当で開かず、要るなら ask_decision で聞く'] : []),
       '   **出す形は、社長がそのまま使える形にする** — '
@@ -291,6 +303,8 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
     let drawn: Record<string, unknown> | null = null;
     /** 絵の頼み（`make_image` の引数）。**往復の外で**描いてもらう */
     let picture: Record<string, unknown> | null = null;
+    /** 声の頼み（`make_voice` の引数）。**往復の外で**読んでもらう */
+    let voice: Record<string, unknown> | null = null;
 
     /**
      * **つないだ道具があるときだけ、往復する。**
@@ -315,6 +329,7 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
     const base = [
       ...RUN_TOOLS,
       ...(canDrawHint ? [makeImage] : []),
+      ...(canSayHint ? [makeVoice] : []),
       ...(canReadHint ? [readUrl] : []),
     ];
     const tools = ready?.defs.length
@@ -367,6 +382,8 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
           pages.push({ url: String(a.url ?? ''), why: String(a.why ?? '') });
         } else if (c.name === 'make_image') {
           picture = a;                        // 絵は往復の外でもらう（時間がかかる）
+        } else if (c.name === 'make_voice') {
+          voice = a;                          // 声も往復の外でもらう（同じ理由）
         } else if (c.name === 'draw_workflow') {
           drawn = a;                          // 検証してから成果物にする（往復の外で）
         } else if (c.name === 'ask_decision') {
@@ -593,6 +610,73 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
         });
       } catch (e) {
         const why = `絵を出せませんでした — ${e instanceof Error ? e.message : String(e)}`;
+        await s.finishRun(runId, {
+          status: 'failed', ...bill(),
+          model: usedModel, error: why,
+        });
+        await s.addNotification({
+          kind: 'エラー', body: `${task.title} — ${why}`, subjectType: 'task', subjectId: taskId,
+        });
+        return { ok: false, error: why };
+      }
+    }
+
+    /**
+     * **台本を書いて終わった往復を、1回だけ頼み直す**（2026-08-27）。
+     *
+     * 絵とまったく同じ壊れ方をする — 「ナレーションを作って」と頼まれたモデルは、
+     * 放っておくと**台本**を書いて満足する。**声にしないと社長の手もとでは使えない。**
+     * 直し方も同じ（道具を1つに絞って `toolChoice: 'required'`。**1回だけ**）。
+     */
+    const draftedSay = wrote;
+    if (canSayHint && !voice && !picture && draftedSay) {
+      const ask: Msg[] = [...messages, { role: 'user', content: [
+        `「${task.title}」で頼まれているのは**音声そのもの**です。台本では代わりになりません。`,
+        'make_voice を1回だけ呼んで、実際の音声を1本出してください。',
+        `いま書いた「${draftedSay}」の中身を、そのまま script に写して構いません`,
+        '（**読み上げる言葉だけ**にしてください。見出しや箇条書きの印は声になりません）。',
+        `**title は「${draftedSay}」のままにしてください。**`,
+      ].join('\n') }];
+      for await (const c of pick().stream({
+        tier: 'standard', model: pref.model, effort: pref.effort,
+        system, messages: ask, tools: [makeVoice], toolChoice: 'required', maxTokens: 4000,
+      })) {
+        if (c.type === 'tool_use' && c.name === 'make_voice') voice = (c.input ?? {}) as Record<string, unknown>;
+        if (c.type === 'done') { usage.in += c.usage.inputTokens; usage.out += c.usage.outputTokens; }
+      }
+      // 絵と同じ — **同じ題にすれば、版の仕掛けが台本のほうを一覧から隠す**
+      if (voice) { voice.title = draftedSay; wrote = undefined; }
+    }
+
+    if (voice && !wrote) {
+      const title = String(voice.title ?? task.title);
+      const script = String(voice.script ?? '').trim();
+      await s.addStep(runId, {
+        seq: ++seq, kind: 'tool_use', tool: 'make_voice', summary: `${title} を読み上げている`, progress: 80,
+      });
+      try {
+        // **台本が無いのに呼ばない**（無音の成果物を作らない）
+        if (!script) throw new Error('台本が空でした');
+        const said = await speak(script, { model: await voiceModel() });
+        sayUse.in += said.usage.inputTokens;
+        sayUse.out += said.usage.outputTokens;
+        sayUse.model = said.model;
+        wrote = title;
+        /**
+         * 本文は**読み上げた台本そのもの**（絵は「何を頼んだか」だったが、
+         * 音は台本がそのまま中身）。聞く前に読めるし、差し戻しのときの土台にもなる。
+         */
+        bodyText = [String(voice.note ?? '').trim(), '', script].filter(Boolean).join('\n');
+        delId = await s.addDeliverable({
+          workId: work.id, taskId, employeeId: task.ownerId,
+          title, kind: 'audio', body: bodyText,
+          image: { base64: said.base64, mime: said.mime },
+        });
+        await s.addStep(runId, {
+          seq: ++seq, kind: 'tool_use', tool: 'make_voice', summary: `${title} を出した`,
+        });
+      } catch (e) {
+        const why = `音声を出せませんでした — ${e instanceof Error ? e.message : String(e)}`;
         await s.finishRun(runId, {
           status: 'failed', ...bill(),
           model: usedModel, error: why,

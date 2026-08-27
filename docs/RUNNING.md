@@ -123,6 +123,7 @@ psql "$DATABASE_URL" -f supabase/migrations/0035_deliverable_files.sql
 psql "$DATABASE_URL" -f supabase/migrations/0036_image_model.sql
 psql "$DATABASE_URL" -f supabase/migrations/0037_mcp_oauth.sql
 psql "$DATABASE_URL" -f supabase/migrations/0038_published_pages.sql
+psql "$DATABASE_URL" -f supabase/migrations/0039_voice.sql
 ```
 
 `0003` は RLS と、不変条件をデータベース側で守るためのトリガを入れます。
@@ -205,6 +206,8 @@ RLS の with check は `account_id = private.current_account_id()` のままな�
 | 同じ行き先を二度つながない | 一意 index `mcp_servers_once`（0028）。二度押し・同時押しで2行にならない |
 | OAuth の控えも画面に返らない | 0037 で足した列（`client_secret` / `refresh_token` / `token_url` / `resource`）はどれも `McpServer` に無く、引くのは `mcpAuth` 1か所だけ。画面が知るのは**入り方**（`auth_kind`）と**いま入れているか**（`needsAuth`）。access token は 0028 の `token` を使い回す（鍵の置き場を2つにしない） |
 | 認可サーバーの住所も、断りの検査を通る | どこへ認可を取りに行くかを決めるのは**相手のサーバー**。`lib/mcp/oauth.ts` の外向きの `fetch` は全部 `blockedWhy`（`lib/web/fetch.ts`）を先に通る — `read_url` とまったく同じ危なさなので、**同じ1か所で断る** |
+| 絵と声は、押されるまで出ない | `images` / `voice`（0036 / 0039）。どちらも**既定はオフ**で、社長がメンバー画面の「全員に効くこと」から入れる。道具そのものを渡さないので、切っているあいだは呼びようがない |
+| 絵と声の原価は、文字の単価では数えない | `imageCostUsd` / `voiceCostUsd`（`lib/ai/catalog.ts`）。桁が違うので混ぜると残高が嘘になる（0034 で踏んだ穴）。トークンは足して1つ、単価だけ別々 |
 | 公開したページに script は入らない | `lib/deliver/publish.ts` の `clean` が `<script>` / `onclick=` / `javascript:` を落とし、`/p/<slug>` は CSP の `script-src 'none'` でも止める（**二重に止める**）。出すのは自分のオリジンなので、置いたままだと**このアプリの名前で**走る |
 | 公開できるのは、社長が押した承認済のページだけ | `whyNot`（種類が `page` / 状態が 承認済 / 中身がある）。AI社員の道具にはしていない — **統括AIも自分では公開できない**（外に出る道具は Approval 必須） |
 | 公開をやめても、出した記録は残る | `revoked_at`（0038）。**行は消さない** — delete の権限そのものを開けていない |

@@ -467,7 +467,9 @@ export const supabaseStore: Store = {
         .upload(path, bytes, { contentType: d.image.mime, upsert: true });
       if (up.error) {
         await c.from('deliverables').delete().eq('id', row.id);
-        throw new AppError('unknown', up.error.message, undefined, '画像を置けませんでした');
+        // **形の名前で言う**（画像とは限らない。音声も同じ道を通る）
+        throw new AppError('unknown', up.error.message, undefined,
+          `${FORMATS[d.kind]?.label ?? '中身'}を置けませんでした`);
       }
       await c.from('deliverables').update({ storage_path: path }).eq('id', row.id);
     }
@@ -1316,7 +1318,7 @@ export const supabaseStore: Store = {
 
   async listPrefs() {
     const c = await db();
-    const { data } = await c.from('agent_prefs').select('employee_id, model, effort, paused, web, images, image_model');
+    const { data } = await c.from('agent_prefs').select('employee_id, model, effort, paused, web, images, image_model, voice, voice_model');
     return (data ?? []).map((x): AgentPref => ({
       employeeId: (x.employee_id ?? null) as string | null,
       model: (x.model ?? undefined) as string | undefined,
@@ -1325,13 +1327,15 @@ export const supabaseStore: Store = {
       web: !!x.web,
       images: !!x.images,
       imageModel: (x.image_model ?? undefined) as string | undefined,
+      voice: !!x.voice,
+      voiceModel: (x.voice_model ?? undefined) as string | undefined,
     }));
   },
 
   async prefOf(employeeId) {
     const c = await db();
     // **統括AI は employee_id が null。** `.eq(null)` は当たらないので `.is` で引く
-    const q = c.from('agent_prefs').select('employee_id, model, effort, paused, web, images, image_model');
+    const q = c.from('agent_prefs').select('employee_id, model, effort, paused, web, images, image_model, voice, voice_model');
     const { data } = await (employeeId ? q.eq('employee_id', employeeId) : q.is('employee_id', null))
       .maybeSingle();
     if (!data) return null;
@@ -1343,6 +1347,8 @@ export const supabaseStore: Store = {
       web: !!data.web,
       images: !!data.images,
       imageModel: (data.image_model ?? undefined) as string | undefined,
+      voice: !!data.voice,
+      voiceModel: (data.voice_model ?? undefined) as string | undefined,
     };
   },
 
@@ -1359,6 +1365,8 @@ export const supabaseStore: Store = {
       ...(patch.web !== undefined ? { web: patch.web } : {}),
       ...(patch.images !== undefined ? { images: patch.images } : {}),
       ...(patch.imageModel !== undefined ? { image_model: patch.imageModel } : {}),
+      ...(patch.voice !== undefined ? { voice: patch.voice } : {}),
+      ...(patch.voiceModel !== undefined ? { voice_model: patch.voiceModel } : {}),
       updated_at: new Date().toISOString(),
     };
     if (row) {

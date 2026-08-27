@@ -22,7 +22,7 @@ import { T4, T5 } from '@/lib/design/tokens';
 export function DelTake({ title, body, kind, src }: { title: string; body: string; kind?: string; src?: string }) {
   const [done, setDone] = useState(false);
   const f = formatOf(kind, body);
-  // 画像は本文が空でも持ち出せる（中身は絵のほう）
+  // 画像・音声は本文が空でも持ち出せる（中身はバイト列のほう）
   if (!body && !src) return null;
 
   const name = fileName(title, f);
@@ -34,7 +34,8 @@ export function DelTake({ title, body, kind, src }: { title: string; body: strin
    * ボタンは絵があるときにしか出ない）。
    */
   const save = async () => {
-    if (f.shape === 'image') {
+    // **中身がバイト列のものは、道から落とす**（画像も音声も同じ道を通る）
+    if (f.shape === 'image' || f.shape === 'audio') {
       if (!src) return;
       try {
         const blob = await (await fetch(src)).blob();
@@ -95,7 +96,7 @@ export function DelTake({ title, body, kind, src }: { title: string; body: strin
           style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 7px',
                    borderRadius: 6, color: T5, fontSize: 11 }}>PDF</button>
       )}
-      {(f.shape !== 'image' || !!src) && (
+      {((f.shape !== 'image' && f.shape !== 'audio') || !!src) && (
       <button className="icob" title={name} aria-label="ダウンロード" onClick={save}
         style={{ display: 'inline-flex', padding: 4 }}>
         <Icon name="download" color={T4} size={14} />

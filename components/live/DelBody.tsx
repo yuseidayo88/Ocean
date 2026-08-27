@@ -76,6 +76,23 @@ export function DelBody({ body, kind, src }: { body: string; kind?: string; src?
     );
   }
 
+  /**
+   * **音声はその場で聞ける**（2026-08-27。社長の「他のやつから順に」の④）。
+   *
+   * 下に付くのは**読み上げた台本**。聞かなくても中身が分かるし、
+   * 差し戻すときに「どこを直すか」を指せる。
+   * **道が無いときは、無いと言う** — 鳴らない再生ボタンを出さない。
+   */
+  if (f.shape === 'audio') {
+    if (!src) return <span style={{ color: T5, fontSize: 12.5 }}>音声を読み込めませんでした。</span>;
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <audio src={src} controls style={{ width: '100%' }} />
+        {body && <Rich body={body} />}
+      </div>
+    );
+  }
+
   if (f.shape === 'diagram') {
     const doc = readDoc(body);
     if (!doc) return <DiagramBroken why="この図は読めませんでした。もう一度描いてもらってください。" />;
