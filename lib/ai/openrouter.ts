@@ -48,6 +48,8 @@ export class OpenRouterProvider implements ModelProvider {
     const usage = { ...EMPTY_USAGE }
     const calls = new Map<number, { id: string; name: string; json: string }>()
     let stopReason: string | null = null
+    /** もう出した道具の番号（終わりに二度出さない） */
+    const sent = new Set<number>()
 
     const s = await this.client.chat.completions.create({
       model,
@@ -90,7 +92,7 @@ export class OpenRouterProvider implements ModelProvider {
       if (think) yield { type: 'think', text: think }
       if (d?.delta?.content) yield { type: 'text', text: d.delta.content }
 
-      // 道具の引数は少しずつ届く。番号ごとに繋いで、最後にまとめて出す。
+      // 道具の引数は少しずつ届く。番号ごとに繋ぐ。
       // **名前が分かった瞬間だけ先に知らせる**（画面の「いま何をしているか」用）
       for (const t of d?.delta?.tool_calls ?? []) {
         const at = t.index ?? 0
@@ -102,6 +104,26 @@ export class OpenRouterProvider implements ModelProvider {
           name,
           json: cur.json + (t.function?.arguments ?? ''),
         })
+        /**
+         * **そろった道具から先に出す**（2026-08-27）。
+         *
+         * 前は全部ためて**往復の終わりにまとめて**出していた。すると `log_step` が
+         * すべて実行の終わりに書き込まれるので、**デスクとオフィスは走っているあいだ
+         * 何も動かず、終わった瞬間に3〜6行がまとめて出る**。
+         * 設計は「本当に動く。演出ではない」と言っているのに、本番の通り道だけが
+         * そうなっていなかった（Anthropic と OpenAI の口は途中で出している）。
+         * **決め打ちのプロバイダは待ちを挟んで途中で出す**ので、この穴は検査に出ない。
+         *
+         * 次の番号が始まった＝前の道具は書き終わり。ただし
+         * **引数が JSON として読めるようになったものだけ**出す（途中で切って壊さない）。
+         */
+        for (const [i, c] of calls) {
+          if (i >= at || sent.has(i) || !c.name) continue
+          const input = tryJson(c.json)
+          if (input === undefined) continue
+          sent.add(i)
+          yield { type: 'tool_use', id: c.id, name: c.name, input }
+        }
       }
       if (d?.finish_reason) stopReason = d.finish_reason
       if (ev.usage) {
@@ -111,8 +133,10 @@ export class OpenRouterProvider implements ModelProvider {
       }
     }
 
-    for (const c of calls.values()) {
-      if (c.name) yield { type: 'tool_use', id: c.id, name: c.name, input: safeJson(c.json) }
+    // 残り（いちばん最後の道具と、途中で読めなかったもの）
+    for (const [i, c] of calls) {
+      if (sent.has(i) || !c.name) continue
+      yield { type: 'tool_use', id: c.id, name: c.name, input: safeJson(c.json) }
     }
     yield { type: 'done', usage, stopReason }
   }
@@ -121,4 +145,14 @@ export class OpenRouterProvider implements ModelProvider {
 function safeJson(s: string): unknown {
   if (!s.trim()) return {}
   try { return JSON.parse(s) } catch { return {} }
+}
+
+/**
+ * **まだ読めないなら `undefined`。** `safeJson` は壊れていても `{}` を返すので、
+ * 途中で出すかどうかの判定には使えない（引数を落としたまま先に出してしまう）。
+ * 引数の無い道具は空文字で届くので、それは `{}` として読めたことにする。
+ */
+function tryJson(s: string): unknown {
+  if (!s.trim()) return {}
+  try { return JSON.parse(s) } catch { return undefined }
 }
