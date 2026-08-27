@@ -7,6 +7,19 @@
 
 ## 進め方（厳守）
 
+- **`.claude/` を先に読む**（2026-08-27。社長の「hermes agent を導入して」）。
+  OneFound の AI社員に入れた学習の輪を、**Claude Code 側にも**入れた
+  （→ `docs/design/14-learning.md` の後半）
+  - `.claude/USER.md` — **社長のこと。** どう進めるか（順番のくせ・報告のしかた・言葉）。
+    `CLAUDE.md` は「何を作るか」、あちらは「どう進めるか」
+  - `.claude/skills/checks` — **検査の走らせ方。** 器の立て方（新しいポート・
+    新しいサーバー・headless chrome）と待ち方。**毎回やり直していたことを畳んだ**
+  - `.claude/skills/probe-model` — **出てくる中身を、本物のモデルで判断する**
+    （アプリからは `openrouter.ai` に出られないので、MCP から本物のプロンプトを通す）
+  - `.claude/hooks/session-start.sh` — 依存・ビルド・chrome を用意する（器が変わっても同じ状態から始まる）
+  - **手順が間違っていたら、その場で直す**（使いながら直す＝Hermes の輪）。
+    覚えておくのではなく、書き換える
+
 - **進行計画は `docs/PLAN.md`**（元のマスタープロンプトの Phase 0〜10 ＋ Phase 11 課金）。
   **Phase 10 まで完了。Phase 11（課金）は骨格まで** — 決済（Stripe の鍵）と
   公開（`CLOUDFLARE_API_TOKEN`）が外部待ち。**ダミーデータは撤去し、ゼロの状態から
