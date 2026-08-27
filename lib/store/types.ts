@@ -108,8 +108,8 @@ export type LiveDeliverable = {
 export type PhaseGate = { closed: string[]; hold: boolean; ready: boolean; at: string | null };
 
 /** つないだ道具（MCP）。**鍵はここに置かない** → `lib/mcp/types.ts` */
-export type { McpServer } from '@/lib/mcp/types';
-import type { McpServer } from '@/lib/mcp/types';
+export type { McpAuth, McpServer } from '@/lib/mcp/types';
+import type { McpAuth, McpServer } from '@/lib/mcp/types';
 
 /** 通知1件。通知の画面（片づける場所）が読む */
 export type Note = {
@@ -520,6 +520,12 @@ export interface Store {
    * 返すのは作った id。すでにあれば、その id（名前と鍵は上書きする）
    */
   addMcpServer(x: { name: string; url: string; token?: string }): Promise<string>;
+  /**
+   * OAuth の控え。**サーバーの中だけ**（`McpServer` には出ない）。
+   * `mcpAuth` は呼ぶ直前に1本だけ引く（`mcpSecret` と同じ作法）。
+   */
+  mcpAuth(id: string): Promise<McpAuth | null>;
+  setMcpAuth(id: string, patch: Partial<McpAuth>): Promise<void>;
   /** 使う・書ける・名前 を変える。触った列だけ */
   setMcpServer(id: string, patch: { on?: boolean; write?: boolean; name?: string }): Promise<void>;
   /** つなぐのをやめる */

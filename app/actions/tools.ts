@@ -3,6 +3,7 @@
 import { store } from '@/lib/store';
 import type { McpServer } from '@/lib/mcp/types';
 import { badUrl, listTools } from '@/lib/mcp/client';
+import { tokenFor } from '@/lib/mcp/token';
 import { sayError } from '@/lib/errors';
 
 /**
@@ -66,7 +67,8 @@ export async function recheckMcp(id: string): Promise<{ ok: boolean; message?: s
     const s = store();
     const row = (await s.listMcpServers()).find((m) => m.id === id);
     if (!row) return { ok: false, message: 'その道具は見つかりませんでした' };
-    const token = await s.mcpSecret(id);
+    // **呼ぶ直前に、通る鍵を用意する**（OAuth は切れるので、要れば取り直す）
+    const token = await tokenFor(id);
     const r = await listTools({ id, name: row.name, url: row.url, token });
     await s.noteMcpCheck(id, r.ok ? { tools: r.tools.length } : { error: r.error });
     return r.ok ? { ok: true, tools: r.tools.length } : { ok: false, message: r.error };
@@ -81,7 +83,7 @@ export async function mcpTools(id: string): Promise<{ name: string; description:
     const s = store();
     const row = (await s.listMcpServers()).find((m) => m.id === id);
     if (!row) return [];
-    const r = await listTools({ id, name: row.name, url: row.url, token: await s.mcpSecret(id) });
+    const r = await listTools({ id, name: row.name, url: row.url, token: await tokenFor(id) });
     return r.ok ? r.tools.map((t) => ({ name: t.name, description: t.description, readOnly: t.readOnly })) : [];
   } catch { return []; }
 }

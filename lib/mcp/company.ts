@@ -1,5 +1,6 @@
 import { store } from '@/lib/store';
 import { callTool, listTools } from './client';
+import { tokenFor } from './token';
 import { MAX_TOOLS, TOOL_PREFIX, type McpResult, type McpTool } from './types';
 
 /**
@@ -48,7 +49,8 @@ export async function readyTools(): Promise<Ready> {
   const out: Ready = { tools: [], defs: [], byName: new Map() };
   for (const m of servers) {
     if (out.tools.length >= MAX_TOOLS) break;
-    const token = await s.mcpSecret(m.id).catch(() => undefined);
+    // **呼ぶ直前に、通る鍵を用意する**（OAuth は切れるので、要れば取り直す）
+    const token = await tokenFor(m.id).catch(() => undefined);
     const r = await listTools({ id: m.id, name: m.name, url: m.url, token });
     if (!r.ok) { await s.noteMcpCheck(m.id, { error: r.error }).catch(() => {}); continue; }
     await s.noteMcpCheck(m.id, { tools: r.tools.length }).catch(() => {});

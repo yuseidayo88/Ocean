@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useOpen } from '@/lib/use-open';
 import { Centre, Composer, Pane, TopBar } from '@/components/shell/Chrome';
 import { Icon } from '@/components/ui/Icon';
@@ -30,6 +31,24 @@ function State({ m }: { m: McpServer }) {
   return <span style={{ color: T5, fontSize: 12 }}>まだ確かめていません</span>;
 }
 
+/**
+ * **認可から戻ってきたときの一言**（2026-08-27）。
+ * 短い合図（`?e=` / `?ok=`）を日本語1行にする — **黙って一覧に戻さない**
+ * （入口（`/login`）と同じ作法。上流の英語はそのまま出さない）。
+ */
+const SAID: Record<string, string> = {
+  auth: 'ログイン済',
+  noid: 'どのつなぎ先か分かりませんでした',
+  notfound: 'そのつなぎ先はありません',
+  noauth: 'この相手はログインを求めていません（そのまま繋がります）',
+  nopkce: 'この相手は安全な入り方（PKCE）に対応していません',
+  denied: '許可されませんでした',
+  expired: '時間切れです。もう一度押してください',
+  state: '入り方が確かめられませんでした。もう一度押してください',
+  token: '鍵を受け取れませんでした',
+  auth_failed: 'ログインできませんでした',
+};
+
 const FIELD = {
   height: 36, padding: '0 12px', borderRadius: 8, background: RAIL,
   border: `1px solid ${RULE}`, color: T1, fontSize: 13, width: '100%', boxSizing: 'border-box' as const,
@@ -49,6 +68,29 @@ export default function ToolsPage() {
   const [token, setToken] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  /**
+   * 認可から戻ってきた合図。**1回読んだら URL から消す**
+   * （読み直しのたびに同じ一言が出ない。`history.replaceState` なのでサーバーに行かない）。
+   *
+   * **読むのは描いている途中**（`useOpen` と同じ作法）。effect の中で state を
+   * 書くと、合図のない1枚を描いてから足すことになり、一言が遅れて出る。
+   */
+  const sp = useSearchParams();
+  const bad = sp.get('e');
+  const good = sp.get('ok');
+  const [said] = useState(() => {
+    const key = bad ?? good;
+    if (!key) return null;
+    return { ok: !bad, text: SAID[key] ?? (bad ? 'うまくいきませんでした' : '入れました') };
+  });
+  useEffect(() => {
+    if (!said) return;
+    const q = new URLSearchParams(window.location.search);
+    if (!q.has('e') && !q.has('ok')) return;
+    q.delete('e'); q.delete('ok');
+    const rest = q.toString();
+    window.history.replaceState(null, '', window.location.pathname + (rest ? `?${rest}` : ''));
+  }, [said]);
 
   const connect = async () => {
     setBusy(true); setErr('');
@@ -71,6 +113,10 @@ export default function ToolsPage() {
         <TopBar title="つないだ道具"
           onPanel={all.length ? () => setOpen(all[0].id) : undefined} panelOn={!!sel} />
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: `20px 26px ${COMPOSER_H}px`, display: 'flex', flexDirection: 'column', gap: 34 }}>
+          {/* **認可から戻ってきたら、何が起きたかを1行で言う**（黙って戻さない） */}
+          {said && (
+            <span style={{ color: said.ok ? GREEN_T : AMBER_T, fontSize: 13 }}>{said.text}</span>
+          )}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 34, paddingBottom: 6 }}>
               <span style={{ color: T3 }}>つないである先</span>
@@ -168,12 +214,45 @@ function McpPane({ m, onClose, onWrite, onRecheck }: {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <State m={m} />
             <div style={{ flex: 1 }} />
-            <span style={{ color: T5, fontSize: 11 }}>{m.hasToken ? '鍵あり' : '鍵なし'}</span>
+            {/**
+              * **入り方を出す**（2026-08-27）。前は「鍵あり / 鍵なし」だけで、
+              * OAuth で入ったのか社長が貼ったのかが区別できなかった。
+              * **中身は返らない** — 出すのは入り方と、いま入れているかだけ。
+              */}
+            <span style={{ color: m.needsAuth ? AMBER_T : T5, fontSize: 11 }}>
+              {m.needsAuth ? 'ログインが切れています'
+                : m.authKind === 'oauth' ? 'ログイン済'
+                : m.hasToken ? '鍵あり' : '鍵なし'}
+            </span>
             <button className="btn" disabled={busy} onClick={async () => { setBusy(true); await onRecheck(); setBusy(false); }}
               style={{ height: 26, padding: '0 10px', borderRadius: 6, border: `1px solid ${SEAM}`, color: T4, fontSize: 11.5 }}>
               {busy ? '確かめています…' : 'もう一度確かめる'}
             </button>
           </div>
+        </div>
+
+        {/**
+          * **鍵を手で貼らずに入る**（2026-08-27。社長の「他のやつから順に」の②）。
+          *
+          * 押すと相手の認可の画面へ行って、戻ってくると入れている。
+          * **相手が求めていなければ、そう言って戻る**（要らない認可を踏ませない）。
+          * ここは `<a>` — サーバーが行き先を組んで送り出すので、画面は押すだけ。
+          */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <span style={{ color: T2 }}>{m.authKind === 'oauth' ? '入り直す' : '相手にログインして入る'}</span>
+            <span style={{ color: T5, fontSize: 11.5, lineHeight: '18px' }}>
+              {m.authKind === 'oauth'
+                ? '切れたら自動で取り直します。それでも駄目なときだけ押してください。'
+                : '鍵を作って貼らなくても、相手の画面で許可すれば入れます。'}
+            </span>
+          </div>
+          <div style={{ flex: 1 }} />
+          <a href={`/api/mcp/start?id=${m.id}`} className="btn" style={{
+            display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px',
+            borderRadius: 7, border: `1px solid ${m.needsAuth ? 'rgba(227,116,0,0.42)' : SEAM}`,
+            color: m.needsAuth ? AMBER_T : T4, fontSize: 12, flexShrink: 0, whiteSpace: 'nowrap',
+          }}>ログイン</a>
         </div>
 
         {/* **書けるようにするのは社長の判断。** 既定は読むだけ */}

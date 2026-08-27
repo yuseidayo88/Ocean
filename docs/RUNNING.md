@@ -113,6 +113,15 @@ psql "$DATABASE_URL" -f supabase/migrations/0025_agent_paused.sql
 psql "$DATABASE_URL" -f supabase/migrations/0026_daily_cap.sql
 psql "$DATABASE_URL" -f supabase/migrations/0027_works_audit_more.sql
 psql "$DATABASE_URL" -f supabase/migrations/0028_mcp_servers.sql
+psql "$DATABASE_URL" -f supabase/migrations/0029_agent_skills.sql
+psql "$DATABASE_URL" -f supabase/migrations/0030_recall.sql
+psql "$DATABASE_URL" -f supabase/migrations/0031_candidate_demand.sql
+psql "$DATABASE_URL" -f supabase/migrations/0032_web_search.sql
+psql "$DATABASE_URL" -f supabase/migrations/0033_agent_rules.sql
+psql "$DATABASE_URL" -f supabase/migrations/0034_cents_are_fractional.sql
+psql "$DATABASE_URL" -f supabase/migrations/0035_deliverable_files.sql
+psql "$DATABASE_URL" -f supabase/migrations/0036_image_model.sql
+psql "$DATABASE_URL" -f supabase/migrations/0037_mcp_oauth.sql
 ```
 
 `0003` は RLS と、不変条件をデータベース側で守るためのトリガを入れます。
@@ -193,6 +202,9 @@ RLS の with check は `account_id = private.current_account_id()` のままな�
 | 止めた社員は動かない | `nextQueued` が `agent_prefs.paused` の人を飛ばす（0025）。**`employees.status` には持たせない** — あの列は実行が running / idle と書き換えるので、止めた印が次の実行で消える |
 | つないだ道具の鍵は画面に返さない | 型（`McpServer`）に `token` が無い（0028）。DB の列の権限で止める形は、引くために `public` の SECURITY DEFINER が要り、**それだけで警告が1件増える** → スキーマ由来の警告0件を優先した。守るのは「一覧を引いたら鍵まで画面に届いていた」のほう |
 | 同じ行き先を二度つながない | 一意 index `mcp_servers_once`（0028）。二度押し・同時押しで2行にならない |
+| OAuth の控えも画面に返らない | 0037 で足した列（`client_secret` / `refresh_token` / `token_url` / `resource`）はどれも `McpServer` に無く、引くのは `mcpAuth` 1か所だけ。画面が知るのは**入り方**（`auth_kind`）と**いま入れているか**（`needsAuth`）。access token は 0028 の `token` を使い回す（鍵の置き場を2つにしない） |
+| 認可サーバーの住所も、断りの検査を通る | どこへ認可を取りに行くかを決めるのは**相手のサーバー**。`lib/mcp/oauth.ts` の外向きの `fetch` は全部 `blockedWhy`（`lib/web/fetch.ts`）を先に通る — `read_url` とまったく同じ危なさなので、**同じ1か所で断る** |
+| 投げ込まれた符号を受けない | `/api/mcp/callback` は cookie の `state` と突き合わせてからでないと引き換えない。cookie は `httpOnly`・10分・**読んだらすぐ捨てる**（一度きり） |
 | きょうのぶんの上限は1日1通 | 一意 index `notifications_cap_daily`（0026）。ポンプは数秒ごとに来るので、ここが通知を積む口になってはいけない。上限そのものは列を足さず `token_ledger` の実績から数える（見積もりを持たないので、ずれようがない）|
 
 ## 環境変数

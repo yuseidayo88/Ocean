@@ -1788,11 +1788,19 @@ export const supabaseStore: Store = {
     const c = await db();
     // **`token` は引かない。** 鍵を読むのは `mcpSecret` 1か所だけ（0028 の注）
     const { data } = await c.from('mcp_servers')
-      .select('id, name, url, write_ok, enabled, checked_at, tool_count, last_error, token')
+      .select('id, name, url, write_ok, enabled, checked_at, tool_count, last_error, token, auth_kind, refresh_token, expires_at')
       .order('created_at');
     return (data ?? []).map((x): McpServer => ({
       id: x.id as string, name: x.name as string, url: x.url as string,
       hasToken: !!x.token,
+      authKind: (x.auth_kind ?? 'none') as McpServer['authKind'],
+      /**
+       * **もう一度ログインが要るか**（2026-08-27）。
+       * 鍵が無い、あるいは切れていて**更新の口も無い**ときだけ true。
+       * 更新できるなら、呼ぶ直前に取り直すので「要る」とは言わない。
+       */
+      needsAuth: x.auth_kind === 'oauth'
+        && (!x.token || (!!x.expires_at && new Date(x.expires_at as string) < new Date() && !x.refresh_token)),
       write: x.write_ok as boolean, on: x.enabled as boolean,
       checkedAt: (x.checked_at ?? undefined) as string | undefined,
       toolCount: (x.tool_count ?? undefined) as number | undefined,
@@ -1804,9 +1812,15 @@ export const supabaseStore: Store = {
     const c = await db();
     // **同じ行き先は二度つながない**（0028 の一意 index）。
     // 出しなおしたときは名前と鍵を上書きして、確かめ直しの印を消す
+    // **出しなおしは、入り方ごとやり直し**（2026-08-27）。
+    // OAuth で入っていた先に鍵を貼り直したのに `auth_kind` が 'oauth' のままだと、
+    // 画面は「ログイン済」と言い、`tokenFor` は**もう通らない refresh** を使いに行く
     const { data, error } = await c.from('mcp_servers')
       .upsert({ name: x.name, url: x.url, token: x.token ?? null,
-                checked_at: null, tool_count: null, last_error: null },
+                checked_at: null, tool_count: null, last_error: null,
+                auth_kind: x.token ? 'token' : 'none',
+                client_id: null, client_secret: null, token_url: null,
+                refresh_token: null, expires_at: null, resource: null },
               { onConflict: 'account_id,url' })
       .select('id').single();
     if (error || !data) throw new AppError('unknown', error?.message ?? 'mcp_servers upsert failed');
@@ -1843,6 +1857,45 @@ export const supabaseStore: Store = {
     const c = await db();
     const { data } = await c.from('mcp_servers').select('token').eq('id', id).maybeSingle();
     return (data?.token ?? undefined) as string | undefined;
+  },
+
+  /**
+   * OAuth の控え。**呼ぶ直前に1本だけ引く**（`mcpSecret` と同じ作法）。
+   * ここ以外から読まない — 型（`McpServer`）に出さないのが決めごと。
+   */
+  async mcpAuth(id) {
+    const c = await db();
+    const { data } = await c.from('mcp_servers')
+      .select('auth_kind, token, refresh_token, expires_at, client_id, client_secret, token_url, resource')
+      .eq('id', id).maybeSingle();
+    if (!data) return null;
+    return {
+      kind: (data.auth_kind ?? 'none') as 'none' | 'token' | 'oauth',
+      access: (data.token ?? undefined) as string | undefined,
+      refresh: (data.refresh_token ?? undefined) as string | undefined,
+      expiresAt: (data.expires_at ?? undefined) as string | undefined,
+      clientId: (data.client_id ?? undefined) as string | undefined,
+      clientSecret: (data.client_secret ?? undefined) as string | undefined,
+      tokenUrl: (data.token_url ?? undefined) as string | undefined,
+      resource: (data.resource ?? undefined) as string | undefined,
+    };
+  },
+
+  async setMcpAuth(id, patch) {
+    const c = await db();
+    const row = {
+      ...(patch.kind !== undefined ? { auth_kind: patch.kind } : {}),
+      ...(patch.access !== undefined ? { token: patch.access } : {}),
+      ...(patch.refresh !== undefined ? { refresh_token: patch.refresh } : {}),
+      ...(patch.expiresAt !== undefined ? { expires_at: patch.expiresAt } : {}),
+      ...(patch.clientId !== undefined ? { client_id: patch.clientId } : {}),
+      ...(patch.clientSecret !== undefined ? { client_secret: patch.clientSecret } : {}),
+      ...(patch.tokenUrl !== undefined ? { token_url: patch.tokenUrl } : {}),
+      ...(patch.resource !== undefined ? { resource: patch.resource } : {}),
+    };
+    if (!Object.keys(row).length) return;
+    const { error } = await c.from('mcp_servers').update(row).eq('id', id);
+    if (error) throw new AppError('unknown', error.message);
   },
 };
 

@@ -20,6 +20,17 @@ export type McpServer = {
   /** 相手に渡す鍵。持っていることは出すが、**中身は画面に返さない** */
   hasToken: boolean;
   /**
+   * **どうやって入るか**（2026-08-27）。
+   * `none` 鍵が要らない / `token` 社長が貼った / `oauth` 相手の認可を踏んだ。
+   * **中身は返らない** — 画面が知るのは「入り方」と「いま入れているか」だけ。
+   */
+  authKind: 'none' | 'token' | 'oauth';
+  /**
+   * **もう一度ログインが要るか。** oauth なのに鍵が無い／切れていて更新もできない、
+   * のときだけ true。**繋がっていないなら、そう出す**（使えるふりをしない）。
+   */
+  needsAuth?: boolean;
+  /**
    * **書ける道具まで許すか。**
    * 既定は「読むだけ」— 外に出る道具（メール・公開・支払い）は Approval 必須、
    * という決めごとの一形（→ `docs/PLAN.md` 守るルール）。
@@ -31,6 +42,21 @@ export type McpServer = {
   checkedAt?: string;
   toolCount?: number;
   lastError?: string;
+};
+
+/**
+ * OAuth の控え。**行って戻らない** — 画面にも依頼文にも出ない。
+ * 置き場は `mcp_servers` の列（0037）。`access` は 0028 の `token` を使い回す。
+ */
+export type McpAuth = {
+  kind: 'none' | 'token' | 'oauth';
+  access?: string;
+  refresh?: string;
+  expiresAt?: string;
+  clientId?: string;
+  clientSecret?: string;
+  tokenUrl?: string;
+  resource?: string;
 };
 
 /** 相手が名乗った道具1つ */

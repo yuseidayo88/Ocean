@@ -1,7 +1,7 @@
 import { AGENT_COLOR, type EmployeeColor } from '@/lib/view/model';
 import { byName as rosterByName, crewFor } from '@/lib/roster';
 import { finishNote, finishSay, gateNote, paceSay, type Finished } from '@/lib/exec/finish';
-import type { McpServer } from '@/lib/mcp/types';
+import type { McpAuth, McpServer } from '@/lib/mcp/types';
 import { previewFor } from '@/lib/deliver/format';
 import { BUILTIN_SKILLS } from '@/lib/roster/skills';
 import { AppError } from '@/lib/errors';
@@ -976,12 +976,16 @@ export const memoryStore: Store = {
   async addMcpServer(x) {
     const had = [...mcps.values()].find((m) => m.url === x.url);
     if (had) {
+      // **出しなおしは、入り方ごとやり直し**（supabase 版と同じ。双子）
       Object.assign(had, { name: x.name, token: x.token,
+                           authKind: x.token ? 'token' : 'none', auth: undefined,
+                           needsAuth: false,
                            checkedAt: undefined, toolCount: undefined, lastError: undefined });
       return had.id;
     }
     const id = `mcp-${Date.now().toString(36)}-${++n}`;
-    mcps.set(id, { id, name: x.name, url: x.url, token: x.token, write: false, on: true });
+    mcps.set(id, { id, name: x.name, url: x.url, token: x.token, write: false, on: true,
+                   authKind: x.token ? 'token' : 'none' });
     return id;
   },
 
@@ -1004,6 +1008,27 @@ export const memoryStore: Store = {
   },
 
   async mcpSecret(id) { return mcps.get(id)?.token; },
+
+  /** OAuth の控え（supabase 版と同じ約束。**画面には出さない**） */
+  async mcpAuth(id) {
+    const m = mcps.get(id);
+    if (!m) return null;
+    return { kind: m.authKind ?? 'none', access: m.token, ...(m.auth ?? {}) };
+  },
+
+  async setMcpAuth(id, patch) {
+    const m = mcps.get(id);
+    if (!m) return;
+    m.auth = { ...(m.auth ?? { kind: m.authKind ?? 'none' }), ...patch };
+    if (patch.kind !== undefined) m.authKind = patch.kind;
+    if (patch.access !== undefined) m.token = patch.access;
+    /**
+     * **「もう一度ログインが要るか」は supabase 版と同じ数え方**（双子）。
+     * 鍵が無い、あるいは切れていて更新の口も無いときだけ。
+     */
+    m.needsAuth = m.authKind === 'oauth'
+      && (!m.token || (!!m.auth?.expiresAt && new Date(m.auth.expiresAt) < new Date() && !m.auth.refresh));
+  },
 };
 
 /** run と通知の置き場（メモリ版だけの裏方） */
@@ -1055,7 +1080,7 @@ const staff = (g3.__staff ??= []);
 type DiscRow = Discovery & { past: Discovery['candidates']; seq: number };
 type ProfRow = Profile & { seq: number };
 /** つないだ道具（MCP）。**鍵はここにだけ持つ** — 画面に返す型には入れない */
-type McpRow = Omit<McpServer, 'hasToken'> & { token?: string };
+type McpRow = Omit<McpServer, 'hasToken'> & { token?: string; auth?: McpAuth };
 const g5 = globalThis as unknown as { __mcps?: Map<string, McpRow> };
 const mcps = (g5.__mcps ??= new Map<string, McpRow>());
 

@@ -86,8 +86,13 @@ export function blockedWhy(raw: string, demo = process.env.DEMO_MODE === '1'): s
    * **点の無い名前は断る**（`ほげ` / `db` / `metadata`）。
    * モデルが書いた語がそのまま住所になってしまうし、社内の網では
    * **1語の名前が内側の機械に当たる**（`https://ほげ` を引きに行かせない）。
+   *
+   * ただし**外から見えないと分かっている名前は、ここでは数えない** —
+   * `localhost` は上の2行がもう捌いている（デモのときだけ通す）。
+   * ここで断ると、デモで通したはずの `http://localhost:3999` が
+   * この行だけで落ちる（**同じことを2か所で決めない**）。
    */
-  if (!u.hostname.includes('.') && !u.hostname.startsWith('[')) {
+  if (!local && !u.hostname.includes('.') && !u.hostname.startsWith('[')) {
     return 'その住所は読めません（ドメイン名になっていません）';
   }
   if (u.port && !['', '80', '443'].includes(u.port) && !demo) return '既定でない口（ポート）は読めません';
