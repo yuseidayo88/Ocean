@@ -8,7 +8,8 @@ import { reviewDeliverable } from '@/lib/exec/qa';
 import { webOn } from '@/lib/ai/web';
 import { recallBlock, termsOf } from '@/lib/exec/recall';
 import { founderBlock, tendMemory } from '@/lib/exec/memory';
-import { RUN_TOOLS, drawWorkflow, makeImage, writeDeliverable } from './tools';
+import { RUN_TOOLS, drawWorkflow, makeImage, readUrl, writeDeliverable } from './tools';
+import { host, readPage } from '@/lib/web/fetch';
 import { draw, imageModel, imagesOn } from '@/lib/ai/image';
 import { imageCostUsd } from '@/lib/ai/catalog';
 import type { ToolDef } from '@/lib/ai/provider';
@@ -199,6 +200,12 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
      * 依頼文と道具の両方がこれを見る — **説明にだけ出て道具が無い**、を作らない。
      */
     const canDrawHint = task.ownerSlug === 'visual-designer' && await imagesOn();
+    /**
+     * **URL を読めるか。** 社長が渡した URL を読むのに栓は要らないが、
+     * **社員が自分で行き先を決める**これは「調べる」の一部なので Web検索と同じ栓に乗せる。
+     * 依頼文と道具の両方がこれを見る — **説明にだけ出て道具が無い**、を作らない。
+     */
+    const canReadHint = await webOn();   // **1回だけ聞く**（下の `web:` でも使い回す）
 
     const system = [
       personaOf(task.ownerSlug ?? '', task.owner ?? 'AI社員'),
@@ -211,6 +218,8 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
       + '**手順や承認の流れなら draw_workflow で図にする**（どちらか一方）',
       ...(canDrawHint ? ['   **絵そのものを頼まれているなら make_image で1枚出す**（これも代わりになる）。'
         + '**説明で終わらせない** — ロゴを頼まれたらロゴを出す'] : []),
+      ...(canReadHint ? ['   **依頼文や渡された資料に URL があるなら read_url で読む**（読んでから書く）。'
+        + '**知らない住所を作らない** — 見当で開かず、要るなら ask_decision で聞く'] : []),
       '   **出す形は、社長がそのまま使える形にする** — '
       + '表計算に入れる数字は kind=csv、公開するページは kind=page（1枚のHTML）、'
       + '読んで判断してもらうものは kind=report。**迷ったら report**',
@@ -296,18 +305,32 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
      * 会社が入れていない（従量課金の栓がオフ）／鍵が無い ときは渡さない —
      * 持っていない道具の説明を読ませると、呼んで失敗するだけになる。
      */
-    const base = canDrawHint ? [...RUN_TOOLS, makeImage] : RUN_TOOLS;
+    /**
+     * **URL を読む道具は、Web を見てよい会社にだけ渡す**（2026-08-27）。
+     *
+     * 社長が渡した URL を読むのに栓は要らない（材料を渡されただけ）が、
+     * **社員が自分で行き先を決める**これは「調べる」の一部なので、
+     * Web検索と同じ栓に乗せる。**設定を3つに増やさない。**
+     */
+    const base = [
+      ...RUN_TOOLS,
+      ...(canDrawHint ? [makeImage] : []),
+      ...(canReadHint ? [readUrl] : []),
+    ];
     const tools = ready?.defs.length
       ? [...base, ...ready.defs.map((d) => ({
           name: d.name, description: d.description,
           input_schema: d.input_schema as ToolDef['input_schema'],
         }))]
       : base;
-    const rounds = ready?.defs.length ? MCP_ROUNDS : 1;
+    // **読む道具があるときだけ往復する**（MCP と同じ理由。無ければ1往復のまま）
+    const rounds = ready?.defs.length || canReadHint ? MCP_ROUNDS : 1;
 
     for (let round = 1; round <= rounds; round++) {
     /** この往復で呼ばれた、つないだ道具（結果を次の往復に渡す） */
     const called: { name: string; args: Record<string, unknown> }[] = [];
+    /** この往復で頼まれた「読んで」。**読むのは往復の外**（MCP と同じ形） */
+    const pages: { url: string; why: string }[] = [];
 
     for await (const c of pick().stream({
       tier: 'standard', model: pref.model, effort: pref.effort,
@@ -317,7 +340,7 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
        * 調査担当と分析担当は「調べないと嘘になる」仕事なので、ここだけ開ける
        * （憲法の「渡されていないなら『未確認』と印を付ける」が、ここで本当に外れる）。
        */
-      web: looksUp && (await webOn()),
+      web: looksUp && canReadHint,
       system, messages, tools, maxTokens: 8000,
     })) {
       if (c.type === 'tool_use') {
@@ -339,6 +362,9 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
           await s.addStep(runId, {
             seq: ++seq, kind: 'tool_use', tool: 'write_deliverable', summary: `${wrote} を書いた`,
           });
+        } else if (c.name === 'read_url') {
+          // **読むのは往復の外。** ここでは頼まれたことだけ覚える（MCP と同じ形）
+          pages.push({ url: String(a.url ?? ''), why: String(a.why ?? '') });
         } else if (c.name === 'make_image') {
           picture = a;                        // 絵は往復の外でもらう（時間がかかる）
         } else if (c.name === 'draw_workflow') {
@@ -391,7 +417,7 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
      * 成果物まで書けたか、判断で止まったなら、そこで終わり（道具を呼んでいても続けない）。
      * 何も呼ばなかったときも終わり — 続ける理由が無い。
      */
-    if (!called.length || wrote || drawn || decision || finished) break;
+    if ((!called.length && !pages.length) || wrote || drawn || decision || finished) break;
 
     /**
      * **結果は「社長の発言」として渡す。**
@@ -401,6 +427,23 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
      * **宙に浮いた tool_call を作らない**この形のほうが安全でもある。
      */
     const results: string[] = [];
+    /**
+     * **読む**（2026-08-27）。**読めなかったら読めなかったと渡す** —
+     * 黙って空を返すと、社員は「読んだつもり」で書いてしまう
+     * （憲法の「確かめていないことを言い切らない」が、ここで実際に破れる）。
+     */
+    for (const p of pages.slice(0, 3)) {
+      await s.addStep(runId, {
+        seq: ++seq, kind: 'tool_use', tool: 'read_url',
+        summary: p.why ? `${p.why}（${host(p.url)}）` : `${host(p.url)} を読んだ`,
+      });
+      try {
+        const got = await readPage(p.url);
+        results.push(`--- ${p.url} ---\n${got.title ? `題: ${got.title}\n` : ''}${got.text}`);
+      } catch (e) {
+        results.push(`--- ${p.url} ---\n読めませんでした: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
     for (const call of called) {
       const r = await runTool(ready!, call.name, call.args);
       await s.addStep(runId, {

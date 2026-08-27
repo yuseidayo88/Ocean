@@ -283,6 +283,38 @@ async function* fakeRun(input: RunInput): AsyncIterable<Chunk> {
    * 行儀よく書くと、**押し直しの往復（`rewrite`）が動いているか永久に分からない**。
    */
   /**
+   * **URL を読む道（2026-08-27）。**
+   *
+   * 読む道具が渡っているとき（＝会社が Web を見る設定）だけ通る。
+   * 1回だけ読んで、**返ってきたものを見てから**成果物を書く — 本物と同じ順。
+   *
+   * **この環境は外に出られない**ので、たいてい「読めませんでした」が返る。
+   * それでいい — 確かめたいのは**往復が回ることと、読めなかったときに
+   * 読めなかったと渡ること**で、そこが本番でいちばん危ない
+   * （黙って空を返すと、社員は「読んだつもり」で書く）。
+   */
+  const canRead = (input.tools ?? []).some((t) => t.name === 'read_url');
+  const back = text.includes('呼んだ道具の結果です');
+  if (canRead && !back) {
+    const found = all.match(/https?:\/\/\S+/)?.[0]?.replace(/[)、。]+$/, '');
+    yield tool('log_step', { title: '渡された資料を開く', progress: 25 });
+    yield tool('read_url', { url: found ?? 'https://example.com/', why: '中身を確かめる' });
+    yield { type: 'done', usage: { ...EMPTY_USAGE }, stopReason: 'tool_use' };
+    return;
+  }
+  if (canRead && back) {
+    const read = text.slice(text.indexOf('---')).split('\n').slice(0, 4).join('\n').trim();
+    yield tool('write_deliverable', {
+      title: task.slice(0, 18), kind: 'report',
+      body: ['# ' + task, '', '## 読んだもの', '', read || '(空でした)', '',
+             '> これは決め打ちの成果物です。'].join('\n'),
+    });
+    yield tool('finish', { summary: `${task} を終えた（1ページ読んだ）` });
+    yield { type: 'done', usage: { ...EMPTY_USAGE }, stopReason: 'tool_use' };
+    return;
+  }
+
+  /**
    * **絵を頼まれたのに、絵の説明を書いて終わる道**（2026-08-27）。
    * **これも本番でいちばん起きる壊れ方** — 「ロゴを作って」と言われたモデルは、
    * 放っておくとロゴの**説明**を書いて満足する（デザイン担当の Critical Rule に
@@ -764,7 +796,11 @@ async function* fakeChat(input: RunInput): AsyncIterable<Chunk> {
   }
 
   // ① すでに事業がある道 — 材料が来たら覚え、そろったら診断
-  const url = said.match(/([\w-]+(?:\.[\w-]+)+(?:\/\S*)?)/)?.[1];
+  // **頭から丸ごと取る**（2026-08-27）。前は scheme を落として `example.com/x` だけを
+  // 拾っていたので、**取り込んだ URL がそのままでは読めなかった**（口も落ちる）
+  const url = said.match(/https?:\/\/\S+/)?.[1]
+    ?? said.match(/https?:\/\/\S+/)?.[0]
+    ?? said.match(/([\w-]+(?:\.[\w-]+)+(?:\/\S*)?)/)?.[1];
   const numbers = /[0-9０-９][\d,，]{2,}/.test(said);
   // 材料をもらう前は、道具が要らない（ふつうの返事だけ）
   if (/すでに事業|いまの事業|事業があります/.test(said)) {

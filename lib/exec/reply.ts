@@ -6,6 +6,7 @@ import { isOpener, OPENER } from './openers';
 import { sayError } from '@/lib/errors';
 import { execPref } from './pref';
 import { termsOf } from './recall';
+import { readPage } from '@/lib/web/fetch';
 
 /**
  * **統括AIに返してもらう1回**（書くのはもう終わっている）。
@@ -199,8 +200,32 @@ export async function replyTo(
         let pid = t.thread.profileId ?? state.profileId;
         if (!pid) { pid = await s.createProfile(out.business?.name || 'わたしの事業'); await s.linkThread(id, { profileId: pid }); }
         state.profileId = pid;
+        /**
+         * **URL は、本当に読む**（2026-08-27。社長の「他のやつから順に」の①）。
+         *
+         * ここまで、サイトを渡されても `queued`（待機）で置くだけだった —
+         * 一覧に並ぶのに**中身は一度も読まれず**、診断は記憶から書かれていた。
+         * 「読めないものを読めたと言わない」は守れていたが、
+         * **読めるものを読まないまま**だったのがこの穴。
+         *
+         * **社長が渡した URL に栓は要らない**（材料を渡されただけ。社員が自分で
+         * 行き先を決める `read_url` とは別 — あちらは Web検索の栓に乗る）。
+         * 読めなかったら**読めなかったと残す** — 待機のまま黙って置かない。
+         */
         for (const m of out.materials) {
-          await s.addSource(pid, { kind: m.kind, locator: m.locator, summary: m.content, status: m.content ? 'done' : 'queued' });
+          let body = m.content;
+          let got: 'done' | 'queued' | 'failed' = body ? 'done' : 'queued';
+          if (!body && /^https?:\/\//i.test(m.locator)) {
+            try {
+              const page = await readPage(m.locator, 8_000);
+              body = [page.title, page.text].filter(Boolean).join('\n');
+              got = 'done';
+            } catch (e) {
+              body = `読めませんでした: ${e instanceof Error ? e.message : String(e)}`;
+              got = 'failed';
+            }
+          }
+          await s.addSource(pid, { kind: m.kind, locator: m.locator, summary: body, status: got });
         }
         if (out.business?.name || out.business?.stage) await s.setProfileMeta(pid, out.business);
         if (out.findings.length) {

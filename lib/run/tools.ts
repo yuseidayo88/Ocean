@@ -72,6 +72,34 @@ export const writeDeliverable: ToolDef = {
 };
 
 /**
+ * **URL を1本読む**（2026-08-27。社長の「他のやつから順に」の①）。
+ *
+ * ここまで AI社員が読めるのは、依頼文に載っているものだけだった。
+ * 検索（Web プラグイン）はあるのに「**このページを読んで**」ができず、
+ * 社長が渡した URL は取り込みの一覧に**待機のまま**並んでいた。
+ *
+ * **これは「読む」道具。** 1タスク＝1往復が崩れる唯一の型で、
+ * MCP とまったく同じ仕掛けに乗せる（読んだ結果を渡して、もう一度書いてもらう）。
+ * **つないでいない会社では往復しない**のと同じで、渡らない社員は1往復のまま。
+ */
+export const readUrl: ToolDef = {
+  name: 'read_url',
+  description:
+    'Web のページを1つ読む。**渡された URL か、依頼文に出てくる URL だけ**。'
+    + '読めるのは https の HTML かテキスト（PDF・画像は読めない）。'
+    + '**当てずっぽうの URL を作らない** — 知らない住所は開かず、必要なら ask_decision で聞く。'
+    + '読んだら、その中身を根拠として成果物に使う（出どころの URL も書く）。',
+  input_schema: {
+    type: 'object',
+    properties: {
+      url: { type: 'string', description: 'https で始まる完全な URL' },
+      why: { type: 'string', description: '何を確かめたくて読むか（1行）。歩みに出る' },
+    },
+    required: ['url', 'why'],
+  },
+};
+
+/**
  * 絵を1枚出す。**成果物のもう1つの形**（1タスクに1つ、`write_deliverable` の代わり）。
  *
  * 2026-08-27。社長の「ロゴ作る時は GPT の AI 使うようにしようかな あと Nano Banana とか」。
