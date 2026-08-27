@@ -262,7 +262,9 @@ export type InboxAct =
   /** フェーズの ◆（タスクに紐づかない。Work のもの） */
   | { kind: 'gate'; workId: string; dec: LiveDecision }
   | { kind: 'deliverable'; delId: string; workId: string; taskId: string;
-      title: string; state: string; body: string; delKind: string }
+      title: string; state: string; body: string; delKind: string;
+      /** 画像の成果物なら、絵の道（→ `LiveDeliverable.src`） */
+      src?: string }
   | { kind: 'stuck'; taskId: string }
   | null;
 
@@ -289,7 +291,7 @@ export async function inboxAct(subjectType?: string, subjectId?: string): Promis
       if (d) {
         return {
           kind: 'deliverable', delId: d.id, workId: w.id, taskId: t.id,
-          title: d.title, state: d.state, body: d.body ?? d.preview ?? '', delKind: d.kind,
+          title: d.title, state: d.state, body: d.body ?? d.preview ?? '', delKind: d.kind, src: d.src,
         };
       }
       if (t.state === 'blocked' || t.state === 'failed') return { kind: 'stuck', taskId: t.id };

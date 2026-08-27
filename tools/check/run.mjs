@@ -1018,9 +1018,10 @@ await ev(`[...document.querySelectorAll('button, [role="button"]')].find(b => b.
 await wait(3500);
 const small = await until((b) => /[1-9]\d?%|要確認/.test(b), 30);
 // **寄せ先は「そのフェーズを回す人」**（2026-08-26）。先頭の社員ではない —
-// フェーズ「案出し」の担当は企画担当なので、担当のいないタスクはそこへ落ちる
+// フェーズ「案出し」の担当はデザイン担当なので、担当のいないタスクはそこへ落ちる
+// （2026-08-27 に企画担当から替えた。小さい仕事はロゴやバナーのことが多い）
 ok('社員を提案しない計画でも、担当が付いて動く',
-   small.includes('企画担当') && /[1-9]\d?%|要確認/.test(small), small.slice(0, 140));
+   small.includes('デザイン担当') && /[1-9]\d?%|要確認/.test(small), small.slice(0, 140));
 
 // ⑤'' **社長が止められる。** 見ていないあいだも動く会社に、止める手が要る
 const smallUrl = await ev('location.href');

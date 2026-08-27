@@ -19,14 +19,32 @@ import { T4, T5 } from '@/lib/design/tokens';
  * 書体を抱えるとビルドが太る）。ブラウザの印刷には「PDF に保存」がもとから付いていて、
  * それが**いちばん確かな PDF** — 画面の黒ではなく、白い紙の体裁で刷る（→ `printable`）。
  */
-export function DelTake({ title, body, kind }: { title: string; body: string; kind?: string }) {
+export function DelTake({ title, body, kind, src }: { title: string; body: string; kind?: string; src?: string }) {
   const [done, setDone] = useState(false);
-  if (!body) return null;
-
   const f = formatOf(kind, body);
+  // 画像は本文が空でも持ち出せる（中身は絵のほう）
+  if (!body && !src) return null;
+
   const name = fileName(title, f);
 
-  const save = () => {
+  /**
+   * **画像は絵そのものを落とす**（2026-08-27）。`src` は署名つきURL（本番）か
+   * data URI（デモ）— どちらも `fetch` で読めるので、道を分けない。
+   * 落ちたら黙って何もしない（**押しても何も起きない**を作らないよう、
+   * ボタンは絵があるときにしか出ない）。
+   */
+  const save = async () => {
+    if (f.shape === 'image') {
+      if (!src) return;
+      try {
+        const blob = await (await fetch(src)).blob();
+        const url = URL.createObjectURL(blob);
+        const a = Object.assign(document.createElement('a'), { href: url, download: name });
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch { /* 取れなかった。何も起きない */ }
+      return;
+    }
     const url = URL.createObjectURL(new Blob([body], { type: `${f.mime};charset=utf-8` }));
     const a = Object.assign(document.createElement('a'), { href: url, download: name });
     a.click();
@@ -43,7 +61,7 @@ export function DelTake({ title, body, kind }: { title: string; body: string; ki
     Object.assign(fr.style, {
       position: 'fixed', right: '0', bottom: '0', width: '0', height: '0', border: '0', opacity: '0',
     });
-    fr.srcdoc = printable(title, body, kind);
+    fr.srcdoc = printable(title, body, kind, src);
     fr.onload = () => {
       const w = fr.contentWindow;
       if (!w) { fr.remove(); return; }
@@ -65,19 +83,24 @@ export function DelTake({ title, body, kind }: { title: string; body: string; ki
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
       {done && <span style={{ color: T5, fontSize: 11, paddingRight: 4 }}>コピーしました</span>}
-      <button className="icob" title="コピー" aria-label="本文をコピー" onClick={copy}
-        style={{ display: 'inline-flex', padding: 4 }}>
-        <Icon name="copy" color={T4} size={14} />
-      </button>
-      {f.print && (
+      {/* 画像に「本文をコピー」は要らないので、本文があるときだけ */}
+      {body && (
+        <button className="icob" title="コピー" aria-label="本文をコピー" onClick={copy}
+          style={{ display: 'inline-flex', padding: 4 }}>
+          <Icon name="copy" color={T4} size={14} />
+        </button>
+      )}
+      {f.print && (f.shape !== 'image' || !!src) && (
         <button className="btn" title="印刷して PDF にする" aria-label="PDF にする" onClick={toPdf}
           style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 7px',
                    borderRadius: 6, color: T5, fontSize: 11 }}>PDF</button>
       )}
+      {(f.shape !== 'image' || !!src) && (
       <button className="icob" title={name} aria-label="ダウンロード" onClick={save}
         style={{ display: 'inline-flex', padding: 4 }}>
         <Icon name="download" color={T4} size={14} />
       </button>
+      )}
     </span>
   );
 }

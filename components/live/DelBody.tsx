@@ -49,8 +49,32 @@ function PageView({ body }: { body: string }) {
  * 形は `lib/deliver/format.ts` の1枚が決める（→ `docs/design/12-outputs.md`）。
  * 図なら描き、表なら表にし、ページなら下見を出す。**記号のまま出さない。**
  */
-export function DelBody({ body, kind }: { body: string; kind?: string }) {
+export function DelBody({ body, kind, src }: { body: string; kind?: string; src?: string }) {
   const f = formatOf(kind, body);
+
+  /**
+   * **画像は絵そのものを出す**（2026-08-27。社長の「ロゴ作る時は GPT の AI を」）。
+   *
+   * 下に付くのは**何を頼んだか**（社員の一言＋プロンプト）。
+   * 絵だけ出すと、社長は「何を狙ったのか」も「文字の綴り」も読めない。
+   * **道が無いときは、無いと言う** — 空の枠を出さない。
+   */
+  if (f.shape === 'image') {
+    if (!src) return <span style={{ color: T5, fontSize: 12.5 }}>画像を読み込めませんでした。</span>;
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* 白い面に置く。ロゴは白背景で作られることが多く、黒の上だと消える */}
+        <span style={{
+          display: 'block', borderRadius: 10, border: `1px solid ${SEAM}`,
+          background: '#fff', padding: 12, textAlign: 'center',
+        }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={src} alt="" style={{ maxWidth: '100%', maxHeight: 420, display: 'inline-block' }} />
+        </span>
+        {body && <Rich body={body} />}
+      </div>
+    );
+  }
 
   if (f.shape === 'diagram') {
     const doc = readDoc(body);

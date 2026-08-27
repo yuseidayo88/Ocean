@@ -215,6 +215,12 @@ export const memoryStore: Store = {
       preview: previewFor(d.kind, d.body), body: d.body,
       by: live.tasks.find((t) => t.id === d.taskId)?.owner, when: new Date().toISOString(), taskId: d.taskId,
       version,
+      /**
+       * **画像はここに持つ**（2026-08-27）。本番は Supabase Storage に置いて
+       * 署名つきURLを作るが、デモは器の中しか無いので data URI をそのまま持つ。
+       * **画面はどちらかを知らなくていい** — `src` に入っていればそのまま `<img>` に渡す。
+       */
+      src: d.image ? `data:${d.image.mime};base64,${d.image.base64}` : undefined,
     });
     return id;
   },
@@ -635,6 +641,8 @@ export const memoryStore: Store = {
       effort: patch.effort ?? cur.effort,
       paused: patch.paused ?? cur.paused,
       web: patch.web ?? cur.web,
+      images: patch.images ?? cur.images,
+      imageModel: patch.imageModel ?? cur.imageModel,
     });
   },
 

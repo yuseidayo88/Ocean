@@ -570,7 +570,7 @@ export default function WorkPage() {
                   boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 10,
                   padding: 12, borderRadius: 12, background: '#121212',
                 }}>
-                  <DelThumb preview={d.preview} height={84} />
+                  <DelThumb preview={d.preview} src={d.src} height={84} />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <span style={{ display: 'flex', alignItems: 'baseline', gap: 7, minWidth: 0 }}>
                       <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</span>
@@ -741,9 +741,9 @@ export default function WorkPage() {
             )}
             <div style={{ flex: 1 }} />
             {/* **持ち出せない成果物は、無いのと同じ**（→ `components/live/DelTake.tsx`） */}
-            <DelTake title={openDel.title} body={openDel.body ?? openDel.preview ?? ''} kind={openDel.kind} />
+            <DelTake title={openDel.title} body={openDel.body ?? openDel.preview ?? ''} kind={openDel.kind} src={openDel.src} />
           </div>
-          <DelBody body={openDel.body ?? openDel.preview ?? ''} kind={openDel.kind} />
+          <DelBody body={openDel.body ?? openDel.preview ?? ''} kind={openDel.kind} src={openDel.src} />
         </div>
         {/* 社長のレビュー。**押すと本当に変わる**（承認 / 差し戻し → 直しタスク） */}
         <DelActions delId={openDel.id} workId={w0id} taskId={openDel.taskId}

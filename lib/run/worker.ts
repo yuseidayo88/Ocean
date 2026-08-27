@@ -8,7 +8,9 @@ import { reviewDeliverable } from '@/lib/exec/qa';
 import { webOn } from '@/lib/ai/web';
 import { recallBlock, termsOf } from '@/lib/exec/recall';
 import { founderBlock, tendMemory } from '@/lib/exec/memory';
-import { RUN_TOOLS, drawWorkflow, writeDeliverable } from './tools';
+import { RUN_TOOLS, drawWorkflow, makeImage, writeDeliverable } from './tools';
+import { draw, imageModel, imagesOn } from '@/lib/ai/image';
+import { imageCostUsd } from '@/lib/ai/catalog';
 import type { ToolDef } from '@/lib/ai/provider';
 import { checkWorkflow, fatalOf, packDoc, toWorkflow } from '@/lib/diagram/parse';
 import { readyTools, runTool, toolsLine } from '@/lib/mcp/company';
@@ -132,6 +134,21 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
   await s.addDecisionRefs(runId, decided.map((d) => d.id)).catch(() => {});
   let seq = 0;
   const usage = { in: 0, out: 0 };
+  /** 絵のぶんのトークン。**文字と混ぜない** — 単価が25倍ちがう（→ `imageCostUsd`） */
+  const picUse = { in: 0, out: 0, model: '' };
+  /**
+   * **記帳は1か所で組む**（2026-08-27。社長の「画像生成した時のトークンも計算してほしい」）。
+   *
+   * トークンは足して1つにする（社長が見る「使ったぶん」は会社の合計）。
+   * **原価だけは別々に数える** — 画像の出力トークンは文字のモデルの25倍あるので、
+   * 混ぜると 1/25 に記帳されて残高が嘘になる（前に「0 で記帳」で同じ穴を踏んでいる → 0034）。
+   */
+  const bill = () => ({
+    tokensIn: usage.in + picUse.in,
+    tokensOut: usage.out + picUse.out,
+    costCents: (billedCostUsd('standard', usage.in, usage.out, pref.model)
+      + imageCostUsd(picUse.model, picUse.in, picUse.out)) * 100,
+  });
   let wrote: string | undefined;
   /** 書いた成果物の id（**品質担当がその場で差し戻す**ために要る） */
   let delId: string | null = null;
@@ -177,6 +194,11 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
 
     /** **調べる仕事か**（Web を見てよい社員）。名簿の2人だけ */
     const looksUp = task.owner === '調査担当' || task.owner === '分析担当';
+    /**
+     * **絵を描ける人か**（2026-08-27）。デザイン担当で、会社が絵を入れていて、鍵があるとき。
+     * 依頼文と道具の両方がこれを見る — **説明にだけ出て道具が無い**、を作らない。
+     */
+    const canDrawHint = task.ownerSlug === 'visual-designer' && await imagesOn();
 
     const system = [
       personaOf(task.ownerSlug ?? '', task.owner ?? 'AI社員'),
@@ -187,6 +209,8 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
       '1. log_step で作業の区切りを3〜6回記録する（progress は正直に）',
       '2. 成果物を1つ書く — write_deliverable か、'
       + '**手順や承認の流れなら draw_workflow で図にする**（どちらか一方）',
+      ...(canDrawHint ? ['   **絵そのものを頼まれているなら make_image で1枚出す**（これも代わりになる）。'
+        + '**説明で終わらせない** — ロゴを頼まれたらロゴを出す'] : []),
       '   **出す形は、社長がそのまま使える形にする** — '
       + '表計算に入れる数字は kind=csv、公開するページは kind=page（1枚のHTML）、'
       + '読んで判断してもらうものは kind=report。**迷ったら report**',
@@ -256,6 +280,8 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
 
     /** 図の下書き（道具から来た生の値）。**通ってから成果物にする** */
     let drawn: Record<string, unknown> | null = null;
+    /** 絵の頼み（`make_image` の引数）。**往復の外で**描いてもらう */
+    let picture: Record<string, unknown> | null = null;
 
     /**
      * **つないだ道具があるときだけ、往復する。**
@@ -265,12 +291,18 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
      * MCP は**読む道具**なので、読んだ結果を見てから書くことになる。
      * つないでいない会社ではこれまでどおり1往復 — **払う理由が無いのに往復しない**。
      */
+    /**
+     * **絵の道具は、描ける人にだけ渡す**（2026-08-27）。
+     * 会社が入れていない（従量課金の栓がオフ）／鍵が無い ときは渡さない —
+     * 持っていない道具の説明を読ませると、呼んで失敗するだけになる。
+     */
+    const base = canDrawHint ? [...RUN_TOOLS, makeImage] : RUN_TOOLS;
     const tools = ready?.defs.length
-      ? [...RUN_TOOLS, ...ready.defs.map((d) => ({
+      ? [...base, ...ready.defs.map((d) => ({
           name: d.name, description: d.description,
           input_schema: d.input_schema as ToolDef['input_schema'],
         }))]
-      : RUN_TOOLS;
+      : base;
     const rounds = ready?.defs.length ? MCP_ROUNDS : 1;
 
     for (let round = 1; round <= rounds; round++) {
@@ -307,6 +339,8 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
           await s.addStep(runId, {
             seq: ++seq, kind: 'tool_use', tool: 'write_deliverable', summary: `${wrote} を書いた`,
           });
+        } else if (c.name === 'make_image') {
+          picture = a;                        // 絵は往復の外でもらう（時間がかかる）
         } else if (c.name === 'draw_workflow') {
           drawn = a;                          // 検証してから成果物にする（往復の外で）
         } else if (c.name === 'ask_decision') {
@@ -391,7 +425,6 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
      * `run_ledger`（0014）は `cost_cents > 0` のときだけ台帳に落とすので、
      * **台帳に1行も入らず、残高も1日の上限も永久に効かない**。端数を捨てない。
      */
-    const costCents = billedCostUsd('standard', usage.in, usage.out, pref.model) * 100;
 
     // 読んだスキルと書いた学びを残す（失敗しても実行は倒さない）
     if (skills.length) await s.bumpSkillUse(skills.map((x) => x.id)).catch(() => {});
@@ -442,9 +475,90 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
 
     if (decision) {
       // 判断で止まる。失敗ではないので run は done、タスクは needs_decision
-      await s.finishRun(runId, { status: 'done', tokensIn: usage.in, tokensOut: usage.out, costCents, model: usedModel });
+      await s.finishRun(runId, { status: 'done', ...bill(), model: usedModel });
       await s.markDecision(taskId, decision);
       return { ok: 'decision', question: decision.question };
+    }
+
+    /**
+     * **絵は、往復の外でもらう**（2026-08-27。社長の「ロゴ作る時は GPT の AI を」）。
+     *
+     * 往復の中で待たない理由は2つ — 1枚に十数秒かかるのと、
+     * **文字のモデルと絵のモデルは別のところに聞く**から（`lib/ai/image.ts`）。
+     * 1タスク＝1往復は崩れない（絵を頼むのは1回だけ）。
+     *
+     * **描けなかったら、正直に失敗する。** 中身の無い画像の成果物を作らない —
+     * 社長は開いて初めて空だと気づくことになる。戻り道（もう一度やる / 飛ばす）は
+     * いつもどおり残る。
+     */
+    /**
+     * **描ける人が、描かずに書いて終わったら、1回だけ描き直してもらう**（2026-08-27）。
+     *
+     * これは**本番でいちばん起きる壊れ方**そのもの — 「ロゴを作って」と頼まれたモデルは、
+     * 放っておくと**ロゴの説明**を書いて満足する（デザイン担当の Critical Rule に
+     * 「説明で終わらせない」と書いてあっても守られない）。
+     * 決め打ちのプロバイダも1回目はそうする。
+     *
+     * 直し方はこの repo にもう答えがある — `rewrite` / `redraw` / 会話の `push` と同じで、
+     * **道具を1つに絞って `toolChoice: 'required'` で頼み直す。1回だけ。**
+     */
+    const drafted = wrote;
+    if (canDrawHint && !picture && drafted) {
+      const ask: Msg[] = [...messages, { role: 'user', content: [
+        `「${task.title}」で頼まれているのは**絵そのもの**です。文章では代わりになりません。`,
+        'make_image を1回だけ呼んで、実際の画像を1枚出してください。',
+        `いま書いた「${drafted}」の中身を、そのまま prompt に写して構いません（英語で）。`,
+        `**title は「${drafted}」のままにしてください。**`,
+      ].join('\n') }];
+      for await (const c of pick().stream({
+        tier: 'standard', model: pref.model, effort: pref.effort,
+        system, messages: ask, tools: [makeImage], toolChoice: 'required', maxTokens: 4000,
+      })) {
+        if (c.type === 'tool_use' && c.name === 'make_image') picture = (c.input ?? {}) as Record<string, unknown>;
+        if (c.type === 'done') { usage.in += c.usage.inputTokens; usage.out += c.usage.outputTokens; }
+      }
+      /**
+       * 絵が来たなら、**さっき書いた文章は下書きだった**ことにする。
+       * 消す口は作らない — **同じ題なら新しい版になる**という版の仕掛けが
+       * 最初からあるので（0001 の lineage_id / superseded）、
+       * 題を揃えるだけで文章のほうは一覧から隠れる。**成果物は1つに見える。**
+       */
+      if (picture) { picture.title = drafted; wrote = undefined; }
+    }
+
+    if (picture && !wrote) {
+      const title = String(picture.title ?? task.title);
+      const prompt = String(picture.prompt ?? '').trim();
+      await s.addStep(runId, {
+        seq: ++seq, kind: 'tool_use', tool: 'make_image', summary: `${title} を描いている`, progress: 80,
+      });
+      try {
+        const pic = await draw(prompt, { model: await imageModel() });
+        picUse.in += pic.usage.inputTokens;
+        picUse.out += pic.usage.outputTokens;
+        picUse.model = pic.model;
+        wrote = title;
+        // 本文は**何を頼んだか**。差し戻しのとき「前は何と言ったか」を読む場所になる
+        bodyText = [String(picture.note ?? '').trim(), '', prompt].filter(Boolean).join('\n');
+        delId = await s.addDeliverable({
+          workId: work.id, taskId, employeeId: task.ownerId,
+          title, kind: 'image', body: bodyText,
+          image: { base64: pic.base64, mime: pic.mime },
+        });
+        await s.addStep(runId, {
+          seq: ++seq, kind: 'tool_use', tool: 'make_image', summary: `${title} を出した`,
+        });
+      } catch (e) {
+        const why = `絵を出せませんでした — ${e instanceof Error ? e.message : String(e)}`;
+        await s.finishRun(runId, {
+          status: 'failed', ...bill(),
+          model: usedModel, error: why,
+        });
+        await s.addNotification({
+          kind: 'エラー', body: `${task.title} — ${why}`, subjectType: 'task', subjectId: taskId,
+        });
+        return { ok: false, error: why };
+      }
     }
 
     /**
@@ -465,8 +579,7 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
       if (fatal.length) {
         const why = `図が通りませんでした — ${fatal[0].rule}`;
         await s.finishRun(runId, {
-          status: 'failed', tokensIn: usage.in, tokensOut: usage.out,
-          costCents: billedCostUsd('standard', usage.in, usage.out, pref.model) * 100,
+          status: 'failed', ...bill(),
           model: usedModel, error: why,
         });
         await s.addNotification({
@@ -533,8 +646,7 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
           ? 'この依頼には応えられないと返ってきました'
           : '頼み直しても成果物が書かれませんでした';
       await s.finishRun(runId, {
-        status: 'failed', tokensIn: usage.in, tokensOut: usage.out,
-        costCents: billedCostUsd('standard', usage.in, usage.out, pref.model) * 100,
+        status: 'failed', ...bill(),
         model: usedModel,
         error: why,
       });
@@ -545,7 +657,7 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
       return { ok: false, error: why };
     }
 
-    await s.finishRun(runId, { status: 'done', tokensIn: usage.in, tokensOut: usage.out, costCents, model: usedModel });
+    await s.finishRun(runId, { status: 'done', ...bill(), model: usedModel });
     if (wrote) {
       /**
        * **品質担当が在籍していれば、社長に出す前に1度読む**（2026-08-26 → `lib/exec/qa.ts`）。
@@ -592,8 +704,7 @@ export async function runTask(work: LiveWork, taskId: string): Promise<RunOutcom
   } catch (e) {
     // 途中で落ちても、そこまでに使ったぶんは正直に記帳する（0 にしない）
     await s.finishRun(runId, {
-      status: 'failed', tokensIn: usage.in, tokensOut: usage.out,
-      costCents: billedCostUsd('standard', usage.in, usage.out, pref.model) * 100,
+      status: 'failed', ...bill(),
       model: usedModel, error: say(e),
     }).catch(() => {});
     await s.addNotification({

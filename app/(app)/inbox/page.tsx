@@ -262,7 +262,7 @@ function Settle({ act, onDone }: { act: InboxAct; onDone: () => void }) {
       {act.kind === 'deliverable' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {/* **中身を出す。** 見ずに承認させない — 要確認 は「あなたが成果物を見る」ということ */}
-          <DelBody body={act.body} kind={act.delKind} />
+          <DelBody body={act.body} kind={act.delKind} src={act.src} />
           {/* `DelActions` はペインの足として作ってあり、内側に 16px を持っている。
               横だけ打ち消して、ボタンの左端を本文にそろえる */}
           <div style={{ margin: '0 -16px' }}>

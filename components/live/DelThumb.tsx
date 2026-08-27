@@ -8,7 +8,23 @@ import { MUTE, RAIL } from '@/lib/design/tokens';
  * どちらも同じ絵で、開くまで見分けられない。
  * 見分けるための面なので、中身に使う。
  */
-export function DelThumb({ preview, height = 108 }: { preview?: string; height?: number }) {
+export function DelThumb({ preview, src, height = 108 }: { preview?: string; src?: string; height?: number }) {
+  /**
+   * **絵は絵で見分ける**（2026-08-27）。画像の成果物には書き出しが無いので、
+   * 文字を出すところが無い — 縮めた絵そのものがサムネイルになる。
+   * **白い面に置く**（ロゴは白背景で作られることが多く、黒の上だと消える）。
+   */
+  if (src) {
+    return (
+      <div style={{
+        height, boxSizing: 'border-box', borderRadius: 8, background: '#fff',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: 6,
+      }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+      </div>
+    );
+  }
   // 形によって書き出しの割れ方が違う（表は行、文章は文）。**行が先** — 表を1行に潰さない
   // **箇条書きは割らない**（`・` の行を「。」で切ると、2行めから印が消える）
   const lines = (preview ?? '').split('\n')

@@ -4,7 +4,7 @@
  * ゼロ状態の読み書き。**画面はここを通して store だけを読む** — ダミーは無い。
  * 読みは失敗しても画面を壊さない（空を返す）。書きは失敗を言う。
  */
-import { EFFORTS, modelOf, type Effort } from '@/lib/ai/catalog';
+import { EFFORTS, imageSpec, modelOf, type Effort } from '@/lib/ai/catalog';
 import { store, type AgentPref, type ChatMsg, type ChatThread, type LiveEmployee, type LiveWork, type Note, type SkillRow } from '@/lib/store';
 import { sayError } from '@/lib/errors';
 
@@ -128,9 +128,15 @@ export async function teamData(): Promise<{ staff: LiveEmployee[]; skills: Skill
  * 一覧に無いモデル名をそのまま保存すると、次の実行がまるごと上流で弾かれる。
  */
 export async function prefSet(
-  employeeId: string | null, patch: { model?: string; effort?: string; paused?: boolean; web?: boolean },
+  employeeId: string | null,
+  patch: { model?: string; effort?: string; paused?: boolean; web?: boolean; images?: boolean; imageModel?: string },
 ): Promise<{ ok: boolean; message?: string }> {
   const model = patch.model !== undefined ? (modelOf(patch.model) ? patch.model : null) : undefined;
+  // **知らない名前は受け取らない**（モデルと同じ守り。画面と実物を食い違わせない）
+  const img = patch.imageModel !== undefined
+    ? (imageSpec(patch.imageModel)?.id === patch.imageModel ? patch.imageModel : null)
+    : undefined;
+  if (img === null) return { ok: false, message: '知らない設定です' };
   const effort = patch.effort !== undefined
     ? ((EFFORTS as readonly string[]).includes(patch.effort) ? (patch.effort as Effort) : null)
     : undefined;
@@ -141,6 +147,8 @@ export async function prefSet(
       ...(effort ? { effort } : {}),
       ...(patch.paused !== undefined ? { paused: patch.paused } : {}),
       ...(patch.web !== undefined ? { web: patch.web } : {}),
+      ...(patch.images !== undefined ? { images: patch.images } : {}),
+      ...(img ? { imageModel: img } : {}),
     });
     return { ok: true };
   } catch (e) { return { ok: false, message: sayError(e, '設定を保存できませんでした') }; }

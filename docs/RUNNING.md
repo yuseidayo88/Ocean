@@ -371,6 +371,35 @@ Ox Alpha の実測（2026-08-24）— **$0/M** ／ **tools 対応**
 ほかの候補を探すなら **無料 × 道具対応** で絞る:
 https://openrouter.ai/models?max_price=0&supported_parameters=tools
 
+### 絵を出す（2026-08-27）
+
+**鍵は同じ `OPENROUTER_API_KEY`。** それとは別に、**社長が押す栓が要る** —
+メンバー画面 →「全員に効くこと」→ **絵を描く**（既定はオフ）。
+画像は文字より高いトークンで課金されるので、黙って有料にしない（Web検索と同じ作法）。
+
+| | |
+|---|---|
+| 誰が描くか | **デザイン担当だけ**（名簿の8人目）。ほかの社員に道具は渡らない |
+| 何で描くか | 会社に1つ（`agent_prefs.image_model`）。一覧は `lib/ai/catalog.ts` の `IMAGE_MODELS` |
+| どこに置くか | Supabase Storage の `deliverables` バケット（private）。行は `deliverables.storage_path` |
+| どう見えるか | 署名つきURL（1時間）。画面は数秒ごとに読み直すので、切れる前に新しいものが来る |
+| 原価 | **同じ台帳に、同じトークンで**。ただし単価は画像のモデルのもの（`imageCostUsd`） |
+
+**鍵が無い環境では決め打ちの絵**（256×256 の PNG）が出る。道は本物と同じなので、
+Storage 以外の穴はデモで見つかる（`tools/check/image.mjs`）。
+
+**鍵が入ったら、最初にこの3つを確かめる**（Luna のときと同じ手順）:
+
+1. **モデルの綴り** — `GET /api/v1/models` と `IMAGE_MODELS` の `id` を突き合わせる
+   （`google/gemini-2.5-flash-image` ＝ Nano Banana / `openai/gpt-image-1`）
+2. **返りの形** — いまは `choices[0].message.images[0].image_url.url` の data URI を
+   前提に書いてある（`lib/ai/image.ts`）。違ったらここ1か所を直す
+3. **単価** — `IMAGE_MODELS` の `inPerMTok` / `outPerMTok` は各社の一覧から組んだもの。
+   **実測ではない。** ずれていると残高がずれる
+
+**Storage は実キーでしか確かめられない**（この環境から `*.supabase.co` に出られない）。
+最初の1枚が出たら、`storage_path` が埋まっているかと、署名つきURLが画面で開けるかを見る。
+
 ## デプロイ
 
 ```bash

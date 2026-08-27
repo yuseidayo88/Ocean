@@ -105,6 +105,20 @@ export class FakeProvider implements ModelProvider {
         return;
       }
       /**
+       * **描かずに書いて終わったときの頼み直し**（`lib/run/worker.ts`。2026-08-27）。
+       * 道具が `make_image` 1つに絞られているので、必ず描く。
+       */
+      if (only === 'make_image') {
+        yield tool('make_image', {
+          title: /「([^」]+)」のままに/.exec(said)?.[1] ?? 'ロゴ 案A',
+          prompt: 'A minimal bakery logo mark: a wheat ear inside a circle, '
+            + 'single warm color on a white background, flat vector, no text.',
+          note: '（仮）丸の中に麦の穂を1本。パン屋だと一目で分かる形を狙いました。',
+        });
+        yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
+        return;
+      }
+      /**
        * **書かなかったときの頼み直し**（`lib/run/worker.ts` の `rewrite`）。
        * AI社員の実行は `log_step` で見分けているが、この往復は
        * **`write_deliverable` 1つしか渡らない**ので、そこでは拾えない。
@@ -215,6 +229,8 @@ let n = 0;
 const brokeOnce = new Set<string>();
 /** **1回だけ、成果物を書かずに終える**ための覚え（本番でいちばん多い壊れ方） */
 const skippedOnce = new Set<string>();
+/** 絵を頼まれて**説明だけ書いて終わった**タスク（1回だけ壊れる） */
+const drewOnce = new Set<string>();
 const tool = (name: string, inputValue: unknown): Chunk =>
   ({ type: 'tool_use', id: `fake-${++n}`, name, input: inputValue });
 
@@ -266,6 +282,33 @@ async function* fakeRun(input: RunInput): AsyncIterable<Chunk> {
    *
    * 行儀よく書くと、**押し直しの往復（`rewrite`）が動いているか永久に分からない**。
    */
+  /**
+   * **絵を頼まれたのに、絵の説明を書いて終わる道**（2026-08-27）。
+   * **これも本番でいちばん起きる壊れ方** — 「ロゴを作って」と言われたモデルは、
+   * 放っておくとロゴの**説明**を書いて満足する（デザイン担当の Critical Rule に
+   * 「説明で終わらせない」と書いてあっても守られない）。
+   * 行儀よく描くと、**描き直しの往復が動いているか永久に分からない**。
+   *
+   * 道具に `make_image` が渡っているとき（＝デザイン担当で、会社が絵を入れている）だけ通る。
+   */
+  const canDraw = (input.tools ?? []).some((t) => t.name === 'make_image');
+  if (canDraw && !drewOnce.has(task)) {
+    drewOnce.add(task);
+    yield tool('log_step', { title: '方向を3つ考えた', progress: 40 });
+    await wait(600);
+    yield tool('write_deliverable', {
+      title: task.slice(0, 18), kind: 'report',
+      body: ['# ' + task, '', '## 方向', '',
+             '- 案A: 丸の中に麦の穂。パン屋だと一目で分かる',
+             '- 案B: 頭文字を崩した字だけの形。落ち着くが、業種は伝わらない',
+             '- 案C: 建物の外観を線で。かわいいが、小さくすると潰れる', '',
+             '> これは決め打ちの成果物です。'].join('\n'),
+    });
+    yield tool('finish', { summary: `${task} の方向を出した` });
+    yield { type: 'done', usage: { ...EMPTY_USAGE }, stopReason: 'tool_use' };
+    return;
+  }
+
   const pushed = text.includes('まだ成果物が書かれていません');
   if (task === '競合を並べて比べる' && !pushed && !skippedOnce.has(task)) {
     skippedOnce.add(task);
@@ -595,13 +638,15 @@ function plan(goal: string, fixed = false) {
        */
       phases: fixed
         ? [
-          { name: '案出し', goal: '方向の違う案が3つ並んでいる', weeks: 0.5, owner: '企画担当' },
-          { name: '仕上げ', goal: '選んだ案が使える形になっている', weeks: 0.5, owner: '開発担当' },
+          // **小さい仕事はロゴやバナーのことが多い**ので、回すのはデザイン担当。
+          // 絵の道（make_image → Storage → 成果物 → 画面）を、通しの検査が通る
+          { name: '案出し', goal: '方向の違う案が3つ並んでいる', weeks: 0.5, owner: 'デザイン担当' },
+          { name: '仕上げ', goal: '選んだ案が使える形になっている', weeks: 0.5, owner: 'デザイン担当' },
         ]
         : [
           { name: '宣伝の下ごしらえ', goal: '告知の集客プランが決まっている', weeks: 0.5, owner: '執筆担当' },
-          { name: '案出し', goal: '方向の違う案が3つ並んでいる', weeks: 0.5, owner: '企画担当' },
-          { name: '仕上げ', goal: '選んだ案が使える形になっている', weeks: 0.5, owner: '開発担当' },
+          { name: '案出し', goal: '方向の違う案が3つ並んでいる', weeks: 0.5, owner: 'デザイン担当' },
+          { name: '仕上げ', goal: '選んだ案が使える形になっている', weeks: 0.5, owner: 'デザイン担当' },
         ],
       /**
        * **1回目はわざと辻褄を壊す**（2026-08-26）。関門の行き先が実在しないフェーズを指す。

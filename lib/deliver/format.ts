@@ -12,7 +12,7 @@ import { blocks, plain, type Block } from './md';
  * この表を見るのは4か所 — AI社員の道具（何を書けるか）／画面（どう描くか）／
  * 持ち出し（拡張子と型）／一覧の書き出し。**業種は入れない**（何の会社でも同じ形）。
  */
-export type Shape = 'markdown' | 'csv' | 'html' | 'code' | 'diagram';
+export type Shape = 'markdown' | 'csv' | 'html' | 'code' | 'diagram' | 'image';
 
 export type Format = {
   /** 画面と社長に見せる語。**短い名詞**（状態の6語とは別の語彙） */
@@ -36,6 +36,15 @@ export const FORMATS: Record<string, Format> = {
   page:    { label: 'ページ', shape: 'html',     ext: 'html', mime: 'text/html',      print: true },
   code:    { label: 'コード', shape: 'code',     ext: 'txt',  mime: 'text/plain',     print: false },
   diagram: { label: '図',     shape: 'diagram',  ext: 'json', mime: 'application/json', print: false },
+  /**
+   * **画像**（2026-08-27。社長の「ロゴ作る時は GPT の AI 使うようにしようかな」）。
+   *
+   * ほかの7つと違って、**本文がここには無い**。中身はバイト列で、
+   * 置き場所は `deliverables.storage_path`（0001 から空いていた列）。
+   * `body` に入っているのは**何を頼んだか**（プロンプト）で、
+   * 差し戻しのときに「前は何と言ったか」を読むために残す。
+   */
+  image:   { label: '画像',   shape: 'image',    ext: 'png',  mime: 'image/png',      print: true },
 };
 
 const FALLBACK: Format = FORMATS.report;
@@ -97,6 +106,8 @@ export function readCsv(src: string): string[][] {
  */
 export function previewFor(kind: string | undefined, body: string): string {
   const f = formatOf(kind, body);
+  // **画像には書き出しが無い。** サムネイルは絵そのものを出すので、文字は要らない
+  if (f.shape === 'image') return '';
   // 図は**主線**を書き出しにする（JSON をそのまま出すと記号の山になる）
   if (f.shape === 'diagram') return previewOf(body) ?? body.slice(0, 90);
   if (f.shape === 'csv') {
@@ -161,9 +172,20 @@ function blockHtml(b: Block): string {
  *
  * ページ（LP）は**社員が書いた HTML をそのまま刷る**（体裁もその HTML のもの）。
  */
-export function printable(title: string, body: string, kind?: string): string {
+export function printable(title: string, body: string, kind?: string, src?: string): string {
   const f = formatOf(kind, body);
   if (f.shape === 'html') return body;
+  /**
+   * **画像は紙いっぱいに1枚**（2026-08-27）。本文（何を頼んだか）はその下に小さく。
+   * 中身が無いのに刷らない — 道が無ければ、いつもの組み方に落とす。
+   */
+  if (f.shape === 'image' && src) {
+    return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>${esc(title)}</title>
+<style>@page{margin:14mm}body{margin:0;font:13px/1.7 system-ui,sans-serif;color:#111}
+img{display:block;width:100%;height:auto;max-height:220mm;object-fit:contain}
+p{white-space:pre-wrap;margin:10mm 0 0;color:#444}</style></head>
+<body><img src="${esc(src)}" alt="${esc(title)}"><p>${esc(body)}</p></body></html>`;
+  }
 
   const inner = f.shape === 'csv'
     ? blockHtml({ t: 'table', head: readCsv(body)[0] ?? [], rows: readCsv(body).slice(1) })

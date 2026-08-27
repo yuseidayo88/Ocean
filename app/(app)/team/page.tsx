@@ -10,7 +10,7 @@ import { BLUE, COMPOSER_H, DIM, EDGE, GREEN, GREEN_T, HAIR, MUTE, RED_T, RULE, S
 import { Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
 import { AGENT_COLOR, EXEC, prefWords } from '@/lib/view/model';
-import { EFFORTS, modelOf, type Effort } from '@/lib/ai/catalog';
+import { DEFAULT_IMAGE_MODEL, EFFORTS, IMAGE_MODELS, modelOf, type Effort } from '@/lib/ai/catalog';
 import { pressable } from '@/lib/a11y';
 import { hire, listEmployees } from '@/app/actions/run';
 import { founderGet, founderSet, learningToRule, learningsGet, learningsSet, prefSet, rulesGet, rulesSet, skillToggle, teamData } from '@/app/actions/live';
@@ -119,7 +119,7 @@ export default function TeamPage() {
    * 画面を先に変えて、裏で書く — 書けなかったときだけ言って、本物を読み直す。
    * `employeeId` が null なら統括AI。
    */
-  const pick = async (employeeId: string | null, patch: { model?: string; effort?: Effort; paused?: boolean; web?: boolean }) => {
+  const pick = async (employeeId: string | null, patch: { model?: string; effort?: Effort; paused?: boolean; web?: boolean; images?: boolean; imageModel?: string }) => {
     setPrefs((xs) => [
       ...xs.filter((x) => x.employeeId !== employeeId),
       { ...(xs.find((x) => x.employeeId === employeeId) ?? { employeeId }), ...patch },
@@ -218,6 +218,10 @@ export default function TeamPage() {
           onPause={sel && !sel.cand ? (next) => pick(sel.id, { paused: next }) : undefined}
           web={!!prefOf(null)?.web}
           onWeb={(next) => pick(null, { web: next })}
+          images={!!prefOf(null)?.images}
+          imageModel={prefOf(null)?.imageModel}
+          onImages={(next) => pick(null, { images: next })}
+          onImageModel={(id) => pick(null, { imageModel: id })}
           onToggle={async (id, on) => {
             setSkills((xs) => xs.map((x) => (x.id === id ? { ...x, on } : x)));
             await skillToggle(id, on);
@@ -375,14 +379,19 @@ function McpList() {
   );
 }
 
-function SettingsPane({ who, l, skills, web, onToggle, onHire, onPick, onPause, onWeb, onClose }: {
+function SettingsPane({ who, l, skills, web, images, imageModel, onToggle, onHire, onPick, onPause, onWeb, onImages, onImageModel, onClose }: {
   who: 'employee' | 'exec' | 'all' | 'candidate'; l: Line; skills: SkillRow[];
   /** 会社が Web を見るか（「全員に効くこと」でだけ意味がある） */
   web?: boolean;
+  /** 会社が絵を描くか＋どのモデルで（同じく「全員に効くこと」だけ） */
+  images?: boolean;
+  imageModel?: string;
   onToggle: (id: string, on: boolean) => void; onHire?: () => void; onClose: () => void;
   onPick?: (patch: { model?: string; effort?: Effort }) => void;
   onPause?: (next: boolean) => void;
   onWeb?: (next: boolean) => void;
+  onImages?: (next: boolean) => void;
+  onImageModel?: (id: string) => void;
 }) {
   const cand = who === 'candidate';
   const { say5 } = useShell();
@@ -523,6 +532,52 @@ function SettingsPane({ who, l, skills, web, onToggle, onHire, onPick, onPause, 
               <div style={{ flex: 1 }} />
               <Toggle on={!!web} label="Web を見る" onPick={(next) => onWeb?.(next)} />
             </div>
+          </Section>
+        )}
+
+        {/**
+          * **絵を描くかどうか**（2026-08-27。社長の「ロゴ作る時は GPT の AI 使うようにしようかな
+          * あと Nano Banana とか」）。**Web を見る**とまったく同じ作法 —
+          * 既定はオフ、社長が押す、何が変わるかを1行で言う。
+          *
+          * モデルは**会社に1つ**（絵を描くのはデザイン担当だけなので、7人ぶんの設定にしない）。
+          * **入れているときだけ出す** — 切っている設定の中身を選ばせない。
+          */}
+        {who === 'all' && (
+          <Section label="絵を描く">
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '11px 0' }}>
+              <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <span style={{ color: images ? T2 : T4 }}>ロゴやバナーを画像で出す</span>
+                <span style={{ color: T5, fontSize: 11.5, lineHeight: '17px' }}>
+                  デザイン担当の仕事だけ。
+                  {images ? '頼まれたものが、実際の1枚になって出てきます。' : '切っているあいだは、絵の説明までしか出せません。'}
+                  <br />画像は<span style={{ color: T4 }}>文字より高いトークンで課金されます</span>。
+                </span>
+              </div>
+              <div style={{ flex: 1 }} />
+              <Toggle on={!!images} label="絵を描く" onPick={(next) => onImages?.(next)} />
+            </div>
+            {images && (
+              <div style={{ display: 'flex', flexDirection: 'column', borderTop: `1px solid ${HAIR}` }}>
+                {IMAGE_MODELS.map((m) => {
+                  const on = (imageModel ?? DEFAULT_IMAGE_MODEL) === m.id;
+                  return (
+                    <button key={m.id} className="row" onClick={() => onImageModel?.(m.id)} style={{
+                      display: 'flex', alignItems: 'center', gap: 10, height: 40, borderRadius: 7,
+                      padding: '0 8px', margin: '0 -8px', textAlign: 'left',
+                    }}>
+                      <span style={{ width: 14, flexShrink: 0, display: 'inline-flex', justifyContent: 'center' }}>
+                        {on && <Icon name="check" color={GREEN_T} size={12} width={2.2} />}
+                      </span>
+                      <span style={{ color: on ? T2 : T4, fontSize: 13 }}>{m.label}</span>
+                      <span style={{ color: T5, fontSize: 11 }}>{m.maker}</span>
+                      <div style={{ flex: 1 }} />
+                      <span style={{ color: T5, fontSize: 11.5 }}>{m.note}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </Section>
         )}
 

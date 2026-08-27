@@ -65,6 +65,8 @@ export type WorkDel = {
   version?: number;
   /** 実際の書き出し（本物）。ダミーは図形のサムネイルで代用 */
   preview?: string;
+  /** 画像の成果物なら、絵の道（署名つきURL か data URI。→ `LiveDeliverable.src`） */
+  src?: string;
   /** 本文（markdown）。右ペインで開く */
   body?: string;
   /**
@@ -216,7 +218,7 @@ export function fromLive(w: LiveWork): WorkView {
       id: d.id, title: d.title, byName: d.by ?? 'AI社員', when: d.when, state: d.state,
       version: d.version,
       // **持ち出すとき、拡張子が変わる**（図は .json）ので kind も渡す
-      kind: d.kind, preview: d.preview, body: d.body, taskId: d.taskId,
+      kind: d.kind, preview: d.preview, src: d.src, body: d.body, taskId: d.taskId,
     })),
     /**
      * **決めたことは、この Work のもの**（2026-08-26）。

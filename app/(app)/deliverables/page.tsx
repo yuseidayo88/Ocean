@@ -105,7 +105,7 @@ export default function DeliverablesPage() {
                 padding: 12, borderRadius: 12, background: '#121212',
                 border: `1px solid ${top?.id === d.id ? '#333' : 'transparent'}`,
               }}>
-                <DelThumb preview={d.preview} />
+                <DelThumb preview={d.preview} src={d.src} />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                   <span style={{ display: 'flex', alignItems: 'baseline', gap: 7, minWidth: 0 }}>
                     <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</span>
@@ -146,12 +146,12 @@ export default function DeliverablesPage() {
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
             <span style={{ flex: 1, minWidth: 0, fontSize: 16 }}>{top.title}</span>
             {/* **持ち出せない成果物は、無いのと同じ**（→ `components/live/DelTake.tsx`） */}
-            <DelTake title={top.title} body={top.body ?? top.preview ?? ''} kind={top.kind} />
+            <DelTake title={top.title} body={top.body ?? top.preview ?? ''} kind={top.kind} src={top.src} />
           </div>
           <span style={{ color: T5, fontSize: 12, display: 'block', paddingTop: 5 }}>
             {top.by ?? 'AI社員'} · {top.workTitle}{ago(top.when) ? ` · ${ago(top.when)}` : ''}{(top.version ?? 1) > 1 ? ` · v${top.version}` : ''}
           </span>
-          <div style={{ paddingTop: 16 }}><DelBody body={top.body ?? top.preview ?? ''} kind={top.kind} /></div>
+          <div style={{ paddingTop: 16 }}><DelBody body={top.body ?? top.preview ?? ''} kind={top.kind} src={top.src} /></div>
         </div>
         <DelActions delId={top.id} workId={top.workId} taskId={top.taskId}
                     title={top.title} state={top.state} onDone={reload} />

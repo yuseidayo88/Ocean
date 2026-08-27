@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { AGENT_COLOR, type EmployeeColor } from '@/lib/view/model';
 import { byName as rosterByName, crewFor } from '@/lib/roster';
-import { previewFor } from '@/lib/deliver/format';
+import { FORMATS, previewFor } from '@/lib/deliver/format';
 import { colorFor, sortCands } from './memory';
 import { BUILTIN_SKILLS } from '@/lib/roster/skills';
 import { AppError } from '@/lib/errors';
@@ -29,6 +29,24 @@ const body = (d: DraftBody): DraftBody =>
 
 const db = () => createClient();
 type C = Awaited<ReturnType<typeof db>>;
+
+/**
+ * **画像の成果物に、ブラウザが読める道を付ける**（2026-08-27）。
+ *
+ * Storage は private なので、その都度**署名つきURL**を作る（1時間）。
+ * 画面は 2.5〜8秒ごとに読み直すので、切れる前に新しいものが届く。
+ * **1本にまとめて聞く** — 成果物30件で30往復にしない。
+ *
+ * 作れなかったものは `src` を付けない（**無いものを在ると言わない**）。
+ */
+async function signed(c: C, paths: (string | null)[]): Promise<Map<string, string>> {
+  const want = [...new Set(paths.filter(Boolean) as string[])];
+  if (!want.length) return new Map();
+  const { data } = await c.storage.from('deliverables').createSignedUrls(want, 3600);
+  const out = new Map<string, string>();
+  for (const r of data ?? []) if (r.path && r.signedUrl && !r.error) out.set(r.path, r.signedUrl);
+  return out;
+}
 
 /**
  * その Work の相談スレッド。**Work は会話を持たないが、行き先は持つ**（→ CLAUDE.md）。
@@ -250,7 +268,7 @@ export const supabaseStore: Store = {
     const [{ data: ph }, { data: tk }, { data: dl }, { data: dc }, { data: gate }] = await Promise.all([
       c.from('phases').select('id, seq, name, goal, status, started_at').eq('work_id', id).order('seq'),
       c.from('tasks').select('id, phase_id, seq, title, intent, status, progress, assignee_employee_id, owner_hint').eq('work_id', id).order('seq'),
-      c.from('deliverables').select('id, task_id, title, kind, status, version, preview, body, produced_by_employee_id, created_at')
+      c.from('deliverables').select('id, task_id, title, kind, status, version, preview, body, storage_path, produced_by_employee_id, created_at')
         .eq('work_id', id).neq('status', 'superseded').order('created_at', { ascending: false }),
       // **決めたことも同じ往復で取る**（右ペインの節が空のままだった。2026-08-26）
       c.from('decisions').select('question, chosen_option_key, decided_at').eq('work_id', id)
@@ -282,6 +300,8 @@ export const supabaseStore: Store = {
     ]);
     const em = new Map<string, Crew>();
     for (const e of [...(byDef.data ?? []), ...(byIds.data ?? [])]) em.set(e.id as string, e as Crew);
+    // 画像の成果物にブラウザが読める道を付ける（1本にまとめて聞く）
+    const url = await signed(c, (dl ?? []).map((x) => x.storage_path as string | null));
 
     return {
       id: w.id as string, title: w.title as string, goal: w.goal as string,
@@ -318,6 +338,7 @@ export const supabaseStore: Store = {
         state: d.status === 'review' ? '要確認' : d.status === 'approved' ? '承認済' : String(d.status),
         preview: (d.preview ?? undefined) as string | undefined,
         body: (d.body ?? undefined) as string | undefined,
+        src: url.get(d.storage_path as string),
         by: d.produced_by_employee_id ? em.get(d.produced_by_employee_id as string)?.display_name : undefined,
         taskId: (d.task_id ?? undefined) as string | undefined,
         when: d.created_at as string,
@@ -415,6 +436,32 @@ export const supabaseStore: Store = {
       ...(prev ? { lineage_id: prev.lineage_id, version: (prev.version as number) + 1 } : {}),
     }).select('id').single();
     if (error || !row) throw new AppError('unknown', error?.message ?? 'deliverables insert failed');
+
+    /**
+     * **画像は Storage に置いて、道だけを行に残す**（2026-08-27）。
+     *
+     * 道は `<account_id>/<deliverable_id>.<ext>` — **先頭のフォルダが口座**なので、
+     * storage のポリシーはそれを突き合わせるだけで絞れる（→ 0035）。
+     * 行の `account_id` は既定値で埋まっている（0007）ので、そこから読み直す。
+     *
+     * **置けなかったら、成果物ごと無かったことにする。** 中身の無い画像の成果物が
+     * 一覧に並ぶと、社長は開いて初めて空だと分かる（押しても何も起きない、の一形）。
+     */
+    if (d.image) {
+      const { data: who } = await c.from('deliverables')
+        .select('account_id').eq('id', row.id).single();
+      const ext = FORMATS[d.kind]?.ext ?? 'png';
+      const path = `${who?.account_id}/${row.id}.${ext}`;
+      const bytes = Uint8Array.from(atob(d.image.base64), (ch) => ch.charCodeAt(0));
+      const up = await c.storage.from('deliverables')
+        .upload(path, bytes, { contentType: d.image.mime, upsert: true });
+      if (up.error) {
+        await c.from('deliverables').delete().eq('id', row.id);
+        throw new AppError('unknown', up.error.message, undefined, '画像を置けませんでした');
+      }
+      await c.from('deliverables').update({ storage_path: path }).eq('id', row.id);
+    }
+
     if (prev) {
       await c.from('deliverables').update({ status: 'superseded' })
         .eq('lineage_id', prev.lineage_id).neq('id', row.id);
@@ -609,7 +656,7 @@ export const supabaseStore: Store = {
   async listDels() {
     const c = await db();
     const { data } = await c.from('deliverables')
-      .select('id, work_id, task_id, title, kind, status, version, preview, body, produced_by_employee_id, created_at, works(title)')
+      .select('id, work_id, task_id, title, kind, status, version, preview, body, storage_path, produced_by_employee_id, created_at, works(title)')
       .neq('status', 'superseded')
       .order('created_at', { ascending: false }).limit(60);
     const ids = [...new Set((data ?? []).map((d) => d.produced_by_employee_id).filter(Boolean))] as string[];
@@ -617,12 +664,14 @@ export const supabaseStore: Store = {
       ? await c.from('employees').select('id, display_name').in('id', ids)
       : { data: [] as { id: string; display_name: string }[] };
     const name = new Map((em ?? []).map((e) => [e.id, e.display_name]));
+    const url = await signed(c, (data ?? []).map((d) => d.storage_path as string | null));
     return (data ?? []).map((d) => ({
       id: d.id as string, title: d.title as string, kind: d.kind as string,
       state: d.status === 'review' ? '要確認' : d.status === 'approved' ? '承認済'
         : d.status === 'rejected' ? '差し戻し' : String(d.status),
       preview: (d.preview ?? undefined) as string | undefined,
       body: (d.body ?? undefined) as string | undefined,
+      src: url.get(d.storage_path as string),
       by: d.produced_by_employee_id ? name.get(d.produced_by_employee_id as string) : undefined,
       taskId: (d.task_id ?? undefined) as string | undefined,
       when: d.created_at as string,
@@ -1207,20 +1256,22 @@ export const supabaseStore: Store = {
 
   async listPrefs() {
     const c = await db();
-    const { data } = await c.from('agent_prefs').select('employee_id, model, effort, paused, web');
+    const { data } = await c.from('agent_prefs').select('employee_id, model, effort, paused, web, images, image_model');
     return (data ?? []).map((x): AgentPref => ({
       employeeId: (x.employee_id ?? null) as string | null,
       model: (x.model ?? undefined) as string | undefined,
       effort: (x.effort ?? undefined) as AgentPref['effort'],
       paused: !!x.paused,
       web: !!x.web,
+      images: !!x.images,
+      imageModel: (x.image_model ?? undefined) as string | undefined,
     }));
   },
 
   async prefOf(employeeId) {
     const c = await db();
     // **統括AI は employee_id が null。** `.eq(null)` は当たらないので `.is` で引く
-    const q = c.from('agent_prefs').select('employee_id, model, effort, paused, web');
+    const q = c.from('agent_prefs').select('employee_id, model, effort, paused, web, images, image_model');
     const { data } = await (employeeId ? q.eq('employee_id', employeeId) : q.is('employee_id', null))
       .maybeSingle();
     if (!data) return null;
@@ -1230,6 +1281,8 @@ export const supabaseStore: Store = {
       effort: (data.effort ?? undefined) as AgentPref['effort'],
       paused: !!data.paused,
       web: !!data.web,
+      images: !!data.images,
+      imageModel: (data.image_model ?? undefined) as string | undefined,
     };
   },
 
@@ -1244,6 +1297,8 @@ export const supabaseStore: Store = {
       ...(patch.effort !== undefined ? { effort: patch.effort } : {}),
       ...(patch.paused !== undefined ? { paused: patch.paused } : {}),
       ...(patch.web !== undefined ? { web: patch.web } : {}),
+      ...(patch.images !== undefined ? { images: patch.images } : {}),
+      ...(patch.imageModel !== undefined ? { image_model: patch.imageModel } : {}),
       updated_at: new Date().toISOString(),
     };
     if (row) {

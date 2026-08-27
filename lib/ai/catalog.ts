@@ -65,6 +65,65 @@ export type ModelSpec = {
   outPerMTok: number
 }
 
+/**
+ * **絵を出すモデル**（2026-08-27。社長の「ロゴ作る時は GPT の AI 使うようにしようかな
+ * あと Nano Banana とか」）。
+ *
+ * **上の `CATALOG` とは別の一覧にする。** 理由は3つとも形が違うから —
+ *   ・深さ（thinking の量）を受けない。だからつまみを出さない
+ *   ・階層（速い / ふだん / じっくり）で選ぶものではない
+ *   ・選ぶのは社員ごとではなく**会社に1つ**（→ 「全員に効くこと」）。
+ *     絵を描くのはデザイン担当だけなので、7人ぶんの設定にする意味が無い
+ *
+ * **原価は同じ台帳に、同じトークンで載る**（社長の「画像生成した時のトークンも
+ * 計算してほしい」）。画像のモデルは「1枚いくら」ではなく**出力トークン**で数える
+ * （1枚 ≈ 1000〜1500トークン）ので、`runs` と `token_ledger` の道がそのまま使える。
+ * **列も表も増えない。**
+ *
+ * **通り道での綴り（`id`）は実測していない。** この環境から `openrouter.ai` に
+ * 出られないので、名前も単価も各社の一覧から組んだもの。
+ * 鍵が入ったら最初に `GET /api/v1/models` と突き合わせる（Luna のときと同じ手順）。
+ */
+export type ImageSpec = {
+  id: string
+  maker: 'OpenAI' | 'Google'
+  label: string
+  /** 右に出す1語（モデルの一覧と同じ作法）。**値段は出さない** */
+  note: string
+  /** 100万トークンあたりの単価（USD）。画像は出力トークンで数える */
+  inPerMTok: number
+  outPerMTok: number
+}
+
+export const IMAGE_MODELS: readonly ImageSpec[] = [
+  {
+    id: 'google/gemini-2.5-flash-image', maker: 'Google', label: 'Nano Banana',
+    note: '直すのが得意', inPerMTok: 0.3, outPerMTok: 30,
+  },
+  {
+    id: 'openai/gpt-image-1', maker: 'OpenAI', label: 'GPT Image 1',
+    note: '文字が入る', inPerMTok: 5, outPerMTok: 40,
+  },
+]
+
+/** 既定の絵のモデル。**社長が選んでいないときは、これで走る**（画面と実物を食い違わせない） */
+export const DEFAULT_IMAGE_MODEL = IMAGE_MODELS[0].id
+
+export const imageSpec = (id?: string): ImageSpec | undefined =>
+  IMAGE_MODELS.find((m) => m.id === (id ?? DEFAULT_IMAGE_MODEL))
+
+/**
+ * 絵の原価（USD）。**文字のモデルの単価で数えない** —
+ * 画像の出力トークンは Luna の 25倍あるので、混ぜると 1/25 に記帳されて残高が嘘になる
+ * （前に「0 で記帳されていた」で同じ穴を踏んでいる → 0034）。
+ * **知らないモデルは 0**（無料のテストや env の差し替えと同じ扱い）。
+ */
+export function imageCostUsd(model: string | undefined, inTok: number, outTok: number): number {
+  const m = IMAGE_MODELS.find((x) => x.id === model)
+  if (!m) return 0
+  return (inTok / 1e6) * m.inPerMTok + (outTok / 1e6) * m.outPerMTok
+}
+
 /** Claude（4.6 以降）が受ける段。`none` は無い */
 const CLAUDE_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const
 /** GPT-5.6 の3枚が受ける段（Luna は実測で6段を確認済み） */

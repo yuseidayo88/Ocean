@@ -79,6 +79,16 @@ export type LiveWork = {
 export type LiveDeliverable = {
   id: string; title: string; kind: string; state: string;
   preview?: string; body?: string; by?: string; when?: string; taskId?: string;
+  /**
+   * **画像の中身**（2026-08-27）。ブラウザがそのまま `<img src>` に使える形。
+   *
+   * 本番は Supabase Storage の署名つき URL（`deliverables.storage_path` から作る。
+   * **1時間で切れる**が、画面は読み直すので新しいものが来る）。
+   * デモ（メモリ）は data URI。**画面はどちらかを知らなくていい。**
+   *
+   * 画像でない成果物には無い。あるかどうかで分けない — 形は `kind` が決める。
+   */
+  src?: string;
   /** 版。同じ Work で同じタイトルの成果物は同じ lineage の新しい版になり、前の版は隠れる */
   version?: number;
   /** できた時刻（並びの出どころ。listDels は**新しい順**という契約を双子で守る） */
@@ -213,6 +223,13 @@ export type AgentPref = {
    * 検索は従量で課金されるので**既定はオフ**。社長がメンバー画面から押す（→ `lib/ai/web.ts`）
    */
   web?: boolean;
+  /**
+   * **会社が絵を描くか**（統括AIの行だけ意味がある。2026-08-27）。
+   * Web検索とまったく同じ作法 — 従量で課金されるので**既定はオフ**、社長が押す。
+   * `imageModel` は `lib/ai/catalog.ts` の `IMAGE_MODELS` の `id`（未設定は既定に落ちる）。
+   */
+  images?: boolean;
+  imageModel?: string;
 };
 
 /** 実行の1歩。デスクの工程の行と、タスクの右ペインに出る */
@@ -276,7 +293,17 @@ export interface Store {
     model?: string }): Promise<void>;
   /** 成果物を書く。preview は本文の書き出し */
   /** 返り値は作った成果物の id（**品質担当がその場で差し戻す**ために要る。2026-08-26） */
-  addDeliverable(d: { workId: string; taskId: string; employeeId?: string; title: string; kind: string; body: string }): Promise<string | null>;
+  /**
+   * 成果物を1件置く。**画像も同じ口**（2026-08-27。社長の「置き場所は成果物」）。
+   *
+   * `image` があるときは中身がバイト列なので、`body` は**何を頼んだか**（プロンプト）を持つ。
+   * 置き場所は `deliverables.storage_path` — **0001 のスキーマが最初から空けていた列**で、
+   * ここまで一度も使われていなかった。
+   */
+  addDeliverable(d: {
+    workId: string; taskId: string; employeeId?: string; title: string; kind: string; body: string;
+    image?: { base64: string; mime: string };
+  }): Promise<string | null>;
   /** 通知を立てる（判断待ち / 要確認 / エラー） */
   addNotification(n: { kind: string; body: string; subjectType?: string; subjectId?: string }): Promise<void>;
   /** タスクの歩み（右ペインが読む） */
@@ -604,7 +631,7 @@ export interface Store {
   /** 1人ぶん。**実行の直前に読む** — 選んだものがその往復に効く */
   prefOf(employeeId: string | null): Promise<AgentPref | null>;
   /** 押したその場で効く（保存ボタンは無い）。渡した項目だけ書き換える */
-  setPref(employeeId: string | null, patch: { model?: string; effort?: Effort; paused?: boolean; web?: boolean }): Promise<void>;
+  setPref(employeeId: string | null, patch: { model?: string; effort?: Effort; paused?: boolean; web?: boolean; images?: boolean; imageModel?: string }): Promise<void>;
 
   /** 会社の名前（パンくずの根）。登録時はメールが入っている */
   companyName(): Promise<string>;
