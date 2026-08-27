@@ -3,10 +3,11 @@ import { byName as rosterByName, crewFor } from '@/lib/roster';
 import { finishNote, finishSay, gateNote, paceSay, type Finished } from '@/lib/exec/finish';
 import type { McpAuth, McpServer } from '@/lib/mcp/types';
 import { previewFor } from '@/lib/deliver/format';
+import { clean, pageHtml, slugOf, whyNot } from '@/lib/deliver/publish';
 import { BUILTIN_SKILLS } from '@/lib/roster/skills';
 import { AppError } from '@/lib/errors';
 import type { Hire } from '@/lib/exec/types';
-import { STALL_MS, type AgentPref, type ChatMsg, type ChatThread, type Discovery, type DraftWork, type LiveDecision, type LiveEmployee, type LiveWork, type Memo, type Note, type PendingSkill, type Profile, type RunStep, type SkillRow, type Store } from './types';
+import { STALL_MS, type AgentPref, type ChatMsg, type ChatThread, type Discovery, type DraftWork, type LiveDecision, type LiveDeliverable, type LiveEmployee, type LiveWork, type Memo, type Note, type PendingSkill, type Profile, type RunStep, type SkillRow, type Store } from './types';
 
 /**
  * メモリの保存先。**Supabase に出られない環境（デモ・この開発環境）用。**
@@ -808,6 +809,46 @@ export const memoryStore: Store = {
     return false;
   },
 
+  /* ══════════════ 公開（2026-08-27。supabase 版と同じ約束）══════════════ */
+
+  async publishPage(delId) {
+    let found: LiveDeliverable | undefined;
+    for (const d of bag.values()) {
+      const del = d.live?.dels?.find((x) => x.id === delId);
+      if (del) { found = del; break; }
+    }
+    if (!found) return { ok: false, message: 'その成果物はありません' };
+    const body = found.body ?? '';
+    const why = whyNot(found.kind, found.state, body);
+    if (why) return { ok: false, message: why };
+
+    const { html, removed } = clean(pageHtml(found.title, body));
+    // すでに出ているなら**同じ行き先のまま**入れ替える（URL を配ったあとで変えない）
+    const had = pages.get(delId);
+    const slug = had?.slug ?? slugOf(found.title);
+    const page = { slug, title: found.title, at: new Date().toISOString(), removed };
+    pages.set(delId, { ...page, html, off: false });
+    return { ok: true, page };
+  },
+
+  async unpublishPage(delId) {
+    const p = pages.get(delId);
+    if (p) p.off = true;      // **消さない**（いつ出して、いつ下げたかが残る）
+  },
+
+  async publishedFor(delId) {
+    const p = pages.get(delId);
+    if (!p || p.off) return null;
+    return { slug: p.slug, title: p.title, at: p.at, removed: p.removed };
+  },
+
+  async pageBySlug(slug) {
+    for (const p of pages.values()) {
+      if (p.slug === slug && !p.off) return { title: p.title, html: p.html };
+    }
+    return null;
+  },
+
   async addFixTask(workId, src, note) {
     const live = [...bag.values()].find((d) => d.live?.id === workId)?.live;
     if (!live) return;
@@ -1079,6 +1120,14 @@ const staff = (g3.__staff ??= []);
  */
 type DiscRow = Discovery & { past: Discovery['candidates']; seq: number };
 type ProfRow = Profile & { seq: number };
+/**
+ * 公開したページ（2026-08-27）。**器の中だけ** — デモでも `/p/<slug>` が本当に開く。
+ * `off` は下げた印。**消さない**（supabase 版の `revoked_at` と同じ）
+ */
+type PageRow = { slug: string; title: string; at: string; removed: string[]; html: string; off: boolean };
+const g6 = globalThis as unknown as { __pages?: Map<string, PageRow> };
+const pages = (g6.__pages ??= new Map<string, PageRow>());
+
 /** つないだ道具（MCP）。**鍵はここにだけ持つ** — 画面に返す型には入れない */
 type McpRow = Omit<McpServer, 'hasToken'> & { token?: string; auth?: McpAuth };
 const g5 = globalThis as unknown as { __mcps?: Map<string, McpRow> };

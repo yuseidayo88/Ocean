@@ -10,6 +10,7 @@ import { listDels } from '@/app/actions/run';
 import { DelActions } from '@/components/live/DelActions';
 import { DelBody } from '@/components/live/DelBody';
 import { DelTake } from '@/components/live/DelTake';
+import { DelPublish } from '@/components/live/DelPublish';
 import { DelThumb } from '@/components/live/DelThumb';
 import { formatOf } from '@/lib/deliver/format';
 import type { LiveDeliverable } from '@/lib/store';
@@ -152,6 +153,9 @@ export default function DeliverablesPage() {
             {top.by ?? 'AI社員'} · {top.workTitle}{ago(top.when) ? ` · ${ago(top.when)}` : ''}{(top.version ?? 1) > 1 ? ` · v${top.version}` : ''}
           </span>
           <div style={{ paddingTop: 16 }}><DelBody body={top.body ?? top.preview ?? ''} kind={top.kind} src={top.src} /></div>
+          {/* **作ったものに出し先を付ける**（→ `components/live/DelPublish.tsx`）。
+              出せない成果物には節ごと出ない */}
+          <DelPublish delId={top.id} kind={top.kind} state={top.state} body={top.body ?? ''} />
         </div>
         <DelActions delId={top.id} workId={top.workId} taskId={top.taskId}
                     title={top.title} state={top.state} onDone={reload} />

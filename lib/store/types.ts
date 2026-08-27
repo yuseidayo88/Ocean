@@ -96,6 +96,18 @@ export type LiveDeliverable = {
 };
 
 /**
+ * 公開したページ1枚（2026-08-27）。**中身（html）はここに返さない** —
+ * 画面が要るのは「出ているか」「どこに」「何を落としたか」だけ。
+ */
+export type PublishedPage = {
+  slug: string;
+  title: string;
+  at: string;
+  /** 公開のときに落としたものの名前。**黙って中身を変えない** */
+  removed: string[];
+};
+
+/**
  * フェーズの関所。`closePhaseIfDone` が返す。
  *
  * - `closed` … このひと呼びで active → review に畳んだフェーズ名（通知を立てた側）
@@ -359,6 +371,27 @@ export interface Store {
   setDelStatus(delId: string, status: 'approved' | 'rejected'): Promise<boolean>;
   /** 差し戻しの直しタスク。同じ担当に、社長の言葉つきで積む（ポンプが走らせる） */
   addFixTask(workId: string, src: { taskId?: string; title: string }, note: string): Promise<void>;
+
+  /* ══════════════ 公開（2026-08-27）══════════════ */
+
+  /**
+   * ページの成果物を**外に出す**（`/p/<slug>`）。**社長が押したときだけ** —
+   * 外に出る道具は Approval 必須、の一形（→ `docs/PLAN.md` 守るルール）。
+   *
+   * 出すのは**押した時点の中身**（script は落とす → `lib/deliver/publish.ts`）。
+   * あとで直しても勝手には変わらず、もう一度押すと入れ替わる。
+   * 断ったときは**理由を返す**（押しても何も起きない、を作らない）。
+   */
+  publishPage(delId: string): Promise<{ ok: boolean; message?: string; page?: PublishedPage }>;
+  /** 公開をやめる。**行は消さない**（いつ出して、いつ下げたかが残る） */
+  unpublishPage(delId: string): Promise<void>;
+  /** その成果物がいま公開されているか。**下げてあれば null** */
+  publishedFor(delId: string): Promise<PublishedPage | null>;
+  /**
+   * 公開の側から1枚引く。**セッションを持たない人が読む**ので、
+   * ここだけは会社で絞らない（→ `0038` のポリシー）。
+   */
+  pageBySlug(slug: string): Promise<{ title: string; html: string } | null>;
   /**
    * フェーズのタスクが全部 done なら、フェーズを review にして通知を立てる。
    *

@@ -486,7 +486,12 @@ async function* fakeRun(input: RunInput): AsyncIterable<Chunk> {
         + '.b{padding:40px 32px}.c{display:inline-block;padding:12px 20px;background:#1A73E8;color:#fff;border-radius:8px}</style>',
         '</head><body>',
         '<div class="h"><h1>はじめての一歩を、今日から。</h1><p>これは決め打ちの下書きです。</p></div>',
-        '<div class="b"><p>ここに約束を3つ並べます。</p><span class="c">申し込む</span></div>',
+        // **本番と同じ壊れ方をする**（2026-08-27）。本物のモデルは LP を書くとき、
+        // 頼まれてもいないのに小さい script と onclick を入れてくる。
+        // 行儀よく書くと、公開のときに落としているかを検査できない
+        '<div class="b"><p>ここに約束を3つ並べます。</p>',
+        '<span class="c" onclick="alert(1)">申し込む</span></div>',
+        '<script>document.title = "書き換えました";</script>',
         '</body></html>',
       ].join(''),
     });
@@ -587,7 +592,16 @@ const lastUser = (i: RunInput) => {
 
 /** 終わりが言えるか。「伸ばしたい」「良くしたい」のような、終点の無い言い方を弾く */
 const OPEN_ENDED = /(伸ばし|成長|改善|良く|うまく|なんとか|軌道に乗)/;
-const SHORT_ONE = /(ロゴ|バナー|名前|コピー|見出し|アイコン)/;
+const SHORT_ONE = /(ロゴ|バナー|名前|コピー|見出し|アイコン|LP|ランディング)/;
+/**
+ * **LP は「作って出す」まで**（2026-08-27）。小さい仕事のうち、
+ * これだけは成果物が `page` になる（`lib/run/worker.ts` は**タスクの題**で見分ける）。
+ * ここを分けておかないと、公開の道（`tools/check/publish.mjs`）が
+ * **一度も `page` の成果物に行き当たらない**。
+ * 「ページ」「サイト」は入れない — `ホームページの直すところを出したい` のような
+ * ふつうの依頼まで小さい仕事に化ける
+ */
+const LP_ONE = /(LP|ランディング)/;
 
 function container(goal: string) {
   const ends = !OPEN_ENDED.test(goal) || /したい$/.test(goal) === false;
@@ -704,7 +718,12 @@ function plan(goal: string, fixed = false) {
        */
       first_phase_tasks: [
         { title: '参考を集める', intent: '同じ業種の事例を10件集めて、方向を3つに分ける', owner_hint: '商品設計担当' },
-        { title: '案を3つ出す', intent: '方向の違う案を3つ。それぞれ選ぶ理由を1行で', owner_hint: 'デザイン制作担当' },
+        {
+          // **LP のときは、題にそう書く。** 社員はタスクの題を見て何を出すか決めるので、
+          // ここが「案を3つ出す」のままだと、LP を頼んでも1枚も出てこない
+          title: LP_ONE.test(goal) ? 'LP の案を3つ出す' : '案を3つ出す',
+          intent: '方向の違う案を3つ。それぞれ選ぶ理由を1行で', owner_hint: 'デザイン制作担当',
+        },
       ],
       deliverables: [
         { name: '案の比較', phase: '案出し' },

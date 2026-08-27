@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { AGENT_COLOR, type EmployeeColor } from '@/lib/view/model';
 import { byName as rosterByName, crewFor } from '@/lib/roster';
 import { FORMATS, previewFor } from '@/lib/deliver/format';
+import { clean, pageHtml, slugOf, whyNot } from '@/lib/deliver/publish';
 import { colorFor, sortCands } from './memory';
 import { BUILTIN_SKILLS } from '@/lib/roster/skills';
 import { AppError } from '@/lib/errors';
@@ -26,6 +27,15 @@ type DraftBody = Pick<DraftWork, 'container' | 'questions' | 'hires' | 'plan' | 
 /** 統括AIの出力そのもの。**業務データはフェーズ・タスク・質問の表のほうが真実** */
 const body = (d: DraftBody): DraftBody =>
   ({ container: d.container, questions: d.questions, hires: d.hires, plan: d.plan, real: d.real });
+
+/**
+ * 成果物の状態の語。**6語のうちの2つ ＋ 差し戻し**（→ CLAUDE.md 言葉）。
+ * 前は同じ対応が3か所にベタ書きされていて、`review` を書き忘れた場所が
+ * 生の英語を画面に出していた。**同じことを2か所で決めない**
+ */
+const DEL_WORD: Record<string, string> = {
+  review: '要確認', approved: '承認済', rejected: '差し戻し',
+};
 
 const db = () => createClient();
 type C = Awaited<ReturnType<typeof db>>;
@@ -335,7 +345,7 @@ export const supabaseStore: Store = {
       })),
       dels: (dl ?? []).map((d) => ({
         id: d.id as string, title: d.title as string, kind: d.kind as string,
-        state: d.status === 'review' ? '要確認' : d.status === 'approved' ? '承認済' : String(d.status),
+        state: DEL_WORD[d.status as string] ?? String(d.status),
         preview: (d.preview ?? undefined) as string | undefined,
         body: (d.body ?? undefined) as string | undefined,
         src: url.get(d.storage_path as string),
@@ -667,8 +677,7 @@ export const supabaseStore: Store = {
     const url = await signed(c, (data ?? []).map((d) => d.storage_path as string | null));
     return (data ?? []).map((d) => ({
       id: d.id as string, title: d.title as string, kind: d.kind as string,
-      state: d.status === 'review' ? '要確認' : d.status === 'approved' ? '承認済'
-        : d.status === 'rejected' ? '差し戻し' : String(d.status),
+      state: DEL_WORD[d.status as string] ?? String(d.status),
       preview: (d.preview ?? undefined) as string | undefined,
       body: (d.body ?? undefined) as string | undefined,
       src: url.get(d.storage_path as string),
@@ -689,6 +698,57 @@ export const supabaseStore: Store = {
       .update({ status }).eq('id', delId).eq('status', 'review').select('id');
     if (error) throw new AppError('unknown', error.message);
     return (data?.length ?? 0) > 0;
+  },
+
+  /* ══════════════ 公開（2026-08-27）══════════════ */
+
+  async publishPage(delId) {
+    const c = await db();
+    const { data: d } = await c.from('deliverables')
+      .select('id, title, kind, body, status').eq('id', delId).maybeSingle();
+    if (!d) return { ok: false, message: 'その成果物はありません' };
+    const body = (d.body ?? '') as string;
+    const why = whyNot(d.kind as string | undefined, DEL_WORD[d.status as string] ?? '', body);
+    if (why) return { ok: false, message: why };
+
+    const { html, removed } = clean(pageHtml(d.title as string, body));
+    // すでに出ているなら**同じ行き先のまま**入れ替える（URL を配ったあとで変えない）
+    const { data: had } = await c.from('published_pages')
+      .select('slug').eq('deliverable_id', delId).maybeSingle();
+    const slug = (had?.slug as string | undefined) ?? slugOf(d.title as string);
+    const row = {
+      deliverable_id: delId, slug, title: d.title as string, html, removed,
+      published_at: new Date().toISOString(), revoked_at: null,
+    };
+    const { error } = had
+      ? await c.from('published_pages').update(row).eq('deliverable_id', delId)
+      : await c.from('published_pages').insert(row);
+    if (error) throw new AppError('unknown', error.message);
+    return { ok: true, page: { slug, title: d.title as string, at: row.published_at, removed } };
+  },
+
+  async unpublishPage(delId) {
+    const c = await db();
+    await c.from('published_pages')
+      .update({ revoked_at: new Date().toISOString() }).eq('deliverable_id', delId);
+  },
+
+  async publishedFor(delId) {
+    const c = await db();
+    const { data } = await c.from('published_pages')
+      .select('slug, title, published_at, removed, revoked_at').eq('deliverable_id', delId).maybeSingle();
+    if (!data || data.revoked_at) return null;
+    return {
+      slug: data.slug as string, title: data.title as string,
+      at: data.published_at as string, removed: (data.removed ?? []) as string[],
+    };
+  },
+
+  async pageBySlug(slug) {
+    const c = await db();
+    const { data } = await c.from('published_pages')
+      .select('title, html').eq('slug', slug).is('revoked_at', null).maybeSingle();
+    return data ? { title: data.title as string, html: data.html as string } : null;
   },
 
   async addFixTask(workId, src, note) {

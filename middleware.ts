@@ -6,7 +6,12 @@ import { NextResponse, type NextRequest } from 'next/server'
  * **ログイン画面へのリダイレクトを毎時受け取るだけ**になる。
  * 素通しにするが**開いてはいない** — route 側が `CRON_SECRET` で断る。
  */
-const PUBLIC = ['/login', '/auth', '/api/health', '/api/cron', '/_next', '/favicon.ico']
+/**
+ * `/p` は**公開したページ**（2026-08-27）。社長が押したものだけがここに出る
+ * （→ `supabase/migrations/0038_published_pages.sql`）。
+ * ログインを求めたら、公開した意味が無い。
+ */
+const PUBLIC = ['/login', '/auth', '/api/health', '/api/cron', '/p/', '/_next', '/favicon.ico']
 const isPublic = (r: NextRequest) => PUBLIC.some((p) => r.nextUrl.pathname.startsWith(p))
 
 export async function middleware(request: NextRequest) {

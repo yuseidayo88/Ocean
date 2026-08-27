@@ -21,6 +21,7 @@ import { DecisionPick } from '@/components/live/DecisionPick';
 import { StuckActions } from '@/components/live/StuckActions';
 import { DelBody } from '@/components/live/DelBody';
 import { DelTake } from '@/components/live/DelTake';
+import { DelPublish } from '@/components/live/DelPublish';
 import { DelThumb } from '@/components/live/DelThumb';
 import type { RunStep } from '@/lib/store';
 import { useEffect, useState } from 'react';
@@ -744,6 +745,8 @@ export default function WorkPage() {
             <DelTake title={openDel.title} body={openDel.body ?? openDel.preview ?? ''} kind={openDel.kind} src={openDel.src} />
           </div>
           <DelBody body={openDel.body ?? openDel.preview ?? ''} kind={openDel.kind} src={openDel.src} />
+          {/* **作ったものに出し先を付ける**（成果物の画面と同じ器） */}
+          <DelPublish delId={openDel.id} kind={openDel.kind} state={openDel.state} body={openDel.body ?? ''} />
         </div>
         {/* 社長のレビュー。**押すと本当に変わる**（承認 / 差し戻し → 直しタスク） */}
         <DelActions delId={openDel.id} workId={w0id} taskId={openDel.taskId}
