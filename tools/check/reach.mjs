@@ -76,4 +76,7 @@ for (const p of pages) {
   else console.log(`✓ ${p}`);
 }
 console.log(bad ? `\n${bad}画面で押せないものがある` : '\nどの画面も、下まで送っても押せなくなるものは無い');
-ws.close(); process.exit(0);
+// **開いたタブは閉じる。** 残すと検査のたびに1枚ずつ増え、
+// 何本も動いたままの画面（ポンプ・ホームの読み直し・粒の瞬き）がブラウザを詰まらせる
+ws.close(); await fetch(`http://127.0.0.1:${PORT}/json/close/${t.id}`).catch(() => {});
+process.exit(0);

@@ -94,4 +94,7 @@ ok('リンク無しの再設定は、正直に断る',
 
 console.log(errs.length ? `\nerrs: ${errs.slice(0, 3).join(' / ')}` : '\nerrs: なし');
 console.log(bad ? `${bad}件 直すところがある` : 'ぜんぶ通った');
+// **開いたタブは閉じる。** 残すと検査のたびに1枚ずつ増え、
+// 何本も動いたままの画面（ポンプ・ホームの読み直し・粒の瞬き）がブラウザを詰まらせる
+await fetch(`http://127.0.0.1:${PORT}/json/close/${t.id}`).catch(() => {});
 process.exit(bad ? 1 : 0);

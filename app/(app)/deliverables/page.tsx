@@ -10,11 +10,12 @@ import { listDels } from '@/app/actions/run';
 import { DelActions } from '@/components/live/DelActions';
 import { DelBody } from '@/components/live/DelBody';
 import { DelTake } from '@/components/live/DelTake';
+import { DelThumb } from '@/components/live/DelThumb';
 import { formatOf } from '@/lib/deliver/format';
 import type { LiveDeliverable } from '@/lib/store';
 import { pressable } from '@/lib/a11y';
 import { ago } from '@/lib/when';
-import { AMBER, AMBER_T, COMPOSER_H, GREEN, HAIR, MUTE, RAIL, T2, T3, T5 } from '@/lib/design/tokens';
+import { AMBER, AMBER_T, COMPOSER_H, GREEN, HAIR, MUTE, T2, T3, T5 } from '@/lib/design/tokens';
 
 type LiveDel = LiveDeliverable & { workId: string; workTitle: string };
 
@@ -24,32 +25,6 @@ type LiveDel = LiveDeliverable & { workId: string; workTitle: string };
  * 社員の色はここには出さない（色はオフィスと進捗の可視化だけ）。
  * 中身は store だけ — AI社員が書いたものが、書いたぶんだけ並ぶ。
  */
-
-/**
- * サムネイル＝**実際の書き出し**（灰色の棒を置かない）。
- *
- * **Work 名はここに置かない**（2026-08-26）。カードの下ですでに言っていて、
- * 同じ名前が1枚の中に2回出ていた（→ CLAUDE.md「同じことを1画面で二度言わない」）。
- * そのぶん書き出しが1行増える — ここは**見分けるための面**なので、中身に使う。
- */
-function Thumb({ d }: { d: LiveDel }) {
-  // 形によって書き出しの割れ方が違う（表は行、文章は文）。**行が先** — 表を1行に潰さない
-  // **箇条書きは割らない**（`・` の行を「。」で切ると、2行めから印が消える）
-  const lines = (d.preview ?? '').split('\n')
-    .flatMap((l) => (l.trimStart().startsWith('・') ? [l] : l.split(/(?<=。)/)))
-    .filter((l) => l.trim()).slice(0, 4);
-  return (
-    <div style={{
-      height: 108, boxSizing: 'border-box', borderRadius: 8, background: RAIL,
-      padding: '12px 13px', display: 'flex', flexDirection: 'column', gap: 5, overflow: 'hidden',
-    }}>
-      {lines.length === 0 && <span style={{ color: MUTE, fontSize: 10 }}>書き出しはありません</span>}
-      {lines.map((l, i) => (
-        <span key={i} style={{ color: '#5A5A5A', fontSize: 10, lineHeight: '15px' }}>{l}</span>
-      ))}
-    </div>
-  );
-}
 
 /** タブの色は状態から。要確認だけ橙、承認済は緑、それ以外は灰 */
 const tabDot = (s: string) => (s === '要確認' ? AMBER : s === '承認済' ? GREEN : MUTE);
@@ -125,12 +100,12 @@ export default function DeliverablesPage() {
               右ペインを開くと中央が狭くなるので、入るぶんだけ並ぶ */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(268px, 1fr))', gap: 12 }}>
             {shown.map((d) => (
-              <div key={d.id} className="card" {...pressable(() => tabs.open(d.id))} style={{
+              <div key={d.id} className="card" data-state={d.state} {...pressable(() => tabs.open(d.id))} style={{
                 boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 11,
                 padding: 12, borderRadius: 12, background: '#121212',
                 border: `1px solid ${top?.id === d.id ? '#333' : 'transparent'}`,
               }}>
-                <Thumb d={d} />
+                <DelThumb preview={d.preview} />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                   <span style={{ display: 'flex', alignItems: 'baseline', gap: 7, minWidth: 0 }}>
                     <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</span>

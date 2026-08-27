@@ -129,4 +129,7 @@ console.log('\nerrs:', errs.length ? errs : 'なし');
 console.log(bad ? `${bad}件` : 'ぜんぶ通った');
 bye();
 ws.close();
+// **開いたタブは閉じる。** 残すと検査のたびに1枚ずつ増え、
+// 何本も動いたままの画面（ポンプ・ホームの読み直し・粒の瞬き）がブラウザを詰まらせる
+await fetch(`http://127.0.0.1:${PORT}/json/close/${t.id}`).catch(() => {});
 process.exit(bad ? 1 : 0);

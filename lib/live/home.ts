@@ -1,4 +1,5 @@
 import type { AgentPref, LiveEmployee, LiveWork, Note, RunStep } from '@/lib/store/types';
+import { phaseDone, phaseTasks, weight, workPct } from '@/lib/live/progress';
 import { prefWords } from '@/lib/view/model';
 import { buildBoard } from './flow';
 import type {
@@ -51,34 +52,6 @@ export type HomeData = {
 };
 
 const DAY = 24 * 3600 * 1000;
-
-/** フェーズの重み（弧とガントの幅）。週数があれば週数、無ければ等分 */
-const weight = (w: LiveWork) => {
-  const ws = w.phases.map((p) => p.weeks ?? 0);
-  return ws.some((x) => x > 0) ? ws.map((x) => Math.max(x, 0.5)) : w.phases.map(() => 1);
-};
-
-const phaseTasks = (w: LiveWork, phaseId: string) => w.tasks.filter((t) => t.phaseId === phaseId);
-
-/** フェーズの進み（0-1）。終わったタスク＋走っているタスクの自己申告 */
-function phaseDone(w: LiveWork, phaseId: string): number {
-  const ts = phaseTasks(w, phaseId);
-  if (!ts.length) return 0;
-  const sum = ts.reduce((a, t) => a + (t.state === 'done' ? 100 : t.progress ?? 0), 0);
-  return Math.min(1, sum / (ts.length * 100));
-}
-
-/** Work 全体の進み（%）。フェーズの重みで合成する */
-function workPct(w: LiveWork): number {
-  const ws = weight(w);
-  const total = ws.reduce((a, b) => a + b, 0);
-  let acc = 0;
-  w.phases.forEach((p, i) => {
-    const r = p.state === 'done' ? 1 : p.state === 'skipped' ? 1 : phaseDone(w, p.id);
-    acc += (ws[i] / total) * r;
-  });
-  return Math.round(acc * 100);
-}
 
 /** その社員の色。crew に居なければ灰（担当が未定のフェーズ） */
 const colorOf = (w: LiveWork, name?: string) =>

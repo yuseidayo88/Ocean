@@ -29,6 +29,12 @@ until curl -s -o /dev/null http://localhost:$PORT/login; do sleep 1; done
 (setsid nohup env BASE=http://localhost:$PORT node tools/check/run.mjs 9335 > /tmp/e2e.log 2>&1 < /dev/null &)
 ```
 
+**`setsid` を外さない。** 外すと、投げた側の shell が時間切れで落とされたときに
+**プロセスの組ごと道連れ**になる。検査は途中の行まで書いて黙って死ぬので、
+画面には「同じところで何分も止まっている」ように見える —
+実際そう見えて、止まった先を1時間かけて調べたことがある。
+生きているかは `ps -eo pid,args | grep '[c]heck/run.mjs'` で見る。
+
 **待ち方**（前面で待つと時間切れで落ちる。背景に投げて、条件で待つ）:
 
 ```bash
@@ -52,6 +58,17 @@ BASE=http://localhost:$PORT node tools/check/_seed.mjs 9335 "韓国人向けの�
 ```
 
 **`死 12` は正常。** 12枚の送信ボタンで、入力欄が空のときは押せなくて正しい。
+
+**タブは検査が自分で閉じる**（2026-08-27 に入れた）。前は開きっぱなしで、
+1日に10本回すと十数枚たまり、**どれもポンプと読み直しと粒の瞬きを回し続ける**ので
+ブラウザが詰まった。残ってしまったときは:
+
+```bash
+curl -s http://127.0.0.1:9335/json/list | python3 -c "
+import json,sys
+print('\n'.join(t['id'] for t in json.load(sys.stdin) if t.get('url','')!='about:blank'))" \
+| while read -r x; do curl -s "http://127.0.0.1:9335/json/close/$x" > /dev/null; done
+```
 
 ## 通しで歩く（0 → 完了）
 

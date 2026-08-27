@@ -4,27 +4,30 @@ import { openHref } from '@/lib/use-open';
 
 import { useOpen, useParam } from '@/lib/use-open';
 import { Go as Link } from '@/components/ui/Go';
-import { notFound, useParams } from 'next/navigation';
+import { notFound, useParams, useRouter } from 'next/navigation';
 import { Centre, Composer, Pane, PaneHead, PaneLoading, TopBar } from '@/components/shell/Chrome';
 import { Toggle } from '@/components/shell/Controls';
 import { useShell } from '@/components/shell/Shell';
 import { Diamond, Dot, Icon } from '@/components/ui/Icon';
 import { Orb } from '@/components/ui/Orb';
-import { AMBER_T, BLUE, COMPOSER_H, DIM, FAINT, GREEN, GREEN_T, HAIR, MUTE, RAIL, RED, RED_T, SEAM, SUNK, T1, T2, T3, T4, T5, WELL } from '@/lib/design/tokens';
-import { fromLive, type WorkView } from '@/lib/exec/work-view';
+import { AMBER_T, BLUE, COMPOSER_H, DIM, GREEN, GREEN_T, HAIR, MUTE, RED, RED_T, SEAM, SUNK, T1, T2, T3, T4, T5, WELL } from '@/lib/design/tokens';
+import { fromLive, type WorkPhase, type WorkView } from '@/lib/exec/work-view';
 import { getWork } from '@/app/actions/work';
 import { approvePhase, holdWork, taskSteps } from '@/app/actions/run';
+import { openWorkChat } from '@/app/actions/chat';
 import { wakePump } from '@/lib/pump';
 import { DelActions } from '@/components/live/DelActions';
 import { DecisionPick } from '@/components/live/DecisionPick';
 import { StuckActions } from '@/components/live/StuckActions';
 import { DelBody } from '@/components/live/DelBody';
 import { DelTake } from '@/components/live/DelTake';
+import { DelThumb } from '@/components/live/DelThumb';
 import type { RunStep } from '@/lib/store';
 import { useEffect, useState } from 'react';
 import { pressable } from '@/lib/a11y';
 import type { Route } from 'next';
 import { ago } from '@/lib/when';
+import { formatOf } from '@/lib/deliver/format';
 
 /**
  * Work＝会話を持たない。一目で状況が分かる1枚（参考: Upwork / Squarespace / Linear）。
@@ -36,11 +39,6 @@ import { ago } from '@/lib/when';
  */
 
 /** 数字の下に置く図形。文章で言い直さない */
-const Bar = ({ pct }: { pct: number }) => (
-  <span style={{ display: 'block', width: 86, height: 4, borderRadius: 2, background: SUNK, overflow: 'hidden' }}>
-    <span style={{ display: 'block', width: `${pct}%`, height: '100%', background: T4 }} />
-  </span>
-);
 const Seg = ({ n, on }: { n: number; on: number }) => (
   <span style={{ display: 'flex', gap: 4 }}>
     {Array.from({ length: n }, (_, i) => (
@@ -65,13 +63,13 @@ const Empty = ({ children }: { children: React.ReactNode }) => (
  * 一覧の1行。**本物なら右ペインを開き、ダミーなら別画面へ**。
  * 「押した結果がその画面の中で起きるなら、飛ばすほうが答えていない」（→ 09-navigation）。
  */
-function Row({ live, onOpen, href, style, children }: {
+function Row({ live, onOpen, href, style, state, children }: {
   live: boolean; onOpen: () => void; href: Parameters<typeof Link>[0]['href'];
-  style: React.CSSProperties; children: React.ReactNode;
+  style: React.CSSProperties; state?: string; children: React.ReactNode;
 }) {
-  if (!live) return <Link href={href} className="row" style={style}>{children}</Link>;
+  if (!live) return <Link href={href} className="row" style={style} data-state={state}>{children}</Link>;
   return (
-    <button onClick={onOpen} className="row" style={{ ...style, width: '100%', textAlign: 'left' }}>
+    <button onClick={onOpen} className="row" style={{ ...style, width: '100%', textAlign: 'left' }} data-state={state}>
       {children}
     </button>
   );
@@ -168,8 +166,10 @@ function StepsPane({ taskId, running }: { taskId: string; running: boolean }) {
 }
 
 /** フェーズの状態は行の先頭の印で言う（状態の列は置かない） */
-const PhaseMark = ({ state }: { state: 'done' | 'now' | 'next' }) => {
+const PhaseMark = ({ state }: { state: WorkPhase['state'] }) => {
   if (state === 'done') return <Icon name="check" color={GREEN_T} size={13} width={2.2} />;
+  // **終わって社長の番**（review）。緑にすると済んだものと見分けがつかない
+  if (state === 'wait') return <Icon name="check" color={AMBER_T} size={13} width={2.2} />;
   if (state === 'now') return <span style={{
     width: 10, height: 10, borderRadius: 999, border: `1.5px solid ${T3}`,
     background: `linear-gradient(90deg, ${T3} 50%, transparent 50%)`,
@@ -188,6 +188,15 @@ export default function WorkPage() {
   const [w, setW] = useState<WorkView | null>(null);
   const { say5 } = useShell();
   const [gone, setGone] = useState(false);
+  const router = useRouter();
+  /** その Work の会話へ。**無ければ作る**ので、押して何も起きない、が起きない */
+  const [toChat, setToChat] = useState(false);
+  const goChat = async () => {
+    setToChat(true);
+    const r = await openWorkChat(id);
+    if (r.ok) router.push(`/chat/${r.threadId}` as Route);
+    else { setToChat(false); say5(r.message); }
+  };
 
   useEffect(() => {
     let on = true;
@@ -237,11 +246,24 @@ export default function WorkPage() {
    * その鎖だけが残ってほかが沈む」）。**選んでいる1件は URL に持つ**（`?ph=2`）。
    */
   const at = Number(ph) || 0;
-  const live = at ? w.tasks.filter((t) => t.phase === at) : w.tasks;
+  /**
+   * **動いているものが先、済んだものは下**（2026-08-27）。
+   * 順番は状態で決める — 判断待ち（あなたの番）→ 停止 → 実行中 → 待機 → 済んだもの。
+   * 同じ組の中では、引かれた順（`w.tasks` の並び）のまま。
+   */
+  const RANK: Record<string, number> = { 判断待ち: 0, 停止: 1, 実行中: 2, 待機: 3 };
+  const live = (at ? w.tasks.filter((t) => t.phase === at) : w.tasks)
+    .map((t, i) => ({ t, i }))
+    .sort((a, b) => ((RANK[a.t.state] ?? 9) - (RANK[b.t.state] ?? 9)) || (a.i - b.i))
+    .map((x) => x.t);
   const phaseOfTask = new Map(w.tasks.map((t) => [t.id, t.phase]));
   const dels = at ? w.dels.filter((d) => !!d.taskId && phaseOfTask.get(d.taskId) === at) : w.dels;
   const decs = w.decs;
   const late = w.late !== undefined;
+  /** いまどのフェーズか。全部済んでいれば最後のフェーズまで来ている */
+  const nowFound = w.phases.findIndex((p) => p.state === 'now' || p.state === 'wait');
+  const nowI = nowFound >= 0 ? nowFound : w.phases.length - 1;
+  const nowP = w.phases[nowI];
   // 右は1枚だけ。openId が指す1件（タスクか成果物か、この Work の説明か）
   const openTask = w.live && openId && openId !== 'about' ? w.tasks.find((t) => t.id === openId) : undefined;
   const openDel = w.live && openId && openId !== 'about' && !openTask ? w.dels.find((d) => d.id === openId) : undefined;
@@ -265,6 +287,28 @@ export default function WorkPage() {
           <div>
             <span style={{ fontSize: 20, lineHeight: '30px', display: 'block' }}>{w.title}</span>
             <span style={{ color: T4, fontSize: 13, display: 'block', paddingTop: 6 }}>{w.goal}</span>
+            {/**
+              * **いまの状況を、中央に出す**（2026-08-27）。
+              *
+              * この1行（「『案出し』を進めています。いまは 企画担当 が『案を3つ出す』の
+              * 途中です。」）は**この画面でいちばん人の言葉に近い**のに、
+              * **閉じた右ペインの中にだけ**あった。数字の帯は開けば見えるが、
+              * 「誰が何をしているか」は開かないと分からない、という並びになっていた。
+              * ここに出したので、右ペインからは外した（同じことを1画面で二度言わない）。
+              *
+              * **行動の帯が出ているときは出さない。** そのときは帯が同じことを言っていて
+              * （「『案出し』が終わりました。成果物 2件 を見て…」の下に
+              * 「『案出し』のタスクが終わりました。成果物を見てください。」）、
+              * ほとんど同じ文が2行続いていた。
+              */}
+            {w.live && !w.unapproved && !w.gateAsk && !w.phaseGate && !w.finished && (
+              <span style={{ display: 'flex', alignItems: 'baseline', gap: 9, paddingTop: 12 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', height: 21, flexShrink: 0 }}>
+                  <Dot color={w.paused ? `${MUTE}` : late ? `${RED}` : GREEN} size={7} />
+                </span>
+                <span style={{ color: T2, fontSize: 13, lineHeight: '21px' }}>{w.lead}</span>
+              </span>
+            )}
           </div>
 
           {/**
@@ -336,12 +380,27 @@ export default function WorkPage() {
             </div>
           )}
 
-          {/* 事実の帯 — ラベル（小）→ 数字（大）→ **図形**。数で言えるものは文章にしない */}
+          {/**
+            * 事実の帯 — ラベル（小）→ 数字（大）→ **図形**。数で言えるものは文章にしない。
+            *
+            * **5つとも別のことを言う**（2026-08-27）。前はそうなっていなかった —
+            * ① `進捗` と `フェーズ` が隣り合って**違うことを言っていた**（実測「100% / 1 of 2」）。
+            *    進捗をフェーズで数えるようにしたので、いまは同じことの2つの言い方 →
+            *    **数字は進捗、形はフェーズの刻み**にして1つに畳んだ。
+            * ② `判断待ち` は `gate` を誰も埋めておらず、**どの Work でも永久に「—」**だった。
+            * 空いた1つには**成果物**を置く。社長がこの画面でやることは、
+            *   見て決めることなので、その数が帯に無いのはおかしい。
+            */}
           <div style={{ display: 'flex', gap: 24 }}>
             {([
-              ['進捗',     `${w.progress}%`,                       undefined,                     <Bar key="b" pct={w.progress} />],
-              ['フェーズ', `${w.phaseIndex} / ${w.phases.length}`, undefined,                     <Seg key="s" n={w.phases.length} on={w.phaseIndex} />],
+              ['進捗',     `${w.progress}%`,                       undefined,                     <span key="s" style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <Seg n={w.phases.length} on={w.phases.filter((p) => p.state === 'done' || p.state === 'wait').length} />
+                {/* **刻みの読み方**。数字だけを別の列にすると、進捗と隣り合って
+                    同じことを二度言うことになる（前がそうだった）。ここなら形の見出し */}
+                {nowP && <Sub>フェーズ {nowI + 1} / {w.phases.length} · {nowP.name}</Sub>}
+              </span>],
               ['判断待ち', w.gate ? '1' : '—',                     w.gate ? AMBER_T : undefined,  w.gate ? <Sub key="g">{w.gate}</Sub> : null],
+              ['成果物',   String(w.dels.length),                  undefined,                     w.unseen > 0 ? <Sub key="u"><span style={{ color: AMBER_T }}>要確認 {w.unseen}</span></Sub> : null],
               ['残り',     w.rest ?? '—',                          late ? RED_T : undefined,      w.endDate ? <Sub key="d">{w.endDate}</Sub> : null],
               ['AI社員',   String(w.crew.length),                  undefined,                     <Pips key="p" cols={w.crew.map((c) => c.color)} />],
             ] as [string, string, string | undefined, React.ReactNode][]).map(([k, v, c, shape], i, arr) => (
@@ -358,7 +417,21 @@ export default function WorkPage() {
 
           {/* フェーズ全部。タブに隠さない */}
           <div>
-            <span style={{ color: T3, display: 'block', paddingBottom: 8 }}>フェーズ</span>
+            <div style={{ display: 'flex', alignItems: 'baseline', paddingBottom: 8 }}>
+              <span style={{ color: T3 }}>フェーズ</span>
+              <div style={{ flex: 1 }} />
+              {/**
+                * **承認したあとも、計画へ戻れる**（2026-08-27）。
+                * 前は「計画を見る」が**承認前だけ**だった。社長が読んで承認したのは
+                * なぜこの順番か / 前提にしていること / 見送った案 で、
+                * それはこの並びの根拠そのものなのに、押した瞬間に永久に読めなくなっていた。
+                */}
+              {w.live && !w.unapproved && (
+                <Link href={`/work/${w0id}/plan` as Route} className="lnk" style={{ color: T5, fontSize: 12 }}>
+                  承認した計画 ›
+                </Link>
+              )}
+            </div>
             {w.phases.map((p, i) => (
               /**
                * **押しても Work 画面から出ない。** 選ぶとそのフェーズだけが残り、ほかは沈む。
@@ -366,7 +439,7 @@ export default function WorkPage() {
                * 外し方は2つ — 同じ行をもう一度押す / Esc（→ `onKeyDown`）。
                */
               <div key={p.name} className="row" {...pressable(() => setPh(at === i + 1 ? '' : String(i + 1)))} style={{
-                display: 'flex', alignItems: 'center', gap: 14, height: 46, borderRadius: 7,
+                display: 'flex', alignItems: 'center', gap: 14, minHeight: 54, borderRadius: 7,
                 borderBottom: i === w.phases.length - 1 ? undefined : `1px solid ${HAIR}`,
                 opacity: at && at !== i + 1 ? 0.4 : 1,
                 background: at === i + 1 ? '#0E0E0E' : undefined,
@@ -375,15 +448,41 @@ export default function WorkPage() {
                   <PhaseMark state={p.state} />
                 </span>
                 <span style={{ width: 14, flexShrink: 0, color: T5 }} className="tnum">{i + 1}</span>
-                <span style={{ width: 110, flexShrink: 0, color: p.state === 'next' ? T5 : T1 }}>{p.name}</span>
+                {/**
+                  * **名前だけでなく、ねらいと担当を出す**（2026-08-27）。
+                  * 計画の画面は「名前 ＋ ねらい ＋ 担当 ＋ 週数」を並べ、社長はそれを読んで
+                  * 承認する。承認した瞬間に**ねらいと担当が消えて名前だけ**になっていた —
+                  * 承認したものと、その後の画面が別物になっていた。
+                  */}
+                <span style={{ width: 210, flexShrink: 0, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span style={{ color: p.state === 'next' ? T5 : T1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                  {p.goal && <Sub>{p.goal}</Sub>}
+                </span>
+                <span style={{ width: 74, flexShrink: 0, color: p.state === 'next' ? MUTE : T4, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {p.owner ?? ''}
+                </span>
                 <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: 'block', height: 4, borderRadius: 2, background: HAIR, overflow: 'hidden' }}>
+                  <span style={{ display: 'block', height: 4, borderRadius: 2, background: SUNK, overflow: 'hidden' }}>
                     <span style={{
                       display: 'block', height: '100%', borderRadius: 2,
                       width: `${p.all ? Math.round((p.done / p.all) * 100) : 0}%`,
-                      background: p.state === 'done' ? GREEN : p.state === 'now' ? `${T4}` : 'transparent',
+                      // **帯が測るのはタスク。** 終わって社長待ち（wait）でもタスクは終わっているので緑。
+                      // 「あなたの番」は行の先頭の印が言う（帯まで橙にすると、同じことを二度言う）
+                      background: p.state === 'done' || p.state === 'wait' ? GREEN : p.state === 'now' ? `${T3}` : 'transparent',
                     }} />
                   </span>
+                </span>
+                {/**
+                  * **◆ は、来る前から見えている**（2026-08-27）。計画で承認した関門を、
+                  * そのフェーズの行に立てる。いつ自分の番が来るかが、承認した瞬間に
+                  * 分からなくなっていた（帯に出るのは、来てからだけだった）。
+                  */}
+                <span style={{
+                  width: 132, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0,
+                  // 済んだフェーズの ◆ は**もう決めたこと**。橙のまま置くと、あなたの番に見える
+                  opacity: p.state === 'done' ? 0.45 : 1,
+                }}>
+                  {p.gate && <><Diamond size={8} /><Sub>{p.gate}</Sub></>}
                 </span>
                 <span style={{ width: 42, flexShrink: 0, textAlign: 'right', color: T5, fontSize: 12 }} className="tnum">
                   {p.done}/{p.all}
@@ -395,10 +494,18 @@ export default function WorkPage() {
             ))}
           </div>
 
-          {/* いま動いているもの — 既定はフェーズをまたいで並べる。1つ選ぶとそのフェーズだけ */}
+          {/**
+            * タスク — 既定はフェーズをまたいで並べる。1つ選ぶとそのフェーズだけ。
+            *
+            * **済んだものも出す**（2026-08-27）。前は「いま動いているもの」だけを並べていたので、
+            * **走っているものが1つも無い時間は、節がまるごと「まだありません。」**だった
+            * （実測で、フェーズが閉じて社長を待っているあいだ ずっとそう）。
+            * AI社員が何をやったかは、この Work の記録そのもの — 動いているものを先に、
+            * 済んだものは沈めて下に置く。
+            */}
           <div>
             <div style={{ display: 'flex', alignItems: 'baseline', paddingBottom: 8 }}>
-              <span style={{ color: T3 }}>いま動いているもの</span>
+              <span style={{ color: T3 }}>タスク</span>
               <div style={{ flex: 1 }} />
               {/* **絞っていることと、その外し方を1つで言う**（説明のコピーは置かない） */}
               {at > 0 && (
@@ -407,23 +514,28 @@ export default function WorkPage() {
                 </button>
               )}
             </div>
-            {live.length === 0 && <Empty>{at > 0 ? 'このフェーズには、動いているものがありません。' : 'まだありません。'}</Empty>}
+            {live.length === 0 && <Empty>{at > 0 ? 'このフェーズのタスクはまだありません。' : 'まだありません。'}</Empty>}
             {live.map((t, i) => (
-              <Row key={t.id} live={!!w.live} onOpen={() => setOpen(t.id)} href={openHref('/tasks', t.id)} style={{
+              <Row key={t.id} live={!!w.live} onOpen={() => setOpen(t.id)} href={openHref('/tasks', t.id)} state={t.state} style={{
                 display: 'flex', alignItems: 'center', gap: 12, height: 44, borderRadius: 7,
+                opacity: t.past ? 0.5 : 1,
                 borderBottom: i === live.length - 1 ? undefined : `1px solid ${HAIR}`,
               }}>
                 <span style={{ width: 14, flexShrink: 0, display: 'inline-flex', justifyContent: 'center' }}>
                   {t.state === '判断待ち' ? <Diamond size={9} />
-                    : t.state === '要確認' ? <Icon name="deliv" color={AMBER_T} size={13} />
+                    : t.state === '停止' ? <Dot color={RED} size={8} />
+                    : t.state === '完了' ? <Icon name="check" color={GREEN_T} size={12} width={2.2} />
                     : t.state === '待機' ? <span style={{ width: 8, height: 8, borderRadius: 999, border: '1px solid #333' }} />
+                    : t.state === '実行中' ? <span style={{ width: 8, height: 8, borderRadius: 999, background: GREEN_T, animation: 'pulse 1.6s ease-in-out infinite' }} />
                     : <Dot color={T4} size={8} />}
                 </span>
                 <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
                 <span style={{ width: 84, color: T5, fontSize: 12 }}>{t.phase ? `フェーズ${t.phase}` : ''}</span>
                 <span style={{ width: 78, color: T4, fontSize: 12 }}>{t.owner}</span>
-                <span style={{ width: 52, textAlign: 'right', color: t.state === '判断待ち' ? AMBER_T : T5, fontSize: 12 }} className="tnum">
-                  {t.state === '判断待ち' ? '決める' : t.state === '待機' ? '待機' : `${t.progress}%`}
+                {/* **状態の語は6つだけ。** 進捗の数字は、走っている最中にだけ意味がある */}
+                <span className="tnum" style={{ width: 52, textAlign: 'right', fontSize: 12,
+                  color: t.state === '判断待ち' ? AMBER_T : t.state === '停止' ? RED_T : T5 }}>
+                  {t.state === '実行中' ? `${t.progress}%` : t.state}
                 </span>
               </Row>
             ))}
@@ -434,41 +546,52 @@ export default function WorkPage() {
             <div style={{ display: 'flex', alignItems: 'baseline', paddingBottom: 8 }}>
               <span style={{ color: T3 }}>成果物</span>
               <div style={{ flex: 1 }} />
-              {dels.length > 0 && (
-                <Link href="/deliverables" className="lnk" style={{ color: T5, fontSize: 12 }}>すべて表示 ›</Link>
+              {/* **絞っていることと、その外し方を1つで言う**（タスクの節と同じ形） */}
+              {at > 0 && (
+                <button onClick={() => setPh('')} className="lnk" style={{ color: T5, fontSize: 12 }}>
+                  フェーズ{at} だけ · すべて見る
+                </button>
               )}
             </div>
             {dels.length === 0 && <Empty>{at > 0 ? 'このフェーズの成果物はまだありません。' : 'まだありません。AI社員が出したら、ここに並びます。'}</Empty>}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 28 }}>
-              {dels.map((d, i) => (
-                <Row key={d.id} live={!!w.live} onOpen={() => setOpen(d.id)} href={openHref('/deliverables', d.id)} style={{
-                  display: 'flex', alignItems: 'center', gap: 13, height: 56, borderRadius: 7,
-                  borderBottom: i >= dels.length - 2 ? undefined : `1px solid ${HAIR}`,
+            {/**
+              * **サムネイルは実際の書き出し**（2026-08-27。成果物の画面と同じ `DelThumb`）。
+              *
+              * ここだけ**灰色の棒3本**を描いていたので、2枚並ぶとどちらも同じ絵で、
+              * 開くまで見分けられなかった（`preview` は最初から渡っていたのに使っていない）。
+              * → CLAUDE.md「**中身が主役** → サムネイルに**実際の書き出し**を出す」。
+              *
+              * 列は器が決める（画面ごとのブレークポイントは作らない）。
+              * 右ペインを開くと中央が狭くなるので、入るぶんだけ並ぶ。
+              */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(268px, 1fr))', gap: 12 }}>
+              {dels.map((d) => (
+                <div key={d.id} className="card" data-state={d.state} {...pressable(() => setOpen(d.id))} style={{
+                  boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 10,
+                  padding: 12, borderRadius: 12, background: '#121212',
                 }}>
-                  {/* サムネイルだけは面と枠を持てる */}
-                  <span style={{
-                    width: 34, height: 26, flexShrink: 0, borderRadius: 4, background: RAIL,
-                    display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, padding: '0 6px',
-                  }}>
-                    {[10, 16, 13].map((wd, k) => (
-                      <span key={k} style={{ height: 2, width: wd, borderRadius: 1, background: FAINT }} />
-                    ))}
-                  </span>
-                  <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</span>
-                    {/* **直した版だと分かるようにする**（v2〜だけ。差し戻すのはこの画面） */}
-                    <span style={{ color: T5, fontSize: 11 }}>
-                      {d.byName}{ago(d.when) && ` · ${ago(d.when)}`}{(d.version ?? 1) > 1 ? ` · v${d.version}` : ''}
+                  <DelThumb preview={d.preview} height={84} />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <span style={{ display: 'flex', alignItems: 'baseline', gap: 7, minWidth: 0 }}>
+                      <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</span>
+                      {/* **直した版だと分かるようにする**（v2〜だけ。差し戻すのはこの画面） */}
+                      {(d.version ?? 1) > 1 && <span style={{ color: T5, fontSize: 11, flexShrink: 0 }} className="tnum">v{d.version}</span>}
                     </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ color: T5, fontSize: 12 }}>{d.byName}</span>
+                      {ago(d.when) && <span style={{ color: MUTE, fontSize: 11.5 }}>{ago(d.when)}</span>}
+                      <span style={{ color: MUTE, fontSize: 11.5 }}>{formatOf(d.kind, d.preview).label}</span>
+                      <div style={{ flex: 1 }} />
+                      {d.state === '要確認' && (
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 9px', borderRadius: 6,
+                          background: 'rgba(227,116,0,0.18)', color: AMBER_T, fontSize: 12, whiteSpace: 'nowrap',
+                        }}>要確認</span>
+                      )}
+                      {d.state === '承認済' && <Dot color={GREEN} size={7} />}
+                    </div>
                   </div>
-                  <div style={{ flex: 1 }} />
-                  {d.state === '要確認' && (
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 9px', borderRadius: 6,
-                      background: 'rgba(227,116,0,0.18)', color: AMBER_T, fontSize: 12, whiteSpace: 'nowrap',
-                    }}>要確認</span>
-                  )}
-                </Row>
+                </div>
               ))}
             </div>
           </div>
@@ -480,15 +603,33 @@ export default function WorkPage() {
       {pane && (
       <Pane onClose={() => setPane(false)} width={400} icon="work" title="この Work について">
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 18px 24px' }}>
-          <PaneHead top>最新の状況</PaneHead>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '4px 0 8px' }}>
-            <Dot color={late ? `${RED}` : GREEN} size={7} />
-            <span style={{ color: late ? RED_T : GREEN_T }}>
-              {late ? `遅れ ${w.late}日` : '順調'}
-            </span>
-            <span style={{ color: T5, fontSize: 11 }}>統括AI</span>
-          </div>
-          <span style={{ color: T2, fontSize: 13, lineHeight: '21px' }}>{w.lead}</span>
+          {/**
+            * **「最新の状況」はここから外した**（2026-08-27）。中央の、題のすぐ下に出している —
+            * この画面でいちばん人の言葉に近い1行が、**閉じたペインの中にだけ**あった。
+            *
+            * かわりに置いたのが**戻り道2つ**。Work は、承認した計画から生まれ、
+            * ある会話から生まれる。それなのに**どちらにも戻れなかった**。
+            */}
+          <PaneHead top>もとになったもの</PaneHead>
+          <Link href={`/work/${w0id}/plan` as Route} className="row" style={{
+            display: 'flex', alignItems: 'center', gap: 11, height: 40, borderRadius: 7,
+            padding: '0 8px', margin: '0 -8px', borderBottom: `1px solid ${HAIR}`,
+          }}>
+            <Icon name="roadmap" color={T4} size={14} />
+            <span style={{ color: T2, fontSize: 12.5 }}>承認した計画</span>
+            <div style={{ flex: 1 }} />
+            <span style={{ color: T5, fontSize: 11 }}>なぜこの順番か</span>
+          </Link>
+          {/* **押した先は必ず1本ある**（無ければ作る → `openWorkChat`） */}
+          <button onClick={goChat} disabled={toChat} className="row" style={{
+            display: 'flex', alignItems: 'center', gap: 11, height: 40, borderRadius: 7, width: '100%',
+            padding: '0 8px', margin: '0 -8px', textAlign: 'left',
+          }}>
+            <Icon name="chat" color={T4} size={14} />
+            <span style={{ color: T2, fontSize: 12.5 }}>この Work の会話</span>
+            <div style={{ flex: 1 }} />
+            <span style={{ color: T5, fontSize: 11 }}>{toChat ? '開いています…' : '統括AIに相談する'}</span>
+          </button>
 
           <PaneHead>決めたこと</PaneHead>
           {decs.length === 0 && (

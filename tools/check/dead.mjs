@@ -75,7 +75,7 @@ const conn = async (url) => {
 
 let deadAll = 0, liveAll = 0;
 for (const path of PAGES) {
-  const { ws, send } = await conn(BASE + path);
+  const { ws, send, id: tab } = await conn(BASE + path);
   const ev = async (e) => (await send('Runtime.evaluate', { expression: e, returnByValue: true }))?.result?.value;
   // オフィスの盤面は絵が重いので、描き終わるまで少し待つ
   const wait = path.startsWith('/home') && !path.includes('view=') ? 3600 : 2600;
@@ -168,7 +168,9 @@ for (const path of PAGES) {
   }
   console.log(`${path}  押せる ${items.length + n} / 死 ${dead.length}`);
   for (const d of dead) console.log(`    ✗ ${d}`);
-  ws.close();
+  // **開いたタブは閉じる。** この検査は画面ごとに1枚ずつ開くので、
+  // 残すと1回で十数枚たまり、動いたままの画面がブラウザを詰まらせる
+  ws.close(); await fetch(`http://127.0.0.1:${PORT}/json/close/${tab}`).catch(() => {});
 }
 console.log(`\n合計: 生 ${liveAll} / 死 ${deadAll}`);
 process.exit(0);

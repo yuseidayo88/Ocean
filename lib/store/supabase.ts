@@ -293,6 +293,12 @@ export const supabaseStore: Store = {
         // **社長が承認した担当**（次のフェーズを引く統括AIに渡すため）
         owner: (w.plan_draft as unknown as DraftBody | null)
           ?.plan?.phases?.[(p.seq as number) - 1]?.owner || undefined,
+        /**
+         * **計画の ◆**（このフェーズの終わりに社長が決めること）。
+         * 名前で引く — `gates.afterPhase` はフェーズ名で書かれている（→ `planGates`）。
+         */
+        gate: (w.plan_draft as unknown as DraftBody | null)
+          ?.plan?.gates?.find((g) => g.afterPhase === p.name)?.question,
         startedAt: (p.started_at ?? undefined) as string | undefined,
       })),
       tasks: (tk ?? []).map((t) => ({

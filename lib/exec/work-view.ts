@@ -1,5 +1,6 @@
 import type { LiveDecision, LiveWork } from '@/lib/store/types';
 import { TASK_WORD } from '@/lib/view/model';
+import { workPct } from '@/lib/live/progress';
 
 /**
  * Work 画面が読む形。**1つだけ。**
@@ -11,9 +12,24 @@ import { TASK_WORD } from '@/lib/view/model';
  */
 
 export type WorkPhase = {
-  name: string; state: 'done' | 'now' | 'next';
+  name: string;
+  /**
+   * `wait` ＝ 全タスクが終わって**社長の番**（DB の `review`）。
+   * 前は `now` に混ぜていたので、**終わっているフェーズが「いま」の顔**をしていた
+   * （進捗のバーも灰色のまま — 1/1 なのに空に見えた）。
+   */
+  state: 'done' | 'now' | 'wait' | 'next';
   done: number; all: number;
-  /** 日付は分かるときだけ。ダミーにはあるが、立てたばかりの Work にはまだ無い */
+  /**
+   * **社長が承認した、このフェーズのねらいと担当**（2026-08-27）。
+   * 計画の画面はこの2つを並べて見せ、社長はそれを読んで承認する。
+   * それなのに承認した瞬間、**Work 画面はどちらも捨てていた** —
+   * 残るのは名前と本数だけで、「誰が何のためにやっているか」がどこにも無かった。
+   */
+  goal?: string; owner?: string;
+  /** 計画の ◆（このフェーズの終わりに社長が決めること）。無ければ会社が自分で進む */
+  gate?: string;
+  /** 日付は分かるときだけ。週数の無い計画には書かない */
   from?: string; to?: string;
 };
 
@@ -23,6 +39,15 @@ export type WorkTask = {
   phase: number;
   owner: string;
   state: string; progress: number;
+  /**
+   * 済んだもの（完了・取消）。**沈めて、いちばん下に置く**。
+   *
+   * 前はここで**捨てていた**ので、節が「いま動いているもの」になり、
+   * **走っているものが1つも無い時間はまるごと空**だった（実測で、
+   * フェーズが閉じて社長を待っているあいだ、ずっと「まだありません。」）。
+   * AI社員が何をしたかは、この Work の記録そのものなので、消さない。
+   */
+  past?: boolean;
 };
 
 export type WorkCrew = { id?: string; name: string; color: string; dim?: boolean; tasks: number };
@@ -53,7 +78,6 @@ export type WorkDel = {
 export type WorkView = {
   title: string; goal: string;
   progress: number;
-  phaseIndex: number;
   /** 遅れている日数。順調なら undefined */
   late?: number;
   /** あなたが決めること。無ければ undefined */
@@ -155,19 +179,38 @@ export function fromLive(w: LiveWork): WorkView {
     late, rest,
     endDate: !ended && endMs ? `${md(endMs)} まで` : undefined,
     title: w.title, goal: w.goal,
-    progress: w.tasks.length ? Math.round((w.tasks.filter((t) => t.state === 'done').length / w.tasks.length) * 100) : 0,
-    phaseIndex: w.phases[nowIdx]?.seq ?? 1,
+    /**
+     * **進捗はフェーズで数える**（2026-08-27）。
+     *
+     * 前は「済んだタスク ÷ ぜんぶのタスク」だった。ところが**タスクは直近の
+     * フェーズぶんしか引かれていない**（先を固定しない設計）ので、
+     * 4フェーズの Work でフェーズ1が終わると**進捗 100%**。
+     * 実測でも「進捗 100% / フェーズ 1 / 2」が並んで出ていた —
+     * 隣り合う2つの数字が違うことを言っている画面は、どちらも信じられない。
+     *
+     * フェーズは計画のときに全部決まっているので、**分母は最初から本物**。
+     * 済んだフェーズ（`review` ＝ 終わって社長待ちも含む）を 1、
+     * いま動いているフェーズはその中のタスクの割合で数える。
+     */
+    progress: workPct(w),
     phases: w.phases.map((p) => ({
       name: p.name,
-      // `review`（全タスクが終わって社長待ち）も「いま」の側に置く。まだ済んでいない
-      state: p.state === 'done' ? 'done' : (p.state === 'active' || p.state === 'review') ? 'now' : 'next',
+      // `review` は**終わって社長の番**。「いま」に混ぜると、済んだものが動いて見える
+      state: p.state === 'done' ? 'done' : p.state === 'review' ? 'wait' : p.state === 'active' ? 'now' : 'next',
       done: done(p.id), all: all(p.id),
+      goal: p.goal || undefined, owner: p.owner, gate: p.gate,
       ...(span.get(p.id) ?? {}),
     })),
-    tasks: w.tasks.filter((t) => t.state !== 'done' && t.state !== 'cancelled').map((t) => ({
+    /**
+     * **済んだタスクも出す**（2026-08-27。`past` で沈める）。
+     * 走っているものが1つも無い時間は珍しくない（社長を待っているあいだは必ずそう）ので、
+     * 捨てると節がまるごと空になる。並べ替えは画面がやる — 動いているものが先。
+     */
+    tasks: w.tasks.map((t) => ({
       id: t.id, title: t.title, phase: seq.get(t.phaseId) ?? 0,
       owner: t.owner ?? '担当は未定', state: TASK_WORD[t.state] ?? t.state,
       progress: t.progress ?? 0,
+      past: t.state === 'done' || t.state === 'cancelled',
     })),
     dels: (w.dels ?? []).map((d) => ({
       id: d.id, title: d.title, byName: d.by ?? 'AI社員', when: d.when, state: d.state,
@@ -184,6 +227,14 @@ export function fromLive(w: LiveWork): WorkView {
     live: true,
     active: w.status === 'active' && w.tasks.some((t) => t.state === 'queued' || t.state === 'running'),
     phaseGate: review?.name,
+    /**
+     * **「判断待ち」の列を本物にする**（2026-08-27）。
+     * `gate` は型にあるだけで**誰も埋めていなかった**ので、この列は
+     * どの Work でも永久に「—」だった（帯の5つのうち1つが、ずっと死んでいた）。
+     * 待たせているのは2つ — フェーズの関門（◆）と、実行中に詰まったタスク。
+     */
+    gate: w.openDec?.question
+      ?? w.tasks.find((t) => t.state === 'needs_decision')?.title,
     gateAsk: w.openDec,
     gateUnseen: review
       ? (w.dels ?? []).filter((d) => d.state === '要確認'
@@ -219,6 +270,16 @@ function lead(w: LiveWork, nowIdx: number): string {
   const running = w.tasks.find((t) => t.state === 'running');
   const deciding = w.tasks.find((t) => t.state === 'needs_decision');
   const blocked = w.tasks.find((t) => t.state === 'blocked');
+  /**
+   * **終わった Work / 止めた Work を「まだ始まっていません」と言わない**（2026-08-27）。
+   * この1行は右ペインの奥にあったので誰も見ていなかったが、
+   * 中央の、題のすぐ下に出したので、間違いがそのまま画面の顔になる。
+   */
+  if (w.status === 'done') {
+    const n = (w.dels ?? []).length;
+    return `この Work は終わりました。${n ? `成果物 ${n}件 が残っています。` : ''}`;
+  }
+  if (w.status === 'paused') return 'あなたが止めています。動かすと、続きから進みます。';
   if (w.status !== 'active') return 'まだ始まっていません。';
   if (deciding) return `「${deciding.title}」で判断を待っています。決まれば続きが動きます。`;
   // **行き先のある1行にする**（2026-08-26）。前は「通知から見てください」と言っていたが、

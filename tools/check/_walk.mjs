@@ -56,10 +56,13 @@ for (let i = 0; i < 260; i++) {
   const b = await text();
   if (/完了|終わりました。おつかれ|この Work は終わりました/.test(b) && /Work[\s\S]{0,60}完了/.test(b)) { /* あとで確かめる */ }
   // 判断待ち
-  if (b.includes('決める')) {
+  // **帯のラベルではなく、タスクの行**（`判断待ち` は事実の帯の見出しにもある）
+  // 状態は `data-state` で見る — 文字で探すと、成果物の本文にも当たる
+  const decRow = `document.querySelector('[data-state="判断待ち"]')`;
+  if (await ev(`!!(${decRow})`)) {
     let pane = '';
     for (let k = 0; k < 8 && !pane.includes('推奨'); k++) {
-      await ev(`[...document.querySelectorAll('button')].find(x => x.className.includes('row') && x.innerText.includes('決める'))?.click()`);
+      await ev(`(${decRow})?.click()`);
       await wait(700);
       pane = (await ev(`document.querySelector('aside')?.innerText ?? ''`)) ?? '';
     }
@@ -89,7 +92,7 @@ for (let i = 0; i < 260; i++) {
     continue;
   }
   // 終わったか
-  const st = await ev(`document.body.innerText.match(/フェーズ\\n(\\d+) \\/ (\\d+)/)?.[0] ?? ''`);
+  const st = await ev(`document.body.innerText.match(/フェーズ (\\d+) \\/ (\\d+)/)?.[0] ?? ''`);
   if (/この Work は終わりました|Work を終えました|完了しました/.test(b)) break;
   if (i % 20 === 0) console.log(`… ${i} ${st.replace(/\n/g, ' ')}`);
 }
@@ -112,4 +115,7 @@ for (const [name, url] of [['home', '/home'], ['dels', '/deliverables'], ['decis
   await shot(name);
 }
 console.log('\nerrs:', errs.length ? errs.slice(0, 6) : 'なし');
+// **開いたタブは閉じる。** 残すと検査のたびに1枚ずつ増え、
+// 何本も動いたままの画面（ポンプ・ホームの読み直し・粒の瞬き）がブラウザを詰まらせる
+await fetch(`http://127.0.0.1:${PORT}/json/close/${t.id}`).catch(() => {});
 process.exit(0);

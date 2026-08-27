@@ -12,7 +12,22 @@ const t = await (await fetch(`http://127.0.0.1:${PORT}/json/new?about:blank`, { 
 const ws = new WebSocket(t.webSocketDebuggerUrl);
 let id = 0; const pend = new Map(); const errs = [];
 await new Promise((r) => ws.on('open', r));
-const send = (m, p = {}) => new Promise((r) => { const i = ++id; pend.set(i, r); ws.send(JSON.stringify({ id: i, method: m, params: p })); });
+/**
+ * **返事が来ないことがある。** ページが評価の最中に自分で移ると、
+ * 実行の器（execution context）ごと消えて **CDP が返事を返さない** —
+ * そのまま待つと**検査が永久に止まる**（実際、/skills の入り口で6分止まった）。
+ * 15秒で諦めて `undefined` を返し、**どの呼びで諦めたかを1行出す**（黙って進まない）。
+ */
+const send = (m, p = {}) => new Promise((r) => {
+  const i = ++id; pend.set(i, r);
+  ws.send(JSON.stringify({ id: i, method: m, params: p }));
+  setTimeout(() => {
+    if (!pend.has(i)) return;
+    pend.delete(i);
+    console.log(`  … ${m} の返事が来ないので、あきらめて進みます`);
+    r(undefined);
+  }, 15000);
+});
 ws.on('message', (d) => {
   const m = JSON.parse(d);
   if (m.id && pend.has(m.id)) { pend.get(m.id)(m.result); pend.delete(m.id); }
@@ -22,6 +37,25 @@ ws.on('message', (d) => {
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const ev = async (e) => (await send('Runtime.evaluate', { expression: e, returnByValue: true, awaitPromise: true }))?.result?.value;
 // 遷移の途中は評価が空で返る。**落とさない**（until が undefined を触って死ぬ）
+/** 押せるもの（一覧の行 `.row` と カード `.card`）。**成果物はカードで並ぶ** */
+const HITS = `[...document.querySelectorAll('button, [role="button"]')].filter((x) => /row|card/.test(x.className))`;
+/**
+ * **成果物はカードだけを見る**（2026-08-27）。Work 画面のタスクの節は
+ * **済んだタスクも出す**ようになったので、成果物と**同じ題の行が上に居る**
+ * （「競合を並べて比べる」はタスクでもあり、その成果物でもある）。
+ * 上から探すと**タスクの歩みのペイン**が開いて、承認の口が出てこない。
+ */
+const CARDS = `[...document.querySelectorAll('[role="button"]')].filter((x) => /card/.test(x.className))`;
+/**
+ * **状態は `data-state` で見る**（2026-08-27）。
+ * サムネイルが**実際の書き出し**になったので、カードの文字には本文が入る —
+ * 決め打ちの成果物には「要確認」という見出しがあり、
+ * **承認済のカードでも `innerText` に「要確認」が出てくる**。
+ * 実際それで `seeAll` が承認済のカードを開き、承認の口が無いまま早じまいして、
+ * **フェーズが永久に閉じなかった**（社長が見ていない成果物が1件残るので）。
+ */
+const NEEDS = `[...document.querySelectorAll('[data-state="要確認"]')]`;
+const DECIDE = `[...document.querySelectorAll('[data-state="判断待ち"]')]`;
 const text = async () => (await ev('document.body.innerText')) ?? '';
 const until = async (test, tries = 40, step = 1200) => {
   for (let i = 0; i < tries; i++) { const b = await text(); if (test(b)) return b; await wait(step); }
@@ -58,7 +92,7 @@ const workList = await text();
 ok('確認を押すまで Work は作られない',
    workList.includes('まだ') || workList.includes('ありません'), workList.slice(-90));
 await send('Page.navigate', { url: chatUrl }); await wait(2200);
-await ev(`[...document.querySelectorAll('button')].find(b => b.innerText === 'この Work を作る')?.click()`);
+await ev(`[...document.querySelectorAll('button, [role="button"]')].find(b => b.innerText === 'この Work を作る')?.click()`);
 await until((b) => b.includes('承認して始める'), 20, 800);
 
 /**
@@ -111,7 +145,7 @@ ok('引き直しても残ったところが、承認の前に出る',
    left.includes('直しきれなかったところ') && /MVPの要件/.test(left),
    left.match(/直しきれなかったところ[\s\S]{0,80}/)?.[0]?.replace(/\n/g, ' ') ?? '(出ていない)');
 
-await ev(`[...document.querySelectorAll('button')].find(b => b.textContent.includes('承認して始める'))?.click()`);
+await ev(`[...document.querySelectorAll('button, [role="button"]')].find(b => b.textContent.includes('承認して始める'))?.click()`);
 // **固定で待たない。** 承認した直後の数秒が、実行が見られる唯一の窓
 //（決め打ちの1タスクは約3秒。並んで走るようになったので、待つと全部済んでしまう）
 for (let i = 0; i < 30 && !/\/work\/[^/]+$/.test((await ev('location.pathname')) ?? ''); i++) await wait(250);
@@ -127,13 +161,13 @@ for (let i = 0; i < 40 && !(sawFlow && sawPair); i++) {
   if (/[1-9]\d?%/.test(b)) sawProgress = true;
   // **同時に2人動いているか**（社長の「他のAIが全員動き出す」）。
   // 同じ人に2本は持たせないので、担当が分かれた2本が並んで走る
-  if (await ev(`[...document.querySelectorAll('button')].filter(
-    (x) => x.className.includes('row') && /フェーズ1/.test(x.innerText) && /\\d+%/.test(x.innerText)).length >= 2`))
+  if (await ev(`[...document.querySelectorAll('button, [role="button"]')].filter(
+    (x) => /row|card/.test(x.className) && /フェーズ1/.test(x.innerText) && /\\d+%/.test(x.innerText)).length >= 2`))
     sawPair = true;
   // **実行中の行だけ開く**（判断待ちの行を開くと、歩みではなく聞かれごとが出る）
   const opened = sawFlow ? false : await ev(`(() => {
-    const b = [...document.querySelectorAll('button')].find(
-      (x) => x.className.includes('row') && /フェーズ1/.test(x.innerText) && /\\d+%/.test(x.innerText));
+    const b = [...document.querySelectorAll('button, [role="button"]')].find(
+      (x) => /row|card/.test(x.className) && /フェーズ1/.test(x.innerText) && /\\d+%/.test(x.innerText));
     if (!b) return false; b.click(); return true; })()`);
   if (!opened) { await wait(400); continue; }
   await wait(600);
@@ -146,15 +180,25 @@ for (let i = 0; i < 40 && !(sawFlow && sawPair); i++) {
 ok('進捗が 0% から動いた', sawProgress);
 ok('実行の最中に歩みが読めた', sawFlow);
 ok('社員が並んで動き出す（同時に2人）', sawPair);
-const stopped = await until((b) => b.includes('決める'));
-ok('判断で止まった（◆ 決める）', stopped.includes('決める'), stopped.slice(0, 60));
+/**
+ * **状態の語は6つだけ**（2026-08-27）。タスクの行の右端は状態の列なので、
+ * `判断待ち` と出す（前は `決める` と書いていた — 6語の外の言い方を作らない）。
+ *
+ * **本文で探さない。** `判断待ち` は上の帯の**ラベルにも**あるので、
+ * 画面の文字を見るだけだと、**どの Work でも必ず当たる**（一度もそこで止まっていなくても）。
+ * 見るのは**タスクの行そのもの** — 押せる行が出たかどうか。
+ */
+const decRow = `${DECIDE}[0]`;
+let stopped = false;
+for (let i = 0; i < 40 && !stopped; i++) { stopped = !!(await ev(`!!(${decRow})`)); if (!stopped) await wait(1200); }
+ok('判断で止まった（◆ 判断待ち）', stopped, (await text()).slice(0, 60));
 
 // ③ 判断に答える → 決定が次の実行に入って、タスクが最後まで走る
 // 押してから開くまでに、読み直しの1回が挟まることがある（器のポンプが3秒ごとに回っている）。
 // **開くまで押し直す** — 見ているのは「開くか」であって「1回目で開くか」ではない
 let dpane = '';
 for (let i = 0; i < 8 && !dpane.includes('推奨'); i++) {
-  await ev(`[...document.querySelectorAll('button')].find(x => x.className.includes('row') && x.innerText.includes('決める'))?.click()`);
+  await ev(`(${decRow})?.click()`);
   await wait(700);
   dpane = await ev(`document.querySelector('aside')?.innerText ?? ''`) ?? '';
 }
@@ -209,8 +253,8 @@ await send('Page.navigate', { url: workUrl }); await wait(1500);
 // **開くまで押し直す**（この検査の他のところと同じ作法）
 let spane = '';
 for (let i = 0; i < 12 && !spane.includes('もう一度やる'); i++) {
-  await ev(`[...document.querySelectorAll('button')].find(
-    (x) => x.className.includes('row') && x.innerText.includes('市場の大きさを出す'))?.click()`);
+  await ev(`[...document.querySelectorAll('button, [role="button"]')].find(
+    (x) => /row|card/.test(x.className) && x.innerText.includes('市場の大きさを出す'))?.click()`);
   await wait(700);
   spane = (await ev(`document.querySelector('aside')?.innerText ?? ''`)) || '';
 }
@@ -241,13 +285,18 @@ ok('決定が次の実行に渡って、調査フェーズが最後まで走っ�
    shut1.includes('フェーズ「調査」が終わりました'), shut1.slice(0, 80));
 ok('成果物が 要確認 のあいだは、◆ が無くても待つ',
    shut1.includes('を見て、次に進めてください')
-   && await ev(`[...document.querySelectorAll('button')].some(b => b.innerText.includes('次のフェーズへ進める'))`),
+   && await ev(`[...document.querySelectorAll('button, [role="button"]')].some(b => b.innerText.includes('次のフェーズへ進める'))`),
    shut1.match(/フェーズ「調査」[^\n]*/)?.[0]);
+/**
+ * **フェーズの行に「ねらい」が出るようになった**（2026-08-27）ので、
+ * 画面の文字で `収益モデル` を探すと**戦略フェーズのねらいに当たる**。
+ * 見るのは**タスクが積まれたかどうか** — フェーズが始まって初めて行ができる。
+ */
 ok('待っているあいだ、次のフェーズは始まっていない',
-   !(await text()).includes('収益モデル'));
+   !(await ev(`${HITS}.some((x) => x.innerText.includes('収益モデルを比べる'))`)));
 
 // ④ 成果物: 1つ承認、1つ差し戻し → 直しタスクが走る（**まだフェーズ1のうち**）
-await ev(`[...document.querySelectorAll('button')].find(b => b.className.includes('row') && b.innerText.includes('競合'))?.click()`);
+await ev(`${CARDS}.find((b) => b.innerText.includes('競合'))?.click()`);
 await wait(700);
 const pane = await ev(`document.querySelector('aside')?.innerText ?? ''`);
 ok('成果物の本文と承認の口', pane.includes('承認して受け取る'), pane.slice(0, 50));
@@ -256,7 +305,7 @@ await wait(1000);
 ok('承認すると 承認済', ((await ev(`document.querySelector('aside')?.innerText ?? ''`))).includes('承認済'));
 await ev(`document.querySelector('aside button')?.click()`); await wait(300);
 
-await ev(`[...document.querySelectorAll('button')].filter(b => b.className.includes('row') && /市場/.test(b.innerText))[0]?.click()`);
+await ev(`${CARDS}.filter((b) => /市場/.test(b.innerText))[0]?.click()`);
 await wait(700);
 await ev(`[...document.querySelectorAll('aside button')].find(b => b.innerText === '直してほしい')?.click()`);
 await wait(400);
@@ -281,8 +330,7 @@ ok('差し戻しが直しタスクになって積まれた', gate2.includes('を
 const seeAll = async (max = 6) => {
   for (let i = 0; i < max; i++) {
     const opened = await ev(`(() => {
-      const b = [...document.querySelectorAll('button')].find(
-        (x) => x.className.includes('row') && x.innerText.includes('要確認'));
+      const b = ${NEEDS}[0];
       if (!b) return false; b.click(); return true; })()`);
     if (!opened) return i;
     await wait(700);
@@ -299,12 +347,18 @@ const seeAll = async (max = 6) => {
 // **直したものまで見終われば、◆ が無いフェーズは押さなくても次へ進む**
 await until((b) => b.includes('フェーズ「調査」が終わりました'), 90);
 ok('直したものが 要確認 で戻ってくる', (await seeAll()) > 0);
-const auto = await until((b) => b.includes('収益モデル'), 90);
-ok('見終わると、◆ が無いフェーズは押さなくても次へ進む', auto.includes('収益モデル'), auto.slice(0, 80));
-const bar = await ev(`[...document.querySelectorAll('button')].some(b => b.innerText.includes('次のフェーズへ進める'))`);
+/**
+ * **フェーズの行に「ねらい」が出る**ので、`収益モデル` は戦略フェーズのねらいに当たる。
+ * 進んだ印は**タスクが積まれたこと** — 行そのものを見る。
+ */
+const hasNext = `${HITS}.some((x) => x.innerText.includes('収益モデルを比べる'))`;
+let auto = false;
+for (let i = 0; i < 90 && !auto; i++) { auto = !!(await ev(hasNext)); if (!auto) await wait(1200); }
+ok('見終わると、◆ が無いフェーズは押さなくても次へ進む', auto, (await text()).slice(0, 80));
+const bar = await ev(`[...document.querySelectorAll('button, [role="button"]')].some(b => b.innerText.includes('次のフェーズへ進める'))`);
 ok('進んだあとは承認の帯が出ていない', !bar, String(bar));
-const p2 = await until((b) => /フェーズ\n2 \/ /.test(b), 40);
-ok('フェーズが 2 に進んだ', /フェーズ\n2 \/ /.test(p2), p2.match(/フェーズ\n[^\n]*/)?.[0]);
+const p2 = await until((b) => /フェーズ 2 \/ /.test(b), 40);
+ok('フェーズが 2 に進んだ', /フェーズ 2 \/ /.test(p2), p2.match(/フェーズ [^\n]*/)?.[0]);
 /**
  * **引き継ぎがオフィスのログに出る**（2026-08-26）。
  * 設計にも型のコメントにも「引き継ぎもここに出る」と書いてあったのに、
@@ -331,14 +385,15 @@ ok('「残り」が数字になる（承認したときの見込みから）',
  * いまは選ぶとその1つだけが残り、下の「いま動いているもの」と「成果物」も絞られる。
  */
 await ev(`[...document.querySelectorAll('[role=button]')].find(
-  (x) => x.className.includes('row') && /調査/.test(x.innerText) && /\\d+\\/\\d+/.test(x.innerText))?.click()`);
+  (x) => /row|card/.test(x.className) && /調査/.test(x.innerText) && /\\d+\\/\\d+/.test(x.innerText))?.click()`);
 await wait(800);
 const picked = await text();
 ok('フェーズを押すと、その1つだけに絞られる（画面から出ない）',
    /ph=1/.test(await ev('location.search')) && picked.includes('フェーズ1 だけ')
-   && !picked.includes('収益モデルを比べる'),
+   // **帯には出たままでいい**（帯は Work ぜんぶの話）。絞るのはタスクと成果物の節
+   && !(await ev(`${HITS}.some((x) => x.innerText.includes('収益モデルを比べる'))`)),
    (await ev('location.pathname')) + (await ev('location.search')));
-await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('すべて見る'))?.click()`);
+await ev(`[...document.querySelectorAll('button, [role="button"]')].find(b => b.innerText.includes('すべて見る'))?.click()`);
 await wait(700);
 ok('もう一度押すか「すべて見る」で戻る', !/ph=1/.test(await ev('location.search')), await ev('location.search'));
 
@@ -348,10 +403,11 @@ ok('もう一度押すか「すべて見る」で戻る', !/ph=1/.test(await ev(
  *     決め打ちの計画は 戦略 の「収益モデルを比べる」に ◆ を置く。
  *     **待つのはその1本だけ** — ほかの2人は答えを待たずに動き出す。
  */
-const ask2 = await until((b) => /収益モデルを比べる[\s\S]{0,60}決める/.test(b), 60);
+const ask2 = await until((b) => /収益モデルを比べる[\s\S]{0,60}判断待ち/.test(b), 60);
 ok('統括AIが、社長にしか決められないことを聞いてくる',
-   /収益モデルを比べる[\s\S]{0,60}決める/.test(ask2),
+   /収益モデルを比べる[\s\S]{0,60}判断待ち/.test(ask2),
    ask2.match(/収益モデルを比べる[\s\S]{0,60}/)?.[0]?.replace(/\n/g, ' '));
+// この行を押す（帯のラベルではなく、タスクの行）
 // **聞いているあいだも、ほかは止まらない** — 答える前に 戦略 の 2/3 が終わる
 const par2 = await until((b) => /戦略[\s\S]{0,20}2\/3/.test(b), 90);
 ok('聞いているあいだも、ほかのAIは動いている（2 / 3）',
@@ -359,7 +415,7 @@ ok('聞いているあいだも、ほかのAIは動いている（2 / 3）',
 // 答える（推奨は 月額）
 let dp2 = '';
 for (let i = 0; i < 8 && !dp2.includes('収益の取り方'); i++) {
-  await ev(`[...document.querySelectorAll('button')].find(x => x.className.includes('row') && x.innerText.includes('決める'))?.click()`);
+  await ev(`(${decRow})?.click()`);
   await wait(700);
   dp2 = await ev(`document.querySelector('aside')?.innerText ?? ''`) ?? '';
 }
@@ -375,8 +431,7 @@ ok('フェーズ「戦略」が閉じた', done2.includes('フェーズ「戦略
 // **表（csv）の成果物**もここで出る（価格の帯 → 1行目が見出しの表）
 ok('表は表として読める（記号のまま出さない）',
    await ev(`(() => {
-     const b = [...document.querySelectorAll('button')].find(
-       (x) => x.className.includes('row') && /価格/.test(x.innerText));
+     const b = ${CARDS}.find((x) => /価格/.test(x.innerText));
      if (!b) return false; b.click(); return true; })()`) ? (
      await wait(800), (await ev(`document.querySelectorAll('aside table').length`)) > 0
    ) : false);
@@ -396,11 +451,17 @@ await seeAll();
 const askGate2 = await until((b) => b.includes('決めて、次に進めてください'), 60);
 ok('◆ があるフェーズは、見終わっても社長に聞く（計画の約束）',
    askGate2.includes('決めて、次に進めてください') && askGate2.includes('価格の方向性')
-   && !/フェーズ\n3 \/ /.test(askGate2),
+   && !(await ev(`${HITS}.some((x) => x.innerText.includes('フェーズ3'))`)),
    askGate2.match(/決めて、次に進めてください[\s\S]{0,60}/)?.[0]?.replace(/\n/g, ' ') ?? '(出ていない)');
-await ev(`[...document.querySelectorAll('button')].find(x => /推奨/.test(x.innerText))?.click()`);
-const p3 = await until((b) => /フェーズ\n3 \/ /.test(b), 60);
-ok('決めるとフェーズ 3 へ進む（押す手は要らない）', /フェーズ\n3 \/ /.test(p3), p3.match(/フェーズ\n[^\n]*/)?.[0]);
+await ev(`[...document.querySelectorAll('button, [role="button"]')].find(x => /推奨/.test(x.innerText))?.click()`);
+/**
+ * **「フェーズ 3 / 5」は帯から消えた**（2026-08-27）。進捗の刻み（`Seg`）が同じことを言うので
+ * 1つに畳んだ。進んだ印は**フェーズ3のタスクが積まれたこと** — 行そのものを見る。
+ */
+const on3 = `${HITS}.some((x) => x.innerText.includes('フェーズ3'))`;
+let p3 = false;
+for (let i = 0; i < 60 && !p3; i++) { p3 = !!(await ev(on3)); if (!p3) await wait(1200); }
+ok('決めるとフェーズ 3 へ進む（押す手は要らない）', p3, (await text()).slice(0, 60));
 // **決めたことは台帳に残る**（あとから読める）
 await send('Page.navigate', { url: `${BASE}/decisions` }); await wait(2200);
 const gateLed = await text();
@@ -445,14 +506,14 @@ ok('壊れた線は残っていない', !shown.includes('resend'), shown.slice(-
  */
 await send('Page.navigate', { url: `${BASE}/deliverables` }); await wait(2200);
 const hadCards = (await text()).includes('承認済') || (await ev(`[...document.querySelectorAll('.card')].length`)) > 0;
-await ev(`[...document.querySelectorAll('button')].find(b => /要確認 \\d/.test(b.innerText))?.click()`);
+await ev(`[...document.querySelectorAll('button, [role="button"]')].find(b => /要確認 \\d/.test(b.innerText))?.click()`);
 await wait(900);
 const onlyR = await text();
 ok('要確認だけに絞れる',
    hadCards && onlyR.includes('要確認だけ') && /要確認だけ\n· \d/.test(onlyR),
    onlyR.match(/要確認だけ[\s\S]{0,20}/)?.[0]?.replace(/\n/g, ' ') ?? onlyR.slice(0, 120));
 ok('絞ったことは URL に残る', /only=review/.test(await ev('location.search')), await ev('location.search'));
-await ev(`[...document.querySelectorAll('button')].find(b => b.innerText === 'すべて見る')?.click()`);
+await ev(`[...document.querySelectorAll('button, [role="button"]')].find(b => b.innerText === 'すべて見る')?.click()`);
 await wait(700);
 ok('すべてに戻せる', (await text()).includes('すべての成果物'), (await text()).slice(0, 60));
 
@@ -674,7 +735,7 @@ const menu = await ev(`document.body.innerText`);
 ok('「わたし」のメニューに、死んだ行が無い',
    /請求/.test(menu) && /ログアウト/.test(menu) && !/\n設定\n/.test(menu),
    menu.match(/あなた[\s\S]{0,40}/)?.[0]?.replace(/\n/g, ' '));
-await ev(`[...document.querySelectorAll('button')].find(b => b.innerText === 'ログアウト')?.click()`);
+await ev(`[...document.querySelectorAll('button, [role="button"]')].find(b => b.innerText === 'ログアウト')?.click()`);
 {
   let at = '';
   for (let i = 0; i < 12 && !/\/login/.test(at); i++) { await wait(500); at = await ev('location.pathname'); }
@@ -766,7 +827,7 @@ ok('別の会話でも、会社が作ったものを思い出す',
 
 // ⑤'' 入口 Case B — **チャットの中で**条件を集めて候補3つ
 await send('Page.navigate', { url: `${BASE}/start` }); await wait(2200);
-await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('まだ決まっていない'))?.click()`);
+await ev(`[...document.querySelectorAll('button, [role="button"]')].find(b => b.innerText.includes('まだ決まっていない'))?.click()`);
 /** **まず、やさしい質問から。** 分野は最後（無数にあるので、一覧から選ばせない） */
 const askInChat = await until((b) => b.includes('週にどれくらい使えますか'), 20, 800);
 ok('「まだ決まっていない」は、やさしい質問（時間）から始まる',
@@ -779,16 +840,16 @@ const threadB = await ev('location.pathname');
  */
 const replies = () => ev(`(document.body.innerText.match(/（仮の返事）/g) ?? []).length`);
 const before1 = await replies();
-await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('週10時間'))?.click()`);
+await ev(`[...document.querySelectorAll('button, [role="button"]')].find(b => b.innerText.includes('週10時間'))?.click()`);
 await wait(1500);
 const mid = await text();
 ok('1問めでは送らず、2問めを出す',
    mid.includes('やりたくないこと') && (await replies()) === before1,
    `返事 ${before1} → ${await replies()}`);
-await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('在庫を持つ'))?.click()`);
+await ev(`[...document.querySelectorAll('button, [role="button"]')].find(b => b.innerText.includes('在庫を持つ'))?.click()`);
 await wait(1200);
 // 3問め（最後）＝分野。答えると3問ぶんまとめて送られ、**続きの仕掛け**が候補まで出す
-await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('学び・教える'))?.click()`);
+await ev(`[...document.querySelectorAll('button, [role="button"]')].find(b => b.innerText.includes('学び・教える'))?.click()`);
 // **候補カードだけが持つ言葉で待つ。** 「条件に合う道」は進行の帯（〇〇しています）にも
 // 出るので、カードにしか無い「推さない理由」で待つ
 const cands = await until((b) => b.includes('推さない理由'), 20, 800);
@@ -845,12 +906,12 @@ ok('会話は下に貼り付いていて、入力欄に隠れない',
  * 押すと会話に戻り、**何が違うかを1問だけ**聞かれる（すぐ3つ出し直さない）。
  * そして**答えを新しいゴールにしない**（質問文が Work の題になる穴があった）。
  */
-await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('どれも違う'))?.click()`);
+await ev(`[...document.querySelectorAll('button, [role="button"]')].find(b => b.innerText.includes('どれも違う'))?.click()`);
 const why = await until((b) => b.includes('どこが違いますか'), 20, 700);
 ok('「どれも違う」と言うと、何が違うかを1問だけ聞かれる',
    why.includes('どこが違いますか') && why.includes('相手が違う'), why.slice(-140));
 ok('答えを新しいゴールにしない（Work の提案が出ない）', !why.includes('この Work を作る'), why.slice(-140));
-await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('相手が違う'))?.click()`);
+await ev(`[...document.querySelectorAll('button, [role="button"]')].find(b => b.innerText.includes('相手が違う'))?.click()`);
 const axis = await until((b) => b.includes('相手を変えて'), 20, 800);
 ok('違う軸で候補が出し直される', axis.includes('相手を変えて') && axis.includes('推さない理由'), axis.slice(-160));
 
@@ -859,7 +920,7 @@ const sure = await until((b) => b.includes('この案で Work を作りますか
 ok('候補を押しただけでは Work を作らない',
    sure.includes('この案で Work を作りますか') && !/\/plan$/.test(await ev('location.pathname')),
    await ev('location.pathname'));
-await ev(`[...document.querySelectorAll('button')].find(b => b.innerText === '作る')?.click()`);
+await ev(`[...document.querySelectorAll('button, [role="button"]')].find(b => b.innerText === '作る')?.click()`);
 const planB = await until((b) => b.includes('承認して始める'), 20, 800);
 ok('候補から Work の計画に入った', planB.includes('承認して始める') && /\/plan$/.test(await ev('location.pathname')),
    await ev('location.pathname'));
@@ -904,7 +965,7 @@ ok('どの Work の判断かが出る', led.includes('韓国人向けの日本�
 
 // ⑤''' 入口 Case D — **チャットの中で**取り込み → 診断
 await send('Page.navigate', { url: `${BASE}/start` }); await wait(2200);
-await ev(`[...document.querySelectorAll('button')].find(b => b.innerText.includes('すでに事業がある'))?.click()`);
+await ev(`[...document.querySelectorAll('button, [role="button"]')].find(b => b.innerText.includes('すでに事業がある'))?.click()`);
 const askD = await until((b) => b.includes('あるものだけで構いません'), 20, 800);
 ok('「すでに事業がある」がチャットで始まる',
    askD.includes('あるものだけ') && /^\/chat\//.test(await ev('location.pathname')), await ev('location.pathname'));
@@ -915,7 +976,7 @@ ok('材料を渡すと、診断のカードが会話に出る',
    diag.includes('継続率を測れていない') && diag.includes('412,000') && diag.includes('測れていません'),
    diag.slice(-160));
 ok('診断のカードも会話の中', (await ev('location.pathname')) === threadD, await ev('location.pathname'));
-await ev(`[...document.querySelectorAll('button')].find(b => b.innerText === 'Work にする')?.click()`);
+await ev(`[...document.querySelectorAll('button, [role="button"]')].find(b => b.innerText === 'Work にする')?.click()`);
 const planD = await until((b) => b.includes('承認して始める'), 20, 800);
 ok('診断から Work の計画に入った', planD.includes('承認して始める') && /\/plan$/.test(await ev('location.pathname')),
    await ev('location.pathname'));
@@ -940,7 +1001,7 @@ ok('新しいチャットからでも返事が来る',
  * いまは**タスクの担当名から採り、名簿に無い名前は落として調査担当に寄せる**。
  */
 await until((b) => b.includes('この Work を作る'), 20, 800);
-await ev(`[...document.querySelectorAll('button')].find(b => b.innerText === 'この Work を作る')?.click()`);
+await ev(`[...document.querySelectorAll('button, [role="button"]')].find(b => b.innerText === 'この Work を作る')?.click()`);
 await until((b) => b.includes('承認して始める'), 20, 800);
 const smallPlan = await text();
 ok('居ない担当名を計画に残さない', !smallPlan.includes('商品設計担当') && !smallPlan.includes('デザイン制作担当'),
@@ -953,7 +1014,7 @@ ok('居ない担当名を計画に残さない', !smallPlan.includes('商品設�
 ok('人を集める仕事を、最初のフェーズにしない',
    !smallPlan.includes('宣伝の下ごしらえ') && smallPlan.includes('案出し'),
    smallPlan.match(/[^\n]*(宣伝|案出し)[^\n]*/)?.[0] ?? smallPlan.slice(0, 120));
-await ev(`[...document.querySelectorAll('button')].find(b => b.textContent.includes('承認して始める'))?.click()`);
+await ev(`[...document.querySelectorAll('button, [role="button"]')].find(b => b.textContent.includes('承認して始める'))?.click()`);
 await wait(3500);
 const small = await until((b) => /[1-9]\d?%|要確認/.test(b), 30);
 // **寄せ先は「そのフェーズを回す人」**（2026-08-26）。先頭の社員ではない —
