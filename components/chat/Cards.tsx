@@ -336,6 +336,27 @@ function CandidatesCard({ id, live, threadId, onSend }: {
                 * 「誰が買うのか」「最初の1人をどこで見つけるか」が書けない候補は、
                 * そもそも始められない。**ラベルは2〜4文字で左に揃える**（表と同じ読み方）。
                 */}
+              {/**
+                * **まず作るものを、いちばん先に出す**（2026-08-28。社長の
+                * 「何をしたいのかがわかりにくい」）。
+                *
+                * ここまでカードに書いてあったのは**行き先だけ**だった —
+                * 完了・誰が買うか・条件との相性。どれも「どんな事業か」の説明で、
+                * **「これを選んだら明日から何をするのか」がどこにも無かった**。
+                * 行き先が同じくらい良さそうな3案は、**やることが違うから**選べる。
+                *
+                * 器は下の label 行と同じ（新しい形を作らない）。値だけ縦に積む。
+                */}
+              {!!c.firstMake?.length && (
+                <span style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                  <span style={{ color: T5, fontSize: 10.5, flexShrink: 0, width: 48 }}>まず作る</span>
+                  <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                    {c.firstMake.map((m) => (
+                      <span key={m} style={{ color: T2, fontSize: 12, lineHeight: '18px' }}>・{m}</span>
+                    ))}
+                  </span>
+                </span>
+              )}
               {([['完了', c.ending], ['誰が', c.who], ['最初の1人', c.firstOne]] as const)
                 .filter(([, v]) => !!v).map(([label, v]) => (
                 <span key={label} style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>

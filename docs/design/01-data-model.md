@@ -136,13 +136,31 @@ erDiagram
 | テーブル | 役割 |
 |---|---|
 | `discovery_sessions` | 探索の1回。`account_id, status(collecting/proposed/adopted/abandoned), constraints, created_at` |
-| `discovery_candidates` | 出した候補。`session_id, name, summary, fit, recommended, adopted_work_id` |
+| `discovery_candidates` | 出した候補。`session_id, name, summary, ending, first_make, who, first_one, unsure, hours_per_week, fit, recommended, adopted_work_id` |
 | `business_profiles` | 既存事業。`account_id, name, url, stage, created_at` |
 | `imported_sources` | 取り込んだもの。`business_profile_id, kind(site/doc/sheet/analytics/social), locator, status, summary` |
 | `diagnoses` | 診断の1回。`business_profile_id, findings, created_at` |
 
 `constraints` は**構造で持つ**（使える時間 / 使えるお金 / 得意なこと / やりたくないこと / いつまでに）。
 自由記述にすると、条件を1つ変えて**候補を出し直す**ことができなくなる。
+
+**候補は、行き先と道の両方を書く**（2026-08-28。社長の「何をしたいのかがわかりにくい」）。
+
+| | 何を言うか |
+|---|---|
+| `name` | **誰に何を**（「テンプレート制作」ではなく「飲食店むけのメニュー表テンプレート」） |
+| `first_make` | **選んだら会社が最初に作るもの**を2〜3件。作るものの名前で書く |
+| `ending` | 何ができたら完了か（選ぶ前に読める。採用したあとに聞き返さない） |
+| `who` / `first_one` | 誰が買うか / 最初の1人をどこで見つけるか |
+| `unsure` | まだ確かめていないこと（統括AIは Web を見ていない） |
+| `fit` | 需要 / 1人で回せる / 最初の1件までの近さ |
+
+**行き先だけでは選べない。** 完了・誰が買うか・相性は「その事業がどんなものか」の
+説明で、**やることが書いていない**。行き先が同じくらい良さそうな3案は、
+やることが違うから比べられる。だから `first_make` を**カードのいちばん先**に出す。
+
+**3つは違う道にする** — 同じ商売の値段違い・規模違いを3つ並べても選べない。
+売るものが違う / 相手が違う / 届け方が違う のどれかで分ける。
 
 `fit` も構造（`speed / cost / strength` の3スコア）。
 画面では棒グラフで並べる。文章で「相性が良いです」と書かない。

@@ -1120,6 +1120,7 @@ function fakeCands(merged: Record<string, unknown>) {
     { name: `${of}オンライン講座`.slice(0, 24),
       summary: `${edge}在庫を持たず、週${hours}時間から始められます。`,
       ending: '最初の受講者が1人、最後まで受け終わっている',
+      first_make: ['1回ぶんの講座の台本', '申し込みページ1枚', '受講者に渡す資料'],
       who: `${field || 'その分野'}を独学ではじめて、途中で止まっている社会人`,
       first_one: `${field || 'その分野'}の学習者が集まっている掲示板とSNSで、3人に直接声をかける`,
       unsure: '独学で止まった人が、お金を払ってでも再開したいのかは確かめていません',
@@ -1131,6 +1132,7 @@ function fakeCands(merged: Record<string, unknown>) {
     { name: `${of}教材販売`.slice(0, 24),
       summary: '作れば売れ続けますが、最初の1本を作り切るまでが長い。',
       ending: '教材が1本できて、販売ページで買える状態になっている',
+      first_make: ['教材の目次と最初の1章', '販売ページ1枚'],
       who: `${field || 'その分野'}を独学したいが、何から手を付けるか分からない人`,
       first_one: '同じ教材を探している人が集まる場所に、目次だけ先に出して反応を見る',
       unsure: '既にある無料の教材で足りてしまうかどうかは確かめていません',
@@ -1140,6 +1142,7 @@ function fakeCands(merged: Record<string, unknown>) {
     { name: `企業むけ ${of}研修`.slice(0, 24),
       summary: '単価は高いが、営業に人前へ出る時間が要ります。',
       ending: '1社で研修を1回やり終えて、次の相談が来ている',
+      first_make: ['研修の企画書1枚', '当日の進行表'],
       who: `社員の${field || 'その分野'}の力を上げたい、社員30〜100人の会社の人事`,
       first_one: '知り合いの会社1社に、無料で1回やらせてもらえないか頼む',
       unsure: '決裁が下りる予算枠があるかは確かめていません',
@@ -1205,31 +1208,14 @@ async function* fakeDiscover(input: RunInput): AsyncIterable<Chunk> {
     return;
   }
 
-  const s = merged.strengths?.[0] ?? '得意なこと';
-  yield tool('propose_candidates', { candidates: [
-    {
-      name: `${s}のオンライン講座`.slice(0, 20),
-      summary: `${s}の経験がそのまま差になります。在庫を持たず、週${merged.hours_per_week ?? 10}時間から始められます。`,
-      why: [
-        `${s}の経験が、そのまま他社との差になります`,
-        '在庫を持たないので、外したときの損が小さい',
-        '週の時間内で、最初の形まで2ヶ月の見込み',
-      ],
-      fit: { speed: 86, cost: 92, strength: 94 }, recommended: true,
-    },
-    {
-      name: `${s}の教材販売`.slice(0, 20),
-      summary: '作れば売れ続けますが、最初の1本を作り切るまでが長い。',
-      why: [], fit: { speed: 42, cost: 88, strength: 70 }, recommended: false,
-      not_chosen_why: '最初の1本が長く、途中で判断材料が出ない',
-    },
-    {
-      name: `企業むけ ${s}研修`.slice(0, 20),
-      summary: '単価は高いが、営業に人前へ出る時間が要ります。',
-      why: [], fit: { speed: 64, cost: 76, strength: 48 }, recommended: false,
-      not_chosen_why: merged.avoid?.length ? `「${merged.avoid[0]}」を外したいという条件に合わない` : '営業の時間が条件に合わない',
-    },
-  ] });
+  /**
+   * **候補は1か所から出す**（2026-08-28）。ここには写しが置いてあって、
+   * `fit` が**0031 で入れ替える前の軸**（speed / cost / strength）のままだった —
+   * 通ると 需要 も 1人で回せる も 0 になり、`ending` も `who` も `first_one` も無い
+   * カードが出る。**上の注釈は「チャットと Case B で同じものを返す」と言っていたのに、
+   * 返していなかった。**
+   */
+  yield tool('propose_candidates', { candidates: fakeCands(merged as Record<string, unknown>) });
   yield { type: 'done', usage: EMPTY_USAGE, stopReason: 'tool_use' };
 }
 

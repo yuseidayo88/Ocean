@@ -383,6 +383,8 @@ export async function chatStep(state: ChatState, history: Msg[], opts: ChatOpts 
       recommended: !!x.recommended,
       notChosenWhy: x.not_chosen_why ? String(x.not_chosen_why) : undefined,
       who: x.who ? String(x.who) : undefined,
+      firstMake: Array.isArray(x.first_make)
+        ? x.first_make.map(String).map((v) => v.trim()).filter(Boolean).slice(0, 4) : undefined,
       firstOne: x.first_one ? String(x.first_one) : undefined,
       unsure: x.unsure ? String(x.unsure) : undefined,
       hoursPerWeek: Number.isFinite(Number(x.hours_per_week)) ? Math.max(0, Math.round(Number(x.hours_per_week))) : 0,
