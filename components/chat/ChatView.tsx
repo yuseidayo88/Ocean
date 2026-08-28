@@ -78,6 +78,21 @@ export type FirstLoad =
       /** この会話が持っている Work（1チャット = 1 Work）。カードが「作る / 見る」を決める */
       workId?: string };
 
+/**
+ * **思考の断片は、日本語のときだけ出す**（2026-08-28。社長の「変な言語混ざってるなにこれ」）。
+ *
+ * モデルが開示する思考は**たいてい英語**で、それを 80字で切ると
+ * `t simple. I should probably check if…` のように**語の途中から**出る。
+ * 社長には読めないし、読めても意味が無い — **画面が壊れて見えるだけ**。
+ *
+ * 出さないだけで、嘘は言わない（「作り話をしない」は守れている）。
+ * 英語のときは、道具の名前から作った「〇〇しています」だけが残る。
+ *
+ * 切るのは**頭から**。流れてくるものなので、尻を残すと毎回書き出しが消える。
+ */
+const JP = /[ぁ-んァ-ヶ一-龠]/;
+export const sayable = (s: string): string => (JP.test(s) ? s.trim().slice(0, 80) : '');
+
 export function ChatView({ id, first }: { id: string; first: FirstLoad }) {
   const router = useRouter();
   const fresh = id === 'new';
@@ -142,7 +157,7 @@ export function ChatView({ id, first }: { id: string; first: FirstLoad }) {
     }, setStage, (th) => {
       // 断片をつないで、**最新のひとかたまり**だけ見せる（行が変わったら前を捨てる）
       think = (think + th).split('\n').filter(Boolean).pop() ?? '';
-      setThought(think.slice(-80));
+      setThought(sayable(think));
     });
     if (bad) setFail(bad);
     // **読み直してから**流れていた文を下ろす（本文が一瞬消えるのを避ける）
